@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Father's Day Gift Note — Trendlift</title>
+<style>
+  /* Print-ready: US Letter landscape, fold in half to make a card.
+     Left half = back cover (logo), right half = front cover (message).
+     Inside is intentionally blank for a handwritten note. */
+  @page { size: letter landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 11in; height: 8.5in; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #14181d;
+    color: #f4efe8;
+    display: flex;
+  }
+  .half {
+    width: 50%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 0.75in;
+    text-align: center;
+  }
+  .back { border-right: 1px dashed rgba(244,239,232,.25); }
+  .brand {
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: 700; letter-spacing: .35em;
+    font-size: 13px; text-transform: uppercase; color: #c9a96a;
+  }
+  .back .brand { margin-top: auto; }
+  .back .tagline {
+    font-style: italic; font-size: 12px; color: rgba(244,239,232,.55);
+    margin-top: 8px; margin-bottom: 12px;
+  }
+  .rule { width: 56px; border-top: 2px solid #c9a96a; margin: 22px auto; }
+  h1 { font-size: 44px; font-weight: 400; line-height: 1.15; }
+  h1 .accent { color: #c9a96a; font-style: italic; }
+  .front p.lead { font-size: 17px; line-height: 1.6; max-width: 4.2in; }
+  .front p.sub {
+    font-size: 13px; line-height: 1.6; max-width: 4.2in;
+    color: rgba(244,239,232,.65); margin-top: 14px;
+  }
+  .fold-hint {
+    position: fixed; left: 50%; top: .18in; transform: translateX(-50%);
+    font-family: Helvetica, Arial, sans-serif; font-size: 8px;
+    letter-spacing: .2em; text-transform: uppercase;
+    color: rgba(244,239,232,.3);
+  }
+  @media print { .fold-hint { display: none; } }
+</style>
+</head>
+<body>
+  <div class="fold-hint">fold here</div>
+
+  <div class="half back">
+    <div class="brand">Trendlift</div>
+    <div class="tagline">Gifts worth the wait.</div>
+  </div>
+
+  <div class="half front">
+    <h1>Happy<br><span class="accent">Father's Day</span></h1>
+    <div class="rule"></div>
+    <p class="lead">The best gifts can't be rushed.<br>
+    Yours is already on its way —<br>
+    picked just for you.</p>
+    <p class="sub">Consider this the unwrapping preview. The real thing
+    shows up at the door in a few days. Worth it.</p>
+  </div>
+</body>
+</html>

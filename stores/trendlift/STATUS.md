@@ -46,14 +46,23 @@ and must be confirmed against real supplier quotes before activation.
 - [ ] Supplier quotes for the 5 FD products (US-stock/fast-ship only)
 - [ ] Product images for all 5 (min 5 each)
 - [ ] Legacy product handled: Bamboo Lazy Susan (still ACTIVE at $0.00
-      from the old concept) — draft or archive it ⚠️
+      from the old concept) — set to DRAFT ⚠️ **attempted 2026-06-11,
+      blocked: Shopify MCP token expired; retry after owner re-authorizes**
+- [ ] **Shopify re-authorization (owner action)** — token expired; on
+      re-auth, connect the NEW store if the middle preview is claimed
 - [ ] Policies pages: shipping, returns, contact, about
 - [ ] Shopify Payments confirmed live
-- [ ] Printable Father's Day gift-note PDF for the late-gift angle
+- [x] Printable Father's Day gift-note for the late-gift angle —
+      `dropship-os/assets/fathers-day-gift-note.html` (letter landscape,
+      fold-in-half card)
 
 ## Suppliers
 
-None on file yet.
+None on file yet. Candidate platforms for US-stock fast shipping
+(researched 2026-06-11, quotes require accounts): Doba (US warehouses,
+no MOQ — has whiskey-stone suppliers incl. ROCKS brand), CJ Dropshipping
+US warehouse, AliExpress US-warehouse filter. Real landed costs must be
+quoted before any FD product activates.
 
 ## KPIs
 
