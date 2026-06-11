@@ -151,6 +151,7 @@ Review weekly (Mondays). Pull from Shopify analytics.
 | Date | Decision | Why |
 |---|---|---|
 | 2026-06-11 | Created Dropship OS master doc; niche set to kitchen & pantry organization | Store had one bamboo organizer product; building the system around it |
+| 2026-06-11 | Decided to start over with a brand-new Shopify store instead of fixing "My Store 4"; previews generated for a Spacelift space-saving home organization concept | Owner preferred a clean start; new store will be claimed from a preview, then docs repointed to it |
 
 ---
 
