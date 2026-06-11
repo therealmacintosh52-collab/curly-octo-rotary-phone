@@ -45,11 +45,14 @@ and must be confirmed against real supplier quotes before activation.
       owner decision
 - [ ] Supplier quotes for the 5 FD products (US-stock/fast-ship only)
 - [ ] Product images for all 5 (min 5 each)
-- [ ] Legacy product handled: Bamboo Lazy Susan (still ACTIVE at $0.00
-      from the old concept) — set to DRAFT ⚠️ **attempted 2026-06-11,
-      blocked: Shopify MCP token expired; retry after owner re-authorizes**
-- [ ] **Shopify re-authorization (owner action)** — token expired; on
-      re-auth, connect the NEW store if the middle preview is claimed
+- [x] Legacy product handled: Bamboo Lazy Susan set to DRAFT (2026-06-11,
+      after owner reconnected Shopify) — no more $0.00 active product
+- [x] Shopify re-authorization — owner reconnected 2026-06-11; still
+      store "My Store 4". **Decision: run Father's Day on the current
+      store; new-store/rebrand revisited after the campaign**
+- [ ] Supplier quotes — shopping list ready:
+      `dropship-os/suppliers/fd26-sourcing-list.md` (max landed costs +
+      per-quote checklist; owner needs platform accounts to pull quotes)
 - [ ] Policies pages: shipping, returns, contact, about
 - [ ] Shopify Payments confirmed live
 - [x] Printable Father's Day gift-note for the late-gift angle —
