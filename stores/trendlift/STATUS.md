@@ -67,6 +67,11 @@ and must be confirmed against real supplier quotes before activation.
       (3 hooks per product, deadline lines, email popup copy, organic
       posting plan)
 - [ ] Shopify Payments confirmed live
+- [ ] **Owner verdict: live product images look fake — replace with real
+      photos.** Fastest route: re-push full original galleries from the
+      Zendrop/CJ apps (owner, ~10 min). Full plan incl. reverse-image
+      tools and sample-photo upgrade:
+      `dropship-os/suppliers/fd26-real-photos-playbook.md`
 - [ ] **HARD BLOCKER — products can't activate without real supplier
       costs + photos.** All autonomous routes exhausted (Zendrop UI not
       reachable by agent; Zendrop API blocked by environment network
