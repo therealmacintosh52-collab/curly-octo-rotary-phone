@@ -44,7 +44,24 @@ if available → cost at or under target → **List It Now / Push to Store**.
 Push as many as exist — 3 is enough to launch, 5+ is great. Claude
 rebuilds the campaign around whatever lands within minutes.
 
-## Sources
+## Competitor benchmark (verified live listings, 2026-06-11)
+
+| Product | TikTok Shop | Temu | Walmart/Target | Our retail call |
+|---|---|---|---|---|
+| Galaxy projector | Astronaut Galaxy & Stars Projector **$14** (heavily promoted) | — | Target carries "tiktok galaxy projector" | $19.95–24.95 (astronaut style if sourceable) |
+| Handheld massager / fascia gun | Active "fascial gun massager" category | Mini 4-head fascia guns, deep-discount pricing (aggressive) | — | $29.95–39.95; must out-frame Temu on gift quality, not price |
+| Meat thermometer | Free-shipping listings | Digital models reviewed | Instant-read **$6.99–16.58**; ThermoPro wireless **$49.99–69.99**; MEATER $199 | Wired probe → $19.95 cap; app/wireless → $39.95 holds |
+| Power bank | Magnetic 10,000mAh w/ display **$14.99**; some **<$10** | — | — | $19.95–24.95 only if magnetic+display style |
+| Multitool | — (EDC gift guides circulating) | — | **$6.14–9.49** comparable | $16.95 holds w/ gift tin framing |
+| BBQ tool set | — | — | sets from ~$6.99 entry | $24.95–29.95 mid-tier set |
+
+Implication: every item is a commodity with a visible floor price. We
+don't win on price — we win on Father's Day gift framing (gift-ready
+listing, DAD10, deadline urgency, curated collection) and creative.
+
+Benchmark sources: shop.tiktok.com (galaxy projector, power banks,
+fascial massagers, meat thermometers), temu.com (fascia guns),
+walmart.com (thermometers, multitools), target.com, the-gadgeteer.com.
 
 - TikTok Shop trending: tiktok.com/discover/trending-products, shop.tiktok.com
 - CJ's TikTok products list: cjdropshipping.com/blogs/dropshipping-knowledge/TikTok-Dropshipping-Products
