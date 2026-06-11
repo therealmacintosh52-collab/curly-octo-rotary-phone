@@ -53,7 +53,15 @@ and must be confirmed against real supplier quotes before activation.
 - [ ] Supplier quotes — shopping list ready:
       `dropship-os/suppliers/fd26-sourcing-list.md` (max landed costs +
       per-quote checklist; owner needs platform accounts to pull quotes)
-- [ ] Policies pages: shipping, returns, contact, about
+- [x] Policies pages: About, Shipping Policy, Refunds & Returns created;
+      Contact rewritten (2026-06-11). Note: official Settings→Policies
+      slots couldn't be set via API (missing `write_legal_policies`
+      scope) — owner should paste the page text there or link the pages
+      in footer navigation
+- [x] First-order discount: **DAD10** — 10%, all customers, active
+      (gid://shopify/DiscountCodeNode/1525905064185)
+- [ ] Footer/menu links to the new pages (owner: Online Store →
+      Navigation, or tell Claude to do it via menu API)
 - [ ] Shopify Payments confirmed live
 - [x] Printable Father's Day gift-note for the late-gift angle —
       `dropship-os/assets/fathers-day-gift-note.html` (letter landscape,
