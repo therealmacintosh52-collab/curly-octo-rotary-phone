@@ -60,9 +60,20 @@ and must be confirmed against real supplier quotes before activation.
       in footer navigation
 - [x] First-order discount: **DAD10** — 10%, all customers, active
       (gid://shopify/DiscountCodeNode/1525905064185)
-- [ ] Footer/menu links to the new pages (owner: Online Store →
-      Navigation, or tell Claude to do it via menu API)
+- [x] Navigation wired via menu API (2026-06-11): main menu now Home /
+      Father's Day Gift Shop / All Products / About / Contact; footer
+      now includes Shipping Policy + Refunds & Returns
+- [x] Ad creative pack written: `dropship-os/marketing/fd26-ad-creative.md`
+      (3 hooks per product, deadline lines, email popup copy, organic
+      posting plan)
 - [ ] Shopify Payments confirmed live
+- [ ] **HARD BLOCKER — products can't activate without real supplier
+      costs + photos.** All autonomous routes exhausted (Zendrop UI not
+      reachable by agent; Zendrop API blocked by environment network
+      allowlist; AliExpress/CJ/Doba public pages bot-blocked, HTTP 403).
+      Remaining routes are owner-only: (a) 5 clicks per product in
+      Zendrop (search → US filter → ≤max cost → Import → Push), or
+      (b) grant network access to a supplier API in a future session.
 - [x] Printable Father's Day gift-note for the late-gift angle —
       `dropship-os/assets/fathers-day-gift-note.html` (letter landscape,
       fold-in-half card)
