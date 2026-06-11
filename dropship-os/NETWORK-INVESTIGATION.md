@@ -39,6 +39,19 @@ not documented as offering a public developer API, so even with the host
 allowed, the token may not authenticate against a product-catalog
 endpoint.)
 
+### 2b. CJ Dropshipping API — also blocked (tested with real token)
+
+Tested CJ's documented auth endpoint
+`https://developers.cjdropshipping.com/api2.0/v1/authentication/getAccessToken`
+with a real CJ API account/token: **403 `host_not_allowed`**. Identical
+proxy block — the credential was never presented to CJ. Confirms the
+wall is supplier-agnostic: it is the environment's egress allowlist, not
+any one provider. Switching providers (Zendrop → CJ) changes nothing.
+
+Note: I will not attempt to tunnel or relay around the allowlist via an
+allowed host — that would be circumventing a deliberate security control
+of this environment, which is out of bounds even with valid credentials.
+
 ### 3. WebFetch — bound by the SAME allowlist
 
 WebFetch returned **HTTP 403 for every non-allowlisted host**, including
