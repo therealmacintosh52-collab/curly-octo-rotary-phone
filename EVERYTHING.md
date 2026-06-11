@@ -1,243 +1,141 @@
 # EVERYTHING — Dropship OS Complete Compendium
 
-The entire Dropship OS in one file. This consolidates every document in
-the repo plus the live business state, so reading this single file gives
-complete context. Source documents remain authoritative for their areas:
+The entire Dropship OS in one file: every repo document consolidated,
+plus live state. Source docs remain authoritative for their areas:
 
 | Source | Covers |
 |---|---|
-| `DROPSHIP-OS-MASTER.md` | Business playbook & decision log |
+| `DROPSHIP-OS-MASTER.md` | Business playbook, campaigns, trend radar, decision log |
 | `dropship-os/CLAUDE.md` | Agent instructions & MCP tool map |
-| `stores/spacelift/STATUS.md` | Live store status & changelog |
+| `stores/trendlift/STATUS.md` | Live store status & changelog |
 | `HANDOFF-TO-CLAUDE-AI.md` | Portable context for claude.ai chats |
 
-**Compiled:** 2026-06-11. When source docs change, recompile this file.
+**Compiled:** 2026-06-11 (recompiled after the Trendlift pivot). When
+source docs change, recompile this file.
 
 ---
 
 # PART 1 — Where things stand right now
 
-**The business is restarting on a brand-new store.** On 2026-06-11 the
-owner decided to start over rather than fix the original store
-("My Store 4", `ft6xi1-n1.myshopify.com`). Shopify storefront previews
-were generated (generation `364a3372-3077-4fb9-8851-d85d09758a58`) for
-the new concept:
+**Claude runs this project** (owner delegated, 2026-06-11). Strategy:
+**Trendlift** — trend-driven seasonal commerce. First campaign:
+**Father's Day 2026 (Sunday, June 21 — 10 days out)**, then a rolling
+calendar of seasonal/trend waves.
 
-- **Brand:** Spacelift
-- **Sells:** space-saving home organizers, pantry/kitchen storage,
-  bamboo turntables
-- **Audience:** apartment dwellers, small-space living, home cooks,
-  declutterers
-- **Style:** clean, modern, airy, natural bamboo tones, minimal
+**Storefront:** owner reviewed the generated previews and chose **the
+middle one** of the Father's Day/trends generation
+(`f4a41235-3dc8-4695-8dc3-a2522708a624`). Waiting on the owner to claim
+it through its signup link (that creates the real store). Until then,
+campaign assets are staged in the connected store "My Store 4"
+(`ft6xi1-n1.myshopify.com`). Once claimed: `switch-shop` → verify →
+rebuild campaign assets there → repoint all docs.
 
-**Next milestone:** owner browses the previews, signs up through the
-chosen preview's link (this creates the real store with theme and
-starter products pre-installed), then the connected shop is switched to
-the new store and all docs are repointed to it.
+**Built in Shopify on 2026-06-11:**
+- Smart collection **Father's Day Gift Shop**
+  (`gid://shopify/Collection/469897969913`), rule: tag `fathers-day-2026`
+- 5 DRAFT products, vendor Trendlift, tags `fathers-day-2026` +
+  `stage:research` + `price-estimate`:
+  Whiskey Stones Gift Set (FD26-WSK-01, $24.95) · Wireless Meat
+  Thermometer (FD26-THM-02, $39.95) · 14-in-1 Multitool (FD26-MLT-03,
+  $22.95) · Magnetic Tool Wristband (FD26-MAG-04, $16.95) · Mini
+  Massage Gun (FD26-MSG-05, $49.95)
 
-The old store ("My Store 4") is untouched: 1 active product (Bamboo
-Lazy Susan Turntable — $0.00, no images, no SKU, no inventory), 0
-orders, 0 customers. It will be ignored or closed after the new store
-is claimed.
+**Gates before going live:** real supplier landed costs (replace
+`price-estimate`), product images, policies pages, payments live, and
+the legacy Bamboo Lazy Susan (still ACTIVE at $0.00) drafted/archived.
 
----
+# PART 2 — Father's Day 2026 campaign plan
 
-# PART 2 — Business playbook (from DROPSHIP-OS-MASTER.md)
+The shipping math is the campaign: dropship delivery runs 8–12 business
+days, so standard orders placed after ~June 12–13 miss the 21st.
 
-## Business snapshot
-
-| Item | Value |
+| Window | Play |
 |---|---|
-| Brand name | Spacelift |
-| Current Shopify store | My Store 4 (`ft6xi1-n1.myshopify.com`) — being replaced |
-| Plan / Currency / Country / TZ | Shopify / USD / United States / PDT |
-| Contact email | therealmacintosh52@gmail.com |
-| Niche | Kitchen & pantry organization — space-saving home goods |
-| Lifecycle | Pre-launch, restarting on a new store |
+| Jun 11–12 | Supplier quotes (US-stock/fast-ship only), confirm prices ≥3× landed, images, activate products |
+| Jun 12–14 | Launch ads + organic with explicit "order by" deadline |
+| Jun 15–18 | Late-gift angle: "ships after Father's Day — print this free gift note so there's something to unwrap" |
+| Jun 19–21 | Last call: digital gift cards only |
+| Jun 22+ | Post-mortem; graduate winners to evergreen; retire the rest |
 
-## Launch blockers (apply to whichever store goes live)
+# PART 3 — Trend radar (the permanent system)
 
-1. Every active product priced (no $0.00 products, ever).
-2. Product imagery: minimum 5 photos per product (hero on white,
-   lifestyle, size reference, detail, packaging).
-3. Inventory/fulfillment policy set per variant.
-4. Brand name consistent across store name, email sender, socials.
-5. Storefront basics: shipping policy, returns policy, contact page,
-   about page (also required for ad platform approval).
-6. Payments confirmed live, test mode off.
+## Seasonal calendar (US) — prep at T-30, ads at T-14
 
-## Product pipeline
+4th of July (Jul 4, prep Jun 15) → Back to School (Aug, prep Jul 15) →
+Halloween (Oct 31, prep Oct 1) → BFCM (Nov 27–30, prep Oct 28) →
+Christmas (Dec 25, prep Nov 10, watch ship cutoffs) → Valentine's
+(Feb 14, prep Jan 15) → Mother's Day (May 9 '27, prep Apr 9) →
+Father's Day (Jun '27).
 
-Stages tracked as Shopify product tags: `stage:research`,
-`stage:testing`, `stage:scaling`, `stage:kill`.
+## Weekly trend scan (Mondays, with KPI review)
 
-1. **Research** — candidates must solve a visible, annoying problem; be
-   hard to price-compare; ship safely (no glass/batteries initially);
-   support ≥3× markup.
-2. **Validation** — check supplier seller volume, search trend
-   direction, competitor ad activity before committing.
-3. **Testing** — $10–20/day ad budget per product for 3–5 days; judge
-   on cost per checkout-initiated, not just ROAS.
-4. **Scaling** — budget +20–30% every 2–3 days, new creative weekly,
-   backup supplier sourced.
-5. **Kill** — no add-to-carts after ~$50 spend, or margin collapse:
-   archive and log why in the decision log.
+Scan TikTok trending/creative centers, Google Trends breakouts, supplier
+bestseller movers. Score: rising not peaked · problem-solving or
+giftable · ships fast/safe · ≥3× markup · demo-able in 15 seconds. Add
+max ONE candidate/week as draft (`stage:research`, `trend:<name>`); log
+every add/kill.
 
-**Catalog target:** 5–10 active products within 30 days of launch.
+# PART 4 — Business playbook (rules)
 
-## Pricing rules
+**Pipeline stages** (product tags): `stage:research` → validation →
+`stage:testing` ($10–20/day, 3–5 days, judge cost-per-checkout-initiated)
+→ `stage:scaling` (+20–30% budget per 2–3 days, creative weekly, backup
+supplier) → `stage:kill` (no ATCs after ~$50 spend, archive + log).
 
-- Floor: landed cost (product + shipping + payment fees) × 3.
-- Charm pricing: .95/.99 under $50; whole numbers above.
-- Free-shipping threshold at ~1.8× AOV once order data exists; until
-  then bake shipping into price and advertise "free shipping."
-- Never discount sitewide >20%; prefer first-order codes (10–15%)
-  captured via email signup.
-- Monthly supplier cost re-check; reprice anything below 60% gross.
+**Pricing:** floor = landed cost × 3; charm .95/.99 under $50;
+free-shipping threshold ~1.8× AOV once data exists; sitewide discounts
+never >20%; first-order codes 10–15%; monthly supplier re-check, reprice
+under 60% gross; `price-estimate` products may NOT be activated.
 
-## Fulfillment & suppliers
+**Fulfillment:** two suppliers per winner; ≤12 business-day promise
+(event date is the real ceiling near holidays — use US stock);
+unfulfilled >2 days → same-day escalation.
 
-- Two suppliers per winning product (primary + backup) with cost,
-  shipping time, contact recorded.
-- Max delivery promise: 12 business days — replace suppliers that
-  can't beat it reliably.
-- Unfulfilled after 2 business days → same-day supplier escalation.
+**Marketing:** creative-first, 3–5 hooks per product; organic short-form
+→ paid social → search; ads land on product/campaign pages, never the
+homepage; email flows: abandoned checkout 1h/24h, expectations-setter,
+review ask, plus gift-deadline blasts in season.
 
-## Marketing engine
+**Support:** first response <12h; "where's my order" gets tracking +
+honest window (+ printable gift note in gift season); damaged = instant
+refund/reship, no return required on low-cost items; chargebacks
+answered <48h, refund weak cases (>0.7% rate risks the processor).
 
-- Creative-first: 3–5 hooks per product (problem-agitation, demo,
-  before/after, UGC-style).
-- Channel order: organic short-form video → paid social where organic
-  showed traction → search ads only after proven demand.
-- Email flows: abandoned checkout (1h, 24h), order-confirmation
-  expectations-setter, post-delivery review ask.
-- Every ad links to a product page, never the homepage.
+**Outsourcing (Upwork):** video editor after first winning creative
+($15–40/video); support VA at >15 emails/day ($5–8/hr); photographer
+when scaling. Job posts are drafts; never commit spend.
 
-## Customer service runbook
+**KPI targets:** margin ≥60% · conversion ≥1.5% · AOV ≥$35 · refunds
+<5% · chargebacks <0.5% · first response <12h.
 
-- **"Where is my order?"** — reply within 12h with tracking and the
-  honest delivery window; never guess a date.
-- **Damaged/wrong item** — apologize, refund or reship immediately,
-  request a photo for the supplier claim; don't require returns on
-  low-cost items.
-- **Chargeback** — respond within 48h with tracking, delivery
-  confirmation, correspondence. Rate >0.7% risks the processor;
-  refund proactively over fighting weak cases.
+**Cadence:** daily 15-min ops check; ad review every 2–3 days; Monday
+KPI + trend scan + decision log; monthly supplier/calendar review.
 
-## Outsourcing thresholds (Upwork)
+# PART 5 — Agent instructions (tooling)
 
-| Role | When | Budget |
-|---|---|---|
-| Product video editor | After first winning creative | $15–40/video |
-| Customer service VA | >15 support emails/day | $5–8/hr |
-| Product photographer | When scaling a winner | per-shoot |
+Work from live data only. **Shopify:** `search_products`/`get-product`,
+`create-product`/`update-product` (drafts until complete),
+`list-orders`/`get-order`, `set-inventory`, `run-analytics-query` for
+KPIs, `create-discount`, `graphql_query`/`graphql_mutation` for anything
+else (validate first). `switch-shop` revokes the current token — only
+for deliberate store moves. **Gmail:** `search_threads`/`get_thread`,
+`create_draft` (drafts ONLY — never auto-send), triage labels
+`dropship/where-is-my-order`, `dropship/damaged-or-wrong`,
+`dropship/chargeback`, `dropship/supplier`. **Upwork:**
+`upwork_search_freelancers`, `upwork_prepare_job_post` (drafts).
 
-## KPI targets
+**Guardrails:** no $0.00 active products; no sub-floor prices without
+owner approval; no discounts >20%; confirm destructive ops (archive,
+cancel, refund, bulk) before running; never commit spend.
 
-Gross margin ≥60% · Conversion ≥1.5% · AOV ≥$35 · Refunds <5% ·
-Chargebacks <0.5% · Support first response <12h. Review Mondays via
-Shopify analytics; update the KPI table and decision log.
+**Docs discipline:** master doc = business truth;
+`stores/trendlift/STATUS.md` = live store state (append-only changelog);
+update both + recompile EVERYTHING.md when reality diverges; commit and
+push same session.
 
-## Operating cadence
+# PART 6 — Handoff protocol
 
-- **Daily (15 min):** orders check, fulfill/escalate, clear inbox.
-- **Every 2–3 days:** ad spend vs. kill/scale rules.
-- **Weekly (Mon):** KPIs, one new pipeline product, decision log,
-  doc updates.
-- **Monthly:** supplier cost re-check, prune dead products, re-test
-  the niche hypothesis.
-
-## Decision log
-
-| Date | Decision | Why |
-|---|---|---|
-| 2026-06-11 | Created Dropship OS master doc; niche set to kitchen & pantry organization | Store had one bamboo organizer product; built the system around it |
-| 2026-06-11 | Start over with a brand-new store instead of fixing "My Store 4"; previews generated for the Spacelift concept | Owner preferred a clean start; docs will repoint to the claimed store |
-
----
-
-# PART 3 — Agent instructions (from dropship-os/CLAUDE.md)
-
-Claude sessions in this repo operate the business with three MCP
-connections. Always work from live data — never answer about products,
-orders, or customers from memory or repo files alone.
-
-## Tool map
-
-**Shopify (`mcp__Shopify__*`)** — `get-shop-info` (context),
-`search_products` / `get-product` (browse), `create-product` /
-`update-product` / `bulk-update-product-status` (catalog), collection
-tools, `list-orders` / `get-order`, `list-customers`,
-`get-inventory-levels` / `set-inventory`, `run-analytics-query`
-(ShopifyQL, for KPI reviews), `create-discount`, and
-`graphql_query` / `graphql_mutation` for anything without a dedicated
-tool (metafields, pages, policies, markets…) — validate with
-`graphql_schema` / `validate_graphql_codeblocks` first.
-`switch-shop` changes the connected store and **revokes the current
-token** — use only when deliberately moving to another store.
-
-**Gmail (`mcp__Gmail__*`)** — `search_threads` / `get_thread` (find
-support mail), `create_draft` (all outbound — drafts only), label tools
-for triage. Triage labels: `dropship/where-is-my-order`,
-`dropship/damaged-or-wrong`, `dropship/chargeback`, `dropship/supplier`.
-
-**Upwork (`mcp__Upwork__*`)** — `upwork_search_freelancers`,
-`upwork_display_freelancer_profile`, `upwork_prepare_job_post`. Hire
-only at the §thresholds above; job posts are drafts for review.
-
-## Standard workflows
-
-- **Daily ops check:** `list-orders` for stale fulfillments → Gmail
-  triage per runbook → `search_products` for active products with
-  $0.00 price or missing images.
-- **Adding a product:** create as draft with full title/description/
-  images/SKU and a ≥3× landed-cost price → tag pipeline stage → add to
-  collection → activate only when complete.
-- **Weekly KPI review:** `run-analytics-query` → update KPI table and
-  decision log → commit and push.
-
-## Guardrails
-
-- Email: **drafts only**, never auto-send without explicit standing
-  authorization for that category.
-- Discounts: never >20%; first-order codes 10–15%.
-- Prices: never $0.00 on an active product; never below the 3× floor
-  without explicit owner approval.
-- Destructive ops (archive, cancel, refund, bulk mutations): confirm
-  first, listing exactly what will change.
-- Hiring/spend: never commit spend on the owner's behalf.
-
-## Keeping the OS current
-
-Master doc = business-wide truth; `stores/<store>/STATUS.md` = live
-per-store state with an append-only changelog. When the live store
-diverges from the docs, update both in the same session, commit, push.
-
----
-
-# PART 4 — Store status (from stores/spacelift/STATUS.md)
-
-**Spacelift** — pre-launch, being migrated to a brand-new store
-(see Part 1). State of the outgoing store ("My Store 4") as last
-verified live on 2026-06-11:
-
-- Catalog: 1 product — Bamboo Lazy Susan Turntable, ACTIVE, $0.00, no
-  images/SKU/inventory/supplier (`stage:research`).
-- Orders: 0 lifetime. Customers: 0. All KPIs n/a.
-- Suppliers on file: none.
-
-Changelog: 2026-06-11 — status file created; store verified live;
-"Spacelift" adopted as brand name; restart-on-new-store decision made.
-
----
-
-# PART 5 — Handoff protocol (from HANDOFF-TO-CLAUDE-AI.md)
-
-For continuing work in a claude.ai chat without repo/MCP access: paste
-`HANDOFF-TO-CLAUDE-AI.md` (or this file) at the start of the chat. That
-session should confirm understanding, work from "where things stand"
-(Part 1), and assume **no progress beyond what's written**. Anything
-requiring live store access (product edits, orders, analytics) routes
-back to the repo-connected Claude Code session, and any decisions or
-content produced in claude.ai come back here to be committed and
-reflected in the docs.
+For claude.ai chats without repo/MCP access: paste `HANDOFF-TO-CLAUDE-AI.md`
+or this file. Assume no progress beyond what's written here; route
+live-store actions back to the repo-connected session; bring decisions
+and content back to be committed.

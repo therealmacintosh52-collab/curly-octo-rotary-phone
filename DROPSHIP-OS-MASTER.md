@@ -10,156 +10,177 @@ business state changes — it is the operating system, not a one-time plan.
 
 ## 1. Business snapshot (live state)
 
-Live per-store detail lives in `stores/spacelift/STATUS.md`.
+Live per-store detail lives in `stores/trendlift/STATUS.md`.
 
 | Item | Value |
 |---|---|
-| Brand name | Spacelift (Shopify rename pending) |
-| Store name | My Store 4 |
-| Domain | ft6xi1-n1.myshopify.com |
-| Plan | Shopify |
-| Currency / Country | USD / United States |
-| Timezone | PDT |
+| Brand name | Trendlift |
+| Strategy | Trend-driven seasonal commerce — ride every gift/trend wave |
+| Current Shopify store | My Store 4 (`ft6xi1-n1.myshopify.com`) — new branded store pending (previews generated) |
+| Plan / Currency / Country / TZ | Shopify / USD / United States / PDT |
 | Contact email | therealmacintosh52@gmail.com |
-| Active products | 1 |
+| Active campaign | **Father's Day 2026 (June 21)** — 5 draft products + smart collection live |
 | Orders to date | 0 |
 
-**Niche (working hypothesis):** kitchen & pantry organization — practical,
-problem-solving home goods with broad appeal and low return rates.
-
-### Current catalog
-
-| Product | Price | Inventory | Status | Issues |
-|---|---|---|---|---|
-| Bamboo Lazy Susan Turntable — Kitchen & Pantry Organizer | $0.00 | 0 | Active | ⚠️ No price set, no SKU, no product image, no inventory |
+**Model:** instead of one fixed niche, the store runs a rolling calendar
+of seasonal campaigns plus a weekly trend radar. Winners from each wave
+graduate into the evergreen catalog.
 
 ---
 
-## 2. Immediate priorities (launch blockers)
+## 2. ACTIVE CAMPAIGN — Father's Day 2026
 
-These must be fixed before spending a dollar on traffic:
+Father's Day is **Sunday, June 21, 2026**. Today is June 11: **10 days**.
 
-1. **Price the Lazy Susan.** Supplier cost + shipping, then apply the
-   pricing rules in §4. A $0.00 active product is a live bug.
-2. **Add product imagery.** Minimum 5 photos: hero on white, lifestyle
-   in-cabinet shot, size reference, spinning detail, packaging.
-3. **Set inventory / fulfillment policy.** Either track supplier stock or
-   set the variant to "continue selling when out of stock" with a clear
-   shipping-time promise.
-4. **Rename the store.** "My Store 4" doesn't convert. Pick a brand name
-   that fits the kitchen-organization niche and update domain, email
-   sender name, and social handles together.
-5. **Storefront basics:** shipping policy, returns policy, contact page,
-   and an about page. These are also required for ad platform approval.
-6. **Payments:** confirm Shopify Payments is active and test-mode is off.
+**The shipping math is the campaign.** Typical dropship delivery is 8–12
+business days, so orders placed after ~June 12–13 will not arrive by the
+21st unless the supplier ships from US stock. The plan works around that:
 
----
+| Window | Play |
+|---|---|
+| Jun 11–12 | Get supplier quotes (US warehouse / fast shipping ONLY), finalize prices at ≥3× landed, add images, activate the 5 products |
+| Jun 12–14 | Launch ads + organic with explicit "order by" deadline messaging |
+| Jun 15–18 | Shift creative to the late-gift angle: "it ships after Father's Day — print this gift note so there's something to unwrap" (free printable card with every order) |
+| Jun 19–21 | Last-call: digital gift cards only |
+| Jun 22+ | Post-mortem in the decision log; graduate winners to evergreen; retire the rest |
 
-## 3. Product pipeline
+**Campaign assets in Shopify (created 2026-06-11):**
+- Smart collection **"Father's Day Gift Shop"** (`gid://shopify/Collection/469897969913`) — auto-includes any product tagged `fathers-day-2026`
+- 5 draft products (vendor Trendlift, tagged `fathers-day-2026`,
+  `stage:research`, `price-estimate`): Whiskey Stones Gift Set $24.95 ·
+  Wireless Meat Thermometer $39.95 · 14-in-1 Multitool $22.95 · Magnetic
+  Tool Wristband $16.95 · Mini Massage Gun $49.95
 
-Every product moves through these stages. Track stage in the product's
-tags on Shopify (`stage:research`, `stage:testing`, `stage:scaling`,
-`stage:kill`).
+**Blocking before activation:** real supplier landed costs (replace the
+`price-estimate` tag), product images, store payments/policies live.
 
-1. **Research** — find candidates that solve a visible, annoying problem;
-   are hard to price-compare (no strong brand association); ship safely
-   (no glass, no batteries to start); and support ≥3x markup.
-2. **Validation** — check seller volume on supplier platforms, search
-   trend direction, and competitor ad activity before committing.
-3. **Testing** — launch with small ad budget ($10–20/day per product,
-   3–5 day window). Judge on cost per checkout-initiated, not just ROAS.
-4. **Scaling** — winners get budget increases of ~20–30% every 2–3 days,
-   new creative variants weekly, and a supplier backup sourced.
-5. **Kill** — no add-to-carts after ~$50 spend, or margin collapses after
-   real shipping costs: archive the product, write one line in §9 about why.
+## 3. TREND RADAR — catching every wave
 
-**Catalog target:** 5–10 active products in the niche within 30 days.
-One product is not a store; it's a landing page.
+The permanent system behind "first Father's Day, then all the trends."
 
-## 4. Pricing rules
+### Seasonal campaign calendar (US)
 
-- **Floor:** landed cost (product + shipping + payment fees) × 3.
-- **Charm pricing:** end in .95 or .99 under $50; whole numbers above.
-- **Free shipping threshold:** set at ~1.8× average order value once
-  there is order data; until then, bake shipping into the price and
-  advertise "free shipping."
-- **Discounts:** never run sitewide discounts >20%; prefer first-order
-  codes (10–15%) captured via email signup.
-- Re-check supplier cost monthly; reprice anything whose margin has
-  drifted below 60% gross.
+| Campaign | Date | Prep starts (T-30) | Ads start (T-14) |
+|---|---|---|---|
+| Father's Day | Jun 21, 2026 | (compressed — active now) | now |
+| 4th of July | Jul 4, 2026 | overlaps FD — start Jun 15 | Jun 20 |
+| Back to School | mid-Aug | Jul 15 | Aug 1 |
+| Halloween | Oct 31 | Oct 1 | Oct 17 |
+| BFCM | Nov 27–30 | Oct 28 | Nov 13 |
+| Christmas | Dec 25 | Nov 10 (ship cutoffs!) | Dec 1 |
+| Valentine's Day | Feb 14, 2027 | Jan 15 | Jan 31 |
+| Mother's Day | May 9, 2027 | Apr 9 | Apr 25 |
 
-## 5. Fulfillment & suppliers
+**Lead-time rule:** supplier + creative prep starts 30 days out; paid
+traffic starts 14 days out; messaging switches to last-minute/digital
+when the shipping cutoff passes.
 
-- Maintain **two suppliers per winning product** — primary and backup,
-  with cost, shipping time, and contact recorded per product (Shopify
-  metafields or a `suppliers/` directory in this repo).
-- Maximum acceptable delivery promise to customer: **12 business days**.
-  If a supplier can't beat that reliably, replace them.
-- Track orders daily once volume starts: anything unfulfilled after 2
-  business days gets escalated to the supplier the same day.
+### Weekly trend scan (every Monday, with the KPI review)
 
-## 6. Marketing engine
+1. Scan TikTok trending/creative centers, Google Trends breakouts, and
+   supplier bestseller movers.
+2. Score candidates: rising (not peaked) · problem-solving or strongly
+   giftable · ships safely and fast · supports ≥3× markup · demo-able
+   in a 15-second video.
+3. Add at most ONE trend candidate per week into the pipeline as a
+   draft tagged `stage:research` + `trend:<name>`.
+4. Log every add/kill in the decision log with one line of reasoning.
 
-- **Creative-first:** the ad creative is the targeting. Produce 3–5 hooks
-  per product (problem-agitation, demo, before/after, UGC-style).
-- **Channels in order of adoption:** organic short-form video (free
-  validation) → paid social on the platform where organic showed traction
-  → search ads only after a product has proven demand.
-- **Email (Gmail-integrated):** capture emails with the first-order
-  discount; minimum flows — abandoned checkout (1h, 24h), order
-  confirmation expectations-setter, post-delivery review ask.
-- Every ad links to a product page, never the homepage.
+## 4. Product pipeline
 
-## 7. Customer service runbook
+Stages tracked as Shopify product tags: `stage:research`,
+`stage:testing`, `stage:scaling`, `stage:kill`.
 
-Inbox is monitored via the connected Gmail account. Standard responses:
+1. **Research** — solves a visible problem or is strongly giftable;
+   hard to price-compare; ships safely; supports ≥3× markup.
+2. **Validation** — supplier seller volume, trend direction, competitor
+   ad activity.
+3. **Testing** — $10–20/day per product, 3–5 days; judge on cost per
+   checkout-initiated, not just ROAS.
+4. **Scaling** — budget +20–30% every 2–3 days, new creative weekly,
+   backup supplier sourced.
+5. **Kill** — no add-to-carts after ~$50 spend or margin collapse:
+   archive, one-line decision-log entry.
 
-- **"Where is my order?"** — reply within 12h with tracking link and the
-  honest delivery window. Never guess a date.
-- **Damaged/wrong item** — apologize, refund or reship immediately, ask
-  for a photo for the supplier claim. Do not make customers ship returns
-  on low-cost items; the return shipping costs more than the product.
-- **Chargeback received** — respond with tracking, delivery confirmation,
-  and correspondence history within 48h. A chargeback rate >0.7% risks
-  the payment processor; refund proactively rather than fight weak cases.
+## 5. Pricing rules
 
-## 8. Outsourcing (Upwork)
+- **Floor:** landed cost (product + shipping + fees) × 3.
+- Charm pricing .95/.99 under $50; whole numbers above.
+- Free-shipping threshold ~1.8× AOV once data exists; until then bake
+  shipping into price, advertise "free shipping."
+- Never discount sitewide >20%; first-order codes 10–15% via email capture.
+- Monthly supplier re-check; reprice anything under 60% gross.
+- Products carrying the `price-estimate` tag may NOT be activated until
+  a real supplier landed cost confirms the price.
 
-Hire only for proven, repeatable work — never to "figure things out":
+## 6. Fulfillment & suppliers
+
+- Two suppliers per winning product (primary + backup), cost/time/contact
+  recorded.
+- Max delivery promise 12 business days — for seasonal campaigns the real
+  ceiling is the event date; use US-stock suppliers near cutoffs.
+- Unfulfilled >2 business days → same-day supplier escalation.
+
+## 7. Marketing engine
+
+- Creative-first: 3–5 hooks per product (problem-agitation, demo,
+  before/after, UGC-style). Seasonal campaigns add deadline urgency
+  ("order by June 12") and a late-gift fallback.
+- Channels: organic short-form video → paid social where organic tracks →
+  search ads after proven demand.
+- Email flows: abandoned checkout (1h, 24h), order confirmation
+  expectations-setter, post-delivery review ask. Seasonal: gift-deadline
+  reminder blast to list.
+- Every ad links to a product page (or campaign collection), never the
+  homepage.
+
+## 8. Customer service runbook
+
+- **"Where is my order?"** — reply <12h with tracking and the honest
+  window; never guess a date. During gift campaigns: include the
+  printable gift note proactively if delivery will miss the event.
+- **Damaged/wrong item** — apologize, refund or reship immediately, photo
+  for the supplier claim; no returns required on low-cost items.
+- **Chargeback** — respond <48h with tracking + correspondence; >0.7%
+  rate risks the processor; refund weak cases proactively.
+
+## 9. Outsourcing (Upwork)
 
 | Role | When to hire | Budget guide |
 |---|---|---|
-| Product video editor | After first winning ad creative | $15–40/video |
+| Product video editor | After first winning creative | $15–40/video |
 | Customer service VA | >15 support emails/day | $5–8/hr |
 | Product photographer | When scaling a winner | per-shoot |
 
-## 9. KPI dashboard & decision log
+## 10. KPI dashboard & decision log
 
-Review weekly (Mondays). Pull from Shopify analytics.
+Review weekly (Mondays), together with the trend scan.
 
 | KPI | Target | Current |
 |---|---|---|
-| Gross margin | ≥60% | n/a (no priced products) |
+| Gross margin | ≥60% | n/a (estimates pending supplier quotes) |
 | Conversion rate | ≥1.5% | n/a (no traffic) |
 | Average order value | ≥$35 | n/a |
 | Refund rate | <5% | n/a |
 | Chargeback rate | <0.5% | n/a |
-| Support first-response time | <12h | n/a |
+| Support first-response | <12h | n/a |
 
 ### Decision log
 
 | Date | Decision | Why |
 |---|---|---|
-| 2026-06-11 | Created Dropship OS master doc; niche set to kitchen & pantry organization | Store had one bamboo organizer product; building the system around it |
-| 2026-06-11 | Decided to start over with a brand-new Shopify store instead of fixing "My Store 4"; previews generated for a Spacelift space-saving home organization concept | Owner preferred a clean start; new store will be claimed from a preview, then docs repointed to it |
+| 2026-06-11 | Created Dropship OS; initial niche kitchen & pantry organization | Built around the store's one bamboo product |
+| 2026-06-11 | Start over on a brand-new store; Spacelift previews generated | Owner preferred a clean start |
+| 2026-06-11 | **Pivot: owner put Claude in charge; strategy reset to trend-driven seasonal commerce as "Trendlift" — Father's Day 2026 first, then the rolling trend calendar** | Owner direction; FD is 10 days out so campaign-first beats niche-building |
+| 2026-06-11 | Built FD campaign: smart collection + 5 draft gift products at estimated 3× prices | Capture the window; activation gated on real supplier costs + images |
+| 2026-06-11 | Generated second preview set (Father's Day gifts / trending products, bold masculine style) | Match the storefront to the new strategy |
+| 2026-06-11 | Owner chose the MIDDLE preview as the new storefront | "I love the middle website" — owner to claim it via its signup link; store gets rebuilt there once it exists |
 
----
+## 11. Operating cadence
 
-## 10. Operating cadence
-
-- **Daily (15 min):** check orders, fulfill/escalate, clear support inbox.
-- **Every 2–3 days:** review ad spend vs. kill/scale rules (§3).
-- **Weekly (Monday):** update KPI table, add one product to the pipeline,
-  write decision-log entries, update this document.
-- **Monthly:** supplier cost re-check (§4), prune dead products, review
-  whether the niche hypothesis still holds.
+- **Daily (15 min):** orders, fulfill/escalate, inbox; during campaigns
+  also check ad deadlines vs. shipping cutoffs.
+- **Every 2–3 days:** ad kill/scale review.
+- **Weekly (Mon):** KPI review + trend scan + decision log + doc updates.
+- **Monthly:** supplier re-check, prune dead products, review calendar
+  for the next campaign's T-30 prep date.

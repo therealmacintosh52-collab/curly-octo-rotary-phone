@@ -11,9 +11,15 @@ MCP tools first.
 
 ## Store context
 
-- Store: **My Store 4** (`ft6xi1-n1.myshopify.com`), Shopify plan, USD, PDT.
+- Brand: **Trendlift** — trend-driven seasonal commerce (master doc §1, §3).
+- Connected store: **My Store 4** (`ft6xi1-n1.myshopify.com`), Shopify
+  plan, USD, PDT — a new branded store from the owner's chosen preview
+  ("the middle one" of the Father's Day/trends generation) is pending
+  signup. When the owner claims it, use `switch-shop` to reconnect, then
+  rebuild campaign assets there and update all docs.
 - Contact email: therealmacintosh52@gmail.com
-- Niche: kitchen & pantry organization (see master doc §1).
+- Active campaign: Father's Day 2026 (June 21) — see master doc §2 and
+  `../stores/trendlift/STATUS.md`.
 
 ## Tool map — which tool for which job
 
@@ -96,7 +102,7 @@ Only hire for roles and at the thresholds defined in master doc §8.
 
 `DROPSHIP-OS-MASTER.md` is the single source of truth for business-wide
 rules; each store also has a live status file at
-`stores/<store>/STATUS.md` (currently `stores/spacelift/STATUS.md`).
+`stores/<store>/STATUS.md` (currently `stores/trendlift/STATUS.md`).
 When the live store diverges from the docs (new products, first orders,
 renamed store, niche pivot), update both in the same session, commit
 with a clear message, and push. Append to the store's changelog rather
