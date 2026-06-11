@@ -10,8 +10,11 @@ business state changes — it is the operating system, not a one-time plan.
 
 ## 1. Business snapshot (live state)
 
+Live per-store detail lives in `stores/spacelift/STATUS.md`.
+
 | Item | Value |
 |---|---|
+| Brand name | Spacelift (Shopify rename pending) |
 | Store name | My Store 4 |
 | Domain | ft6xi1-n1.myshopify.com |
 | Plan | Shopify |

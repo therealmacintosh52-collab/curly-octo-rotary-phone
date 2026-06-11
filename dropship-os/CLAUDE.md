@@ -94,7 +94,10 @@ Only hire for roles and at the thresholds defined in master doc §8.
 
 ## Keeping the OS current
 
-`DROPSHIP-OS-MASTER.md` is the single source of truth. When the live
-store diverges from it (new products, first orders, renamed store, niche
-pivot), update the master doc in the same session, commit with a clear
-message, and push.
+`DROPSHIP-OS-MASTER.md` is the single source of truth for business-wide
+rules; each store also has a live status file at
+`stores/<store>/STATUS.md` (currently `stores/spacelift/STATUS.md`).
+When the live store diverges from the docs (new products, first orders,
+renamed store, niche pivot), update both in the same session, commit
+with a clear message, and push. Append to the store's changelog rather
+than rewriting it.
