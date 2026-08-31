@@ -77,9 +77,31 @@ nav a.cta:hover{background:#ff7d2e}
 @media(max-width:400px){nav{padding:12px 3.5vw}.logo{font-size:19px;gap:7px}.logo .mk{width:30px;height:30px}.navtel{font-size:14.5px}}
 /* HERO */
 .hero{position:relative;min-height:100svh;display:flex;align-items:flex-start;background:radial-gradient(ellipse 120% 55% at 50% 100%,#7a3a12 0%,#3a2417 25%,#1b2a40 55%,var(--navy) 80%);color:#fff;overflow:hidden;padding:100px 0 150px}
-.hero::after{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,34,55,.34) 0%,rgba(15,34,55,.42) 26%,rgba(15,34,55,.10) 52%,rgba(15,34,55,0) 74%,rgba(15,34,55,.75) 100%);pointer-events:none}
+.hero::after{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,34,55,.34) 0%,rgba(15,34,55,.42) 26%,rgba(15,34,55,.10) 52%,rgba(15,34,55,0) 74%,rgba(15,34,55,.55) 100%);pointer-events:none}
 .hero .wrap{padding-top:clamp(4px,3vh,44px)}
 #scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* Pure-CSS highway behind the WebGL canvas. The hero must still read as a road
+   when three.js is blocked, offline or simply slow; .has3d fades it out once
+   the real scene is live. */
+.hero .fallback{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;transition:opacity .9s ease}
+.hero.has3d .fallback{opacity:0}
+.hero .fallback .stage{position:absolute;inset:0;overflow:hidden}
+/* horizon glow, sat at the road's vanishing point */
+.hero .fallback .sky{position:absolute;left:50%;bottom:148px;width:160%;height:340px;transform:translateX(-50%);
+ background:radial-gradient(ellipse 46% 50% at 50% 50%,rgba(255,201,120,.60) 0%,rgba(244,113,31,.30) 24%,rgba(244,113,31,.09) 48%,transparent 72%)}
+/* The plane's pre-transform height is fixed in px on purpose: the projected band
+   is P/tan(rot) at the limit, so a percentage height would collapse the road on
+   tall viewports. 1600/800/60deg gives a ~290px band at any hero height. */
+.hero .fallback .road{position:absolute;left:-70%;right:-70%;bottom:0;height:1600px;transform:perspective(800px) rotateX(60deg);transform-origin:50% 100%;
+ -webkit-mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.3) 4%,rgba(0,0,0,.85) 13%,#000 26%);
+ mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.3) 4%,rgba(0,0,0,.85) 13%,#000 26%);
+ background:
+  repeating-linear-gradient(0deg,rgba(255,150,70,.95) 0 40px,rgba(244,113,31,0) 40px 104px) 50% 0/12px 100% no-repeat,
+  linear-gradient(90deg,transparent calc(50% - 250px),rgba(226,236,246,.30) calc(50% - 250px) calc(50% - 242px),transparent calc(50% - 242px)),
+  linear-gradient(90deg,transparent calc(50% + 242px),rgba(226,236,246,.30) calc(50% + 242px) calc(50% + 250px),transparent calc(50% + 250px)),
+  linear-gradient(180deg,#16202c 0%,#1d2837 55%,#28343f 100%)}
+.hero .fallback .haze{position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,34,55,.58) 0%,rgba(15,34,55,.14) 24%,rgba(15,34,55,0) 48%,rgba(15,34,55,.08) 78%,rgba(15,34,55,.34) 100%)}
+@media(prefers-reduced-motion:reduce){.hero.has3d .fallback{opacity:1}}
 .hero .wrap{position:relative;z-index:2;max-width:790px}
 .hero .pre{color:var(--amber);font-weight:600;font-size:clamp(14.5px,1.9vw,17px);margin-bottom:14px;text-shadow:0 2px 12px rgba(0,0,0,.75)}
 .hero h1{color:#fff;font-size:clamp(38px,8.2vw,86px);text-shadow:0 2px 0 rgba(0,0,0,.35),0 10px 40px rgba(0,0,0,.6);letter-spacing:.01em}
@@ -334,6 +356,7 @@ footer .legal{margin-top:22px;font-size:12.5px;max-width:780px;line-height:1.6}
 </nav>
 
 <header class="hero" id="top">
+  <div class="fallback" aria-hidden="true"><div class="sky"></div><div class="stage"><div class="road"></div></div><div class="haze"></div></div>
   <canvas id="scene" aria-hidden="true"></canvas>
   <div class="fade"></div>
   <div class="ticker" aria-hidden="true"><div><span>First week free</span>•<span>$300/week flat — never a percentage</span>•<span>Truck down? You owe nothing</span>•<span>Every broker's bond verified</span>•<span>You approve every load</span>•<span>Leave any Friday</span>•<span>First week free</span>•<span>$300/week flat — never a percentage</span>•<span>Truck down? You owe nothing</span>•<span>Every broker's bond verified</span>•<span>You approve every load</span>•<span>Leave any Friday</span>•</div></div>
@@ -351,7 +374,7 @@ footer .legal{margin-top:22px;font-size:12.5px;max-width:780px;line-height:1.6}
 
 <div class="trust"><div class="wrap">
   <div class="bit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#F4711F" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6l-9-4z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Broker bond verified every load</b>Authority, $75K bond, credit score and days-to-pay — checked before we book.</span></div>
-  <div class="bit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#F4711F" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span><b>Six boards, one desk</b>DAT, Truckstop, 123Loadboard, Direct Freight, Amazon Relay and direct broker lanes.</span></div>
+  <div class="bit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#F4711F" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span><b>Every major board, one desk</b>The national load boards plus the direct broker lanes we've built. Subscriptions are on us, not you.</span></div>
   <div class="bit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#F4711F" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><b>Your agent, not a broker</b>Freight pays you or your factor directly. We never touch your money.</span></div>
   <div class="bit"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#F4711F" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span><b>Rolling in 24–48 hours</b>Same-day setup. Most carriers are booked on a load inside two business days.</span></div>
 </div></div>
@@ -438,7 +461,7 @@ footer .legal{margin-top:22px;font-size:12.5px;max-width:780px;line-height:1.6}
     <article class="rv"><h3><i>WEEK 1</i>Positioning</h3><ul>
       <li>Your MC set up inside each broker's TMS, so you're not stuck "pending" when a good load posts</li>
       <li>The list of brokers who auto-reject under-90-day authority — so you stop burning hours on calls that were never going to land</li>
-      <li>Your lanes benchmarked against live DAT market rates, not last year's averages</li>
+      <li>Your lanes benchmarked against live market rate data, not last year's averages</li>
       <li>First loads booked, rate cons to your inbox</li>
     </ul></article>
     <article class="rv"><h3><i>ONGOING</i>Leverage</h3><ul>
@@ -455,7 +478,7 @@ footer .legal{margin-top:22px;font-size:12.5px;max-width:780px;line-height:1.6}
   <div class="tiers">
     <article class="tier rv"><h3>Core</h3><div class="price">$300</div><div class="per">per truck / week</div>
       <div class="free"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>First week free</div>
-      <ul><li>Load sourcing across six boards</li><li>Rate negotiation with live market data</li><li>Booking &amp; rate confirmations to you</li><li>Driver check calls</li></ul>
+      <ul><li>Load sourcing across the major national boards</li><li>Rate negotiation with live market data</li><li>Booking &amp; rate confirmations to you</li><li>Driver check calls</li></ul>
       <a class="btn btn-o" href="#dispatch">Start with Core</a></article>
     <article class="tier pop rv"><span class="pill">MOST POPULAR</span><h3>Pro</h3><div class="price">$425</div><div class="per">per truck / week</div>
       <div class="free"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>First week free</div>
@@ -570,7 +593,7 @@ footer .legal{margin-top:22px;font-size:12.5px;max-width:780px;line-height:1.6}
   <details class="rv"><summary>How fast can I start hauling?</summary><p>Most carriers are set up the same day they send documents, and booked on a load within 24 to 48 hours. The bottleneck is almost always how fast your insurance agent sends the COI.</p></details>
   <details class="rv"><summary>Who gets the freight payment?</summary><p>You do. The broker pays you or your factoring company directly. We never touch your freight money — we're your carrier's agent, not a freight broker, and we don't hold broker authority. See the compliance section above for exactly how that's structured.</p></details>
   <details class="rv"><summary>How many trucks does my dispatcher handle?</summary><p>Eight, maximum. When a desk is full, you go on the list. We'd rather make you wait a week than overload a dispatcher and take your money anyway — a dispatcher juggling thirty trucks is why your last one stopped answering the phone.</p></details>
-  <details class="rv"><summary>Which load boards do you use?</summary><p>DAT and Truckstop as the core, plus 123Loadboard, Direct Freight, Amazon Relay and direct broker lanes we've built over time. You don't pay for board subscriptions — that's on us.</p></details>
+  <details class="rv"><summary>Which load boards do you use?</summary><p>The major national boards, plus direct broker lanes we've built over time. You don't pay for any of those subscriptions — that's on us, and it's part of what the weekly fee covers. We keep the exact mix and the broker list to ourselves; working out where the good freight actually is took years, and it's a lot of what you're paying for.</p></details>
   <details class="rv"><summary>What if I don't like a load?</summary><p>Nothing books without your yes. You approve every load before we send the rate confirmation. Turn down as many as you want — we don't get paid more for booking you into something you'd regret.</p></details>
 </div></section>
 
@@ -865,13 +888,14 @@ addEventListener('load',function(){
  var halo=sprite(0xF4711F,240,.35);halo.position.set(-30,4,-235);S.add(halo);
  var mx=0,my=0;addEventListener('pointermove',function(e){mx=(e.clientX/innerWidth-.5);my=(e.clientY/innerHeight-.5)},{passive:true});
  function size(){var w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);C.aspect=w/h;C.updateProjectionMatrix()}addEventListener('resize',size);size();
- var t=0,vis=true;new IntersectionObserver(function(e){vis=e[0].isIntersecting},{}).observe(cv);
+ var t=0,vis=true,ready=false;new IntersectionObserver(function(e){vis=e[0].isIntersecting},{}).observe(cv);
  function loop(){requestAnimationFrame(loop);if(!vis)return;t+=.016;
   dashes.forEach(function(d){d.position.z+=.42;if(d.position.z>6)d.position.z-=300});
   streaks.forEach(function(st){st.position.z+=st.userData.v;if(st.position.z>10)st.position.z-=210});
   T.position.y=Math.sin(t*7)*.012;T.rotation.z=Math.sin(t*3.1)*.004;
   var bx=(mob?-2.5:-5)+mx*1.8,by=camY-my*.7;C.position.x+=(bx-C.position.x)*.04;C.position.y+=(by-C.position.y)*.04;C.lookAt(T.position.x-.6,mob?.6:1.5,-8);
-  stars.rotation.y+=.0002;R.render(S,C)}
+  stars.rotation.y+=.0002;R.render(S,C);
+  if(!ready){ready=true;document.querySelector('.hero').classList.add('has3d')}}
  loop();
 });
 </script>

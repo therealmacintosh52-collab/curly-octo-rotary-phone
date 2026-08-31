@@ -65,10 +65,31 @@ id="shmark">` (detailed) and `#shmarkS` (solid).
 Colours: navy `#0F2237`, orange `#F4711F`, amber `#FFB347`, cream `#FAF7F2`.
 Type: Barlow Condensed 600–800 for display, Inter 400–700 for body.
 
+## Load boards
+
+The page deliberately does **not** name which boards we run. It says "the major
+national boards" and, in the FAQ, that the exact mix and the broker list stay
+private because working out where the good freight is took years.
+
+Naming them (DAT, Truckstop, Amazon Relay and so on) is the category norm and it
+was in the first draft, but it hands a prospect the shopping list for doing it
+themselves, tells competitors your sourcing stack, and — for Relay in
+particular — implies an access arrangement that dispatchers do not straightforwardly
+have. If you would rather name them, the copy to edit is the trust bar bullet, the
+Core tier's first list item, and the "Which load boards do you use?" FAQ answer.
+
 ## Notes
 
-- The hero runs a three.js scene (r128, CDN) and is skipped entirely under
-  `prefers-reduced-motion` and when the canvas scrolls out of view.
+- The hero runs a three.js scene (r128, CDN). Behind it is a pure-CSS dusk
+  highway — horizon glow, converging edge lines, receding centre dashes — so the
+  hero still reads as a road when the CDN is blocked, the visitor is offline, or
+  the script is just slow. The CSS road fades out only once the WebGL scene has
+  actually rendered its first frame (`.hero.has3d`), so there is never a gap.
+  The road plane's height is a fixed `1600px` on purpose: the projected band is
+  `perspective / tan(rotateX)` at the limit, so a percentage height collapses the
+  road to a sliver on tall viewports.
+- The 3D scene is skipped entirely under `prefers-reduced-motion` and when the
+  canvas scrolls out of view.
 - The calculator is deliberately honest: below break-even it tells the visitor a
   percentage dispatcher is cheaper. That is the point — it is why the tool is
   credible, so don't "fix" it.
