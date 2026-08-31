@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img"
+     aria-label="Illustration of a pickup truck raised on a lift inside a service bay">
+  <defs>
+    <linearGradient id="bay" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16283a"/><stop offset="1" stop-color="#0a1219"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff6a13"/><stop offset="1" stop-color="#ffa845"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#37536e"/><stop offset="1" stop-color="#22394e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#bay)"/>
+
+  <!-- roll-up door panels on the back wall -->
+  <g opacity=".45" stroke="#2c4257" stroke-width="2" fill="none">
+    <path d="M90 60h620M90 108h620M90 156h620M90 204h620M90 252h620"/>
+    <path d="M212 60v216M334 60v216M456 60v216M578 60v216"/>
+  </g>
+  <rect x="88" y="52" width="624" height="228" rx="8" fill="none" stroke="#3a5771" stroke-width="3"/>
+
+  <!-- hanging shop lamp -->
+  <path d="M470 20v34" stroke="#3a5771" stroke-width="3"/>
+  <path d="M444 54h52l16 24h-84z" fill="#1d3348" stroke="#4a6a88" stroke-width="2"/>
+  <ellipse cx="470" cy="80" rx="14" ry="5" fill="#ffd7a3"/>
+
+  <!-- tool chest -->
+  <g>
+    <rect x="676" y="286" width="96" height="150" rx="7" fill="#16283a" stroke="#3a5771" stroke-width="3"/>
+    <path d="M676 330h96M676 372h96" stroke="#3a5771" stroke-width="3"/>
+    <path d="M700 308h48M700 350h48M700 394h48" stroke="url(#acc)" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- pickup truck -->
+  <g>
+    <path d="M110 330V248h190v-76c0-8 6-14 14-14h116c6 0 11 3 14 8l34 82h176c17 0 26 9 26 22v60z"
+          fill="#132635" stroke="url(#acc)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M318 176h106c4 0 8 2 10 6l26 66H318z" fill="url(#glass)"/>
+    <path d="M374 176v72" stroke="#0e1c28" stroke-width="4"/>
+    <path d="M110 262h188" stroke="#26445e" stroke-width="4"/>
+    <path d="M300 248v82M470 254v76" stroke="#26445e" stroke-width="3"/>
+    <path d="M318 288h34" stroke="#5b83a6" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="656" cy="292" r="8" fill="#ffd7a3"/>
+    <path d="M596 330h84" stroke="#26445e" stroke-width="3"/>
+  </g>
+
+  <!-- wheels -->
+  <g>
+    <circle cx="212" cy="330" r="48" fill="#0a1219" stroke="#3a5771" stroke-width="4"/>
+    <circle cx="556" cy="330" r="48" fill="#0a1219" stroke="#3a5771" stroke-width="4"/>
+    <circle cx="212" cy="330" r="20" fill="none" stroke="url(#acc)" stroke-width="5"/>
+    <circle cx="556" cy="330" r="20" fill="none" stroke="url(#acc)" stroke-width="5"/>
+  </g>
+
+  <!-- two-post lift -->
+  <g stroke="#4a6a88" stroke-width="10" stroke-linecap="round" fill="none">
+    <path d="M150 392h120M400 392h120"/>
+  </g>
+  <path d="M334 392v70" stroke="#4a6a88" stroke-width="14" stroke-linecap="round"/>
+  <rect x="262" y="458" width="144" height="16" rx="8" fill="#4a6a88"/>
+
+  <!-- floor -->
+  <path d="M40 486h720" stroke="#2c4257" stroke-width="5" stroke-linecap="round"/>
+</svg>

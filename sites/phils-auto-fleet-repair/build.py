@@ -101,6 +101,7 @@ ICONS = {
     "map": '<path d="M9 4 3 6.5v14L9 18l6 2.5 6-2.5v-14L15 6.5z"/><path d="M9 4v14M15 6.5v14"/>',
     "snow": '<path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9"/><path d="M9.5 4.8 12 6.6l2.5-1.8M9.5 19.2 12 17.4l2.5 1.8"/>',
     "spring": '<path d="M7.5 4h9l-9 4h9l-9 4h9l-9 4h9"/><path d="M6 20h12"/>',
+    "camera": '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.6"/>',
     "user": '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
 }
 
@@ -1004,18 +1005,48 @@ def cta_band(heading="Ready to get a straight answer about your vehicle?",
     return '<section><div class="wrap">%s</div></section>' % inner
 
 
-def trust_strip():
-    items = [
-        ("shield", "Diagnosis before parts", "We find the cause, then quote the fix"),
-        ("dollar", "Dealership alternative", "Fair pricing without the dealer counter"),
-        ("truck", "Auto, diesel &amp; fleet", "Daily drivers and work trucks under one roof"),
-        ("clock", "Open six days a week", "Mon–Sat, 8:00 AM – 5:00 PM"),
+def stat_band():
+    """Overlapping card that lifts the four strongest trust signals out of the
+    hero and into the eye-line of someone deciding whether to call."""
+    stats = [
+        ("star", "%s out of 5" % SITE["rating"], "%s Google reviews" % SITE["review_count"]),
+        ("shield", "Diagnosis first", "We test before we replace parts"),
+        ("truck", "Auto · Diesel · Fleet", "One shop for every vehicle you run"),
+        ("clock", "Open six days", "Mon–Sat, 8:00 AM – 5:00 PM"),
     ]
     cells = "".join(
-        '<div class="trust-item">%s<div><strong>%s</strong><span>%s</span></div></div>'
-        % (icon(ic), t, s) for ic, t, s in items
+        '<div class="stat"><span class="stat-ico">%s</span><div><b>%s</b><span>%s</span></div></div>'
+        % (icon(ic), t, sub) for ic, t, sub in stats
     )
-    return '<div class="trust"><div class="wrap"><div class="trust-grid">%s</div></div></div>' % cells
+    return ('<div class="statband"><div class="wrap"><div class="statband-inner">%s</div></div></div>'
+            % cells)
+
+
+def listed_on():
+    sources = ["Google", "Yelp", "Nextdoor", "Carfax", "MapQuest"]
+    items = "".join('<span class="src">%s</span>' % x for x in sources)
+    return ('<div class="listed"><div class="wrap">'
+            '<span class="label">Rated &amp; reviewed on</span>%s</div></div>' % items)
+
+
+def angle_divider(fill="#ffffff"):
+    """Slanted transition out of a dark block into the section below."""
+    return ('<div class="angle-bottom" aria-hidden="true">'
+            '<svg viewBox="0 0 1440 80" preserveAspectRatio="none">'
+            '<path d="M0 80 1440 0v80z" fill="%s"/></svg></div>' % fill)
+
+
+def photo_slot(caption, badge="Inside the shop"):
+    """Styled image frame. Ships with a hand-drawn SVG so the page looks
+    finished on day one — swap the <img> src for a real photo of the shop."""
+    return """<!-- Replace the illustration below with a real photo:
+     <img src="/assets/img/shop-front.jpg" alt="..." width="1200" height="900"> -->
+<figure class="photo">
+  <span class="photo-badge">%s%s</span>
+  <img src="/assets/img/shop-scene.svg" width="720" height="460"
+       alt="Illustration of a pickup truck raised on a lift inside a service bay">
+  <figcaption>%s</figcaption>
+</figure>""" % (icon("camera"), esc(badge), esc(caption))
 
 
 def faq_block(faqs, heading="Frequently asked questions", intro=None):
@@ -1073,7 +1104,7 @@ def review_cards():
         cards.append('<div class="review">%s<blockquote>&ldquo;%s&rdquo;</blockquote>%s</div>'
                      % (stars(), esc(r["quote"]), cite))
     for ic, title, body in REVIEW_THEMES:
-        cards.append("""<div class="review">
+        cards.append("""<div class="review review--theme">
   <span class="card-ico">%s</span>
   <h3>%s</h3>
   <p style="color:var(--slate);margin:0">%s</p>
@@ -1145,7 +1176,7 @@ def build_home():
   </div>
 </section>
 
-{trust_strip()}
+{stat_band()}
 
 <section>
   <div class="wrap">
@@ -1162,7 +1193,7 @@ def build_home():
 
 <section class="bg-alt">
   <div class="wrap">
-    <div class="split">
+    <div class="split center-y">
       <div>
         <span class="eyebrow">Why drivers switch to us</span>
         <h2>The dealership isn't your only option</h2>
@@ -1205,6 +1236,7 @@ def build_home():
     <div class="sec-head center">
       <span class="eyebrow">How it works</span>
       <h2>Three steps, no surprises</h2>
+      <p>The same process whether it's an oil change or an engine that three shops couldn't sort out.</p>
     </div>
     <div class="steps">
       <div class="step">
@@ -1226,9 +1258,9 @@ def build_home():
   </div>
 </section>
 
-<section class="bg-alt">
+<section class="bg-dark">
   <div class="wrap">
-    <div class="split" style="align-items:center">
+    <div class="split center-y">
       <div>
         <span class="eyebrow">For business</span>
         <h2>Fleet maintenance built around uptime</h2>
@@ -1241,22 +1273,19 @@ def build_home():
           <li>{icon("check")}<span>Service history per vehicle so you can plan replacements</span></li>
           <li>{icon("check")}<span>We call before extra work, not after</span></li>
         </ul>
-        <div class="btn-row" style="margin-top:26px">
+        <div class="btn-row" style="margin-top:28px">
           <a class="btn btn-accent" href="/services/fleet-services/">Fleet services {icon("arrow")}</a>
-          <a class="btn btn-outline" href="tel:{SITE["phone_link"]}" data-loc="fleet">Talk to us about your fleet</a>
+          <a class="btn btn-ghost" href="tel:{SITE["phone_link"]}" data-loc="fleet">Talk to us about your fleet</a>
         </div>
       </div>
-      <div class="panel">
-        <h3>Run two vehicles or twenty?</h3>
-        <p>Either way, the questions are the same: what's it going to cost to keep these on the road,
-        and when is each one due? We'll help you answer both.</p>
-        <p><strong>Common fleet customers:</strong> contractors and trades, delivery and courier
-        vans, agricultural and landscaping trucks, service businesses across San Joaquin County.</p>
-        <p style="margin-bottom:0"><a class="btn btn-dark" href="/contact/#quote" style="width:100%">Request a fleet consultation</a></p>
+      <div>
+        {photo_slot("Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.", "In the bay")}
       </div>
     </div>
   </div>
 </section>
+
+{listed_on()}
 
 <section>
   <div class="wrap">
@@ -1296,6 +1325,8 @@ def build_home():
       </div>
       <div>
         <iframe class="map-frame" src="{MAPS_EMBED}" title="Map showing Phil's Auto and Fleet Repair at {esc(FULL_ADDRESS)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <p class="map-note"><a href="{MAPS_LISTING}" rel="noopener">Open {esc(FULL_ADDRESS)} in Google Maps {icon("arrow")}</a></p>
+        <p class="map-note"><a href="{MAPS_LISTING}" rel="noopener">Open {esc(FULL_ADDRESS)} in Google Maps {icon("arrow")}</a></p>
       </div>
     </div>
   </div>
@@ -1352,6 +1383,7 @@ def build_service(s):
       <a class="btn btn-ghost" href="#quote">Get a quote</a>
     </div>
   </div>
+  {angle_divider()}
 </div>
 
 <section>
@@ -1417,9 +1449,10 @@ def build_services_index():
     <div class="btn-row">{tel_btn("btn btn-accent", "services-head")}
     <a class="btn btn-ghost" href="/contact/#quote">Request a quote</a></div>
   </div>
+  {angle_divider()}
 </div>
 
-{trust_strip()}
+{stat_band()}
 
 <section>
   <div class="wrap">
@@ -1460,6 +1493,7 @@ def build_about():
     <p>A locally owned repair shop in Lodi, California, built around one idea: tell people the truth
     about their vehicles.</p>
   </div>
+  {angle_divider()}
 </div>
 
 <section>
@@ -1483,7 +1517,7 @@ def build_about():
           <li>{icon("check")}<span><strong>Respect your time.</strong> Realistic turnaround estimates, and a call if anything changes.</span></li>
         </ul>
       </div>
-      <div class="panel">
+      <div class="panel panel-accent">
         <h3>The shop at a glance</h3>
         <table class="hours">
           <tbody>
@@ -1495,7 +1529,10 @@ def build_about():
             <tr><th scope="row">Business type</th><td>Locally owned small business</td></tr>
           </tbody>
         </table>
-        <p style="margin:20px 0 0">{tel_btn("btn btn-accent", "about-panel")}</p>
+        <p style="margin:22px 0 0">{tel_btn("btn btn-accent", "about-panel")}</p>
+        <div style="margin-top:26px">
+          {photo_slot("103 E Elm St — the shop where every one of these vehicles gets diagnosed before it gets quoted.", "Our shop")}
+        </div>
       </div>
     </div>
   </div>
@@ -1542,6 +1579,7 @@ def build_reviews():
       <a class="btn btn-ghost" href="{YELP_URL}" rel="noopener">Read reviews on Yelp</a>
     </div>
   </div>
+  {angle_divider()}
 </div>
 
 <section>
@@ -1607,6 +1645,7 @@ def build_contact():
       <a class="btn btn-ghost" href="{MAPS_DIRECTIONS}" rel="noopener">Get directions</a>
     </div>
   </div>
+  {angle_divider()}
 </div>
 
 <section>
@@ -1686,6 +1725,7 @@ def build_service_areas():
     <div class="btn-row">{tel_btn("btn btn-accent", "areas-head")}
     <a class="btn btn-ghost" href="/contact/#quote">Request a quote</a></div>
   </div>
+  {angle_divider()}
 </div>
 
 <section>
@@ -1736,6 +1776,7 @@ def build_privacy():
   call {SITE["phone_display"]} or email <a href="mailto:{SITE["email"]}">{SITE["email"]}</a>.</p>
   <p><strong>Contact.</strong> {esc(SITE["name"])}, {esc(FULL_ADDRESS)},
   <a href="tel:{SITE["phone_link"]}">{SITE["phone_display"]}</a>.</p>
+  {angle_divider()}
 </div></section>"""
     render("/privacy/", seo_title("Privacy Policy"),
            "How Phil's Auto and Fleet Repair in Lodi, CA collects and uses information submitted "
@@ -1758,6 +1799,7 @@ def build_thanks():
   </ol>
   <p>If it's urgent — an overheating engine, a truck that's down, brakes that don't feel right —
   don't wait on the callback. Call <a href="tel:{SITE["phone_link"]}">{SITE["phone_display"]}</a>.</p>
+  {angle_divider()}
 </div></section>"""
     render("/thank-you/", seo_title("Thank You"),
            "Your request has been sent to Phil's Auto and Fleet Repair in Lodi, CA.",
@@ -1774,6 +1816,7 @@ def build_404():
   <div class="sec-head"><h2>Popular pages</h2></div>
   <div class="grid g3">{service_cards(["auto-repair", "car-diagnostics", "diesel-repair",
                                         "fleet-services", "brake-repair", "oil-change-maintenance"])}</div>
+  {angle_divider()}
 </div></section>"""
     render("/404/", seo_title("Page Not Found"),
            "That page could not be found. Browse our auto, diesel and fleet repair services in "
