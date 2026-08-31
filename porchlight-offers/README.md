@@ -78,6 +78,45 @@ states you are not agents, not advisors, and never charge sellers a fee.
 - **Analytics events** pushed to `dataLayer`: `lead_form_step`, `generate_lead`,
   `phone_call_click`, `cta_click`. Wire them to GA4/Google Ads conversions in GTM.
 
+## Design & interaction
+
+- **Type**: Fraunces (a soft, slightly wonky serif) for headings, Plus Jakarta
+  Sans for text, loaded from Google Fonts with full system fallbacks. To drop
+  the third-party request entirely, download both families into `assets/fonts/`
+  and swap the `<link>` in `src/layout.mjs` for local `@font-face` rules.
+- **Hero artwork**: a hand-built SVG dusk scene — layered rooflines, lit
+  windows, and a porch lamp whose glow breathes on a 5.5s loop. Vector, so it
+  costs ~2KB and stays sharp anywhere. It is masked back to a backdrop so it
+  never fights the headline.
+- **Texture and depth**: layered radial gradients plus an SVG grain overlay on
+  the dark sections; light sections lift over the dark trust bar like a sheet of
+  paper (rounded top, negative margin).
+- **A 24-icon custom set** (`src/lib/icons.mjs`) — one stroke weight, one grid.
+  No emoji, no icon font, no extra request.
+- **Motion**: scroll reveals with a staggered delay, stat counters that count
+  up on entry, a pulsing "we're open" dot, and hover lift on cards. All of it
+  is suppressed under `prefers-reduced-motion`, and the reveal styles are armed
+  *by JavaScript itself*, so a script failure can never leave a section blank.
+- **Sticky offer rail** beside the long-form process page, so a form stays in
+  reach while someone reads.
+- **Scroll shadows** on wide tables that appear only while there is more to
+  scroll to, plus a swipe hint on small screens.
+
+## The net-proceeds calculator
+
+`/compare/` and the home page carry a live estimator: two sliders (value once
+repaired, repairs needed) driving a side-by-side of what you'd net from a cash
+sale versus a listing, with a plain-English verdict under it.
+
+It runs the same arithmetic the offer desk uses — cash offer = ARV − repairs −
+24% (holding, selling and margin); listing net = ARV − repairs − 8%
+(commission and closing) − 4.2% (concessions and ~5 months of carry) — and it
+is deliberately built so a tidy house shows **listing winning**. That is the
+truth, a calculator that always flattered us would be obvious, and being the
+company that says it out loud is the whole positioning. Every assumption is
+printed under the result. Tune the constants at the top of the calculator block
+in `assets/main.js`.
+
 ## Technical SEO built in
 
 - Clean, keyword-shaped URLs; one `<h1>` per page (enforced by the build).
@@ -88,10 +127,11 @@ states you are not agents, not advisors, and never charge sellers a fee.
 - Canonical URLs, Open Graph + Twitter cards, a real 1200×630 social image.
 - `sitemap.xml`, `robots.txt`, `site.webmanifest`, security + cache `_headers`.
 - Dense internal linking: cities ↔ situations ↔ guides ↔ money pages.
-- Fast by construction — system fonts, one small CSS file, one deferred JS file,
-  no webfonts, no frameworks, no third-party scripts unless you add a tag ID.
+- Fast by construction — one CSS file, one deferred JS file, vector artwork, no
+  frameworks, and no third-party scripts unless you add a tag ID.
 - `node build.mjs --check` fails the build on a broken internal link, a missing
-  or oversized title/description, a wrong `<h1>` count, or invalid JSON-LD.
+  or oversized title/description, a wrong `<h1>` count, a duplicate element id,
+  or invalid JSON-LD.
 
 ---
 
@@ -156,6 +196,7 @@ src/layout.mjs          HTML shell, header, footer, JSON-LD graph
 src/components.mjs      lead form, CTA bands, tables, FAQ, hero blocks
 src/content/            cities, situations, FAQs, posts, testimonials
 src/pages/              core, local, guides
+src/lib/icons.mjs       the inline SVG icon set
 assets/                 styles.css, main.js, img/ (+ img-src/ for the OG card)
 tools/                  image renderer, local preview server
 public/                 build output (committed, so it deploys with no build)

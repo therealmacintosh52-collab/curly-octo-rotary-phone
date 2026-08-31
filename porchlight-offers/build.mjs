@@ -178,6 +178,14 @@ for (const page of written) {
     problems.push(`${page.path} — broken internal link: ${href}`);
   }
 
+  // Duplicate ids break label/aria wiring and in-page anchors.
+  const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const seen = new Set();
+  for (const id of ids) {
+    if (seen.has(id)) problems.push(`${page.path} — duplicate element id: #${id}`);
+    seen.add(id);
+  }
+
   // JSON-LD must parse.
   for (const block of html.matchAll(
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,

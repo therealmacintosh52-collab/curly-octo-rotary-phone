@@ -1,7 +1,92 @@
 import { site } from './config.mjs';
 import { esc, join } from './lib/html.mjs';
+import { icon, situationIcon } from './lib/icons.mjs';
 import { situations } from './content/situations.mjs';
 import { testimonials, isSampleProof } from './content/testimonials.mjs';
+
+/* --------------------------------------------------------------- hero art */
+
+/**
+ * Decorative dusk scene behind the hero: layered rooflines, lit windows and a
+ * porch lamp whose glow breathes. Purely presentational, so it is aria-hidden
+ * and it stops animating under prefers-reduced-motion.
+ */
+export const heroArt = () => `
+<div class="hero-art" aria-hidden="true">
+  <svg viewBox="0 0 900 560" preserveAspectRatio="xMidYMax slice" focusable="false">
+    <defs>
+      <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffd07a" stop-opacity=".55"/>
+        <stop offset="45%" stop-color="#f6a623" stop-opacity=".28"/>
+        <stop offset="100%" stop-color="#f6a623" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="windowGlow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ffd898" stop-opacity=".5"/>
+        <stop offset="100%" stop-color="#f6a623" stop-opacity=".18"/>
+      </linearGradient>
+      <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ffcf82" stop-opacity=".16"/>
+        <stop offset="100%" stop-color="#ffcf82" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+
+    <g class="hero-art__stars">
+      ${[
+        [96, 62],
+        [186, 122],
+        [286, 48],
+        [402, 96],
+        [520, 40],
+        [648, 108],
+        [742, 56],
+        [828, 132],
+        [58, 168],
+        [352, 168],
+      ]
+        .map(
+          ([x, y], i) =>
+            `<circle cx="${x}" cy="${y}" r="${i % 3 === 0 ? 2.2 : 1.4}" fill="#dce8f7" opacity=".55" style="--d:${(i * 0.7).toFixed(1)}s"/>`,
+        )
+        .join('')}
+    </g>
+
+    <!-- distant rooflines -->
+    <g stroke="#4d688e" stroke-opacity=".45" stroke-width="2" fill="none">
+      <path d="M-20 372 74 300l94 72v128h-188Z"/>
+      <path d="M150 392l86-66 86 66v108H150Z"/>
+      <path d="M640 384l78-60 78 60v116H640Z"/>
+      <path d="M780 402l70-54 90 68v84H780Z"/>
+    </g>
+    <g fill="#16324f" fill-opacity=".55">
+      <rect x="96" y="404" width="26" height="34" rx="3"/>
+      <rect x="196" y="416" width="24" height="30" rx="3"/>
+      <rect x="700" y="410" width="24" height="30" rx="3"/>
+    </g>
+
+    <!-- foreground house -->
+    <g class="hero-art__house">
+      <path d="M300 356 470 224l170 132v212H300Z" fill="#0d1f38" fill-opacity=".72" stroke="#5b7ba6" stroke-opacity=".65" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M284 362 470 218l186 144" fill="none" stroke="#9fb9db" stroke-opacity=".85" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="352" y="392" width="58" height="52" rx="4" fill="url(#windowGlow)"/>
+      <rect x="530" y="392" width="58" height="52" rx="4" fill="url(#windowGlow)"/>
+      <path d="M381 392v52M352 418h58M559 392v52M530 418h58" stroke="#0d1f38" stroke-opacity=".55" stroke-width="2"/>
+      <path d="M430 568V468a40 40 0 0 1 80 0v100Z" fill="#123156" stroke="#6f8fb8" stroke-opacity=".7" stroke-width="2.5"/>
+      <circle cx="496" cy="524" r="4" fill="#f6a623"/>
+      <path d="M470 218 470 190" stroke="#9fb9db" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/>
+    </g>
+
+    <!-- porch lamp + beam -->
+    <path d="M596 402 660 560H532Z" fill="url(#beam)"/>
+    <g class="hero-art__lamp">
+      <circle cx="596" cy="398" r="86" fill="url(#lampGlow)"/>
+      <path d="M596 356v14" stroke="#9fb9db" stroke-opacity=".8" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M584 372h24l6 24h-36Z" fill="#0d1f38" stroke="#c8dbf2" stroke-opacity=".9" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="596" cy="386" r="5.5" fill="#ffd894"/>
+    </g>
+
+    <path d="M0 556h900" stroke="#4d688e" stroke-opacity=".35" stroke-width="2"/>
+  </svg>
+</div>`;
 
 /* ------------------------------------------------------------- lead form */
 
@@ -54,7 +139,7 @@ export function leadForm({ id = 'offer-form', compact = false, source = 'page' }
 
     <div class="offer-form__progress js-progress" hidden>
       <div class="offer-form__bar"><span class="js-progress-fill" style="width:33%"></span></div>
-      <p class="offer-form__step-label">Step <span class="js-step-num">1</span> of 3 · takes about 60 seconds</p>
+      <p class="offer-form__step-label">Step <span class="js-step-num">1</span> of 3 · about 60 seconds</p>
     </div>
 
     <!-- Step 1 ---------------------------------------------------------- -->
@@ -62,22 +147,29 @@ export function leadForm({ id = 'offer-form', compact = false, source = 'page' }
       <legend class="offer-step__legend">Where is the house?</legend>
       <div class="field">
         <label class="field__label" for="${esc(id)}-address">Property address</label>
-        <input
-          class="field__input field__input--lg"
-          id="${esc(id)}-address"
-          name="property_address"
-          type="text"
-          required
-          autocomplete="street-address"
-          placeholder="123 Main St, ${esc(site.address.city)}, ${esc(site.address.region)}"
-          enterkeyhint="next"
-        >
+        <div class="field__with-icon">
+          ${icon('pin', 'field__icon')}
+          <input
+            class="field__input field__input--lg"
+            id="${esc(id)}-address"
+            name="property_address"
+            type="text"
+            required
+            autocomplete="street-address"
+            placeholder="123 Main St, ${esc(site.address.city)}, ${esc(site.address.region)}"
+            enterkeyhint="next"
+          >
+        </div>
         <p class="field__error js-error" hidden>Please enter the property address.</p>
       </div>
       <button class="btn btn--primary btn--block btn--lg js-next" type="button" data-track="form-step-1">
-        Get my cash offer →
+        Get my cash offer ${icon('arrow', 'btn__icon')}
       </button>
-      <p class="offer-form__reassure">Free · No obligation · We never charge homeowners a fee</p>
+      <ul class="offer-form__assure">
+        <li>${icon('check')} Free</li>
+        <li>${icon('check')} No obligation</li>
+        <li>${icon('check')} No fees, ever</li>
+      </ul>
     </fieldset>
 
     <!-- Step 2 ---------------------------------------------------------- -->
@@ -88,7 +180,7 @@ export function leadForm({ id = 'offer-form', compact = false, source = 'page' }
         <span class="field__label" id="${esc(id)}-cond">What condition is it in?</span>
         <div class="chip-group" role="group" aria-labelledby="${esc(id)}-cond">
           ${CONDITIONS.map(
-            ([label, value], i) => `
+            ([label, value]) => `
           <label class="chip">
             <input type="radio" name="condition" value="${esc(value)}">
             <span>${esc(label)}</span>
@@ -121,7 +213,7 @@ export function leadForm({ id = 'offer-form', compact = false, source = 'page' }
 
       <div class="offer-form__actions">
         <button class="btn btn--link js-back" type="button">← Back</button>
-        <button class="btn btn--primary js-next" type="button" data-track="form-step-2">Continue →</button>
+        <button class="btn btn--primary js-next" type="button" data-track="form-step-2">Continue ${icon('arrow', 'btn__icon')}</button>
       </div>
     </fieldset>
 
@@ -161,7 +253,7 @@ export function leadForm({ id = 'offer-form', compact = false, source = 'page' }
         <button class="btn btn--primary btn--lg" type="submit" data-track="form-submit">Get my cash offer</button>
       </div>
       <p class="offer-form__reassure">
-        We call within one business day. No spam, no selling your info, no obligation.
+        ${icon('lock')} We call within one business day. We never sell your information.
       </p>
     </fieldset>
 
@@ -176,44 +268,58 @@ export function leadForm({ id = 'offer-form', compact = false, source = 'page' }
 
 /* -------------------------------------------------------------- sections */
 
+const TRUST_ITEMS = [
+  ['cash', '$0', 'fees or commissions', null],
+  ['clock', site.stats.avgOfferHours, 'hours to a written offer', site.stats.avgOfferHours],
+  ['calendar', site.stats.fastestCloseDays, 'days — fastest close', site.stats.fastestCloseDays],
+  ['hammer', 'As-is', 'no repairs, no cleaning', null],
+  ['key', 'You', 'choose the closing date', null],
+];
+
 export const trustBar = () => `
 <section class="trust-bar" aria-label="Why sellers choose us">
   <div class="container">
     <ul class="trust-bar__list">
-      <li><strong>$0</strong><span>fees or commissions</span></li>
-      <li><strong>${esc(site.stats.avgOfferHours)} hrs</strong><span>to a written offer</span></li>
-      <li><strong>${esc(site.stats.fastestCloseDays)} days</strong><span>fastest close</span></li>
-      <li><strong>As-is</strong><span>no repairs, no cleaning</span></li>
-      <li><strong>You choose</strong><span>the closing date</span></li>
+      ${TRUST_ITEMS.map(
+        ([ic, value, label, count]) => `
+      <li>
+        ${icon(ic, 'trust-bar__icon')}
+        <strong${count ? ` data-count="${esc(count)}"` : ''}>${esc(value)}</strong>
+        <span>${esc(label)}</span>
+      </li>`,
+      ).join('')}
     </ul>
   </div>
 </section>`;
 
 export const steps = () => `
-<section class="section section--steps" id="how">
+<section class="section section--steps" id="how" data-reveal>
   <div class="container">
-    <p class="eyebrow">How it works</p>
+    <p class="eyebrow">${icon('spark')} How it works</p>
     <h2 class="section__title">Three steps. About a week. Zero cost to you.</h2>
     <ol class="steps">
       <li class="step">
         <span class="step__num" aria-hidden="true">1</span>
+        ${icon('phone', 'step__icon')}
         <h3 class="step__title">Tell us about the house</h3>
         <p>Fill out the form or call. It takes a minute, and we only need the address, rough condition, and how to reach you.</p>
       </li>
       <li class="step">
         <span class="step__num" aria-hidden="true">2</span>
+        ${icon('doc', 'step__icon')}
         <h3 class="step__title">We look and make an offer</h3>
         <p>One short walkthrough — 20 minutes, no cleaning required — then a written cash offer within ${esc(site.stats.avgOfferHours)} hours, with the math shown.</p>
       </li>
       <li class="step">
         <span class="step__num" aria-hidden="true">3</span>
+        ${icon('calendar', 'step__icon')}
         <h3 class="step__title">You pick the closing date</h3>
         <p>Close at a licensed title company in as little as ${esc(site.stats.fastestCloseDays)} days, or months from now. Funds are wired the day we close.</p>
       </li>
     </ol>
     <p class="steps__note">
       No repairs. No cleaning. No showings. No commissions. No closing costs.
-      <a href="/how-it-works/">See the full process →</a>
+      <a href="/how-it-works/">See the full process ${icon('arrow', 'inline-icon')}</a>
     </p>
   </div>
 </section>`;
@@ -243,19 +349,105 @@ export const comparisonTable = () => `
       <tr><th scope="row">Sale price</th><td class="is-us">Below full retail — that's the trade</td><td>Higher gross, before all of the above</td></tr>
     </tbody>
   </table>
-</div>`;
+</div>
+<p class="table-hint">${icon('arrow')} Swipe the table to compare</p>`;
+
+/* ------------------------------------------------------------ calculator */
+
+/**
+ * Live net-proceeds estimator.
+ *
+ * It is deliberately built so a well-kept house shows the *listing* column
+ * winning — that is true, and a calculator that always flatters us would be
+ * both dishonest and obvious. Every assumption is printed under the result.
+ */
+export const calculator = ({ heading = 'What would you actually walk away with?' } = {}) => `
+<section class="section section--calc" data-reveal>
+  <div class="container">
+    <div class="calc">
+      <div class="calc__intro">
+        <p class="eyebrow">${icon('chart')} Net proceeds estimator</p>
+        <h2 class="section__title">${esc(heading)}</h2>
+        <p class="section__lede">
+          Move the sliders. This is the same arithmetic we use to build a real offer — and it will
+          happily tell you when listing with an agent nets you more.
+        </p>
+        <div class="calc__controls js-calc">
+          <div class="calc__control">
+            <label for="calc-arv">
+              Value once fully repaired
+              <output id="calc-arv-out" class="calc__value">$300,000</output>
+            </label>
+            <input id="calc-arv" class="js-calc-arv" type="range" min="75000" max="900000" step="5000" value="300000">
+            <div class="calc__scale"><span>$75k</span><span>$900k</span></div>
+          </div>
+          <div class="calc__control">
+            <label for="calc-repairs">
+              Repairs it needs
+              <output id="calc-repairs-out" class="calc__value">$55,000</output>
+            </label>
+            <input id="calc-repairs" class="js-calc-repairs" type="range" min="0" max="200000" step="2500" value="55000">
+            <div class="calc__scale"><span>$0</span><span>$200k</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="calc__results">
+        <div class="calc__card calc__card--us">
+          <p class="calc__card-label">${icon('cash')} Sell to us</p>
+          <p class="calc__net js-calc-cash-net">$172,600</p>
+          <div class="calc__bar"><span class="js-calc-cash-bar" style="width:83%"></span></div>
+          <ul class="calc__lines">
+            <li><span>Cash offer</span><b class="js-calc-cash-offer">$173,000</b></li>
+            <li><span>Repairs you pay</span><b>$0</b></li>
+            <li><span>Commissions &amp; closing</span><b>$0</b></li>
+            <li><span>Holding while it sells</span><b class="js-calc-cash-hold">−$400</b></li>
+          </ul>
+          <p class="calc__meta">${icon('clock')} 7–21 days · $0 out of pocket</p>
+        </div>
+
+        <div class="calc__card">
+          <p class="calc__card-label">${icon('home')} List with an agent</p>
+          <p class="calc__net js-calc-list-net">$207,000</p>
+          <div class="calc__bar calc__bar--alt"><span class="js-calc-list-bar" style="width:100%"></span></div>
+          <ul class="calc__lines">
+            <li><span>Sale price</span><b class="js-calc-list-price">$300,000</b></li>
+            <li><span>Repairs you pay</span><b class="js-calc-list-repairs">−$55,000</b></li>
+            <li><span>Commissions &amp; closing (8%)</span><b class="js-calc-list-fees">−$24,000</b></li>
+            <li><span>Concessions &amp; holding</span><b class="js-calc-list-hold">−$14,000</b></li>
+          </ul>
+          <p class="calc__meta">${icon('clock')} 4–7 months · repairs paid up front</p>
+        </div>
+
+        <p class="calc__verdict js-calc-verdict" role="status" aria-live="polite"></p>
+        <p class="calc__disclaimer">
+          Estimate only, not an offer. Assumes 6% commission, 2% seller closing costs, ~1.7%
+          post-inspection concessions and about five months of holding costs on the listing side;
+          on the cash side, our standard repair, holding and margin allowance. Your real numbers
+          depend on the house — that is what the walkthrough is for.
+        </p>
+        <p class="calc__cta">
+          <a class="btn btn--primary btn--lg" href="#get-offer" data-track="calc-cta">Get my real offer ${icon('arrow', 'btn__icon')}</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>`;
+
+/* ------------------------------------------------------------------ grids */
 
 export const situationsGrid = (heading = 'We buy houses in every situation') => `
-<section class="section section--alt" id="situations">
+<section class="section section--alt" id="situations" data-reveal>
   <div class="container">
-    <p class="eyebrow">Any situation</p>
+    <p class="eyebrow">${icon('users')} Any situation</p>
     <h2 class="section__title">${esc(heading)}</h2>
     <p class="section__lede">Whatever put you here, we have almost certainly bought a house exactly like it before.</p>
     <ul class="card-grid">
       ${situations
         .map(
           (s) => `
-      <li class="card">
+      <li class="card card--icon">
+        ${icon(situationIcon[s.slug] || 'home', 'card__icon')}
         <h3 class="card__title"><a href="/situations/${s.slug}/">${esc(s.nav)}</a></h3>
         <p class="card__text">${esc(s.description.split('.')[0])}.</p>
         <span class="card__link" aria-hidden="true">Learn more →</span>
@@ -266,10 +458,19 @@ export const situationsGrid = (heading = 'We buy houses in every situation') => 
   </div>
 </section>`;
 
+const initials = (name) =>
+  name
+    .replace(/^Sample — /, '')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
 export const testimonialsSection = ({ heading = 'What sellers say' } = {}) => `
-<section class="section section--proof" id="reviews">
+<section class="section section--proof" id="reviews" data-reveal>
   <div class="container">
-    <p class="eyebrow">Reviews</p>
+    <p class="eyebrow">${icon('star')} Reviews</p>
     <h2 class="section__title">${esc(heading)}</h2>
     ${
       isSampleProof
@@ -284,10 +485,14 @@ export const testimonialsSection = ({ heading = 'What sellers say' } = {}) => `
         .map(
           (t) => `
       <li class="quote">
+        <span class="quote__mark" aria-hidden="true">”</span>
         <blockquote><p>${esc(t.quote)}</p></blockquote>
         <footer class="quote__meta">
-          <span class="quote__name">${esc(t.name)}</span>
-          <span class="quote__city">${esc(t.city)} · ${esc(t.context)}</span>
+          <span class="quote__avatar" aria-hidden="true">${esc(initials(t.name))}</span>
+          <span>
+            <span class="quote__name">${esc(t.name)}</span>
+            <span class="quote__city">${esc(t.city)} · ${esc(t.context)}</span>
+          </span>
         </footer>
       </li>`,
         )
@@ -297,9 +502,9 @@ export const testimonialsSection = ({ heading = 'What sellers say' } = {}) => `
 </section>`;
 
 export const faqSection = (faqs, { heading = 'Questions sellers ask us', showAllLink = true } = {}) => `
-<section class="section" id="faq">
+<section class="section" id="faq" data-reveal>
   <div class="container container--narrow">
-    <p class="eyebrow">FAQ</p>
+    <p class="eyebrow">${icon('doc')} FAQ</p>
     <h2 class="section__title">${esc(heading)}</h2>
     <div class="faq">
       ${faqs
@@ -312,7 +517,7 @@ export const faqSection = (faqs, { heading = 'Questions sellers ask us', showAll
         )
         .join('')}
     </div>
-    ${showAllLink ? '<p class="faq__more"><a href="/faq/">Read all frequently asked questions →</a></p>' : ''}
+    ${showAllLink ? `<p class="faq__more"><a href="/faq/">Read all frequently asked questions ${icon('arrow', 'inline-icon')}</a></p>` : ''}
   </div>
 </section>`;
 
@@ -327,12 +532,19 @@ export const ctaBand = ({
       <div class="cta-band__copy">
         <h2 class="cta-band__title">${esc(heading)}</h2>
         <p>${esc(text)}</p>
+        <ul class="cta-band__points">
+          <li>${icon('check')} No repairs, no cleaning, no showings</li>
+          <li>${icon('check')} No commissions and no closing costs</li>
+          <li>${icon('check')} You choose the closing date</li>
+        </ul>
         <p class="cta-band__phone">
           Or call <a href="tel:${esc(site.phoneHref)}" data-track="cta-band-call">${esc(site.phone)}</a><br>
           <span>${esc(site.hours)}</span>
         </p>
       </div>
       <div class="cta-band__form">
+        <h3 class="form-card__title">Start with the address</h3>
+        <p class="form-card__sub">No fees. No obligation. About 60 seconds.</p>
         ${leadForm({ id: `offer-form-${source}`, compact: true, source })}
       </div>
     </div>
@@ -355,23 +567,23 @@ export const breadcrumbs = (crumbs) => `
   </div>
 </nav>`;
 
-export const pageHero = ({ eyebrow, h1, lede, cta = true }) => `
+export const pageHero = ({ eyebrow, h1, lede, cta = true, iconName }) => `
 <section class="page-hero">
   <div class="container">
     <div class="page-hero__inner">
-    ${eyebrow ? `<p class="eyebrow">${esc(eyebrow)}</p>` : ''}
-    <h1 class="page-hero__title">${esc(h1)}</h1>
-    ${lede ? `<p class="page-hero__lede">${esc(lede)}</p>` : ''}
-    ${
-      cta
-        ? `<p class="page-hero__actions">
-      <a class="btn btn--primary btn--lg" href="#get-offer" data-track="hero-cta">Get my cash offer</a>
-      <a class="btn btn--ghost btn--lg" href="tel:${esc(site.phoneHref)}" data-track="hero-call">Call ${esc(site.phone)}</a>
-    </p>`
-        : ''
-    }
+      ${eyebrow ? `<p class="eyebrow">${iconName ? icon(iconName) : ''} ${esc(eyebrow)}</p>` : ''}
+      <h1 class="page-hero__title">${esc(h1)}</h1>
+      ${lede ? `<p class="page-hero__lede">${esc(lede)}</p>` : ''}
+      ${
+        cta
+          ? `<p class="page-hero__actions">
+        <a class="btn btn--primary btn--lg" href="#get-offer" data-track="hero-cta">Get my cash offer ${icon('arrow', 'btn__icon')}</a>
+        <a class="btn btn--ghost btn--lg" href="tel:${esc(site.phoneHref)}" data-track="hero-call">${icon('phone', 'btn__icon')} ${esc(site.phone)}</a>
+      </p>`
+          : ''
+      }
     </div>
   </div>
 </section>`;
 
-export { join };
+export { join, icon };

@@ -1,5 +1,6 @@
 import { site, hasAnalytics } from './config.mjs';
 import { esc, jsonLd, join, abs } from './lib/html.mjs';
+import { icon } from './lib/icons.mjs';
 import { cities } from './content/cities.mjs';
 import { situations } from './content/situations.mjs';
 
@@ -103,11 +104,14 @@ export const faqSchema = (faqs) => ({
 
 const logo = (className = 'logo') => `
 <a class="${className}" href="/" aria-label="${esc(site.name)} — home">
-  <svg class="logo__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <path d="M4 15 16 4l12 11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M7 14v13h18V14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="16" cy="20" r="4" class="logo__glow"/>
-  </svg>
+  <span class="logo__badge">
+    <svg class="logo__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <circle cx="16" cy="20" r="7.5" class="logo__halo"/>
+      <path d="M4 15 16 4l12 11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 14v13h18V14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="16" cy="20" r="3.4" class="logo__glow"/>
+    </svg>
+  </span>
   <span class="logo__text">Porchlight<span class="logo__accent">Offers</span></span>
 </a>`;
 
@@ -139,7 +143,7 @@ const header = (path) => `
       </ul>
       <div class="site-nav__cta">
         <a class="btn btn--ghost" href="tel:${esc(site.phoneHref)}" data-track="header-call">
-          <span aria-hidden="true">📞</span> ${esc(site.phone)}
+          ${icon('phone', 'btn__icon')} ${esc(site.phone)}
         </a>
         <a class="btn btn--primary" href="/#offer-form" data-track="header-cta">Get my cash offer</a>
       </div>
@@ -150,6 +154,12 @@ const header = (path) => `
 const footer = () => `
 <footer class="site-footer">
   <div class="container">
+    <ul class="footer-badges">
+      <li>${icon('shield')} We close at a licensed title company</li>
+      <li>${icon('wallet')} We never charge homeowners a fee</li>
+      <li>${icon('lock')} Your information is never sold</li>
+      <li>${icon('handshake')} We'll tell you if listing nets more</li>
+    </ul>
     <div class="footer-grid">
       <div class="footer-brand">
         ${logo('logo logo--footer')}
@@ -216,7 +226,7 @@ const footer = () => `
 const mobileBar = () => `
 <div class="mobile-bar" role="region" aria-label="Contact actions">
   <a class="mobile-bar__call" href="tel:${esc(site.phoneHref)}" data-track="mobilebar-call">
-    <span aria-hidden="true">📞</span> Call ${esc(site.phone)}
+    ${icon('phone')} Call now
   </a>
   <a class="mobile-bar__cta" href="/#offer-form" data-track="mobilebar-cta">Get my offer</a>
 </div>`;
@@ -260,6 +270,7 @@ export function renderPage(p) {
 <link rel="canonical" href="${esc(canonical)}">
 ${p.noindex ? '<meta name="robots" content="noindex, follow">' : '<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">'}
 <meta name="theme-color" content="#0f2440">
+<script>document.documentElement.classList.add('js')</script>
 <meta property="og:type" content="${esc(p.ogType ?? 'website')}">
 <meta property="og:site_name" content="${esc(site.name)}">
 <meta property="og:title" content="${esc(p.title)}">
@@ -276,6 +287,9 @@ ${p.noindex ? '<meta name="robots" content="noindex, follow">' : '<meta name="ro
 <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/styles.css">
 <script type="application/ld+json">
 ${jsonLd({ '@context': 'https://schema.org', '@graph': graph })}

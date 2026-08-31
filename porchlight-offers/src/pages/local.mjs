@@ -3,7 +3,10 @@ import { esc, abs } from '../lib/html.mjs';
 import { faqSchema } from '../layout.mjs';
 import { cities } from '../content/cities.mjs';
 import { situations } from '../content/situations.mjs';
+import { icon } from '../lib/icons.mjs';
+import { situationIcon } from '../lib/icons.mjs';
 import {
+  heroArt,
   leadForm,
   trustBar,
   steps,
@@ -72,9 +75,10 @@ ${breadcrumbs([
 ])}
 
 <section class="hero hero--local">
+  ${heroArt()}
   <div class="container hero__inner">
     <div class="hero__copy">
-      <p class="hero__eyebrow">${esc(c.name)}, ${esc(site.stateAbbr)} · ${esc(c.county)}</p>
+      <p class="hero__eyebrow"><span class="hero__dot" aria-hidden="true"></span> ${esc(c.name)}, ${esc(site.stateAbbr)} · ${esc(c.county)}</p>
       <h1 class="hero__title">We buy houses in ${esc(c.name)} — <em>cash, as-is, on your timeline</em></h1>
       <p class="hero__lede">${esc(c.intro)}</p>
       <ul class="hero__points">
@@ -96,7 +100,7 @@ ${breadcrumbs([
 
 ${trustBar()}
 
-<section class="section">
+<section class="section" data-reveal>
   <div class="container container--narrow prose">
     <h2>Selling a house fast in ${esc(c.name)}</h2>
     <p>${esc(c.market)}</p>
@@ -111,15 +115,17 @@ ${trustBar()}
   </div>
 </section>
 
-<section class="section section--alt">
+<section class="section section--alt" data-reveal>
   <div class="container">
+    <p class="eyebrow">${icon('users')} Any situation</p>
     <h2 class="section__title">Why ${esc(c.name)} homeowners call us</h2>
     <ul class="card-grid">
       ${situations
         .slice(0, 6)
         .map(
           (s) => `
-      <li class="card">
+      <li class="card card--icon">
+        ${icon(situationIcon[s.slug] || 'home', 'card__icon')}
         <h3 class="card__title"><a href="/situations/${s.slug}/">${esc(s.nav)}</a></h3>
         <p class="card__text">${esc(s.intro.split('.')[0])}.</p>
       </li>`,

@@ -8,7 +8,9 @@ import { faqSchema } from '../layout.mjs';
 import { situations } from '../content/situations.mjs';
 import { posts } from '../content/posts.mjs';
 import { cities } from '../content/cities.mjs';
+import { icon, situationIcon } from '../lib/icons.mjs';
 import {
+  heroArt,
   leadForm,
   trustBar,
   steps,
@@ -52,9 +54,10 @@ ${breadcrumbs([
 ])}
 
 <section class="hero hero--situation">
+  ${heroArt()}
   <div class="container hero__inner">
     <div class="hero__copy">
-      <p class="hero__eyebrow">${esc(s.nav)}</p>
+      <p class="hero__eyebrow">${icon(situationIcon[s.slug] || 'home')} ${esc(s.nav)}</p>
       <h1 class="hero__title">${esc(s.h1)}</h1>
       <p class="hero__lede">${esc(s.intro)}</p>
       <ul class="hero__points">
@@ -85,14 +88,16 @@ ${trustBar()}
   </div>
 </section>
 
-<section class="section section--alt">
+<section class="section section--alt" data-reveal>
   <div class="container">
+    <p class="eyebrow">${icon('handshake')} What we do</p>
     <h2 class="section__title">How we handle it</h2>
-    <ul class="card-grid card-grid--3">
+    <ul class="card-grid">
       ${s.help
         .map(
           (h) => `
       <li class="card card--help">
+        ${icon('check', 'card__icon card__icon--check')}
         <h3 class="card__title">${esc(h.h)}</h3>
         <p class="card__text">${esc(h.p)}</p>
       </li>`,
@@ -159,7 +164,8 @@ ${pageHero({
       ${situations
         .map(
           (s) => `
-      <li class="card">
+      <li class="card card--icon">
+        ${icon(situationIcon[s.slug] || 'home', 'card__icon')}
         <h2 class="card__title"><a href="/situations/${s.slug}/">${esc(s.h1)}</a></h2>
         <p class="card__text">${esc(s.intro.split('.').slice(0, 2).join('.'))}.</p>
         <span class="card__link" aria-hidden="true">Learn more →</span>

@@ -4,7 +4,10 @@ import { faqSchema } from '../layout.mjs';
 import { faqs, homeFaqs } from '../content/faqs.mjs';
 import { cities } from '../content/cities.mjs';
 import { situations } from '../content/situations.mjs';
+import { icon } from '../lib/icons.mjs';
 import {
+  heroArt,
+  calculator,
   leadForm,
   trustBar,
   steps,
@@ -28,9 +31,10 @@ const home = () => ({
   schema: [faqSchema(homeFaqs)],
   body: `
 <section class="hero">
+  ${heroArt()}
   <div class="container hero__inner">
     <div class="hero__copy">
-      <p class="hero__eyebrow">Cash home buyers in ${esc(site.marketName)}</p>
+      <p class="hero__eyebrow"><span class="hero__dot" aria-hidden="true"></span> Cash home buyers in ${esc(site.marketName)}</p>
       <h1 class="hero__title">Sell your house fast for cash — <em>any condition, any situation</em></h1>
       <p class="hero__lede">
         Get a fair written cash offer in ${esc(S.avgOfferHours)} hours and close in as
@@ -44,8 +48,8 @@ const home = () => ({
         <li>No obligation, no pressure, and no expiring offers</li>
       </ul>
       <p class="hero__proof">
-        <strong>${esc(S.housesBought)} houses bought</strong> across ${esc(site.marketName)} ·
-        <strong>${esc(S.yearsBuying)} years</strong> buying locally
+        <span class="hero__proof-stat"><strong data-count="${esc(S.housesBought)}">${esc(S.housesBought)}</strong> houses bought</span>
+        <span class="hero__proof-stat"><strong data-count="${esc(S.yearsBuying)}">${esc(S.yearsBuying)}</strong> years buying in ${esc(site.marketName)}</span>
       </p>
     </div>
     <div class="hero__form">
@@ -62,42 +66,35 @@ ${trustBar()}
 
 ${steps()}
 
-<section class="section section--alt">
+<section class="section section--alt" data-reveal>
   <div class="container">
-    <p class="eyebrow">Why sellers choose us</p>
+    <p class="eyebrow">${icon('spark')} Why sellers choose us</p>
     <h2 class="section__title">The whole point is that it's easy</h2>
     <ul class="benefit-grid">
+      ${[
+        ['hammer', 'Sell exactly as it sits', 'Foundation, roof, mold, fire damage, a house full of belongings — none of it disqualifies you. We have bought houses people were embarrassed to show us.'],
+        ['lock', "Our price doesn't move", 'We inspect once, before the contract. The number you sign is the number you get wired. No post-inspection renegotiation, ever.'],
+        ['wallet', 'You keep every dollar', 'No commissions, no listing fees, no closing costs on your side. The offer is your net, less any mortgage payoff or liens the title company must clear.'],
+        ['calendar', 'You control the calendar', `Close in ${S.fastestCloseDays} days if you're in a hurry, or 90 days out if you need time. Need to stay a couple weeks after closing? Just ask.`],
+        ['chart', 'We show our math', "You'll see the comparable sales, our repair estimate, and our costs. If a buyer won't show you how they got their number, be careful."],
+        ['handshake', "We'll tell you when to list instead", "If your house is in good shape and you have time to wait, an agent will probably net you more — and we'll say so on the phone. That honesty is why we still get referrals."],
+      ]
+        .map(
+          ([ic, title, text]) => `
       <li class="benefit">
-        <h3>Sell exactly as it sits</h3>
-        <p>Foundation, roof, mold, fire damage, a house full of belongings — none of it disqualifies you. We have bought houses people were embarrassed to show us.</p>
-      </li>
-      <li class="benefit">
-        <h3>Our price doesn't move</h3>
-        <p>We inspect once, before the contract. The number you sign is the number you get wired. No post-inspection renegotiation, ever.</p>
-      </li>
-      <li class="benefit">
-        <h3>You keep every dollar</h3>
-        <p>No commissions, no listing fees, no closing costs on your side. The offer is your net, less any mortgage payoff or liens the title company must clear.</p>
-      </li>
-      <li class="benefit">
-        <h3>You control the calendar</h3>
-        <p>Close in ${esc(S.fastestCloseDays)} days if you're in a hurry, or 90 days out if you need time. Need to stay a couple weeks after closing? Just ask.</p>
-      </li>
-      <li class="benefit">
-        <h3>We show our math</h3>
-        <p>You'll see the comparable sales, our repair estimate, and our costs. If a buyer won't show you how they got their number, be careful.</p>
-      </li>
-      <li class="benefit">
-        <h3>We'll tell you when to list instead</h3>
-        <p>If your house is in good shape and you have time to wait, an agent will probably net you more — and we'll say so on the phone. That honesty is why we still get referrals.</p>
-      </li>
+        ${icon(ic, 'benefit__icon')}
+        <h3>${esc(title)}</h3>
+        <p>${esc(text)}</p>
+      </li>`,
+        )
+        .join('')}
     </ul>
   </div>
 </section>
 
-<section class="section">
+<section class="section" data-reveal>
   <div class="container">
-    <p class="eyebrow">Straight comparison</p>
+    <p class="eyebrow">${icon('scales')} Straight comparison</p>
     <h2 class="section__title">Cash offer vs. listing with an agent</h2>
     <p class="section__lede">
       A cash offer trades some sale price for speed, certainty and zero cost. Here's the honest
@@ -110,13 +107,15 @@ ${steps()}
   </div>
 </section>
 
+${calculator()}
+
 ${situationsGrid()}
 
 ${testimonialsSection()}
 
-<section class="section">
+<section class="section" data-reveal>
   <div class="container">
-    <p class="eyebrow">Where we buy</p>
+    <p class="eyebrow">${icon('pin')} Where we buy</p>
     <h2 class="section__title">We buy houses across ${esc(site.marketName)}</h2>
     <p class="section__lede">Local buyers, local title companies, local crews. If your city isn't listed, call us anyway — we probably still buy there.</p>
     <ul class="pill-list">
@@ -153,8 +152,10 @@ ${pageHero({
 })}
 
 <section class="section">
-  <div class="container container--narrow">
-    <ol class="timeline">
+  <div class="container">
+    <div class="with-rail">
+      <div class="with-rail__main">
+        <ol class="timeline">
       <li class="timeline__item">
         <h2>Day 0 — You reach out</h2>
         <p>Fill out the form or call ${esc(site.phone)}. We need the address, a rough sense of condition, and how to reach you. That's it — no Social Security number, no bank details, no credit check. A real person calls you back the same business day.</p>
@@ -183,6 +184,15 @@ ${pageHero({
         <p>Sign at the title company or with a mobile notary; remote online notarization is available if you've already moved. Funds are wired the same day. Leave whatever you don't want in the house — we handle the cleanout.</p>
       </li>
     </ol>
+      </div>
+      <aside class="with-rail__aside">
+        <div class="rail-card">
+          <h2 class="form-card__title">Get my free cash offer</h2>
+          <p class="form-card__sub">No fees. No obligation. About 60 seconds.</p>
+          ${leadForm({ id: 'offer-form-rail', compact: true, source: 'how-it-works-rail' })}
+        </div>
+      </aside>
+    </div>
   </div>
 </section>
 
@@ -237,6 +247,8 @@ ${pageHero({
     ${comparisonTable()}
   </div>
 </section>
+
+${calculator({ heading: 'Run your own numbers' })}
 
 <section class="section section--alt">
   <div class="container container--narrow">
