@@ -4,7 +4,7 @@ A fast, conversion-focused, SEO-ready static site for **Phil's Auto and Fleet Re
 103 E Elm St, Lodi, CA 95240 · (209) 647-4953.
 
 No frameworks, no build toolchain, no runtime dependencies. One Python script generates
-17 indexable pages plus `sitemap.xml` and `robots.txt` into `public/`, which you can drop
+19 indexable pages plus `sitemap.xml` and `robots.txt` into `public/`, which you can drop
 on any host.
 
 ---
@@ -25,7 +25,7 @@ so opening the HTML files directly with `file://` will not load CSS.
 |---|---|---|
 | Home | `/` | Ranks for "auto repair Lodi", converts on call + form |
 | Services index | `/services/` | Hub linking the ten service pages |
-| 10 service pages | `/services/<slug>/` | One page per money keyword (see below) |
+| 12 service pages | `/services/<slug>/` | One page per money keyword (see below) |
 | About | `/about/` | Trust, differentiation from dealerships |
 | Reviews | `/reviews/` | Social proof, funnels new reviews to Google |
 | Service areas | `/service-areas/` | Captures nearby-city searches |
@@ -35,7 +35,7 @@ so opening the HTML files directly with `file://` will not load CSS.
 
 Service pages: auto repair · check engine & diagnostics · brakes · engine repair ·
 transmission · diesel repair · fleet services · oil change & maintenance · tires ·
-electrical & batteries.
+electrical & batteries · AC & heating · suspension & steering.
 
 ## Conversion features
 
