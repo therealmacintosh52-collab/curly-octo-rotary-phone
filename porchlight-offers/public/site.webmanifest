@@ -1,0 +1,21 @@
+{
+  "name": "Porchlight Offers",
+  "short_name": "Porchlight",
+  "description": "Porchlight Offers buys houses for cash in any condition. Get a fair, no-obligation cash offer in 24 hours and close on the day you choose — no repairs, no commissions, no fees.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#fdfaf5",
+  "theme_color": "#0f2440",
+  "icons": [
+    {
+      "src": "/img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

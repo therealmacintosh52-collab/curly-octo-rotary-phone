@@ -1,0 +1,36 @@
+# Deploy target: Netlify. (Cloudflare Pages / Vercel work the same way —
+# build command `node build.mjs --check`, publish directory `public`.)
+[build]
+  command = "node build.mjs --check"
+  publish = "public"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Trailing-slash canonicalisation: /how-it-works -> /how-it-works/
+[[redirects]]
+  from = "/how-it-works"
+  to = "/how-it-works/"
+  status = 301
+
+[[redirects]]
+  from = "/we-buy-houses"
+  to = "/locations/"
+  status = 301
+
+# Common inbound variants people type or link to.
+[[redirects]]
+  from = "/sell-my-house-fast"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/blog/*"
+  to = "/blog/:splat/"
+  status = 301
+  force = false
+
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404

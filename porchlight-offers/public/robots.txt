@@ -1,0 +1,6 @@
+# Porchlight Offers
+User-agent: *
+Allow: /
+Disallow: /thank-you/
+
+Sitemap: https://www.porchlightoffers.com/sitemap.xml

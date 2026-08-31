@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Porchlight Offers">
+  <rect width="64" height="64" rx="14" fill="#0f2440"/>
+  <circle cx="32" cy="40" r="13" fill="#f6a623" opacity=".28"/>
+  <path d="M10 30 32 11l22 19" fill="none" stroke="#fdfaf5" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M16 28v25h32V28" fill="none" stroke="#fdfaf5" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32" cy="40" r="7" fill="#f6a623"/>
+</svg>
