@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img"
+     aria-label="Phil's Auto and Fleet Repair - Honest auto, diesel and fleet repair in Lodi, California">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0e1720"/>
+      <stop offset="0.6" stop-color="#16283a"/>
+      <stop offset="1" stop-color="#0e1720"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff6a13"/>
+      <stop offset="1" stop-color="#ff9147"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.8" cy="0" r="0.7">
+      <stop offset="0" stop-color="#ff6a13" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#ff6a13" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <g font-family="Helvetica,Arial,sans-serif" fill="#ffffff">
+    <rect x="80" y="92" width="86" height="86" rx="22" fill="url(#mark)"/>
+    <text x="123" y="150" text-anchor="middle" font-size="40" font-weight="700">PA</text>
+    <text x="190" y="130" font-size="34" font-weight="700">Phil's Auto &amp; Fleet Repair</text>
+    <text x="190" y="166" font-size="21" fill="#9fb2c2" letter-spacing="3">LODI, CALIFORNIA</text>
+    <text x="80" y="298" font-size="62" font-weight="700">Honest auto, diesel &amp;</text>
+    <text x="80" y="372" font-size="62" font-weight="700">fleet repair in Lodi</text>
+    <text x="80" y="438" font-size="27" fill="#c8d5e0">Diagnosis before parts. No upsells. You approve every repair.</text>
+    <text x="80" y="536" font-size="30" font-weight="700" fill="#ff9147">(209) 647-4953</text>
+    <text x="330" y="536" font-size="26" fill="#9fb2c2">103 E Elm St, Lodi, CA 95240 &#183; Mon&#8211;Sat 8&#8211;5</text>
+    <text x="80" y="586" font-size="24" fill="#f5a623">&#9733;&#9733;&#9733;&#9733;&#9733;</text>
+    <text x="220" y="586" font-size="22" fill="#9fb2c2">4.4 out of 5 across 83 Google reviews</text>
+  </g>
+</svg>
