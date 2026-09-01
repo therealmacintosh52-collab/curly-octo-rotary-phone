@@ -7,7 +7,6 @@ import { situations } from '../content/situations.mjs';
 import { icon } from '../lib/icons.mjs';
 import {
   heroArt,
-  calculator,
   leadForm,
   trustBar,
   steps,
@@ -106,8 +105,6 @@ ${steps()}
     </p>
   </div>
 </section>
-
-${calculator()}
 
 ${situationsGrid()}
 
@@ -247,8 +244,6 @@ ${pageHero({
     ${comparisonTable()}
   </div>
 </section>
-
-${calculator({ heading: 'Run your own numbers' })}
 
 <section class="section section--alt">
   <div class="container container--narrow">

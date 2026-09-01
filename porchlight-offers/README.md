@@ -102,21 +102,6 @@ states you are not agents, not advisors, and never charge sellers a fee.
 - **Scroll shadows** on wide tables that appear only while there is more to
   scroll to, plus a swipe hint on small screens.
 
-## The net-proceeds calculator
-
-`/compare/` and the home page carry a live estimator: two sliders (value once
-repaired, repairs needed) driving a side-by-side of what you'd net from a cash
-sale versus a listing, with a plain-English verdict under it.
-
-It runs the same arithmetic the offer desk uses — cash offer = ARV − repairs −
-24% (holding, selling and margin); listing net = ARV − repairs − 8%
-(commission and closing) − 4.2% (concessions and ~5 months of carry) — and it
-is deliberately built so a tidy house shows **listing winning**. That is the
-truth, a calculator that always flattered us would be obvious, and being the
-company that says it out loud is the whole positioning. Every assumption is
-printed under the result. Tune the constants at the top of the calculator block
-in `assets/main.js`.
-
 ## Technical SEO built in
 
 - Clean, keyword-shaped URLs; one `<h1>` per page (enforced by the build).

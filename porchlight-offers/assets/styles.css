@@ -615,7 +615,7 @@ a.pill:hover { border-color: var(--amber); background: var(--amber-soft); color:
 }
 
 /* ==========================================================================
-   Design layer — typography, texture, iconography, motion, calculator.
+   Design layer — typography, texture, iconography and motion.
    Loaded after the base rules above so it can refine them in place.
    ========================================================================== */
 
@@ -844,95 +844,6 @@ body { letter-spacing: -.005em; }
   font-size: .85rem; font-weight: 700; letter-spacing: .02em;
 }
 .quote__name, .quote__city { display: block; }
-
-/* ------------------------------------------------------------ calculator */
-
-.section--calc {
-  background:
-    radial-gradient(34rem 22rem at 12% 0%, rgba(58, 118, 190, .22), transparent 62%),
-    radial-gradient(30rem 20rem at 92% 100%, rgba(246, 166, 35, .18), transparent 60%),
-    linear-gradient(160deg, #12294a, #0d1f38);
-  color: #c6d3e3;
-  position: relative; overflow: hidden;
-}
-.section--calc::after {
-  content: ""; position: absolute; inset: 0; background-image: var(--grain);
-  opacity: .14; mix-blend-mode: overlay; pointer-events: none;
-}
-.section--calc .container { position: relative; z-index: 1; }
-.section--calc .eyebrow { color: var(--amber-hot); }
-.section--calc .section__title { color: #fff; }
-.section--calc .section__lede { color: #b9c8db; }
-
-.calc { display: grid; gap: 2.5rem; }
-@media (min-width: 940px) { .calc { grid-template-columns: 1fr 1.05fr; gap: 3.5rem; align-items: center; } }
-
-.calc__controls { display: grid; gap: 1.75rem; margin-top: 2rem; }
-.calc__control label {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
-  font-weight: 600; color: #dfe7f1; margin-bottom: .75rem; font-size: .95rem;
-}
-.calc__value {
-  font-family: var(--font-display); font-size: 1.45rem; color: var(--amber-hot);
-  font-variant-numeric: tabular-nums; font-weight: 600;
-}
-.calc__scale { display: flex; justify-content: space-between; font-size: .75rem; color: #7f93ae; margin-top: .4rem; }
-
-.calc input[type="range"] {
-  -webkit-appearance: none; appearance: none;
-  width: 100%; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .16);
-  outline-offset: 6px;
-}
-.calc input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none;
-  width: 26px; height: 26px; border-radius: 50%; cursor: grab;
-  background: linear-gradient(180deg, #f8b23c, #e28f0c);
-  border: 3px solid #0d1f38;
-  box-shadow: 0 0 0 1px rgba(246, 166, 35, .5), 0 4px 12px rgba(0, 0, 0, .35);
-}
-.calc input[type="range"]::-moz-range-thumb {
-  width: 22px; height: 22px; border-radius: 50%; cursor: grab;
-  background: linear-gradient(180deg, #f8b23c, #e28f0c);
-  border: 3px solid #0d1f38;
-  box-shadow: 0 0 0 1px rgba(246, 166, 35, .5), 0 4px 12px rgba(0, 0, 0, .35);
-}
-
-.calc__results { display: grid; gap: 1rem; }
-@media (min-width: 620px) { .calc__results { grid-template-columns: 1fr 1fr; } }
-.calc__card {
-  background: rgba(255, 255, 255, .055);
-  border: 1px solid rgba(255, 255, 255, .12);
-  border-radius: var(--radius-lg); padding: 1.35rem;
-  backdrop-filter: blur(6px);
-}
-.calc__card--us { border-color: rgba(246, 166, 35, .45); background: rgba(246, 166, 35, .09); }
-.calc__card-label {
-  display: flex; align-items: center; gap: .45rem;
-  font-size: .82rem; text-transform: uppercase; letter-spacing: .08em;
-  font-weight: 700; color: #a9bbd2; margin-bottom: .5rem;
-}
-.calc__card--us .calc__card-label { color: var(--amber-hot); }
-.calc__net {
-  font-family: var(--font-display); font-size: clamp(1.8rem, 4.4vw, 2.35rem);
-  color: #fff; margin: 0 0 .75rem; font-variant-numeric: tabular-nums; font-weight: 600;
-}
-.calc__bar { height: 8px; background: rgba(255, 255, 255, .12); border-radius: 999px; overflow: hidden; margin-bottom: 1rem; }
-.calc__bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #f8b23c, #e28f0c); transition: width .35s cubic-bezier(.4, 0, .2, 1); }
-.calc__bar--alt span { background: linear-gradient(90deg, #6f8fb8, #4d688e); }
-.calc__lines { list-style: none; padding: 0; margin: 0; font-size: .88rem; }
-.calc__lines li { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; border-bottom: 1px dashed rgba(255, 255, 255, .1); margin: 0; }
-.calc__lines li:last-child { border-bottom: 0; }
-.calc__lines b { color: #fff; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
-.calc__lines span { min-width: 0; }
-.calc__meta { display: flex; align-items: center; gap: .4rem; margin: .85rem 0 0; font-size: .82rem; color: #91a5bf; }
-.calc__verdict {
-  grid-column: 1 / -1; margin: 0; padding: .95rem 1.15rem;
-  background: rgba(255, 255, 255, .07); border-left: 3px solid var(--amber-hot);
-  border-radius: 0 10px 10px 0; color: #e4ebf4; font-size: .95rem;
-}
-.calc__verdict strong { color: #fff; }
-.calc__disclaimer { grid-column: 1 / -1; margin: 0; font-size: .78rem; color: #7f93ae; line-height: 1.6; }
-.calc__cta { grid-column: 1 / -1; margin: .25rem 0 0; }
 
 /* ---------------------------------------------------------------- CTA band */
 
