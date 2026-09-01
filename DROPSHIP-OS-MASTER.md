@@ -18,7 +18,7 @@ Live per-store detail lives in `stores/trendlift/STATUS.md`.
 | Strategy | Trend-driven seasonal commerce — ride every gift/trend wave |
 | Current Shopify store | My Store 4 (`ft6xi1-n1.myshopify.com`) — new branded store pending (previews generated) |
 | Plan / Currency / Country / TZ | Shopify / USD / United States / PDT |
-| Contact email | therealmacintosh52@gmail.com |
+| Contact email | [contact email — kept out of this public repo] |
 | Active campaign | **Father's Day 2026 (June 21)** — 5 draft products + smart collection live |
 | Orders to date | 0 |
 

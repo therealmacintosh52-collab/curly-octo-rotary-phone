@@ -61,5 +61,5 @@ arrives ~5–7 days (after the FD cutoff — this is a campaign-week+1 task):
 ## Handoff back to agent
 
 Once images exist (re-pushed via apps, uploaded in admin, or public
-URLs pasted in chat / emailed to therealmacintosh52@gmail.com), the
+URLs pasted in chat / emailed to [contact email — kept out of this public repo]), the
 agent attaches/orders/trims them and sets alt text via `update-product`.

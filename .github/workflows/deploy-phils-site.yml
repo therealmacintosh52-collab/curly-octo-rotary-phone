@@ -12,7 +12,7 @@ name: Deploy Phil's Auto site
 
 on:
   push:
-    branches: [main, claude/phils-auto-website-redesign-ndu5oa]
+    branches: [main, claude/affectionate-brown-h3wfam, claude/phils-auto-website-redesign-ndu5oa]
     paths: ['sites/phils-auto-fleet-repair/**', '.github/workflows/deploy-phils-site.yml']
   workflow_dispatch:
 
@@ -37,7 +37,7 @@ jobs:
 
       - name: Build the site
         working-directory: sites/phils-auto-fleet-repair
-        run: python3 build.py
+        run: python3 build.py --relative
 
       - name: Check the output
         working-directory: sites/phils-auto-fleet-repair

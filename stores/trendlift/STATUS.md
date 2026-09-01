@@ -15,7 +15,7 @@ store changes; changelog is append-only. Business-wide rules:
 | Strategy | Trend-driven seasonal commerce (master doc §3 calendar) |
 | Shopify store | My Store 4 (`ft6xi1-n1.myshopify.com`) — branded replacement pending (preview generation `f4a41235-3dc8-4695-8dc3-a2522708a624`) |
 | Plan / Currency / TZ | Shopify / USD / PDT |
-| Contact email | therealmacintosh52@gmail.com |
+| Contact email | [contact email — kept out of this public repo] |
 
 ## Lifecycle stage
 

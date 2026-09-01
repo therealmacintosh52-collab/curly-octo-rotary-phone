@@ -17,7 +17,7 @@ MCP tools first.
   ("the middle one" of the Father's Day/trends generation) is pending
   signup. When the owner claims it, use `switch-shop` to reconnect, then
   rebuild campaign assets there and update all docs.
-- Contact email: therealmacintosh52@gmail.com
+- Contact email: [contact email — kept out of this public repo]
 - Active campaign: Father's Day 2026 (June 21) — see master doc §2 and
   `../stores/trendlift/STATUS.md`.
 
