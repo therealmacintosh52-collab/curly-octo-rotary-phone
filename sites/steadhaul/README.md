@@ -78,6 +78,26 @@ particular — implies an access arrangement that dispatchers do not straightfor
 have. If you would rather name them, the copy to edit is the trust bar bullet, the
 Core tier's first list item, and the "Which load boards do you use?" FAQ answer.
 
+## Works without JavaScript
+
+Everything on the page renders and functions with scripts blocked or failed:
+
+- Reveal-on-scroll (`.rv`) is scoped to `html.js`, a class set by a one-line
+  inline script in `<head>`. **Never write `.rv{opacity:0}` unscoped** — that is
+  what made the calculator (and every other section) render blank when the script
+  did not run.
+- The reveal also has a 3s failsafe and an `IntersectionObserver` feature check,
+  so a later JS error cannot strand content at `opacity:0`.
+- The form falls back from three steps to one page. The equipment and authority
+  answers live in real `<select>` elements that the JS buttons write into, so
+  there is one source of truth and the same payload posts either way. Native
+  `required` validation applies without JS; with JS the form sets `noValidate`
+  and uses the inline error messages instead.
+- The hero has the CSS road described below, so it is not blank if three.js
+  fails.
+
+If you add anything to this page, check it with scripts disabled before shipping.
+
 ## Notes
 
 - The hero runs a three.js scene (r128, CDN). Behind it is a pure-CSS dusk
