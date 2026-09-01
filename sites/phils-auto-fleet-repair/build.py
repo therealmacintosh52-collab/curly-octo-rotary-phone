@@ -1216,9 +1216,22 @@ def service_cards(slugs=None, limit=None):
 # Verified, attributed customer feedback only. Add new entries here as the
 # shop collects real reviews — never invent them.
 REVIEWS = [
+    {"quote": "I highly recommend Phil's Auto and Fleet Repair. I called on a Saturday morning for "
+              "an appointment for an alignment on my BMW X3. They took me in right away, completed "
+              "the work in the said time, gave me a report and my suv drives smoothly.",
+     "name": "Tracey P.", "source": "Yelp", "url": ""},
+    {"quote": "Phil and his shop do the best work! My ford fusion kept having the service advance "
+              "track light come on randomly. I was leaving for a trip in 4 days and needed it fixed "
+              "desperately. I called Phil and he worked me into his schedule that day and put more "
+              "effort in than any other shop I have been to. I was back on the road that same day!",
+     "name": "Hannah K.", "source": "Yelp", "url": ""},
+    {"quote": "Replies back pretty quick and in a reasonable time. Their prices are fair and not "
+              "too overly expensive like going to some dealership that cost you an arm and a leg. "
+              "Thank you Phil's Auto and Fleet Repair for your time, quote and services.",
+     "name": "Michael D.", "source": "Yelp", "url": ""},
     {"quote": "GREAT SERVICE! Above and beyond expectations!! Completed service on schedule!! "
               "I will be bringing my cars here from now on!",
-     "name": "Verified customer review", "source": "MapQuest", "url": ""},
+     "name": "Verified customer", "source": "MapQuest", "url": ""},
 ]
 
 REVIEW_THEMES = [
@@ -1240,12 +1253,6 @@ def review_cards():
         cite = ('<cite><strong>%s</strong>via %s</cite>' % (esc(r["name"]), esc(r["source"])))
         cards.append('<div class="review">%s<blockquote>&ldquo;%s&rdquo;</blockquote>%s</div>'
                      % (stars(), esc(r["quote"]), cite))
-    for ic, title, body in REVIEW_THEMES:
-        cards.append("""<div class="review review--theme">
-  <span class="card-ico">%s</span>
-  <h3>%s</h3>
-  <p style="color:var(--slate);margin:0">%s</p>
-</div>""" % (icon(ic), esc(title), esc(body)))
     return "".join(cards)
 
 
@@ -1721,10 +1728,9 @@ def build_reviews():
 
 <section>
   <div class="wrap">
-    <div class="sec-head"><span class="eyebrow">The pattern</span>
-      <h2>Three things customers mention over and over</h2>
-      <p>Ratings are a number. What's more useful is the theme behind them — and across platforms,
-      the same three points come up.</p></div>
+    <div class="sec-head"><span class="eyebrow">In their own words</span>
+      <h2>What customers say</h2>
+      <p>A rating is a number. What people actually wrote is more useful.</p></div>
     <div class="grid g4">{review_cards()}</div>
   </div>
 </section>
