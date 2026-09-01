@@ -206,11 +206,27 @@ clear no. "I'll think about it" with nothing attached is a lost lead.
 
 ---
 
-## 7. Indeed — hiring a dispatcher
+## 7. Indeed
 
-Indeed's terms prohibit listings that charge the applicant, so a dispatch
-service ad isn't a job post and gets pulled. What's legitimate is hiring, which
-the 8-trucks-per-desk cap makes necessary early.
+**Indeed does not work for finding carriers**, and the policy problem is the
+smaller of the two reasons.
+
+**The audience is wrong.** People browsing Indeed for trucking work are almost
+by definition people who don't hold their own authority — they want a W-2 seat
+or a lease-purchase. Your customer already has an MC number and is paying you
+to keep it loaded. Even if the posts stayed up, you'd be fishing where your
+fish aren't.
+
+**And they'd get pulled.** Indeed prohibits listings that charge the applicant.
+A dispatch service posted as "Owner Operator Wanted" isn't a job, gets removed,
+and repeat attempts cost you the employer account you'll need for hiring. The
+companies legitimately running those posts are motor carriers recruiting
+owner-operators to lease on under *their* authority — a different business from
+dispatching carriers who run under their own.
+
+### What Indeed IS for: hiring a dispatcher
+
+The 8-trucks-per-desk cap makes this necessary early.
 
 **Title:** `Truck Dispatcher — Flat-Rate Dispatch Service (Sacramento / Remote)`
 
@@ -246,7 +262,70 @@ whether the listing gets seen.
 
 ---
 
-## 8. The channel that beats all of these
+## 8. The audience you were reaching for on Indeed
+
+The company driver who's three to six months from filing for his own authority
+is a real customer — just early. Nobody in this industry is talking to him,
+because every dispatcher waits until the MC exists and then fights over him.
+
+You can't reach him on Indeed. You can reach him through the people who touch
+him at the exact moment he goes independent:
+
+**Insurance agents who write new-authority policies.** The single best partner.
+No new carrier moves without a COI, so the agent knows before anyone. They are
+also constantly asked "who do I get to find me loads?" and usually have no
+answer.
+
+**Process agents and compliance filers** — the services that file MC
+applications, BOC-3s and UCR. They see the customer weeks before the authority
+is even active.
+
+**Factoring companies.** Natural fit: they want their clients hauling
+profitable freight and paying invoices. Many already refer dispatchers.
+
+**CDL schools and local truck dealers.** Slower, but the dealer financing a
+first truck knows exactly who just went independent.
+
+None of these are competitors, all of them want the same customer to succeed,
+and a referral from them arrives pre-trusted in a way no ad does.
+
+### Partner outreach — email or DM
+
+```
+Subject: Referral partner for your new-authority clients
+
+Hi [name] — I run a flat-rate truck dispatch desk in Sacramento. We work
+almost entirely with owner-operators in their first year of authority.
+
+I'd guess your new-authority clients ask you fairly often who they should use
+to find loads. If it's useful to have someone to point them at, I'd like to be
+that. What they get: a flat weekly fee instead of a percentage, first week
+free, and no contract — so if I'm not earning it they walk.
+
+No referral fee unless you want one, and I'm happy to keep it informal. I'd
+rather your clients stay in business than pay you for names.
+
+Worth a 10-minute call?
+
+[name] — Steadhaul Dispatch
+(000) 000-0000 · steadhauldispatch.com
+```
+
+Offering *not* to pay a referral fee is deliberate. An insurance agent taking
+kickbacks for referrals has a licensing problem; making it optional and
+low-key gets more yeses than leading with money.
+
+### For the pre-authority driver himself
+
+He's searching "how to get my own authority," not "dispatch service." If you
+ever write anything on the site, write that — the real sequence, the costs, how
+long the MC takes to activate, what insurance actually runs. It's the one piece
+of content that reaches him before your competitors know he exists, and by the
+time his authority is live you're the person who already helped him.
+
+---
+
+## 9. The channel that beats all of these
 
 FMCSA publishes newly registered carriers weekly — public, with contact
 details. Your exact customer, the week they need you, before a percentage
