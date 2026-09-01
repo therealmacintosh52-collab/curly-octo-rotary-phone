@@ -1,0 +1,599 @@
+<title>Bay Filler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --paper:#EEF1F3;
+  --surface:#FFFFFF;
+  --surface-2:#E4E9ED;
+  --ink:#14181C;
+  --ink-2:#3B454E;
+  --steel:#5A6673;
+  --steel-faint:#9AA6B1;
+  --rule:#CBD4DB;
+  --rule-hard:#14181C;
+  --amber:#E8A317;
+  --amber-deep:#8A5D06;
+  --amber-wash:#FBF0D8;
+  --recover:#1E7A4D;
+  --recover-wash:#DFEFE6;
+  --loss:#B23A2E;
+  --shadow:0 1px 0 rgba(20,24,28,.06), 0 2px 10px rgba(20,24,28,.05);
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --cond:"Barlow Condensed","Arial Narrow",Haettenschweiler,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#101418;
+    --surface:#171C21;
+    --surface-2:#1F262C;
+    --ink:#E8EDF1;
+    --ink-2:#B6C1CA;
+    --steel:#8695A3;
+    --steel-faint:#5D6B77;
+    --rule:#2B343B;
+    --rule-hard:#4A5762;
+    --amber:#F5B335;
+    --amber-deep:#F5B335;
+    --amber-wash:#2A2114;
+    --recover:#4CBF87;
+    --recover-wash:#152A21;
+    --loss:#E2705F;
+    --shadow:0 1px 0 rgba(0,0,0,.4), 0 2px 12px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#101418;
+  --surface:#171C21;
+  --surface-2:#1F262C;
+  --ink:#E8EDF1;
+  --ink-2:#B6C1CA;
+  --steel:#8695A3;
+  --steel-faint:#5D6B77;
+  --rule:#2B343B;
+  --rule-hard:#4A5762;
+  --amber:#F5B335;
+  --amber-deep:#F5B335;
+  --amber-wash:#2A2114;
+  --recover:#4CBF87;
+  --recover-wash:#152A21;
+  --loss:#E2705F;
+  --shadow:0 1px 0 rgba(0,0,0,.4), 0 2px 12px rgba(0,0,0,.3);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px 72px}
+
+/* ---------- masthead: work-order header ---------- */
+.mast{
+  border-bottom:2px solid var(--rule-hard);
+  padding:26px 0 14px;
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px 28px;
+}
+.mast-id{flex:1 1 320px;min-width:260px}
+.tag{
+  font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--steel);display:block;margin-bottom:2px;
+}
+h1{
+  font-family:var(--cond);font-weight:700;font-size:clamp(38px,6.4vw,58px);
+  line-height:.92;letter-spacing:-.005em;margin:0;text-wrap:balance;
+  text-transform:uppercase;
+}
+h1 em{font-style:normal;color:var(--amber-deep)}
+.mast-sub{color:var(--ink-2);margin:8px 0 0;max-width:56ch;font-size:15px}
+.stamp{
+  font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--steel);
+  border-left:3px solid var(--amber);padding-left:12px;flex:0 0 auto;
+}
+.stamp b{color:var(--ink);font-weight:700}
+
+/* ---------- shared blocks ---------- */
+section{margin-top:38px}
+.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.sec-num{
+  font-family:var(--mono);font-size:11px;font-weight:700;color:var(--paper);
+  background:var(--ink);padding:3px 7px;border-radius:2px;letter-spacing:.06em;
+}
+h2{
+  font-family:var(--cond);font-weight:700;font-size:24px;letter-spacing:.02em;
+  text-transform:uppercase;margin:0;line-height:1.1;
+}
+.sec-note{color:var(--steel);font-size:13px;margin:0;flex:1 1 220px;min-width:200px}
+
+.grid{display:grid;grid-template-columns:minmax(300px,1fr) minmax(340px,1.35fr);gap:20px;align-items:start}
+@media(max-width:880px){.grid{grid-template-columns:1fr}}
+
+.panel{
+  background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  box-shadow:var(--shadow);
+}
+.panel-hd{
+  font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--steel);
+  padding:12px 16px;border-bottom:1px solid var(--rule);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+.panel-bd{padding:16px}
+
+/* ---------- intake fields ---------- */
+.fields{display:flex;flex-direction:column;gap:0}
+.field{
+  display:grid;grid-template-columns:1fr 104px;gap:10px;align-items:center;
+  padding:11px 0;border-bottom:1px dotted var(--rule);
+}
+.field:last-child{border-bottom:0;padding-bottom:2px}
+.field label{font-size:14px;line-height:1.3;color:var(--ink)}
+.field .hint{display:block;color:var(--steel);font-size:12px;margin-top:2px}
+input[type=number],input[type=text]{
+  font-family:var(--mono);font-size:15px;font-weight:500;
+  width:100%;padding:8px 10px;text-align:right;
+  background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--rule);border-radius:2px;
+  font-variant-numeric:tabular-nums;
+}
+input[type=text]{text-align:left;font-family:var(--body)}
+input:focus-visible,button:focus-visible,summary:focus-visible,input[type=range]:focus-visible{
+  outline:2px solid var(--amber);outline-offset:2px;
+}
+.prefix{position:relative}
+.prefix input{padding-left:22px;text-align:right}
+.prefix::before{
+  content:"$";position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  font-family:var(--mono);font-size:13px;color:var(--steel);pointer-events:none;
+}
+
+/* ---------- readout: repair-order line items ---------- */
+.lines{display:flex;flex-direction:column}
+.line{
+  display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:start;
+  padding:14px 0;border-bottom:1px solid var(--rule);
+}
+.line:last-of-type{border-bottom:0}
+.line-n{
+  font-family:var(--mono);font-size:11px;font-weight:700;color:var(--steel-faint);
+  padding-top:4px;
+}
+.line-name{font-family:var(--cond);font-weight:600;font-size:19px;text-transform:uppercase;letter-spacing:.02em;line-height:1.15}
+.line-math{font-family:var(--mono);font-size:11.5px;color:var(--steel);margin-top:3px;line-height:1.5;word-break:break-word}
+.line-amt{
+  font-family:var(--mono);font-weight:700;font-size:19px;color:var(--recover);
+  font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;padding-top:2px;
+}
+.line-amt .per{display:block;font-size:10px;font-weight:400;color:var(--steel);letter-spacing:.08em;text-transform:uppercase}
+.line.once .line-amt{color:var(--amber-deep)}
+
+.total{
+  border-top:2px solid var(--rule-hard);margin-top:4px;padding-top:16px;
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;
+}
+.total-lab{font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel)}
+.total-big{
+  font-family:var(--cond);font-weight:700;font-size:clamp(46px,8vw,68px);line-height:.86;
+  font-variant-numeric:tabular-nums;color:var(--recover);letter-spacing:-.01em;
+}
+.total-year{font-family:var(--mono);font-size:12px;color:var(--steel);margin-top:6px}
+
+.roi{
+  margin-top:16px;background:var(--amber-wash);border:1px solid var(--amber);
+  border-radius:3px;padding:14px 16px;
+  display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;justify-content:space-between;
+}
+.roi-fee{display:flex;align-items:center;gap:10px;font-size:14px}
+.roi-fee input{width:96px}
+.roi-out{font-family:var(--cond);font-weight:700;font-size:26px;line-height:1;text-transform:uppercase;letter-spacing:.02em}
+.roi-out span{color:var(--amber-deep);font-size:34px}
+
+/* ---------- assumptions ---------- */
+details.assump{margin-top:16px;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}
+details.assump summary{
+  cursor:pointer;padding:11px 16px;font-family:var(--cond);font-weight:600;
+  font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--steel);
+  list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+details.assump summary::-webkit-details-marker{display:none}
+details.assump summary::after{content:"▸";color:var(--amber-deep);font-size:14px}
+details.assump[open] summary::after{content:"▾"}
+details.assump[open] summary{border-bottom:1px solid var(--rule)}
+.assump-bd{padding:6px 16px 16px}
+.slider{padding:12px 0;border-bottom:1px dotted var(--rule)}
+.slider:last-child{border-bottom:0}
+.slider-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:5px}
+.slider-top label{font-size:14px;font-weight:500}
+.slider-val{font-family:var(--mono);font-weight:700;font-size:14px;color:var(--amber-deep);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--amber);height:20px}
+.slider-src{font-size:12px;color:var(--steel);margin-top:4px;line-height:1.45}
+
+/* ---------- message generator ---------- */
+.gen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.gen-f label{display:block;font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-bottom:4px}
+.msgs{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.msg{border:1px solid var(--rule);border-radius:3px;background:var(--surface-2);overflow:hidden}
+.msg-hd{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:8px 12px;border-bottom:1px solid var(--rule);background:var(--surface);
+}
+.msg-when{font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.msg-when b{color:var(--amber-deep)}
+.msg-body{padding:12px;font-size:14.5px;white-space:pre-wrap;line-height:1.5}
+.msg-meta{font-family:var(--mono);font-size:11px;color:var(--steel);padding:0 12px 10px}
+button.copy{
+  font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);border:0;border-radius:2px;
+  padding:5px 12px;cursor:pointer;
+}
+button.copy:hover{background:var(--amber-deep);color:#fff}
+button.copy.done{background:var(--recover);color:#fff}
+
+/* ---------- cadence ---------- */
+.cadence{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.step{border-left:3px solid var(--amber);padding:2px 0 2px 14px}
+.step-d{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--amber-deep);text-transform:uppercase}
+.step-t{font-family:var(--cond);font-weight:600;font-size:17px;text-transform:uppercase;letter-spacing:.02em;margin:2px 0 4px}
+.step-b{font-size:13.5px;color:var(--ink-2);line-height:1.5}
+
+/* ---------- footnote ---------- */
+.foot{
+  margin-top:40px;border-top:1px solid var(--rule);padding-top:18px;
+  font-size:13px;color:var(--steel);line-height:1.6;max-width:74ch;
+}
+.foot b{color:var(--ink)}
+.foot code{font-family:var(--mono);font-size:12px;background:var(--surface-2);padding:1px 5px;border-radius:2px}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="mast-id">
+      <span class="tag">Shop revenue recovery worksheet</span>
+      <h1>Bay <em>Filler</em></h1>
+      <p class="mast-sub">Put a shop's own numbers in. It prices the work already sitting in their system — declined recommendations, missed calls, no-shows, lapsed customers — and writes the follow-up texts that go get it.</p>
+    </div>
+    <div class="stamp">
+      SHOP&nbsp;&nbsp;<b id="stampShop">Example Shop</b><br>
+      PREPARED&nbsp;&nbsp;<b id="stampDate">—</b><br>
+      BASIS&nbsp;&nbsp;<b>Shop-reported figures</b>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2>Intake</h2>
+      <p class="sec-note">Ask for these across the desk. Every figure below is theirs, not an industry average — that is the whole point.</p>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-hd"><span>The shop's numbers</span><span id="savedFlag" style="font-family:var(--mono);font-size:10px"></span></div>
+        <div class="panel-bd">
+          <div class="fields">
+            <div class="field">
+              <label for="shopName">Shop name<span class="hint">Prints on the worksheet</span></label>
+              <input type="text" id="shopName" value="Example Shop">
+            </div>
+            <div class="field">
+              <label for="aro">Average repair order<span class="hint">Their real ARO, not the $400–600 range</span></label>
+              <div class="prefix"><input type="number" id="aro" value="450" min="0" step="10"></div>
+            </div>
+            <div class="field">
+              <label for="declined">Declined recommendations / month<span class="hint">"Not right now" work sitting in the system</span></label>
+              <input type="number" id="declined" value="40" min="0">
+            </div>
+            <div class="field">
+              <label for="missed">Calls to voicemail / week<span class="hint">Count it for one week if they don't know</span></label>
+              <input type="number" id="missed" value="8" min="0">
+            </div>
+            <div class="field">
+              <label for="appts">Appointments booked / month<span class="hint">Scheduled, not walk-ins</span></label>
+              <input type="number" id="appts" value="160" min="0">
+            </div>
+            <div class="field">
+              <label for="noshow">Current no-show rate<span class="hint">Percent. Most shops guess 20–25%</span></label>
+              <input type="number" id="noshow" value="22" min="0" max="100">
+            </div>
+            <div class="field">
+              <label for="lapsed">Customers not seen in 9–12 months<span class="hint">One-time win-back pool</span></label>
+              <input type="number" id="lapsed" value="250" min="0">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd"><span>Recoverable — line items</span><span style="font-family:var(--mono);font-size:10px">USD</span></div>
+        <div class="panel-bd">
+          <div class="lines">
+            <div class="line">
+              <div class="line-n">01</div>
+              <div>
+                <div class="line-name">Declined work follow-up</div>
+                <div class="line-math" id="m1">—</div>
+              </div>
+              <div class="line-amt" id="v1">$0<span class="per">per month</span></div>
+            </div>
+            <div class="line">
+              <div class="line-n">02</div>
+              <div>
+                <div class="line-name">Missed-call recovery</div>
+                <div class="line-math" id="m2">—</div>
+              </div>
+              <div class="line-amt" id="v2">$0<span class="per">per month</span></div>
+            </div>
+            <div class="line">
+              <div class="line-n">03</div>
+              <div>
+                <div class="line-name">No-show reduction</div>
+                <div class="line-math" id="m3">—</div>
+              </div>
+              <div class="line-amt" id="v3">$0<span class="per">per month</span></div>
+            </div>
+            <div class="line once">
+              <div class="line-n">04</div>
+              <div>
+                <div class="line-name">Lapsed customer win-back</div>
+                <div class="line-math" id="m4">—</div>
+              </div>
+              <div class="line-amt" id="v4">$0<span class="per">one time</span></div>
+            </div>
+          </div>
+
+          <div class="total">
+            <div>
+              <div class="total-lab">Recurring monthly</div>
+              <div class="total-big" id="totalMo">$0</div>
+              <div class="total-year" id="totalYr">— per year, plus $0 one-time win-back</div>
+            </div>
+          </div>
+
+          <div class="roi">
+            <div class="roi-fee">
+              <label for="fee" style="font-weight:500">Your monthly fee</label>
+              <div class="prefix"><input type="number" id="fee" value="600" min="0" step="50"></div>
+            </div>
+            <div class="roi-out">Returns <span id="roiX">0×</span></div>
+          </div>
+
+          <details class="assump">
+            <summary><span>Adjust the assumptions</span></summary>
+            <div class="assump-bd">
+              <div class="slider">
+                <div class="slider-top"><label for="s1">Declined work that converts on follow-up</label><span class="slider-val" id="s1v">15%</span></div>
+                <input type="range" id="s1" min="0" max="35" value="15">
+                <p class="slider-src">Trade sources commonly cite ~20% with timely, personal follow-up. Defaulted low on purpose — if the owner pushes back, drag it down and the number still holds.</p>
+              </div>
+              <div class="slider">
+                <div class="slider-top"><label for="s2">Missed callers you win back</label><span class="slider-val" id="s2v">30%</span></div>
+                <input type="range" id="s2" min="0" max="60" value="30">
+                <p class="slider-src">The rest already booked with whoever answered. Weeks are counted at 4.33 per month.</p>
+              </div>
+              <div class="slider">
+                <div class="slider-top"><label for="s3">No-show rate after reminders</label><span class="slider-val" id="s3v">10%</span></div>
+                <input type="range" id="s3" min="0" max="25" value="10">
+                <p class="slider-src">Automated 48-hour and day-of reminders with one-tap confirm typically land shops in the 8–12% band.</p>
+              </div>
+              <div class="slider">
+                <div class="slider-top"><label for="s3b">No-shows that never rebook</label><span class="slider-val" id="s3bv">40%</span></div>
+                <input type="range" id="s3b" min="0" max="100" value="40">
+                <p class="slider-src">A no-show is not automatically lost revenue — many reschedule. Only this share is genuinely gone.</p>
+              </div>
+              <div class="slider">
+                <div class="slider-top"><label for="s4">Lapsed customers a win-back books</label><span class="slider-val" id="s4v">7%</span></div>
+                <input type="range" id="s4" min="0" max="20" value="7">
+                <p class="slider-src">Win-back campaigns to lapsed lists commonly book 5–10%. Counted once, not monthly — do not present it as recurring.</p>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2>The follow-up sequence</h2>
+      <p class="sec-note">Fill one declined ticket in. It writes the three texts. Send from the shop's number, never yours.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-bd">
+        <div class="gen-grid">
+          <div class="gen-f"><label for="gName">Customer first name</label><input type="text" id="gName" value="Marcus"></div>
+          <div class="gen-f"><label for="gVeh">Vehicle</label><input type="text" id="gVeh" value="2019 Silverado"></div>
+          <div class="gen-f"><label for="gSvc">Declined service</label><input type="text" id="gSvc" value="front brake pads and rotors"></div>
+          <div class="gen-f"><label for="gAmt">Quoted amount</label><div class="prefix"><input type="number" id="gAmt" value="680" min="0" step="10"></div></div>
+          <div class="gen-f"><label for="gShop">Shop name</label><input type="text" id="gShop" value="Example Shop"></div>
+          <div class="gen-f"><label for="gAdv">Advisor / signer</label><input type="text" id="gAdv" value="Dave"></div>
+        </div>
+
+        <div class="msgs" id="msgs"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2>Running it</h2>
+      <p class="sec-note">Three touches over sixteen days. Stop the moment they reply — a live conversation beats the next scheduled message.</p>
+    </div>
+
+    <div class="cadence">
+      <div class="step">
+        <div class="step-d">Day 0</div>
+        <div class="step-t">Pull the list</div>
+        <div class="step-b">Export declined recommendations from the last 90 days out of Tekmetric, Shopmonkey, AutoLeap, Mitchell1 or Shop-Ware. Drop anything under $150 and anything already serviced.</div>
+      </div>
+      <div class="step">
+        <div class="step-d">Day 1</div>
+        <div class="step-t">Reminder</div>
+        <div class="step-b">Name the vehicle and the exact service. No offer, no discount. You are reminding them of a decision they already made, not selling.</div>
+      </div>
+      <div class="step">
+        <div class="step-d">Day 6</div>
+        <div class="step-t">Safety framing</div>
+        <div class="step-b">Why it matters now, in plain language. This is the one that converts — it changes the deadline from "someday" to "before something else breaks."</div>
+      </div>
+      <div class="step">
+        <div class="step-d">Day 16</div>
+        <div class="step-t">Close the file</div>
+        <div class="step-b">A clean exit that gives them an easy out. Reliably pulls a last cluster of replies, and it ends the sequence without nagging.</div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">
+    <b>Use their numbers, not the defaults.</b> The prefilled figures are placeholders for demonstrating the sheet, not claims about any shop. Industry-wide statistics on declined-service recovery and missed calls circulate mostly from dealership service departments and from vendors selling call-answering software — they run far higher than an independent three-bay shop and will get you written off if you quote them across a desk. The defaults here are set deliberately below those published figures.
+    <br><br>
+    <b>Sanity check before you present.</b> Line 04 is <code>one time</code>, not monthly — never fold it into the recurring total. If an owner disputes a rate, open <em>Adjust the assumptions</em> and drag it down in front of them; the case survives at half the defaults, and conceding the number wins more deals than defending it.
+  </p>
+
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var money=function(n){return "$"+Math.round(n).toLocaleString("en-US")};
+  var KEY="bayfiller.v1";
+  var NUMS=["aro","declined","missed","appts","noshow","lapsed","fee"];
+  var RANGES=["s1","s2","s3","s3b","s4"];
+
+  function num(id){var v=parseFloat($(id).value);return isFinite(v)&&v>0?v:0}
+
+  function save(){
+    try{
+      var o={shopName:$("shopName").value};
+      NUMS.concat(RANGES).forEach(function(k){o[k]=$(k).value});
+      localStorage.setItem(KEY,JSON.stringify(o));
+      $("savedFlag").textContent="SAVED";
+      clearTimeout(save._t);
+      save._t=setTimeout(function(){$("savedFlag").textContent=""},1400);
+    }catch(e){}
+  }
+  function load(){
+    try{
+      var raw=localStorage.getItem(KEY); if(!raw)return;
+      var o=JSON.parse(raw);
+      Object.keys(o).forEach(function(k){ if($(k)&&o[k]!=null) $(k).value=o[k]; });
+    }catch(e){}
+  }
+
+  function calc(){
+    var aro=num("aro"), dec=num("declined"), mis=num("missed"),
+        app=num("appts"), lap=num("lapsed"),
+        nsNow=Math.min(num("noshow"),100)/100;
+
+    var r1=$("s1").value/100, r2=$("s2").value/100,
+        nsAfter=$("s3").value/100, lost=$("s3b").value/100, r4=$("s4").value/100;
+
+    $("s1v").textContent=$("s1").value+"%";
+    $("s2v").textContent=$("s2").value+"%";
+    $("s3v").textContent=$("s3").value+"%";
+    $("s3bv").textContent=$("s3b").value+"%";
+    $("s4v").textContent=$("s4").value+"%";
+
+    var jobs1=dec*r1, a1=jobs1*aro;
+    var missMo=mis*4.33, jobs2=missMo*r2, a2=jobs2*aro;
+    var delta=Math.max(nsNow-nsAfter,0), jobs3=app*delta*lost, a3=jobs3*aro;
+    var jobs4=lap*r4, a4=jobs4*aro;
+
+    var one=function(n){return n.toFixed(1).replace(/\.0$/,"")};
+
+    $("m1").textContent=dec+" declined × "+$("s1").value+"% × "+money(aro)+"  =  "+one(jobs1)+" jobs";
+    $("m2").textContent=one(missMo)+" missed/mo × "+$("s2").value+"% × "+money(aro)+"  =  "+one(jobs2)+" jobs";
+    $("m3").textContent=app+" appts × "+Math.round(delta*100)+"pt drop × "+$("s3b").value+"% lost × "+money(aro)+"  =  "+one(jobs3)+" jobs";
+    $("m4").textContent=lap+" lapsed × "+$("s4").value+"% × "+money(aro)+"  =  "+one(jobs4)+" jobs";
+
+    $("v1").innerHTML=money(a1)+'<span class="per">per month</span>';
+    $("v2").innerHTML=money(a2)+'<span class="per">per month</span>';
+    $("v3").innerHTML=money(a3)+'<span class="per">per month</span>';
+    $("v4").innerHTML=money(a4)+'<span class="per">one time</span>';
+
+    var mo=a1+a2+a3;
+    $("totalMo").textContent=money(mo);
+    $("totalYr").textContent=money(mo*12)+" per year, plus "+money(a4)+" one-time win-back";
+
+    var fee=num("fee");
+    $("roiX").textContent=fee>0?(mo/fee).toFixed(1).replace(/\.0$/,"")+"×":"—";
+
+    $("stampShop").textContent=$("shopName").value||"—";
+    save();
+  }
+
+  function esc(s){return String(s).replace(/[<>&]/g,function(c){return{"<":"&lt;",">":"&gt;","&":"&amp;"}[c]})}
+
+  function messages(){
+    var n=$("gName").value.trim()||"there",
+        v=$("gVeh").value.trim()||"your vehicle",
+        s=$("gSvc").value.trim()||"the recommended service",
+        a=parseFloat($("gAmt").value)||0,
+        shop=$("gShop").value.trim()||"the shop",
+        adv=$("gAdv").value.trim()||"the shop";
+    var amt=a>0?money(a):"the quoted amount";
+
+    return [
+      {when:"Day 1","t":"Reminder",
+       body:"Hi "+n+" — "+adv+" at "+shop+". Last time the "+v+" was in we flagged "+s+" and you held off. That quote ("+amt+") is still good. Want me to hold a slot this week?",
+       note:"Names the vehicle and the exact service. No discount — you are reminding, not discounting."},
+      {when:"Day 6","t":"Safety framing",
+       body:n+", following up on the "+s+" for the "+v+". Not chasing you — just don't want it turning into a bigger repair before you get to it. If now is bad, tell me a month and I'll put a reminder on it.",
+       note:"The converter. Reframes the deadline and hands them a graceful non-yes."},
+      {when:"Day 16","t":"Close the file",
+       body:"Last one from me, "+n+" — closing out the "+s+" on the "+v+". If you've had it handled elsewhere, all good, just say so and I'll take it off the list. If not, "+amt+" still stands.",
+       note:"Permission to say no. Reliably pulls a final cluster of replies."}
+    ];
+  }
+
+  function renderMsgs(){
+    var box=$("msgs"); box.innerHTML="";
+    messages().forEach(function(m){
+      var el=document.createElement("div"); el.className="msg";
+      el.innerHTML='<div class="msg-hd"><span class="msg-when"><b>'+m.when+'</b> · '+esc(m.t)+'</span>'+
+                   '<button class="copy" type="button">Copy</button></div>'+
+                   '<div class="msg-body">'+esc(m.body)+'</div>'+
+                   '<div class="msg-meta">'+m.body.length+' characters · '+esc(m.note)+'</div>';
+      var btn=el.querySelector("button");
+      btn.addEventListener("click",function(){
+        var done=function(){btn.textContent="Copied";btn.classList.add("done");
+          setTimeout(function(){btn.textContent="Copy";btn.classList.remove("done")},1400)};
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+          navigator.clipboard.writeText(m.body).then(done,fallback);
+        } else fallback();
+        function fallback(){
+          var ta=document.createElement("textarea");ta.value=m.body;
+          ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);
+          ta.select();try{document.execCommand("copy");done()}catch(e){btn.textContent="Select & copy"}
+          document.body.removeChild(ta);
+        }
+      });
+      box.appendChild(el);
+    });
+  }
+
+  load();
+  NUMS.concat(RANGES).forEach(function(id){
+    $(id).addEventListener("input",calc);
+  });
+  $("shopName").addEventListener("input",function(){ $("gShop").value=$("shopName").value; calc(); renderMsgs(); });
+  ["gName","gVeh","gSvc","gAmt","gShop","gAdv"].forEach(function(id){
+    $(id).addEventListener("input",renderMsgs);
+  });
+
+  $("stampDate").textContent=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  $("gShop").value=$("shopName").value;
+  calc(); renderMsgs();
+})();
+</script>
