@@ -2,7 +2,7 @@ import { site } from '../config.mjs';
 import { esc } from '../lib/html.mjs';
 import { faqSchema } from '../layout.mjs';
 import { faqs, homeFaqs } from '../content/faqs.mjs';
-import { cities } from '../content/cities.mjs';
+import { cities, metros, metroHubs } from '../content/cities.mjs';
 import { situations } from '../content/situations.mjs';
 import { icon } from '../lib/icons.mjs';
 import {
@@ -25,7 +25,7 @@ const S = site.stats;
 
 const home = () => ({
   path: '/',
-  title: `We Buy Houses ${site.marketName} | Cash Offer in 24 Hours`,
+  title: `We Buy Houses in ${site.marketName} | Cash Offer in 24 Hours`,
   description: `Sell your house fast for cash in ${site.marketName}. Any condition, any situation. No repairs, no fees, no commissions — and you pick the closing date.`,
   schema: [faqSchema(homeFaqs)],
   body: `
@@ -49,6 +49,7 @@ const home = () => ({
       <p class="hero__proof">
         <span class="hero__proof-stat"><strong data-count="${esc(S.housesBought)}">${esc(S.housesBought)}</strong> houses bought</span>
         <span class="hero__proof-stat"><strong data-count="${esc(S.yearsBuying)}">${esc(S.yearsBuying)}</strong> years buying in ${esc(site.marketName)}</span>
+        <span class="hero__proof-stat"><strong data-count="${esc(String(cities.length))}">${esc(String(cities.length))}</strong> cities across ${esc(String(Object.keys(metros).length))} metros</span>
       </p>
     </div>
     <div class="hero__form">
@@ -114,15 +115,20 @@ ${testimonialsSection()}
   <div class="container">
     <p class="eyebrow">${icon('pin')} Where we buy</p>
     <h2 class="section__title">We buy houses across ${esc(site.marketName)}</h2>
-    <p class="section__lede">Local buyers, local title companies, local crews. If your city isn't listed, call us anyway — we probably still buy there.</p>
-    <ul class="pill-list">
-      ${cities
-        .map(
-          (c) =>
-            `<li><a class="pill" href="/we-buy-houses/${c.slug}/">We buy houses in ${esc(c.name)}</a></li>`,
-        )
-        .join('\n      ')}
-    </ul>
+    <p class="section__lede">Local buyers, local title companies, local crews in every market we enter. If your city isn't listed, call us anyway — we probably still buy there.</p>
+    ${Object.entries(metros)
+      .map(
+        ([metro, group]) => `
+    <div class="metro-block">
+      <h3 class="metro-block__name">${esc(metro)}</h3>
+      <ul class="pill-list">
+        ${group
+          .map((c) => `<li><a class="pill" href="/we-buy-houses/${c.slug}/">${esc(c.name)}</a></li>`)
+          .join('\n        ')}
+      </ul>
+    </div>`,
+      )
+      .join('')}
     <p class="section__after"><a href="/locations/">See all areas we serve →</a></p>
   </div>
 </section>
@@ -308,14 +314,14 @@ ${ctaBand({ heading: 'Get a number to compare against', text: 'A free written of
 const about = () => ({
   path: '/about/',
   title: `About ${site.name} | Local Cash Home Buyers`,
-  description: `${site.name} is a local home buying company in ${site.marketName}. We buy directly, show our math, and say so when listing would net you more.`,
+  description: `${site.name} buys houses across ${site.marketName} — ${metroHubs.map((c) => c.name).join(', ')}. We buy directly, show our math, and say so when listing would net you more.`,
   crumbs: [{ name: 'About', path: '/about/' }],
   body: `
 ${breadcrumbs([{ name: 'About', path: '/about/' }])}
 ${pageHero({
   eyebrow: 'About us',
   h1: `Local buyers, not a national lead machine`,
-  lede: `We are a small ${esc(site.marketName)} company that buys houses with our own money, closes at local title companies, and answers our own phone.`,
+  lede: `We are a ${esc(site.marketName)} company buying in ${esc(metroHubs.map((c) => c.name).join(', '))} and the towns around them — with our own money, at local title companies, answering our own phone.`,
 })}
 
 <section class="section">

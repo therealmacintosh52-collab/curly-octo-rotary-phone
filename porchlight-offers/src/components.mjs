@@ -116,7 +116,7 @@ const TIMELINES = [
  * Progressive enhancement: with JS off, every step is visible and the form is a
  * plain, fully working POST.
  */
-export function leadForm({ id = 'offer-form', compact = false, source = 'page' } = {}) {
+export function leadForm({ id = 'offer-form', compact = false, source = 'page', city = site.address.city } = {}) {
   const netlify = site.formAction === 'netlify';
   const action = netlify ? '/thank-you/' : site.formAction;
   return `
@@ -156,7 +156,7 @@ export function leadForm({ id = 'offer-form', compact = false, source = 'page' }
             type="text"
             required
             autocomplete="street-address"
-            placeholder="123 Main St, ${esc(site.address.city)}, ${esc(site.address.region)}"
+            placeholder="123 Main St, ${esc(city)}, ${esc(site.stateAbbr)}"
             enterkeyhint="next"
           >
         </div>

@@ -45,8 +45,10 @@ export const site = {
   ],
 
   // --- Market ------------------------------------------------------------
-  marketName: 'Dallas–Fort Worth', // TODO
-  marketShort: 'DFW',
+  // marketName is the area the site claims to serve. The metros themselves come
+  // from src/content/cities.mjs — add a city there and it appears everywhere.
+  marketName: 'Texas', // TODO
+  marketShort: 'TX',
   stateName: 'Texas',
   stateAbbr: 'TX',
 

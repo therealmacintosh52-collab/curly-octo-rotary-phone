@@ -44,8 +44,11 @@ Offers · Keyway Home Buyers.
 `/contact/`, `/about/`, `/reviews/`, `/faq/`.
 
 **Local SEO** — `/locations/` plus one page per city at
-`/we-buy-houses/<city>/`. Each city page has unique copy, real neighborhoods,
-real ZIPs, its own FAQ set and its own `Service` + `FAQPage` schema.
+`/we-buy-houses/<city>/`: 15 cities across 4 Texas metros (Dallas–Fort Worth,
+Houston, San Antonio, Austin). Each city page has unique copy, real
+neighborhoods, real ZIPs, its own FAQ set and its own `Service` + `FAQPage`
+schema. Cities carry a `metro` field, and the locations page, the footer and
+the "we also buy in" links group themselves by metro automatically.
 
 **Situation pages** — `/situations/<slug>/` for the eight highest-intent
 non-geo queries: inherited/probate, foreclosure, major repairs, tired landlord,
@@ -135,15 +138,22 @@ states you are not agents, not advisors, and never charge sellers a fee.
 3. **`src/config.mjs` → `stats`** — `400+ houses bought`, `12 years` and the
    timelines are placeholders. Substantiate them or change them.
 4. **City pages** — only keep cities you actually buy in, and verify every
-   neighborhood, ZIP and local claim. Cloned city pages with the name
-   swapped are the #1 way local service sites get filtered out of Google.
-5. **Form destination** — set `formAction` to `'netlify'` (works as-is on
+   neighborhood, ZIP and local claim before launch. Cloned city pages with the
+   name swapped are the #1 way local service sites get filtered out of Google.
+   The 15 shipped here are written from general market knowledge, not local
+   research: treat every specific as a claim to check.
+5. **One office, four metros** — the address in `config.mjs` is a single Dallas
+   office. If you genuinely operate statewide, a local phone number and a real
+   address per metro (each with its own Google Business Profile) is what makes
+   those city pages rank; without them, expect the home metro to outrank the
+   rest.
+6. **Form destination** — set `formAction` to `'netlify'` (works as-is on
    Netlify) or to your CRM / Formspree / Zapier endpoint URL.
-6. **Legal review** — have counsel check `/privacy/`, `/terms/`, the footer
+7. **Legal review** — have counsel check `/privacy/`, `/terms/`, the footer
    disclaimer, and the TCPA consent language on the form against your actual
    practices and your state's rules (several states regulate "we buy houses"
    marketing and equity-purchase contracts specifically).
-7. **Analytics** — add `gtmId` or `gaId` in config, then mark `generate_lead`
+8. **Analytics** — add `gtmId` or `gaId` in config, then mark `generate_lead`
    and `phone_call_click` as conversions.
 
 ## After you launch — the local SEO that actually moves the needle
@@ -165,8 +175,14 @@ off-page from here:
 ## Adding content
 
 - **A city**: add an entry to `src/content/cities.mjs` (unique intro, market
-  note, local note, neighborhoods, ZIPs) and rebuild — page, nav, footer,
-  sitemap and internal links generate themselves.
+  note, local note, neighborhoods, ZIPs, and the `metro` it belongs to) and
+  rebuild — page, footer, locations grouping, sitemap and internal links
+  generate themselves. A new `metro` value creates a new group with no other
+  changes.
+- **A whole new market**: set `marketName` in `src/config.mjs`, then write the
+  city entries. Note that the state-specific content — the Texas probate guide
+  and the governing-law clause in `/terms/` — is written for Texas and needs
+  rewriting if you expand beyond it.
 - **A situation**: add an entry to `src/content/situations.mjs`.
 - **A guide**: add an entry to `src/content/posts.mjs`.
 - **Global FAQs**: `src/content/faqs.mjs` (drives both `/faq/` and the schema).

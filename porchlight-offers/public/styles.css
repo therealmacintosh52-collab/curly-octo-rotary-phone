@@ -946,3 +946,17 @@ body { letter-spacing: -.005em; }
   background: linear-gradient(90deg, #f8b23c, #e28f0c 55%, #f8b23c);
 }
 .rail-card .form-card__title { font-size: 1.3rem; margin-bottom: .2em; }
+
+/* Metro groupings on the home strip and in the footer. */
+.metro-block + .metro-block { margin-top: 1.5rem; }
+.metro-block__name {
+  font-family: var(--font); font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
+  margin: 0 0 .65rem;
+}
+.footer-metro {
+  margin: 1.25rem 0 .5rem; font-size: .74rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em; color: #6f83a0;
+}
+.footer-col .footer-metro:first-of-type { margin-top: 0; }
+.footer-all { margin: 1.1rem 0 0; font-weight: 600; }

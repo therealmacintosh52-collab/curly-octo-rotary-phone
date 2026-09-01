@@ -1,7 +1,7 @@
 import { site } from '../config.mjs';
 import { esc, abs } from '../lib/html.mjs';
 import { faqSchema } from '../layout.mjs';
-import { cities } from '../content/cities.mjs';
+import { cities, metros, metroHubs } from '../content/cities.mjs';
 import { situations } from '../content/situations.mjs';
 import { icon } from '../lib/icons.mjs';
 import { situationIcon } from '../lib/icons.mjs';
@@ -42,7 +42,11 @@ const cityFaqs = (c) => [
 
 const cityPage = (c) => {
   const path = `/we-buy-houses/${c.slug}/`;
-  const others = cities.filter((x) => x.slug !== c.slug).slice(0, 6);
+  const sameMetro = cities.filter((x) => x.slug !== c.slug && x.metro === c.metro);
+  const others = [
+    ...sameMetro,
+    ...metroHubs.filter((x) => x.metro !== c.metro),
+  ].slice(0, 6);
   const faqs = cityFaqs(c);
   return {
     path,
@@ -92,7 +96,7 @@ ${breadcrumbs([
       <div class="form-card">
         <h2 class="form-card__title">Get my free ${esc(c.name)} cash offer</h2>
         <p class="form-card__sub">No fees. No obligation. About 60 seconds.</p>
-        ${leadForm({ id: `offer-form-${c.slug}`, source: `city-${c.slug}` })}
+        ${leadForm({ id: `offer-form-${c.slug}`, source: `city-${c.slug}`, city: c.name })}
       </div>
     </div>
   </div>
@@ -174,24 +178,29 @@ ${ctaBand({
 const locationsIndex = () => ({
   path: '/locations/',
   title: `Areas We Buy Houses | ${site.marketName} Cash Home Buyers`,
-  description: `We buy houses for cash across ${site.marketName}: ${cities.slice(0, 5).map((c) => c.name).join(', ')} and the surrounding area. Free offer in ${S.avgOfferHours} hours, no fees.`,
+  description: `We buy houses for cash across ${site.marketName}: ${metroHubs.map((c) => c.name).join(', ')} and the towns around them. Free offer in ${S.avgOfferHours} hours, no fees.`,
   crumbs: [{ name: 'Areas we buy', path: '/locations/' }],
   body: `
 ${breadcrumbs([{ name: 'Areas we buy', path: '/locations/' }])}
 ${pageHero({
   eyebrow: 'Service area',
   h1: `Where we buy houses in ${site.marketName}`,
-  lede: `We are local: local buyers, local title companies, local contractors. Pick your city below, or call ${site.phone} — if you are anywhere in ${site.marketName}, we probably buy there.`,
+  lede: `${cities.length} cities across ${Object.keys(metros).length} metros — with local buyers, local title companies and local crews in each one. Pick your city below, or call ${site.phone}.`,
 })}
 
-<section class="section">
+${Object.entries(metros)
+  .map(
+    ([metro, group]) => `
+<section class="section${Object.keys(metros).indexOf(metro) % 2 ? ' section--alt' : ''}" id="${metro.toLowerCase().replace(/[^a-z]+/g, '-')}" data-reveal>
   <div class="container">
+    <p class="eyebrow">${esc(metro)}</p>
+    <h2 class="section__title">We buy houses across ${esc(metro)}</h2>
     <ul class="card-grid">
-      ${cities
+      ${group
         .map(
           (c) => `
       <li class="card card--city">
-        <h2 class="card__title"><a href="/we-buy-houses/${c.slug}/">We buy houses in ${esc(c.name)}</a></h2>
+        <h3 class="card__title"><a href="/we-buy-houses/${c.slug}/">We buy houses in ${esc(c.name)}</a></h3>
         <p class="card__meta">${esc(c.county)}</p>
         <p class="card__text">${esc(c.intro.split('.').slice(0, 2).join('.'))}.</p>
         <p class="card__zips">${c.zips.slice(0, 4).map(esc).join(' · ')}</p>
@@ -200,7 +209,9 @@ ${pageHero({
         .join('')}
     </ul>
   </div>
-</section>
+</section>`,
+  )
+  .join('')}
 
 <section class="section section--alt">
   <div class="container container--narrow prose">

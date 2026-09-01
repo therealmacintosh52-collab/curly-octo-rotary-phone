@@ -1,7 +1,7 @@
 import { site, hasAnalytics } from './config.mjs';
 import { esc, jsonLd, join, abs } from './lib/html.mjs';
 import { icon } from './lib/icons.mjs';
-import { cities } from './content/cities.mjs';
+import { cities, metros } from './content/cities.mjs';
 import { situations } from './content/situations.mjs';
 
 const A = site.address;
@@ -56,10 +56,10 @@ const orgGraph = () => [
         closes: '20:00',
       },
     ],
-    areaServed: cities.map((c) => ({
-      '@type': 'City',
-      name: `${c.name}, ${site.stateAbbr}`,
-    })),
+    areaServed: [
+      { '@type': 'State', name: site.stateName },
+      ...cities.map((c) => ({ '@type': 'City', name: `${c.name}, ${site.stateAbbr}` })),
+    ],
     knowsAbout: [
       'cash home buying',
       'as-is home sales',
@@ -194,14 +194,18 @@ const footer = () => `
       </div>
       <div class="footer-col">
         <h2 class="footer-head">Areas we buy houses</h2>
+        ${Object.entries(metros)
+          .map(
+            ([metro, group]) => `
+        <p class="footer-metro">${esc(metro)}</p>
         <ul>
-          ${cities
-            .map(
-              (c) =>
-                `<li><a href="/we-buy-houses/${c.slug}/">We buy houses ${esc(c.name)}</a></li>`,
-            )
+          ${group
+            .map((c) => `<li><a href="/we-buy-houses/${c.slug}/">${esc(c.name)}</a></li>`)
             .join('\n          ')}
-        </ul>
+        </ul>`,
+          )
+          .join('')}
+        <p class="footer-all"><a href="/locations/">All areas we buy →</a></p>
       </div>
     </div>
     <div class="footer-legal">
