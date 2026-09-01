@@ -62,13 +62,17 @@ SITE = {
     # Drop the shop's real logo in public/assets/img/ and put its path here,
     # e.g. "/assets/img/logo.svg" (SVG best, transparent PNG fine). Leave it
     # empty and the site falls back to the "PA" monogram placeholder.
-    "logo": "",
+    "logo": "/assets/img/logo.png",
     # Optional light/reversed version for the dark footer. If it's empty and a
     # logo is set, the footer puts the logo on a white chip so it stays legible.
     "logo_dark_bg": "",
+    # "badge" keeps the shop name in text beside a round/square logo mark;
+    # "full" uses the logo on its own (for a logo that already reads as a
+    # wordmark). The badge mark needs the name spelled out next to it.
+    "logo_lockup": "badge",
     # Optional: a favicon cut from the real logo (SVG or PNG). Falls back to
     # the placeholder mark in assets/img/favicon.svg.
-    "favicon": "",
+    "favicon": "/assets/img/logo.png",
 }
 
 MAPS_DIRECTIONS = ("https://www.google.com/maps/dir/?api=1&destination="
@@ -746,7 +750,7 @@ def business_schema():
         '"url":"%(base)s/",'
         '"telephone":"%(phone)s",'
         '"email":"%(email)s",'
-        '"image":"%(base)s/assets/img/og-cover.svg",'
+        '"image":"%(base)s/assets/img/og-cover.png",'
         '"priceRange":"$$",'
         '"description":"Locally owned auto repair, diesel and fleet maintenance shop in Lodi, '
         'California. Honest diagnostics, clear pricing and dependable turnaround for domestic, '
@@ -804,11 +808,21 @@ def brand(on_dark=False):
     placeholder monogram."""
     logo = SITE.get("logo")
     if logo:
-        src = SITE.get("logo_dark_bg") or logo if on_dark else logo
-        chip = " brand-logo--chip" if on_dark and not SITE.get("logo_dark_bg") else ""
-        return ('<a class="brand" href="/">'
-                '<img class="brand-logo%s" src="%s" alt="%s" height="46">'
-                '</a>' % (chip, src, esc(SITE["name"])))
+        src = (SITE.get("logo_dark_bg") or logo) if on_dark else logo
+        # The mark is dark line-art on a transparent ground, so on the dark
+        # footer it sits on a light chip unless a reversed version is supplied.
+        chip = on_dark and not SITE.get("logo_dark_bg")
+        if SITE.get("logo_lockup") == "full":
+            return ('<a class="brand" href="/">'
+                    '<img class="brand-logo%s" src="%s" alt="%s" height="46">'
+                    '</a>' % (" brand-logo--chip" if chip else "", src, esc(SITE["name"])))
+        return """<a class="brand" href="/">
+      <img class="brand-badge%s" src="%s" alt="" width="46" height="46">
+      <span class="brand-text">
+        <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
+        <span class="brand-sub">Lodi, California</span>
+      </span>
+    </a>""" % (" brand-badge--chip" if chip else "", src)
     return """<a class="brand" href="/">
       <span class="brand-mark" aria-hidden="true">PA</span>
       <span class="brand-text">
@@ -923,7 +937,10 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <meta property="og:title" content="%(title)s">
 <meta property="og:description" content="%(desc)s">
 <meta property="og:url" content="%(canonical)s">
-<meta property="og:image" content="%(base)s/assets/img/og-cover.svg">
+<meta property="og:image" content="%(base)s/assets/img/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Phil&#39;s Auto and Fleet Repair - honest auto, diesel and fleet repair in Lodi, California">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="%(title)s">

@@ -92,28 +92,47 @@ and re-run it.
 - [ ] **Certifications** — nothing about ASE, years in business, or technician credentials is
       claimed anywhere, because none of it was verified. Add it if it's true; it's strong
       trust content.
-- [ ] **The logo** — the site currently shows a placeholder "PA" monogram, not the shop's real
-      logo (see below).
+- [ ] **A higher-resolution logo** — the logo in use is 80x80 px, which is sharp on ordinary
+      screens but soft on phones and laptops with retina displays. An SVG, or a PNG of about
+      512 px, would fix that everywhere at once (see below).
 
-## Adding the real logo
+## The logo
 
-The header and footer currently show a placeholder monogram because the shop's actual logo file
-wasn't available when this was built. Swapping it in is one line:
+The shop's badge logo is installed at `public/assets/img/logo.png` (80x80, transparent
+background). It appears beside the shop name in the header, on a white disc in the dark footer,
+as the browser-tab icon, and on the social share image.
 
-1. Put the logo in `public/assets/img/` — SVG is best, a transparent PNG at 2x is fine.
-2. In `build.py`, set `SITE["logo"]` to its path, e.g. `"/assets/img/logo.svg"`.
-3. Re-run `python3 build.py`. Every page picks it up.
+**Please replace it with a larger version when you can.** At 80 px it is sharp on a standard
+display and slightly soft on a retina screen, where the header alone wants ~92 px. An SVG is
+ideal — it stays crisp at any size, including on printed material. Drop the new file in
+`public/assets/img/`, point `SITE["logo"]` at it in `build.py`, and re-run the build. Nothing
+else changes.
 
-Two optional extras in the same block:
+The related settings, all in the `SITE` block at the top of `build.py`:
 
-- `SITE["logo_dark_bg"]` — a light/reversed version for the dark footer. Leave it empty and the
-  footer places the normal logo on a white chip so it stays legible either way.
-- `SITE["favicon"]` — a square crop of the logo for the browser tab. Falls back to the
-  placeholder mark in `assets/img/favicon.svg`.
+- `SITE["logo"]` — path to the logo. Empty falls back to a placeholder monogram.
+- `SITE["logo_lockup"]` — `"badge"` (current) keeps the shop name in text beside the mark, which
+  a round badge needs; `"full"` uses the logo alone, for a logo that already reads as a wordmark.
+- `SITE["logo_dark_bg"]` — optional light/reversed logo for the dark footer. Without one, the
+  footer puts the normal logo on a white disc so the dark line-art stays legible.
+- `SITE["favicon"]` — browser-tab icon, currently the logo itself.
 
-Two files still carry the placeholder mark and should be redrawn from the real logo when you have
-it: `assets/img/favicon.svg` (browser tab) and `assets/img/og-cover.svg` (the image that shows
-when the site is shared on Facebook, iMessage or LinkedIn).
+## Regenerating the social share image
+
+`public/assets/img/og-cover.png` (1200x630) is what Facebook, LinkedIn, iMessage and WhatsApp
+show when someone shares the site. It is built from `tools/og-cover.html`, so editing the wording
+means editing that file and re-rendering:
+
+```bash
+cd tools
+chrome --headless --hide-scrollbars --window-size=1200,717 \
+       --screenshot=/tmp/og-raw.png og-cover.html
+python3 png_crop.py /tmp/og-raw.png ../public/assets/img/og-cover.png 1200 630
+```
+
+The odd height and the crop step are deliberate: headless Chrome reserves about 87 px of window
+for browser chrome, so rendering at 717 and trimming to 630 is what produces a full-bleed image.
+`tools/png_crop.py` does that with the standard library alone — no image packages to install.
 
 ## Connecting the quote form
 
@@ -173,5 +192,8 @@ public/                   generated site — deploy this
   sitemap.xml, robots.txt, 404.html
   assets/css/site.css     design system
   assets/js/site.js       nav, form handling, tracking hooks
-  assets/img/             favicon, social share image, shop illustration (SVG)
+  assets/img/             logo, favicon fallback, social share image, shop illustration
+tools/
+  og-cover.html           source for the 1200x630 social share image
+  png_crop.py             crops a PNG to an exact size (standard library only)
 ```

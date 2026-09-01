@@ -128,6 +128,12 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
 /* Real logo (SITE["logo"] in build.py) — replaces the monogram lockup. */
 .brand-logo{height:46px;width:auto;max-width:240px;object-fit:contain;display:block}
 .brand-logo--chip{background:#fff;padding:8px 12px;border-radius:12px}
+.brand-badge{height:46px;width:46px;object-fit:contain;display:block;flex:none}
+.brand-badge--chip{background:#fff;border-radius:50%;padding:3px;height:50px;width:50px}
+.brand-badge{height:46px;width:46px;object-fit:contain;display:block;flex:none}
+/* The mark is dark line-art on a transparent ground, so it needs a light
+   disc behind it anywhere the background is dark. */
+.brand-badge--chip{background:#fff;border-radius:50%;padding:3px;height:50px;width:50px}
 .brand-name{font-weight:900;font-size:1.05rem;letter-spacing:-.035em}
 .brand-sub{font-size:.7rem;color:var(--slate);font-weight:800;letter-spacing:.13em;text-transform:uppercase}
 .nav{display:flex;align-items:center;gap:2px}
@@ -457,6 +463,8 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   .nav-toggle{display:block;order:3}
   .brand-name{font-size:.98rem}
   .brand-logo{height:38px;max-width:190px}
+  .brand-badge{height:40px;width:40px}
+  .brand-badge{height:40px;width:40px}
   .brand-sub{font-size:.64rem}
   .g3,.g2,.steps,.split{grid-template-columns:1fr}
   .split{gap:36px}
