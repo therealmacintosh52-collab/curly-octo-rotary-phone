@@ -145,9 +145,26 @@ ROUTER_JS = r"""
 def main():
     css = read("assets", "css", "site.css")
     js = read("assets", "js", "site.js")
-    logo = data_uri("/assets/img/logo.png", "image/png")
-    scene = data_uri("/assets/img/shop-scene.svg", "image/svg+xml")
-    favicon = data_uri("/assets/img/favicon.svg", "image/svg+xml")
+
+    # Inline every image the built pages actually reference, discovered rather
+    # than listed - adding a photo to build.py should not silently drop it from
+    # the preview.
+    MIME = {".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif"}
+    referenced = set()
+    for _p, fn in routes().items():
+        with open(fn, encoding="utf-8") as fh:
+            # body only - the og:image in <head> is never rendered, and inlining
+            # that 400KB social card would quadruple the bundle for nothing
+            body_only = fh.read().split("<body>", 1)[1]
+        referenced.update(re.findall(r'/assets/img/[A-Za-z0-9._-]+', body_only))
+    referenced.add("/assets/img/favicon.svg")
+    assets = {}
+    for ref in sorted(referenced):
+        ext = os.path.splitext(ref)[1].lower()
+        if ext in MIME and os.path.isfile(os.path.join(PUB, ref.lstrip("/"))):
+            assets[ref] = data_uri(ref, MIME[ext])
+    favicon = assets.get("/assets/img/favicon.svg", "")
 
     templates = []
     r = routes()
@@ -163,9 +180,6 @@ def main():
         body = re.sub(r'<iframe class="map-frame".*?</iframe>', MAP_PLACEHOLDER, body, flags=re.S)
         templates.append('<template data-route="%s">%s</template>' % (path, body))
 
-    assets = {"/assets/img/logo.png": logo,
-              "/assets/img/shop-scene.svg": scene,
-              "/assets/img/favicon.svg": favicon}
     router = ROUTER_JS % {"js": json.dumps(js), "assets": json.dumps(assets)}
     core = ("<title>%s</title>\n<style>\n%s\n</style>\n"
             '<div id="app"></div>\n%s\n<script>%s</script>\n'

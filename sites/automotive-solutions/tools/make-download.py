@@ -224,6 +224,7 @@ def main():
         "assets/css/site.css", "assets/js/site.js",
         "assets/img/logo.png", "assets/img/shop-scene.svg",
         "assets/img/favicon.svg", "assets/img/og-cover.png",
+        "assets/img/bay-classic.jpg", "assets/img/bay-subaru.jpg",
         "services/index.html", "services/brake-repair/index.html",
         "about/index.html", "contact/index.html", "reviews/index.html",
         "es/index.html", "advice/index.html", "privacy/index.html",
@@ -249,7 +250,7 @@ def main():
             kinds["img"] += 1
         else:
             kinds["other"] += 1
-    if kinds["css"] < 1 or kinds["js"] < 1 or kinds["img"] < 3 or kinds["html"] < 25:
+    if kinds["css"] < 1 or kinds["js"] < 1 or kinds["img"] < 5 or kinds["html"] < 25:
         raise SystemExit("ZIP LOOKS WRONG: %s" % kinds)
 
     print("%s (%.0f KB)" % (ZIP, os.path.getsize(ZIP) / 1024))

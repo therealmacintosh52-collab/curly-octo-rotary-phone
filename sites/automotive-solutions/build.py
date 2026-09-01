@@ -857,6 +857,25 @@ SERVICE_BY_SLUG = {s["slug"]: s for s in SERVICES}
 
 
 # ==========================================================================
+# Real photographs of the shop.
+#
+# These two came from the shop's own Google listing and are small - see
+# README.md. Replace them with full-resolution originals when the shop can
+# supply them: same keys, same 16:10 crop, at least 1200px wide.
+# ==========================================================================
+PHOTOS = {
+    "classic": ("bay-classic.jpg",
+                "A classic sedan raised on a two-post lift with its hood open inside the "
+                "service bay at Automotive Solutions in Elk Grove",
+                402, 250),
+    "subaru": ("bay-subaru.jpg",
+               "A Subaru wagon raised on a lift with its hood up, under the bay lights at "
+               "Automotive Solutions in Elk Grove",
+               402, 250),
+}
+
+
+# ==========================================================================
 # Reviews
 #
 # RULE: verbatim text, attributed to the person and the platform it was left
@@ -1366,23 +1385,38 @@ def angle_divider(fill="#ffffff"):
             '<path d="M0 80 1440 0v80z" fill="%s"/></svg></div>' % fill)
 
 
-def photo_slot(caption, badge="Inside the shop", alt=None):
-    """Styled frame that ships with the hand-drawn SVG so the page looks
-    finished on day one. The caption sits under the image, never over it."""
-    alt = alt or ("Illustration of a car raised on a two-post lift inside a service bay, with a "
-                  "technician inspecting the underside")
-    return """<!-- PHOTO SLOT — swap in a real photo of the shop.
-     Put the file in assets/img/ (e.g. assets/img/shop-front.jpg), then replace
-     the <img> line below with:
-       <img src="/assets/img/shop-front.jpg" alt="Describe what is in the photo"
-            width="1200" height="750" loading="lazy">
-     Aim for roughly 16:10 and at least 1200px wide. Leave the <figure>,
-     the badge and the <figcaption> exactly as they are. -->
+def photo_slot(caption, badge="Inside the shop", alt=None, photo=None):
+    """Styled image frame.
+
+    Pass `photo` as (filename, alt, width, height) from PHOTOS to use a real
+    photograph; leave it out and the frame falls back to the hand-drawn SVG so
+    the page still looks finished. The caption always sits under the image,
+    never over it."""
+    if photo:
+        name, palt, pw, ph = photo
+        img = ('<img src="/assets/img/%s" width="%d" height="%d" alt="%s" loading="lazy">'
+               % (name, pw, ph, esc(palt)))
+        swap = ("<!-- PHOTO SLOT - real photo of the shop.\n"
+                "     To replace it, drop a new file in assets/img/ and change the entry in\n"
+                "     the PHOTOS dict near the top of build.py, then re-run build.py.\n"
+                "     Aim for roughly 16:10 and at least 1200px wide. -->")
+    else:
+        alt = alt or ("Illustration of a car raised on a two-post lift inside a service bay, "
+                      "with a technician inspecting the underside")
+        img = ('<img src="/assets/img/shop-scene.svg" width="720" height="450" alt="%s">'
+               % esc(alt))
+        swap = ("<!-- PHOTO SLOT - swap in a real photo of the shop.\n"
+                "     Put the file in assets/img/ (e.g. assets/img/shop-front.jpg), add it to\n"
+                "     the PHOTOS dict near the top of build.py, then pass it here as\n"
+                "     photo=PHOTOS[\"your-key\"] and re-run build.py.\n"
+                "     Aim for roughly 16:10 and at least 1200px wide. Leave the <figure>,\n"
+                "     the badge and the <figcaption> exactly as they are. -->")
+    return """%s
 <figure class="photo">
   <span class="photo-badge">%s%s</span>
-  <img src="/assets/img/shop-scene.svg" width="720" height="450" alt="%s">
+  %s
   <figcaption>%s</figcaption>
-</figure>""" % (icon("camera"), esc(badge), esc(alt), esc(caption))
+</figure>""" % (swap, icon("camera"), esc(badge), img, esc(caption))
 
 
 def faq_block(faqs, heading="Frequently asked questions", intro=None):
@@ -1536,7 +1570,7 @@ def build_home():
       </div>
       <div>
         {photo_slot("The bay on Elk Grove Blvd. Same shop, same family, since 2001.",
-                    "The shop")}
+                    "The shop", photo=PHOTOS["classic"])}
       </div>
     </div>
   </div>
@@ -1620,7 +1654,7 @@ def build_home():
         </div>
       </div>
       <div>
-        {photo_slot("Every vehicle gets diagnosed before it gets quoted — that is the whole method.", "In the bay")}
+        {photo_slot("Every vehicle gets diagnosed before it gets quoted — that is the whole method.", "In the bay", photo=PHOTOS["subaru"])}
       </div>
     </div>
   </div>
@@ -1867,7 +1901,7 @@ def build_about():
         </table>
         <p style="margin:22px 0 0">{tel_btn("btn btn-accent", "about-panel")}</p>
         <div style="margin-top:26px">
-          {photo_slot("9253 Elk Grove Blvd — where every vehicle gets diagnosed before it gets quoted.", "Our shop")}
+          {photo_slot("9253 Elk Grove Blvd — where every vehicle gets diagnosed before it gets quoted.", "Our shop", photo=PHOTOS["classic"])}
         </div>
       </div>
     </div>
@@ -2726,7 +2760,7 @@ def build_spanish():
         <p style="margin:22px 0 0">
           <a class="btn btn-accent" href="{MAPS_DIRECTIONS}" rel="noopener" data-loc="es-directions" style="width:100%">Cómo llegar</a></p>
         <div style="margin-top:26px">
-          {photo_slot("Cada vehículo se diagnostica antes de cotizarse — ese es todo el método.", "En el taller")}
+          {photo_slot("Cada vehículo se diagnostica antes de cotizarse — ese es todo el método.", "En el taller", photo=PHOTOS["subaru"])}
         </div>
       </div>
     </div>
