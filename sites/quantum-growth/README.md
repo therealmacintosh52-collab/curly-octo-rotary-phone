@@ -32,8 +32,9 @@ regenerate the block rather than hand-editing the JSON.
 - **Social proof.** No testimonials, case studies or client names. This is the
   ceiling on the whole page and no rewrite fixes it — one client with real
   before-and-after numbers does.
-- **A photo of Jaccob.** The founder section carries a monogram. A face
-  converts better.
+- **A face.** The one-person section carries the logo mark. Deciding whether to
+  put a real name and photo on it is a live trade-off: anonymity looks bigger,
+  a name converts better and is the thing the incumbent cannot offer.
 - **An OG image.** Links currently share without a preview card.
 - **The competitor prices** in the plan cards ("Others charge $1,000 + $99/mo")
   come from a single sales call. Confirm before treating them as fact.
