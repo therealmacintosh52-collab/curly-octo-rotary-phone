@@ -112,6 +112,22 @@ p{margin:0 0 18px} p:last-child{margin-bottom:0}
   font-size:13.5px;color:var(--neutral);line-height:1.5}
 .vs b{color:var(--ink)}
 
+.annual{font-size:14px;color:var(--blue-dk);margin:8px 0 0;font-weight:500}
+.annual b{font-weight:700}
+
+/* ---------- terms ---------- */
+.terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:28px}
+.term{background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:22px 24px}
+.term h3{font-size:17px}
+.term p{font-size:15.5px;color:var(--ink-2);margin:0}
+.term .amt{font-family:var(--display);font-weight:700;font-size:24px;color:var(--gold-dk);
+  margin:4px 0 8px;font-variant-numeric:tabular-nums}
+.feetable{width:100%;border-collapse:collapse;margin-top:6px;font-size:15px}
+.feetable td{padding:7px 0;border-bottom:1px solid var(--rule)}
+.feetable tr:last-child td{border-bottom:0}
+.feetable td:last-child{text-align:right;font-family:var(--display);font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+
 /* ---------- consulting ---------- */
 .consult{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
 .ccard{border-left:3px solid var(--gold);padding:4px 0 4px 18px}
@@ -230,6 +246,7 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--gold);outline-offset:
       <div class="plan">
         <h3>Starter</h3>
         <div class="price">$79<small>/mo</small></div>
+        <p class="annual">or <b>$869 a year</b> — one month free</p>
         <p class="setup">$699 build, one time</p>
         <ul>
           <li>25-page website on your domain</li>
@@ -245,6 +262,7 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--gold);outline-offset:
         <span class="badge">Most shops start here</span>
         <h3>Local</h3>
         <div class="price">$299<small>/mo</small></div>
+        <p class="annual">or <b>$3,289 a year</b> — one month free</p>
         <p class="setup"><b>Build free</b> — $0 to start</p>
         <ul>
           <li>Everything in Starter</li>
@@ -261,6 +279,7 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--gold);outline-offset:
       <div class="plan">
         <h3>Growth</h3>
         <div class="price">$599<small>/mo</small></div>
+        <p class="annual">or <b>$6,589 a year</b> — one month free</p>
         <p class="setup"><b>Build free</b> — $0 to start</p>
         <ul>
           <li>Everything in Local</li>
@@ -277,6 +296,7 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--gold);outline-offset:
       <div class="plan">
         <h3>Market Leader</h3>
         <div class="price">$1,199<small>/mo</small></div>
+        <p class="annual">or <b>$13,189 a year</b> — one month free</p>
         <p class="setup"><b>Build free</b> — $0 to start</p>
         <ul>
           <li>Everything in Growth</li>
@@ -290,6 +310,43 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--gold);outline-offset:
         <div class="vs">The same coverage elsewhere runs to <b>$3,000/mo</b></div>
       </div>
     </div>
+  </div>
+</section>
+
+<section id="terms">
+  <div class="wrap">
+    <p class="sec-eyebrow">Pausing and leaving</p>
+    <h2>Life happens. You have options besides quitting.</h2>
+    <p class="sec-lede">Slow season, cash is tight, or the shop is closed for a month — none of that has to mean starting over later.</p>
+
+    <div class="terms">
+      <div class="term">
+        <h3>Pause instead of cancel</h3>
+        <div class="amt">$29/mo</div>
+        <p>Up to two months a year. Your website stays live and your email keeps working — only the profile management and posting stop. Everything picks back up where it left off, with nothing to rebuild.</p>
+      </div>
+
+      <div class="term">
+        <h3>Drop to a smaller plan</h3>
+        <div class="amt">Any time</div>
+        <p>Move down a tier whenever you want, no penalty and no waiting for a renewal date. Going from Growth to Starter keeps you online for $79 a month rather than leaving altogether.</p>
+      </div>
+
+      <div class="term">
+        <h3>Cancel, and keep everything</h3>
+        <div class="amt">$0 after 6 months</div>
+        <p>The domain, website, Google profile and email are already in your name, so there is nothing to hand back. After six months there is no fee at all.</p>
+        <p style="margin-top:10px">Inside the first six months, the free build is partly recovered:</p>
+        <table class="feetable">
+          <tr><td>Starter</td><td>$100</td></tr>
+          <tr><td>Local</td><td>$200</td></tr>
+          <tr><td>Growth</td><td>$350</td></tr>
+          <tr><td>Market Leader</td><td>$500</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <p style="margin-top:26px;font-size:16px;color:var(--neutral);max-width:70ch">Why that exists: every plan above Starter includes a $699 build for free. If someone takes the build and leaves in month two, that work was given away. The fee recovers part of it and disappears entirely once you have been with us six months. Annual plans refund any unused full months.</p>
   </div>
 </section>
 
@@ -428,12 +485,14 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--gold);outline-offset:
 
       <div class="qa">
         <h3>Do I have to sign a contract?</h3>
-        <p>No. Month to month, cancel whenever. There is no notice period and no cancellation fee.</p>
+        <p>No. Month to month, cancel whenever, no notice period. Paying for a year up front gets you one month free, and you can still leave — unused full months are refunded.</p>
+        <p>If you would rather not stop entirely, you can pause for up to two months a year at $29 a month, or drop to a smaller plan at any time.</p>
       </div>
 
       <div class="qa">
         <h3>What happens if I leave?</h3>
-        <p>You keep everything. The domain, the website, the Google profile, the email — all of it is already in your name, so there is nothing for us to switch off or hand over. You just stop paying.</p>
+        <p>You keep everything. The domain, website, Google profile and email are already in your name, so there is nothing for us to switch off or hand over.</p>
+        <p>After six months you just stop paying. Inside six months there is a fee of $100 to $500 depending on the plan, which recovers part of the build we gave you free. Annual plans get unused full months back.</p>
       </div>
 
       <div class="qa">
