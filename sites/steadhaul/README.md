@@ -1,11 +1,16 @@
 # Steadhaul Dispatch — landing page
 
+**To put this live, see [DEPLOY.md](DEPLOY.md).** Run `sh preflight.sh` first —
+it blocks the deploy while the placeholder phone number is still in the file.
+
+
 Single-file static landing page (`index.html`). No build step. Drop the folder on
 Netlify, Cloudflare Pages or any static host.
 
 ## Before you launch — required
 
-There is one required change before launch.
+There is one required change before launch: the phone number. `preflight.sh`
+checks for it.
 
 1. **Phone number.** `(000) 000-0000` appears in the nav, the form's call/text box,
    the sticky mobile bar, the footer, the thank-you panel and the JSON-LD.

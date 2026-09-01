@@ -1,0 +1,30 @@
+# Netlify config. Works two ways:
+#   drag-and-drop  — drop this folder on app.netlify.com/drop
+#   git-connected  — set Base directory to sites/steadhaul in Site settings
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+
+# The HTML changes whenever copy or a load row changes — always revalidate.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Assets are not content-hashed, so a day is the sane ceiling. If you swap the
+# logo or the OG card, allow 24h before every visitor sees it.
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

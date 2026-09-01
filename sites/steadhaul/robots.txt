@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://steadhauldispatch.com/sitemap.xml
