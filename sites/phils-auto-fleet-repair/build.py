@@ -31,7 +31,7 @@ SITE = {
     "base_url": "https://philsautofleet.com",
     "phone_display": "(209) 647-4953",
     "phone_link": "+12096474953",
-    "email": "service@philsautofleet.com",  # TODO: confirm with the shop
+    "email": "phil@philsautofleet.com",
     "street": "103 E Elm St",
     "city": "Lodi",
     "region": "CA",
@@ -896,6 +896,7 @@ def footer_html():
         <ul>
           <li><a href="%(map)s" rel="noopener">%(street)s<br>%(city)s, %(region)s %(zip)s</a></li>
           <li><a href="tel:%(tel)s" data-loc="footer">%(phone)s</a></li>
+          <li><a href="mailto:%(email)s">%(email)s</a></li>
           <li>%(hours)s</li>
         </ul>
         <p style="margin-top:16px"><a class="btn btn-accent btn-sm" href="tel:%(tel)s" data-loc="footer-btn">%(picon)s<span>Call the shop</span></a></p>
@@ -915,6 +916,7 @@ def footer_html():
              "city": SITE["city"], "region": SITE["region"], "zip": SITE["zip"],
              "tel": SITE["phone_link"], "phone": SITE["phone_display"],
              "hours": esc(SITE["hours_human"]), "name": esc(SITE["name"]),
+             "email": SITE["email"],
              "picon": icon("phone"), "micon": icon("map"), "cicon": icon("chat")}
 
 
@@ -931,7 +933,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <title>%(title)s</title>
 <meta name="description" content="%(desc)s">
 <link rel="canonical" href="%(canonical)s">
-%(robots)s<meta name="theme-color" content="#0e1720">
+%(robots)s<meta name="theme-color" content="#0a0a1f">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="%(name)s">
 <meta property="og:title" content="%(title)s">
@@ -1189,7 +1191,7 @@ def build_home():
   <div class="wrap">
     <div class="hero-grid">
       <div>
-        <span class="eyebrow" style="color:#ffa76b">Locally owned · Lodi, California</span>
+        <span class="eyebrow">Locally owned · Lodi, California</span>
         <h1>Honest auto, diesel &amp; fleet repair in <em>Lodi, California</em></h1>
         {rating_line()}
         <p>A value-driven alternative to the dealership. We diagnose the problem properly,

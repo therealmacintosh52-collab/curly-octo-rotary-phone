@@ -80,7 +80,8 @@ and re-run it.
 
 - [ ] **Hours** — the site says Mon–Sat 8:00 AM–5:00 PM, closed Sunday (`SITE["hours_rows"]`
       and `SITE["hours_schema"]`). Yelp and Google should match exactly.
-- [ ] **Email** — `SITE["email"]` is a placeholder (`service@philsautofleet.com`).
+- [ ] **Email** — set to `phil@philsautofleet.com`. The domain was inferred from the shop's
+      website; confirm it is right before launch, since a wrong address loses leads silently.
 - [ ] **Warranty wording** — `SITE["warranty_text"]` is deliberately non-specific. If the shop
       offers a defined warranty (e.g. 24 months/24,000 miles), say so — it converts.
 - [ ] **Map coordinates** — `SITE["lat"]` / `SITE["lng"]` are approximate for the address.
@@ -95,6 +96,18 @@ and re-run it.
 - [ ] **A higher-resolution logo** — the logo in use is 80x80 px, which is sharp on ordinary
       screens but soft on phones and laptops with retina displays. An SVG, or a PNG of about
       512 px, would fix that everywhere at once (see below).
+
+## Colour
+
+The palette is taken from the logo, not chosen alongside it. The badge is drawn almost entirely
+in **#2418cc**, a blue-violet, so that value is the brand colour (`--accent-dk`), the buttons run
+a gradient from it (`#2f22e0` to `#6a5bff`), the dark sections are deep indigo rather than neutral
+navy, and even the greys carry the same hue bias so nothing reads as an unrelated stock blue.
+Review stars stay gold, because that is what a rating looks like everywhere else on the web.
+
+Everything is defined once as custom properties at the top of `assets/css/site.css`. Changing the
+brand colour is a matter of editing `--accent`, `--accent-dk`, `--accent-lt`, `--grad-accent` and
+`--grad-dark` — the rest of the stylesheet reads through those.
 
 ## The logo
 
