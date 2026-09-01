@@ -1,134 +1,115 @@
 # Steadhaul Dispatch — ad copy
 
-Every claim below matches the website. If you change pricing or terms on one,
-change both. Replace `(000) 000-0000` everywhere before posting.
+Short-form. The ad's only job is to get a call or a form fill; the selling
+happens on the phone. Call script is at the bottom — that's where the detail
+that used to be in these ads now lives.
 
-No invented proof anywhere in here — no carrier counts, no "trusted by 200
-owner-operators," no five-star quotes. Same reason as on the site: you can't
-back it yet, and in this industry getting caught once ends your referrals.
+Replace `(000) 000-0000` before posting.
+
+## What's held back, and what isn't
+
+**Held back:** the price ladder, the service list, the fine print, the broker
+packet process. All of it is on the website and in the call script for when
+they ask.
+
+**Kept, deliberately:** that this is for owner-operators **with their own
+authority**, and that it's a dispatch service. Two reasons, both practical.
+A vague ad fills your phone with company drivers wanting a job — you pay for
+those clicks and burn the time. And an ad that reads like employment when the
+person ends up paying you $300 a week gets pulled from Craigslist and Indeed
+and generates the kind of review you don't recover from.
+
+Qualifying in the ad is not giving away the sale. It's what makes the calls
+worth taking.
+
+**One trade-off worth knowing:** every competitor hiding price behind "call for
+a quote" is why publishing it was such a strong play on the website. Pulling it
+out of the ads is defensible — ads and landing pages do different jobs, and
+price-first ads attract price shoppers. Just keep it on the site, where a
+comparison shopper who's already interested can find it.
 
 ---
 
 ## 1. Craigslist
 
-**Category:** `services` → `small biz ads` (NOT `jobs`). It's a service, not a
-job. Posting under jobs gets ghosted and can get the account flagged.
-Cost is about $5 per post in most markets.
+**Category:** `services` → `small biz ads`. Not `jobs` — it's a service, and
+the wrong category gets the post ghosted.
 
 **Title:**
-
 ```
-Truck Dispatch for New Authority — $300/wk Flat, Never a Percentage
+Truck Dispatch for New Authority — Flat Rate, Never a Percentage
 ```
 
 **Body:**
-
 ```
-Most dispatchers take 5-10% of every load. On an $8,000 week that's $400-800
-gone, and their cut goes up every time you have a good week.
+Got your own authority in the last year? Then you already know the problem
+isn't finding loads. It's that half the brokers won't set you up, and you find
+that out one rejected phone call at a time.
 
-We charge a flat $300 a week per truck. Gross $4,000 or $14,000 — same fee.
+We're a small flat-rate dispatch desk in Sacramento. Flat weekly fee per truck,
+never a percentage — so a good week is your good week, not ours.
 
-FIRST WEEK IS FREE. If we don't beat what you'd book yourself, you walk away
-owing nothing. No card on file to start.
+First week is free. If we don't beat what you'd book yourself, you walk away
+owing nothing. No card on file, no contract.
 
-BUILT FOR NEW AUTHORITY
-If your MC is under a year old you already know the problem isn't finding
-loads — it's that half the brokers won't set you up, and you find that out one
-rejected phone call at a time. Before you haul anything we send broker packets
-to 25+ brokers who actually onboard young authorities, place your COI with each
-one, file your notice of assignment, and get your MC into their systems.
-
-WHAT YOU GET
-- Load sourcing across the major national boards (subscriptions are on us)
-- Rate negotiation against live market data, not last year's averages
-- Every broker's authority and $75K bond checked before we book. Since January
-  2026 FMCSA suspends brokers below that bond, and they are failing faster than
-  most carriers are tracking.
-- You approve every load. Nothing books without your yes.
-- Rate confirmations straight to your inbox
-
-THE FINE PRINT, UP FRONT
-- Truck down for the week? You owe nothing.
-- Week to week. Leave any Friday, 7 days' notice, no fee, no exit interview.
-- 8 trucks per dispatcher, hard cap. When a desk is full, you wait for a seat.
-- We're your agent, not a broker. The broker pays you or your factoring company
-  directly. We never touch your freight money.
-
-PRICING
-$300/wk Core - load sourcing, negotiation, booking, check calls
-$425/wk Pro - adds bond verification, detention/TONU recovery, invoicing
-$550/wk Full Desk - adds all paperwork, Friday revenue report, priority desk
-Fleets of 3+ get volume pricing.
+We cap every dispatcher at 8 trucks, so we're not taking everybody.
 
 Dry van, reefer, flatbed, hotshot, box truck, power only, step deck.
-Sacramento, CA - running all 48 states.
-
-Most carriers are set up same day and booked on a load within 24-48 hours.
+All 48 states. Most carriers are rolling within 24-48 hours.
 
 Call or text (000) 000-0000, seven days.
 steadhauldispatch.com
 ```
 
-**Craigslist notes:** don't paste the identical text into multiple cities — that
-is what triggers ghosting. Rewrite the opening paragraph per market and lead
-with a lane that matters there. Renew every 48 hours rather than reposting.
+Don't paste identical text across cities — that's what triggers ghosting.
+Rewrite the first line per market. Renew every 48 hours instead of reposting.
 
 ---
 
 ## 2. Facebook group post
 
-Most owner-operator groups ban straight advertising. This one leads with the
-insight and buries the pitch, which is both more honest and what actually
-performs. **Read each group's rules first and post the mod line.**
+Most owner-operator groups ban straight ads. Lead with the insight, keep the
+pitch to two lines, post the mod note. Read the group rules first.
 
 ```
-New authority guys — the thing nobody tells you is that your problem in month
-one isn't finding loads. It's that half the brokers on the board won't set you
-up until you've got 90 days on your MC, and you burn three weeks finding that
-out one phone call at a time.
+New authority guys — your problem in month one isn't finding loads. It's that
+half the brokers on the board won't set you up until you've got 90 days on your
+MC, and you burn three weeks finding that out one phone call at a time.
 
-I run a small flat-rate dispatch desk out of Sacramento. $300 a week per truck,
-never a percentage, so a good week is your good week and not mine.
+There's a way around it, and it's mostly paperwork done in the right order
+before you ever hit a load board.
 
-Before you haul anything I send broker packets to 25+ brokers who actually
-onboard young authorities, place your COI with each one, and get your MC into
-their systems so you're not sitting on "pending" when a good load posts. I also
-check every broker's authority and $75K bond before booking — since January
-they're getting suspended faster than most people are tracking, and a new
-carrier eating a $3,000 non-payment usually doesn't survive it.
+I run a small flat-rate dispatch desk out of Sacramento — flat fee per truck,
+never a percentage. First week's free, and I cap every dispatcher at 8 trucks
+so I'm not taking everybody on.
 
-First week's free. If I don't beat what you'd book yourself you owe nothing and
-we shake hands. Truck down that week, also nothing.
-
-I cap every dispatcher at 8 trucks so I'm not taking everybody on. If you're in
-your first year and want to talk, comment or DM.
+If you're in your first year of authority, comment or DM and I'll walk you
+through the broker setup part whether or not you use me.
 
 (Mods — happy to pull this if it's out of line.)
 ```
 
+That last offer is the whole post. Give away the answer, get the conversation.
+
 ---
 
-## 3. Facebook Page post / Marketplace
+## 3. Facebook Page / Marketplace
 
 ```
-$300 a week. Never a percentage.
+Flat-rate truck dispatch. Never a percentage.
 
-Flat-rate truck dispatch for owner-operators with new authority.
+For owner-operators with their own authority — especially if it's under a year
+old.
 
 → First week free. Don't beat what you'd book yourself? You owe nothing.
-→ Truck down for the week? You owe nothing.
-→ No card on file. No contract. Leave any Friday.
-→ Every broker's authority + $75K bond verified before we book.
-→ You approve every load. Nothing books without your yes.
+→ No card on file. No contract.
+→ You approve every load.
 
 A percentage dispatcher's raise comes out of your best week. Ours doesn't.
 
-Dry van · reefer · flatbed · hotshot · box truck · power only · step deck
 Sacramento, CA → all 48 states. Rolling in 24-48 hours.
 
 Call or text (000) 000-0000
-steadhauldispatch.com
 ```
 
 ---
@@ -136,75 +117,115 @@ steadhauldispatch.com
 ## 4. Facebook / Instagram paid ad
 
 **Primary text:**
-
 ```
-Your dispatcher takes 6% of every load. On a $9,000 week that's $540 — and
-their cut grows every time you have a good week.
-
-We charge $300 a week flat. Same fee whether you gross $4,000 or $14,000.
+Your dispatcher's cut goes up every time you have a good week. Ours doesn't —
+we charge a flat weekly fee, never a percentage.
 
 First week free. If we don't beat what you'd book yourself, you walk away
-owing nothing — no card on file, nothing to cancel.
+owing nothing.
 
-Built for authorities under a year old.
+For owner-operators with their own authority.
 ```
 
-**Headline (40 char max):** `$300/Week Flat. Never a Percentage.`
+**Headline (40 max):** `Flat-Rate Dispatch. Never a Percentage.`
+**Description (30 max):** `First week free. No contract.`
+**CTA:** Learn More → `steadhauldispatch.com/#calculator`
 
-**Description (30 char max):** `First week free. No contract.`
-
-**CTA button:** Learn More → `steadhauldispatch.com/#calculator`
-
-Send paid traffic to the calculator anchor, not the top of the page. Someone
-who moves the sliders and sees their own number converts far better than
-someone who reads a headline.
+Point paid traffic at the calculator, not the top of the page. Someone who
+moves the sliders and sees their own number is pre-sold before you speak to
+them — that's where the price detail does its work now that it's out of the ad.
 
 **Targeting:** interests `owner-operator`, `DAT Load Board`, `Truckstop.com`,
-`FMCSA`, `commercial driver's license`; ages 25-55. Start at $15-20/day and
-give it a week before judging.
+`FMCSA`, `commercial driver's license`, ages 25-55. $15-20/day, give it a week.
 
 ---
 
-## 5. Google Business Profile post
+## 5. Google Business Profile
 
-Set the profile up before anything else here. For "truck dispatch Sacramento"
-it will outrank a new website, it's free, and most competitors have a thin
-profile or none.
+Set this up first. For "truck dispatch Sacramento" it outranks a new site, it's
+free, and most competitors have a thin profile or none.
 
 ```
-Flat-rate dispatch for new-authority owner-operators. $300 a week per truck —
-never a percentage. Your first week is free, and if your truck is down that
-week you owe nothing. Every broker's authority and $75K bond verified before we
-book. You approve every load. Week to week, no contract, no card on file.
-Sacramento based, running all 48 states.
+Flat-rate dispatch for owner-operators with new MC authority. A flat weekly fee
+per truck — never a percentage. First week free. Every broker's authority and
+bond verified before we book. You approve every load. Week to week, no
+contract. Sacramento based, running all 48 states.
 ```
-
 **Button:** Call now.
 
 ---
 
-## 6. Indeed — hiring a dispatcher
+## 6. The call — where the selling happens
 
-Indeed is a job board, and its terms prohibit listings that charge the
-applicant. A "$300/week dispatch service" post there is not a job and will be
-removed. What is legitimate is hiring, which you'll need at 8 trucks a desk:
+Roughly ten minutes. Don't lead with price.
+
+**Open — let them talk.**
+> "Tell me where you're at. How long have you had the authority, what are you
+> running, and what's a normal week looking like right now?"
+
+**Diagnose. Pick the pain they just named.**
+- Getting rejected by brokers → the packet problem. 25+ brokers who onboard
+  young authorities, COI placed, notice of assignment filed, MC loaded into
+  their systems before they haul.
+- Rates too low → negotiating against live market data, not last year's
+  averages.
+- Burned by a dispatcher → they approve every load, rate cons come straight to
+  them, and you never touch their freight money.
+- Got stiffed by a broker → authority and $75K bond checked before every
+  booking. Since January 2026 FMCSA suspends brokers below that bond and
+  they're failing faster than most carriers track.
+
+**Then price, framed against the percentage.**
+> "Most dispatchers take 5-10%. On a $9,000 week that's $450-900, and their cut
+> grows every time you have a good week. We're $300 flat. Gross $4,000 or
+> $14,000, same fee."
+
+Send them to the calculator on the site while they're on the phone. Their own
+numbers beat your pitch.
+
+**Close on the risk reversal, not the price.**
+> "First week's free. If I don't beat what you'd book yourself, you owe nothing
+> and we shake hands. No card on file, so there's nothing to cancel. And if
+> your truck's down that week, you don't pay for that week either."
+
+**Objections**
+- *"Too expensive."* → Run the calculator with their real gross. Below about
+  $5,000 a week a percentage dispatcher genuinely is cheaper — say so. You'll
+  keep them as a referral instead of a bad fit.
+- *"I'll dispatch myself."* → "Plenty do. How many hours a night is it costing
+  you, and what's that worth?" Don't argue.
+- *"How do I know you're not a broker?"* → You're the carrier's agent, you hold
+  no broker authority, the broker pays them or their factor directly. Point at
+  the compliance section of the site.
+- *"Let me think about it."* → "Sure. The first week costs you nothing, so
+  there's not much to think about — but take the weekend. Can I text you
+  Monday?" Get permission to follow up.
+
+**Every call ends with a next action.** A scheduled callback, docs sent, or a
+clear no. "I'll think about it" with nothing attached is a lost lead.
+
+---
+
+## 7. Indeed — hiring a dispatcher
+
+Indeed's terms prohibit listings that charge the applicant, so a dispatch
+service ad isn't a job post and gets pulled. What's legitimate is hiring, which
+the 8-trucks-per-desk cap makes necessary early.
 
 **Title:** `Truck Dispatcher — Flat-Rate Dispatch Service (Sacramento / Remote)`
 
 ```
 Steadhaul Dispatch is a flat-rate truck dispatch service for owner-operators
 with new MC authority. We charge carriers a flat weekly fee instead of a
-percentage, which means we're paid the same whether a carrier has a good week
-or a bad one — so the job is finding them good freight, not maximising a cut.
+percentage, so we're paid the same whether a carrier has a good week or a bad
+one — the job is finding them good freight, not maximising a cut.
 
 WHAT YOU'D DO
 - Source and negotiate loads across the major national boards
-- Vet every broker's authority, bond status, credit and days-to-pay before
-  booking
-- Send rate confirmations to carriers for approval — nothing books without the
-  carrier's yes
+- Vet every broker's authority, bond, credit and days-to-pay before booking
+- Send rate confirmations for carrier approval — nothing books without their yes
 - Chase detention, layover and TONU
-- Handle check calls and keep carriers informed
+- Check calls, and keeping carriers informed
 
 WHAT WE'RE LOOKING FOR
 - 1+ year dispatching, brokerage or freight experience
@@ -212,7 +233,7 @@ WHAT WE'RE LOOKING FOR
 - Comfortable telling a carrier a week looks ugly instead of dressing it up
 
 HOW WE WORK
-- Hard cap of 8 trucks per dispatcher. We would rather turn a carrier away than
+- Hard cap of 8 trucks per dispatcher. We'd rather turn a carrier away than
   overload your desk.
 - [Pay range — Indeed heavily downranks posts without one]
 - [Employment type, schedule, remote/hybrid/on-site]
@@ -220,39 +241,35 @@ HOW WE WORK
 Sacramento, CA.
 ```
 
-Fill the three brackets before posting. A salary range is the single biggest
-factor in whether an Indeed post gets seen.
+Fill the brackets. A posted salary range is the biggest single factor in
+whether the listing gets seen.
 
 ---
 
-## 7. The channel that actually beats all of these
+## 8. The channel that beats all of these
 
-FMCSA publishes newly registered carriers. Every week a list of brand-new MC
-authorities becomes public, with contact details — that is your exact customer,
-at the exact moment they need you, before a percentage dispatcher gets to them.
+FMCSA publishes newly registered carriers weekly — public, with contact
+details. Your exact customer, the week they need you, before a percentage
+dispatcher reaches them. Several services resell it as a feed.
 
-Several services resell it as a weekly feed. Call them in week one, use the
-Facebook post above as your script, and lead with the broker-packet problem
-rather than the price.
+Use the group post as your script and lead with the broker-packet problem, not
+price.
 
-Two rules: US commercial calls are governed by the TCPA and the National Do Not
-Call Registry. Business-to-business calls to a company number are generally
-outside the DNC rules, but many new authorities register a personal cell —
-scrub against the DNC registry, keep your own suppression list, and honour a
-"don't call me again" the first time it's said. Texting has stricter consent
-requirements than calling; don't cold-text.
+US commercial calling is governed by the TCPA and the National Do Not Call
+Registry. B2B calls to a company number are generally outside DNC, but many new
+authorities register a personal cell — scrub against the registry, keep a
+suppression list, and honour a "don't call again" the first time. Texting has
+stricter consent rules than calling; don't cold-text.
 
 ---
 
 ## Rules for all of it
 
-- **Never post a load rate you didn't book, or a carrier quote you weren't
-  given.** Same standard as the website.
+- **Never post a load rate you didn't book or a carrier quote you weren't
+  given.** Same standard as the site.
 - **The offer is a real offer.** First week free, truck-down free, leave any
-  Friday. If you can't honour one, take it out of the ads before someone holds
-  you to it — advertised terms are enforceable.
-- **Don't promise load volume or income.** "Steady loads" is fine. "Guaranteed
-  $8,000 a week" is a specific earnings claim you cannot support and the FTC
-  treats seriously.
-- **Answer fast.** Every ad says call or text seven days. A carrier who texts at
-  9pm and hears nothing until Tuesday is gone.
+  Friday — advertised terms are enforceable. Pull any you can't honour.
+- **No income claims.** "Steady loads" is fine. "Guaranteed $8,000/week" is a
+  specific earnings claim you can't support.
+- **Answer fast.** Every ad promises call or text seven days. A carrier who
+  texts at 9pm and hears nothing till Tuesday is gone.
