@@ -1,0 +1,12 @@
+{
+  "name": "Automotive Solutions by Single",
+  "short_name": "Automotive Solutions",
+  "description": "Family owned auto repair in Elk Grove, California since 2001.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#060a2e",
+  "icons": [
+    { "src": "/assets/img/logo.png", "sizes": "1080x371", "type": "image/png", "purpose": "any" }
+  ]
+}

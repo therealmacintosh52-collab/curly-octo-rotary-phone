@@ -1,0 +1,85 @@
+# Automotive Solutions by Single - Apache configuration
+#
+# This file is only needed on a traditional host (cPanel, most shared hosting).
+# Netlify and Cloudflare Pages read _redirects and _headers instead and ignore
+# this file entirely - leaving it in place is harmless.
+#
+# IMPORTANT: this filename starts with a dot, which means most file managers
+# and FTP clients hide it by default. In cPanel File Manager you must turn on
+# "Show Hidden Files (dotfiles)" or it will silently not be uploaded.
+
+RewriteEngine On
+
+# --- Force HTTPS ----------------------------------------------------------
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# --- One canonical hostname ----------------------------------------------
+# The current site resolves at www., so www is the canonical host here. If you
+# would rather serve the bare domain, swap the two rules below AND change
+# SITE["base_url"] in build.py to match, then rebuild.
+RewriteCond %{HTTP_HOST} ^automotivesolutionsbysingle\.com [NC]
+RewriteRule ^(.*)$ https://www.automotivesolutionsbysingle.com/$1 [R=301,L]
+
+# --- Old page URLs -> new equivalents ------------------------------------
+# VERIFY this list against the live site before launch.
+Redirect 301 /aboutus /about/
+Redirect 301 /about-us /about/
+Redirect 301 /contactus /contact/
+Redirect 301 /contact-us /contact/
+Redirect 301 /services /services/
+Redirect 301 /auto-repair /services/auto-repair/
+Redirect 301 /auto-repair-elk-grove /services/auto-repair/
+Redirect 301 /brakes /services/brake-repair/
+Redirect 301 /brake-repair /services/brake-repair/
+Redirect 301 /engine-repair /services/engine-repair/
+Redirect 301 /engine-replacement /services/engine-repair/
+Redirect 301 /transmission /services/transmission-repair/
+Redirect 301 /transmission-repair /services/transmission-repair/
+Redirect 301 /transmission-replacement /services/transmission-repair/
+Redirect 301 /air-conditioning /services/ac-repair/
+Redirect 301 /ac-repair /services/ac-repair/
+Redirect 301 /diagnostics /services/car-diagnostics/
+Redirect 301 /drivability /services/car-diagnostics/
+Redirect 301 /check-engine-light /services/car-diagnostics/
+Redirect 301 /electrical /services/electrical-repair/
+Redirect 301 /suspension /services/suspension-steering/
+Redirect 301 /shocks-struts /services/suspension-steering/
+Redirect 301 /timing-belts /services/timing-belts/
+Redirect 301 /timing-belt /services/timing-belts/
+Redirect 301 /fuel-injection /services/fuel-injection/
+Redirect 301 /tune-ups /services/fuel-injection/
+Redirect 301 /belts-hoses /services/belts-and-hoses/
+Redirect 301 /oil-change /services/oil-change-maintenance/
+Redirect 301 /oil-changes /services/oil-change-maintenance/
+Redirect 301 /wheel-balance /services/wheel-balancing/
+Redirect 301 /major-overhaul /services/engine-repair/
+Redirect 301 /testimonials /reviews/
+Redirect 301 /reviews /reviews/
+Redirect 301 /coupons /contact/
+Redirect 301 /appointment /contact/#quote
+Redirect 301 /appointments /contact/#quote
+Redirect 301 /index.html /
+Redirect 301 /home /
+
+ErrorDocument 404 /404.html
+
+# --- Compression and caching ---------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript image/svg+xml application/json
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+
+# --- Security headers -----------------------------------------------------
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>

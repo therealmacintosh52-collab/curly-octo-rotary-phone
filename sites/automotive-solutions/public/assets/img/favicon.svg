@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Automotive Solutions">
+  <!-- Favicon built from the logo's two colors: the royal blue outline and
+       the orange swoosh. Kept to three shapes so it still reads at 16px. -->
+  <rect width="64" height="64" rx="14" fill="#0c27f5"/>
+  <path d="M6 27C12 13 30 6 47 8c-13 2-25 9-31 21z" fill="#eb712d"/>
+  <path d="M32 20 46 52h-9l-2.4-6h-9.2L23 52h-9zm0 13.5-2.6 6.7h5.2z" fill="#eb712d"/>
+</svg>

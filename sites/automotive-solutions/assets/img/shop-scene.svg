@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 450" width="720" height="450" role="img"
+     aria-labelledby="scene-title scene-desc">
+  <title id="scene-title">A car raised on a two-post lift inside a service bay</title>
+  <desc id="scene-desc">Flat illustration: a car lifted clear of the floor on a two-post hoist,
+    a technician crouched underneath with a work light, a rolling tool chest, a tire stack and a
+    floor jack alongside — drawn in the shop's orange and blue.</desc>
+
+  <defs>
+    <linearGradient id="bay" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#131f70"/>
+      <stop offset="0.55" stop-color="#0a1145"/>
+      <stop offset="1" stop-color="#05081f"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16227a"/>
+      <stop offset="1" stop-color="#070c33"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0.15" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#f5904a"/>
+      <stop offset="0.55" stop-color="#eb712d"/>
+      <stop offset="1" stop-color="#b8480c"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#93a3ff"/>
+      <stop offset="1" stop-color="#2c40b0"/>
+    </linearGradient>
+    <linearGradient id="post" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4353c8"/>
+      <stop offset="0.45" stop-color="#26339c"/>
+      <stop offset="1" stop-color="#151d6e"/>
+    </linearGradient>
+    <linearGradient id="chest" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#e0691a"/>
+      <stop offset="1" stop-color="#a94208"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffe0b8" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffe0b8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="worklight" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffc37a" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ffc37a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="720" height="450" fill="url(#bay)"/>
+
+  <!-- roll-up door on the back wall -->
+  <g opacity="0.26" fill="none" stroke="#7688ea" stroke-width="2">
+    <rect x="430" y="60" width="230" height="200" rx="5"/>
+    <path d="M430 100h230M430 140h230M430 180h230M430 220h230"/>
+  </g>
+
+  <!-- pegboard and hand tools on the left wall -->
+  <g opacity="0.36" stroke="#7688ea" stroke-width="2" fill="none">
+    <rect x="36" y="62" width="152" height="106" rx="5"/>
+    <path d="M74 74v28M104 74v32M134 74v24M164 74v36"/>
+    <circle cx="74" cy="108" r="8"/>
+    <circle cx="104" cy="112" r="7"/>
+    <path d="M128 100h12l6 10-6 10h-12z"/>
+    <path d="M158 112l12-6v14z"/>
+  </g>
+
+  <!-- hanging bay lamp -->
+  <path d="M300 0v40" stroke="#4a58c8" stroke-width="3"/>
+  <path d="M274 40h52l-11 17h-30z" fill="#2f3bab"/>
+  <ellipse cx="300" cy="120" rx="126" ry="84" fill="url(#lamp)"/>
+
+  <!-- floor -->
+  <path d="M0 352h720v98H0z" fill="url(#floor)"/>
+  <path d="M0 352h720" stroke="#3242bb" stroke-width="2"/>
+  <g opacity="0.2" stroke="#8b9bf5" stroke-width="1.5">
+    <path d="M96 352 44 450M244 352l-44 98M400 352l-16 98M556 352l30 98M676 352l52 98"/>
+  </g>
+
+  <!-- ================= two-post lift ================= -->
+  <!-- top cross beam -->
+  <rect x="132" y="80" width="456" height="17" rx="5" fill="#2f3bab"/>
+  <rect x="132" y="80" width="456" height="5" rx="2.5" fill="#4a58c8"/>
+  <!-- posts, clear of the car on both sides -->
+  <rect x="132" y="94" width="25" height="258" rx="4" fill="url(#post)"/>
+  <rect x="563" y="94" width="25" height="258" rx="4" fill="url(#post)"/>
+  <!-- base plates -->
+  <rect x="114" y="344" width="61" height="14" rx="4" fill="#1a2480"/>
+  <rect x="545" y="344" width="61" height="14" rx="4" fill="#1a2480"/>
+  <!-- carriages -->
+  <rect x="126" y="212" width="37" height="34" rx="6" fill="#3d4bbe"/>
+  <rect x="557" y="212" width="37" height="34" rx="6" fill="#3d4bbe"/>
+  <!-- swing arms reaching in to the sills, and the pads on top of them -->
+  <rect x="157" y="223" width="108" height="12" rx="6" fill="#c85214"/>
+  <rect x="455" y="223" width="108" height="12" rx="6" fill="#c85214"/>
+  <rect x="243" y="214" width="26" height="10" rx="4" fill="#eb712d"/>
+  <rect x="451" y="214" width="26" height="10" rx="4" fill="#eb712d"/>
+
+  <!-- ================= the car, lifted clear ================= -->
+  <g>
+    <!-- underbody, sitting on the lift pads at y=214 -->
+    <path d="M254 214c-6-30 6-48 34-56l40-32c11-9 24-13 37-13h58c15 0 29 7 38 18l26 32c26 8 39 24 35 51z"
+          fill="url(#body)"/>
+    <!-- greenhouse -->
+    <path d="M334 130c7-6 15-9 25-9h56c11 0 20 4 26 12l18 22H310z" fill="url(#glass)"/>
+    <path d="M369 121v34" stroke="#0a1145" stroke-width="4" opacity="0.5"/>
+    <!-- wheel arches cut out of the body -->
+    <circle cx="316" cy="196" r="35" fill="#0a1145"/>
+    <circle cx="452" cy="196" r="35" fill="#0a1145"/>
+    <!-- shoulder highlight and door detail -->
+    <path d="M272 176c48-16 176-16 224 0" stroke="#ffcda6" stroke-width="3" fill="none" opacity="0.45"/>
+    <path d="M370 158v52" stroke="#8c3a08" stroke-width="3" opacity="0.6"/>
+    <rect x="384" y="170" width="22" height="6" rx="3" fill="#7a3207" opacity="0.8"/>
+    <!-- rear wheel still fitted -->
+    <circle cx="452" cy="196" r="30" fill="#0b1030"/>
+    <circle cx="452" cy="196" r="17" fill="#3947ae"/>
+    <circle cx="452" cy="196" r="6" fill="#93a3ff"/>
+    <!-- front wheel pulled off: exposed rotor and caliper -->
+    <circle cx="316" cy="196" r="23" fill="#2f3bab"/>
+    <circle cx="316" cy="196" r="15" fill="#93a3ff"/>
+    <circle cx="316" cy="196" r="5" fill="#0b1030"/>
+    <path d="M295 186a23 23 0 0 0 0 20h-11a30 30 0 0 1 0-20z" fill="#c85214"/>
+  </g>
+  <!-- the wheel that came off the front, leaning flat beside the tire stack -->
+  <g>
+    <ellipse cx="132" cy="330" rx="29" ry="22" fill="#0b1030" stroke="#3242bb" stroke-width="2"/>
+    <ellipse cx="132" cy="330" rx="15" ry="11" fill="#3947ae"/>
+    <ellipse cx="132" cy="330" rx="4.5" ry="3.5" fill="#93a3ff"/>
+  </g>
+
+  <!-- ================= technician, crouched underneath ================= -->
+  <g>
+    <ellipse cx="368" cy="316" rx="92" ry="44" fill="url(#worklight)"/>
+    <!-- raised work light, pointing up at the underbody -->
+    <rect x="392" y="248" width="11" height="28" rx="5.5" fill="#ffb45e"/>
+    <path d="M397.5 246l-6 8h12z" fill="#fff2da"/>
+    <!-- torso, crouched -->
+    <path d="M338 352c-6-34 0-56 14-66 12-9 28-6 34 6l6 12-16 10-6-8c-8 8-10 22-8 46z" fill="#20309b"/>
+    <!-- arm up to the light -->
+    <path d="M378 292l20-24" stroke="#20309b" stroke-width="12" stroke-linecap="round"/>
+    <!-- forward arm resting on a knee -->
+    <path d="M348 306l-16 14" stroke="#20309b" stroke-width="11" stroke-linecap="round"/>
+    <!-- head and cap in the shop's orange -->
+    <circle cx="358" cy="272" r="15" fill="#f3c39c"/>
+    <path d="M343 269a15 15 0 0 1 30 0z" fill="#c85214"/>
+    <path d="M371 269h13v5h-13z" fill="#c85214"/>
+    <!-- boots on the floor -->
+    <path d="M330 342h27v10h-27zM362 342h25v10h-25z" fill="#0b1030"/>
+  </g>
+
+  <!-- ================= rolling tool chest ================= -->
+  <g>
+    <rect x="612" y="236" width="90" height="108" rx="7" fill="url(#chest)"/>
+    <rect x="612" y="236" width="90" height="8" rx="4" fill="#f5904a"/>
+    <g fill="#8c3a08">
+      <rect x="622" y="256" width="70" height="17" rx="4"/>
+      <rect x="622" y="280" width="70" height="17" rx="4"/>
+      <rect x="622" y="304" width="70" height="26" rx="4"/>
+    </g>
+    <g fill="#ffd9bd">
+      <rect x="645" y="262" width="24" height="4" rx="2"/>
+      <rect x="645" y="286" width="24" height="4" rx="2"/>
+      <rect x="645" y="315" width="24" height="4" rx="2"/>
+    </g>
+    <circle cx="630" cy="350" r="8" fill="#0b1030"/>
+    <circle cx="684" cy="350" r="8" fill="#0b1030"/>
+  </g>
+
+  <!-- ================= tire stack ================= -->
+  <g>
+    <g fill="#0d1338" stroke="#3242bb" stroke-width="2">
+      <ellipse cx="62" cy="336" rx="44" ry="13"/>
+      <ellipse cx="62" cy="318" rx="44" ry="13"/>
+      <ellipse cx="62" cy="300" rx="44" ry="13"/>
+    </g>
+    <ellipse cx="62" cy="300" rx="18" ry="5.5" fill="#3947ae"/>
+  </g>
+
+  <!-- ================= floor jack ================= -->
+  <g>
+    <!-- long handle running back and up, which is what makes it read as a jack -->
+    <path d="M486 336 L446 268" stroke="#3d4bbe" stroke-width="9" stroke-linecap="round"/>
+    <path d="M446 268l-9-12" stroke="#c85214" stroke-width="9" stroke-linecap="round"/>
+    <!-- chassis -->
+    <path d="M478 328h84l14 16h-112z" fill="#20309b"/>
+    <!-- lift arm and saddle -->
+    <path d="M508 328l52-16v11l-52 12z" fill="#2a3aae"/>
+    <rect x="548" y="300" width="26" height="13" rx="5" fill="#c85214"/>
+    <circle cx="492" cy="348" r="8" fill="#0b1030"/>
+    <circle cx="564" cy="348" r="8" fill="#0b1030"/>
+  </g>
+</svg>

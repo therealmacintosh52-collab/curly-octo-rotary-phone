@@ -1,0 +1,13 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  X-Frame-Options: SAMEORIGIN
+
+# Assets have no fingerprint in the filename, so revalidate daily while
+# still serving instantly from cache in the meantime.
+/assets/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
