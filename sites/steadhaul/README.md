@@ -5,22 +5,24 @@ Netlify, Cloudflare Pages or any static host.
 
 ## Before you launch — required
 
-The page ships with two clearly-marked placeholder blocks. Both are wrapped in a
-yellow dashed `.ph` banner so they cannot be missed.
+There is one required change before launch.
 
 1. **Phone number.** `(000) 000-0000` appears in the nav, the form's call/text box,
    the sticky mobile bar, the footer, the thank-you panel and the JSON-LD.
    Replace every instance, including the `tel:+10000000000` and `sms:+1...` hrefs.
-2. **Testimonials** (`#proof`). Replace the three bracketed quotes with real carrier
-   quotes you have written permission to publish. Ask for a growth number, not
-   adjectives. Then delete the `.ph` banner and the `ph` class.
-3. **Recently booked table** (`#proof`). Replace with real loads from your TMS.
-   No competitor in this space publishes real linehaul/RPM figures — doing so is
-   the most persuasive thing on the page. Update weekly, or wire it to your TMS.
+2. **Nothing else.** The proof section no longer carries placeholder quotes or
+   placeholder loads — it carries an honest empty state that says you would
+   rather show nothing than invent proof. The page is shippable as it stands.
 
-Do not publish invented testimonials or load figures. Beyond the FTC endorsement
-rules (16 CFR Part 465), one carrier recognising a fake quote ends your referral
-pipeline in a business that runs on referrals.
+When you have real carrier quotes and real booked loads, **see `REVIEWS.md`** —
+it has the text to send carriers, what makes a quote worth publishing, the
+permission rules, and the exact HTML to paste. Do not write either yourself:
+invented endorsements violate 16 CFR Part 465, and the page explicitly promises
+in writing that you don't do that.
+
+Two commitments the copy makes that you have to keep once the load board is up:
+post the weak weeks as well as the good ones, and keep it current. Both are
+stated on the page.
 
 ## Also check
 

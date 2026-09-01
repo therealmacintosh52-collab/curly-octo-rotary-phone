@@ -232,9 +232,18 @@ input[type=range]:focus-visible{outline:2px solid var(--amber);outline-offset:4p
 .scrollhint{display:none;font-size:12.5px;color:#7A8B9C;margin-top:9px;text-align:center}
 @media(max-width:680px){.scrollhint{display:block}}
 /* PROOF / PLACEHOLDER */
-.ph{border:2px dashed #C9A227;background:#FFFBEB;border-radius:12px;padding:22px 24px;position:relative}
-.ph::before{content:"PLACEHOLDER — REPLACE BEFORE LAUNCH";position:absolute;top:-11px;left:18px;background:#C9A227;color:#fff;font-family:'Barlow Condensed';font-weight:800;font-size:11px;letter-spacing:.13em;padding:3px 9px;border-radius:3px}
-.ph p{font-size:14.5px;color:#6B5A16}
+/* honest-empty-state blocks, used until there are real reviews / real loads */
+.honest,.promise{background:#fff;border-radius:14px;padding:clamp(24px,4vw,40px);box-shadow:0 12px 40px rgba(15,34,55,.09);position:relative;max-width:820px}
+.honest::before,.promise::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--orange);border-radius:14px 0 0 14px}
+.honest p,.promise p{font-size:clamp(15.5px,1.9vw,17.5px);margin-bottom:16px;color:var(--ink)}
+.honest p:last-child,.promise p:last-child{margin-bottom:0}
+.honest ul{list-style:none;margin:0 0 18px}
+.honest li{position:relative;padding:10px 0 10px 30px;font-size:clamp(15.5px,1.9vw,17px);color:var(--ink);border-bottom:1px solid var(--line)}
+.honest li:last-child{border-bottom:0}
+.honest li::before{content:"";position:absolute;left:0;top:19px;width:16px;height:3px;background:var(--orange);border-radius:2px}
+.honest li b{color:var(--navy)}
+.honest .sig{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);font-size:15.5px;color:var(--slate)}
+.promise{margin-top:22px}
 .quotes{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:26px}
 .q{background:#fff;border-radius:12px;padding:26px;box-shadow:0 8px 30px rgba(15,34,55,.08);display:flex;flex-direction:column}
 .q .stars{color:var(--orange);letter-spacing:3px;font-size:15px;margin-bottom:12px}
@@ -535,40 +544,62 @@ html:not(.js) form fieldset[data-step="0"]{border-top:0;padding-top:0;margin-top
 </div></section>
 
 <!-- =====================================================================
-     PROOF SECTION — CONTAINS PLACEHOLDER CONTENT
-     Do NOT launch this page until both blocks below are replaced with
-     real, verifiable carrier quotes and real booked-load data.
-     Publishing invented testimonials or invented load data as if genuine
-     is fabricated proof, and in the US is an FTC violation
-     (16 CFR Part 465, endorsements & testimonials).
-     1. Replace the three .q blockquotes with real carrier quotes you have
-        written permission to publish. Ask for a growth number, not adjectives.
-     2. Replace the .loads table rows with real loads from your TMS.
-     3. Delete the .ph banner blocks and the "ph" class once done.
+     PROOF SECTION
+
+     There is deliberately no testimonial or load data here yet, because
+     there is none to publish. Do not invent either. Fake endorsements
+     violate 16 CFR Part 465 (civil penalties per violation), and in a
+     referral business one carrier recognising a quote they never gave
+     ends the referral pipeline.
+
+     TO ADD REAL REVIEWS: delete the .honest block below and uncomment the
+     .quotes block. See REVIEWS.md for the scripts that collect them.
+
+     TO ADD REAL LOADS: delete the .promise block and uncomment the .loads
+     table, then add one <tr> per booked load.
      ===================================================================== -->
 <section id="proof" style="background:var(--concrete)"><div class="wrap">
-  <p class="kicker rv">Proof</p><h2 class="rv">Real loads. Real carriers.</h2><div class="lane rv"></div>
-  <div class="ph rv" style="margin-bottom:26px"><p><b>For the site owner:</b> the quotes and the load table below are structural placeholders, not real data. Replace them with genuine carrier quotes (with written permission) and real booked loads from your TMS before this page goes live, then delete these two yellow banners. Do not publish invented testimonials or load figures — beyond being illegal under the FTC endorsement rules, one carrier recognising a fake quote in this industry ends your referral pipeline.</p></div>
-  <div class="quotes">
-    <article class="q rv"><div class="stars" aria-label="5 out of 5">★★★★★</div><blockquote>[Replace with a real carrier quote. The strongest ones name a number — "went from 1 truck to 3 in fourteen months" — not adjectives. Ask what they were grossing before and after.]</blockquote><p class="who"><b>[Carrier name]</b>[Equipment] · [Authority age] · [City, ST]</p></article>
-    <article class="q rv"><div class="stars" aria-label="5 out of 5">★★★★★</div><blockquote>[Replace with a real carrier quote. A quote about one specific save — a TONU recovered, a bad broker caught before dispatch — beats a general compliment.]</blockquote><p class="who"><b>[Carrier name]</b>[Equipment] · [Authority age] · [City, ST]</p></article>
-    <article class="q rv"><div class="stars" aria-label="5 out of 5">★★★★★</div><blockquote>[Replace with a real carrier quote. Ideally from a carrier who came off a percentage dispatcher and can say what the switch was worth per month.]</blockquote><p class="who"><b>[Carrier name]</b>[Equipment] · [Authority age] · [City, ST]</p></article>
+  <p class="kicker rv">Straight talk</p>
+  <h2 class="rv">We'd rather show you nothing than show you fiction</h2><div class="lane rv"></div>
+
+  <div class="honest rv">
+    <p>Steadhaul is new. We don't have a wall of five-star quotes yet, and we're not going to write ourselves any. You can usually tell — and in a business that runs on referrals, getting caught once is the end of it.</p>
+    <p>So until we've earned some, here is what stands in for reviews:</p>
+    <ul>
+      <li><b>Your first week is free.</b> If we don't beat what you'd book yourself, you walk away owing nothing.</li>
+      <li><b>No card on file.</b> There is nothing to cancel and nothing to charge back.</li>
+      <li><b>You can leave any Friday.</b> Seven days' notice, by text, no fee and no exit interview.</li>
+    </ul>
+    <p>That is the same thing a hundred testimonials would be buying you — a reason to believe the risk sits with us and not with you. The difference is you don't have to take a stranger's word for it.</p>
+    <p class="sig">If you're one of our first carriers, we'll ask you for a quote — and we'll ask for a number. What you were grossing before, what you're grossing now. Not adjectives.</p>
   </div>
-  <h3 class="rv" style="font-size:26px;margin:44px 0 0">Recently booked</h3>
-  <p class="rv" style="font-size:15px;margin-top:6px">No competitor in this space publishes their actual numbers. Publishing yours — linehaul, miles, RPM — is the single most persuasive thing on this page. Wire this table to your TMS or update it weekly by hand.</p>
-  <div class="ph rv" style="margin-top:20px"><p><b>Placeholder rows.</b> Replace with real booked loads. Keep the columns — rate per mile next to linehaul is what carriers actually scan for.</p></div>
+
+  <!-- REAL REVIEWS GO HERE. Uncomment, one <article> per carrier, and delete the .honest block above.
+  <div class="quotes">
+    <article class="q rv"><div class="stars" aria-label="5 out of 5">★★★★★</div>
+      <blockquote>Their exact words, unedited.</blockquote>
+      <p class="who"><b>Carrier name</b>Equipment · Authority age · City, ST</p></article>
+  </div>
+  -->
+
+  <h3 class="rv" style="font-size:26px;margin:48px 0 0">The load board goes live as soon as there's a fair sample</h3>
+  <div class="promise rv">
+    <p>No dispatcher in this business publishes what their loads actually pay. We're going to: origin and destination, equipment, loaded miles, linehaul and rate per mile — updated weekly, straight out of the TMS.</p>
+    <p>Not a curated best-of. Everything we booked that week, including the ugly ones, because a board that only ever shows $3.10 a mile is telling you nothing except that somebody is picking the rows.</p>
+    <p>Which is also why it isn't up yet. Five rows built from our three best loads would be exactly the thing we just said we don't do. When there's a real week's worth, it appears here.</p>
+  </div>
+
+  <!-- REAL LOADS GO HERE. Uncomment and add one <tr> per booked load, newest first. Delete the .promise block above.
   <div class="loads rv"><table>
     <caption class="sr">Recently booked loads</caption>
     <thead><tr><th scope="col">Lane</th><th scope="col">Equipment</th><th scope="col">Miles</th><th scope="col">Linehaul</th><th scope="col">RPM</th><th scope="col">Booked</th></tr></thead>
     <tbody>
-      <tr><td>[Origin, ST → Dest, ST]</td><td>[Equipment]</td><td>[Miles]</td><td>[$0,000]</td><td class="rpm">[$0.00]</td><td>[Date]</td></tr>
-      <tr><td>[Origin, ST → Dest, ST]</td><td>[Equipment]</td><td>[Miles]</td><td>[$0,000]</td><td class="rpm">[$0.00]</td><td>[Date]</td></tr>
-      <tr><td>[Origin, ST → Dest, ST]</td><td>[Equipment]</td><td>[Miles]</td><td>[$0,000]</td><td class="rpm">[$0.00]</td><td>[Date]</td></tr>
-      <tr><td>[Origin, ST → Dest, ST]</td><td>[Equipment]</td><td>[Miles]</td><td>[$0,000]</td><td class="rpm">[$0.00]</td><td>[Date]</td></tr>
-      <tr><td>[Origin, ST → Dest, ST]</td><td>[Equipment]</td><td>[Miles]</td><td>[$0,000]</td><td class="rpm">[$0.00]</td><td>[Date]</td></tr>
+      <tr><td>Sacramento, CA → Phoenix, AZ</td><td>Dry Van</td><td>755</td><td>$1,890</td><td class="rpm">$2.50</td><td>Mar 4</td></tr>
     </tbody>
   </table></div>
+  -->
 </div></section>
+
 <section class="agent" id="agent"><div class="wrap">
   <div class="paper rv">
     <p class="kicker">Compliance</p>
