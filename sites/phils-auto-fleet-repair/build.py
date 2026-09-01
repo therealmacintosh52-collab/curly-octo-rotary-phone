@@ -58,6 +58,17 @@ SITE = {
     "areas": ["Lodi", "Stockton", "Galt", "Acampo", "Woodbridge", "Lockeford",
               "Victor", "Thornton", "Clements", "Elk Grove"],
     "founded_note": "a locally owned shop serving Lodi drivers and fleets",
+    # --- Logo -------------------------------------------------------------
+    # Drop the shop's real logo in public/assets/img/ and put its path here,
+    # e.g. "/assets/img/logo.svg" (SVG best, transparent PNG fine). Leave it
+    # empty and the site falls back to the "PA" monogram placeholder.
+    "logo": "",
+    # Optional light/reversed version for the dark footer. If it's empty and a
+    # logo is set, the footer puts the logo on a white chip so it stays legible.
+    "logo_dark_bg": "",
+    # Optional: a favicon cut from the real logo (SVG or PNG). Falls back to
+    # the placeholder mark in assets/img/favicon.svg.
+    "favicon": "",
 }
 
 MAPS_DIRECTIONS = ("https://www.google.com/maps/dir/?api=1&destination="
@@ -788,6 +799,25 @@ def crumbs_html(trail):
     return '<nav class="crumbs" aria-label="Breadcrumb"><ol>%s</ol></nav>' % "".join(lis)
 
 
+def brand(on_dark=False):
+    """Logo lockup. Uses SITE["logo"] when the shop supplies one, otherwise the
+    placeholder monogram."""
+    logo = SITE.get("logo")
+    if logo:
+        src = SITE.get("logo_dark_bg") or logo if on_dark else logo
+        chip = " brand-logo--chip" if on_dark and not SITE.get("logo_dark_bg") else ""
+        return ('<a class="brand" href="/">'
+                '<img class="brand-logo%s" src="%s" alt="%s" height="46">'
+                '</a>' % (chip, src, esc(SITE["name"])))
+    return """<a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">PA</span>
+      <span class="brand-text">
+        <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
+        <span class="brand-sub">Lodi, California</span>
+      </span>
+    </a>"""
+
+
 def header_html(active=None):
     links = []
     for label, url in NAV:
@@ -804,13 +834,7 @@ def header_html(active=None):
 </div>
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="/">
-      <span class="brand-mark" aria-hidden="true">PA</span>
-      <span class="brand-text">
-        <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
-        <span class="brand-sub">Lodi, California</span>
-      </span>
-    </a>
+    %(brand)s
     <nav class="nav" id="primary-nav" aria-label="Main">%(links)s</nav>
     <div class="header-cta">
       <a class="header-phone" href="tel:%(tel)s" data-loc="header">
@@ -822,7 +846,7 @@ def header_html(active=None):
       <svg viewBox="0 0 24 24" aria-hidden="true">%(menu)s</svg>
     </button>
   </div>
-</header>""" % {"pin": icon("pin"), "clock": icon("clock"), "addr": esc(FULL_ADDRESS),
+</header>""" % {"brand": brand(), "pin": icon("pin"), "clock": icon("clock"), "addr": esc(FULL_ADDRESS),
                 "tel": SITE["phone_link"], "phone": SITE["phone_display"],
                 "links": "".join(links), "menu": ICONS["menu"]}
 
@@ -834,13 +858,7 @@ def footer_html():
   <div class="wrap">
     <div class="footer-grid">
       <div class="footer-brand">
-        <a class="brand" href="/">
-          <span class="brand-mark" aria-hidden="true">PA</span>
-          <span class="brand-text">
-            <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
-            <span class="brand-sub">Lodi, California</span>
-          </span>
-        </a>
+        %(brand)s
         <p>Locally owned auto, diesel and fleet repair in Lodi — a value-driven alternative to
         the dealership, for drivers and businesses that need the truth about their vehicles.</p>
       </div>
@@ -879,7 +897,7 @@ def footer_html():
   <a class="primary" href="tel:%(tel)s" data-loc="callbar">%(picon)s<span>Call</span></a>
   <a href="%(map)s" rel="noopener">%(micon)s<span>Directions</span></a>
   <a href="/contact/#quote">%(cicon)s<span>Get a Quote</span></a>
-</div>""" % {"svc": svc, "map": MAPS_DIRECTIONS, "street": esc(SITE["street"]),
+</div>""" % {"brand": brand(on_dark=True), "svc": svc, "map": MAPS_DIRECTIONS, "street": esc(SITE["street"]),
              "city": SITE["city"], "region": SITE["region"], "zip": SITE["zip"],
              "tel": SITE["phone_link"], "phone": SITE["phone_display"],
              "hours": esc(SITE["hours_human"]), "name": esc(SITE["name"]),
@@ -914,8 +932,8 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <meta name="geo.placename" content="Lodi, California">
 <meta name="geo.position" content="%(lat)s;%(lng)s">
 <meta name="ICBM" content="%(lat)s, %(lng)s">
-<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/assets/img/favicon.svg">
+<link rel="icon" href="%(favicon)s" type="%(favicon_type)s">
+<link rel="apple-touch-icon" href="%(favicon)s">
 <link rel="stylesheet" href="/assets/css/site.css">%(schema)s
 </head>
 <body>
@@ -931,6 +949,8 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 """ % {"title": esc(title), "desc": esc(description), "canonical": canonical,
        "robots": '<meta name="robots" content="noindex,follow">\n' if noindex else "",
        "name": esc(SITE["name"]), "base": SITE["base_url"],
+       "favicon": SITE.get("favicon") or "/assets/img/favicon.svg",
+       "favicon_type": "image/svg+xml" if (SITE.get("favicon") or ".svg").endswith(".svg") else "image/png",
        "lat": SITE["lat"], "lng": SITE["lng"], "schema": schema_html,
        "header": header_html(active), "body": body, "footer": footer_html()}
 

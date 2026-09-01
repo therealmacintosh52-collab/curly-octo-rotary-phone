@@ -92,6 +92,28 @@ and re-run it.
 - [ ] **Certifications** — nothing about ASE, years in business, or technician credentials is
       claimed anywhere, because none of it was verified. Add it if it's true; it's strong
       trust content.
+- [ ] **The logo** — the site currently shows a placeholder "PA" monogram, not the shop's real
+      logo (see below).
+
+## Adding the real logo
+
+The header and footer currently show a placeholder monogram because the shop's actual logo file
+wasn't available when this was built. Swapping it in is one line:
+
+1. Put the logo in `public/assets/img/` — SVG is best, a transparent PNG at 2x is fine.
+2. In `build.py`, set `SITE["logo"]` to its path, e.g. `"/assets/img/logo.svg"`.
+3. Re-run `python3 build.py`. Every page picks it up.
+
+Two optional extras in the same block:
+
+- `SITE["logo_dark_bg"]` — a light/reversed version for the dark footer. Leave it empty and the
+  footer places the normal logo on a white chip so it stays legible either way.
+- `SITE["favicon"]` — a square crop of the logo for the browser tab. Falls back to the
+  placeholder mark in `assets/img/favicon.svg`.
+
+Two files still carry the placeholder mark and should be redrawn from the real logo when you have
+it: `assets/img/favicon.svg` (browser tab) and `assets/img/og-cover.svg` (the image that shows
+when the site is shared on Facebook, iMessage or LinkedIn).
 
 ## Connecting the quote form
 
@@ -151,5 +173,5 @@ public/                   generated site — deploy this
   sitemap.xml, robots.txt, 404.html
   assets/css/site.css     design system
   assets/js/site.js       nav, form handling, tracking hooks
-  assets/img/             favicon + social share image (SVG)
+  assets/img/             favicon, social share image, shop illustration (SVG)
 ```
