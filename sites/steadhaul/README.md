@@ -1,5 +1,8 @@
 # Steadhaul Dispatch — landing page
 
+**To put this live, see [DEPLOY.md](DEPLOY.md).** Ad copy for Craigslist,
+Facebook, Google Business Profile and Indeed is in [ADS.md](ADS.md).
+
 **To put this live, see [DEPLOY.md](DEPLOY.md).** Run `sh preflight.sh` first —
 it blocks the deploy while the placeholder phone number is still in the file.
 
