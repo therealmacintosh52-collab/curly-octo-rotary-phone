@@ -1,0 +1,19 @@
+# Netlify configuration for Phil's Auto and Fleet Repair.
+# In Netlify: New site → Import from Git → pick this repo, then set
+#   Base directory:    sites/phils-auto-fleet-repair
+# Netlify reads the rest from this file.
+
+[build]
+  command = "python3 build.py"
+  publish = "public"
+
+[build.environment]
+  PYTHON_VERSION = "3.12"
+
+# _redirects and _headers in public/ carry the 301 map and the caching and
+# security headers; Netlify applies them automatically.
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"

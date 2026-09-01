@@ -1,0 +1,64 @@
+# Builds Phil's Auto and Fleet Repair and publishes it to GitHub Pages.
+#
+# One-time setup: repo Settings → Pages → Build and deployment →
+# Source: "GitHub Actions". Nothing else to configure.
+#
+# Note: GitHub Pages cannot serve the 301 redirect map in public/_redirects
+# or the headers in public/_headers. Use this for a staging URL to review and
+# share; for the live site on philsautofleet.com, deploy to Netlify or
+# Cloudflare Pages, which honour both files.
+
+name: Deploy Phil's Auto site
+
+on:
+  push:
+    branches: [main, claude/phils-auto-website-redesign-ndu5oa]
+    paths: ['sites/phils-auto-fleet-repair/**', '.github/workflows/deploy-phils-site.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the site
+        working-directory: sites/phils-auto-fleet-repair
+        run: python3 build.py
+
+      - name: Check the output
+        working-directory: sites/phils-auto-fleet-repair
+        run: |
+          test -f public/index.html
+          test -f public/sitemap.xml
+          pages=$(find public -name index.html | wc -l)
+          echo "Built $pages pages"
+          test "$pages" -ge 20
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sites/phils-auto-fleet-repair/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -70,6 +70,10 @@ SITE = {
     # "full" uses the logo on its own (for a logo that already reads as a
     # wordmark). The badge mark needs the name spelled out next to it.
     "logo_lockup": "badge",
+    # Set this when the site is served from a custom domain on GitHub Pages —
+    # it writes the CNAME file that Pages requires. Netlify, Cloudflare Pages
+    # and traditional hosts do not need it; leave it empty there.
+    "custom_domain": "",
     # Optional: a favicon cut from the real logo (SVG or PNG). Falls back to
     # the placeholder mark in assets/img/favicon.svg.
     "favicon": "/assets/img/logo.png",
@@ -2244,6 +2248,10 @@ OLD_URL_MAP = [
 
 
 def build_deploy_files():
+    if SITE.get("custom_domain"):
+        with open(os.path.join(OUT, "CNAME"), "w", encoding="utf-8") as fh:
+            fh.write(SITE["custom_domain"] + "\n")
+
     with open(os.path.join(OUT, "site.webmanifest"), "w", encoding="utf-8") as fh:
         fh.write("""{
   "name": "%s",
@@ -2470,7 +2478,7 @@ def clean():
         target = os.path.join(OUT, entry)
         if os.path.isdir(target):
             shutil.rmtree(target)
-        elif entry.endswith((".html", ".xml", ".txt", ".webmanifest")) or entry in ("_redirects", "_headers", ".htaccess"):
+        elif entry.endswith((".html", ".xml", ".txt", ".webmanifest")) or entry in ("_redirects", "_headers", ".htaccess", "CNAME"):
             os.remove(target)
 
 

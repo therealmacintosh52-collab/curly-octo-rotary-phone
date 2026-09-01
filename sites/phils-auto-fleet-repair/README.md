@@ -199,18 +199,69 @@ is what the site is configured for — and 301 the other to it at the DNS/host l
 `www` versus the bare domain and http versus https; `.htaccess` handles both on an Apache host,
 and Netlify and Cloudflare do it in their domain settings.
 
-## Deploying
+## Going live
 
-`public/` is the web root. Any of these work:
+Pick one route. All three serve the same `public/` folder.
 
-- **Netlify / Cloudflare Pages** — drag the `public` folder in, or connect the repo with
-  build command `python3 build.py` and publish directory `sites/phils-auto-fleet-repair/public`.
-- **GitHub Pages** — publish `public/` from the branch.
-- **Traditional host / cPanel** — upload the contents of `public/` to `public_html`.
+### Route 1 — Netlify or Cloudflare Pages (recommended)
 
-Point `philsautofleet.com` at the host, force HTTPS, and 301-redirect the old URLs to the
-matching new pages. Keep one canonical hostname (`https://philsautofleet.com`) and redirect
-the rest — the current listings show more than one domain in use, which splits ranking signals.
+Free, fast, HTTPS included, and — the reason to prefer them — they honour `public/_redirects` and
+`public/_headers`, so the 301s from the old site's URLs actually work.
+
+**Fastest version (about five minutes, no accounts linked to the repo):**
+
+1. Run `python3 build.py`, then drag the `public` folder onto https://app.netlify.com/drop
+2. You get a working URL immediately, like `random-name-123.netlify.app`. Check the site over.
+3. Site settings → Domain management → Add a custom domain → `philsautofleet.com`
+4. Netlify shows the exact DNS records to create. Use the values it displays — typically an
+   `A` record for the bare domain pointing at Netlify's load balancer, and a `CNAME` for `www`
+   pointing at your `.netlify.app` address.
+5. Add those records wherever the domain's DNS lives today (the registrar, or the current host).
+   Propagation is usually minutes, occasionally a few hours.
+6. Turn on "Force HTTPS" once the certificate is issued.
+
+**Connected-to-Git version (deploys automatically on every push):** New site → Import from Git →
+this repo → set **Base directory** to `sites/phils-auto-fleet-repair`. `netlify.toml` supplies the
+build command and publish directory. Cloudflare Pages is the same idea: root directory
+`sites/phils-auto-fleet-repair`, build command `python3 build.py`, output directory `public`.
+
+### Route 2 — the existing host (keeps everything where it is)
+
+If the current site sits on shared hosting or cPanel, upload the **contents** of `public/` into
+`public_html`, replacing what's there. Keep a copy of the old files first. The included
+`.htaccess` handles the HTTPS redirect, the canonical hostname and the old-URL 301s on Apache.
+
+### Route 3 — GitHub Pages (staging URL for review)
+
+`.github/workflows/deploy-phils-site.yml` builds and publishes on every push. One-time setup:
+repo **Settings → Pages → Source: GitHub Actions**. You get a `github.io` URL for sharing and
+review. Use Route 1 or 2 for the real launch — **GitHub Pages cannot serve `_redirects` or
+`_headers`**, so the old-URL 301s would silently not happen. If you do run the live site there
+on the custom domain, set `SITE["custom_domain"]` in `build.py` so a `CNAME` file is written.
+
+### The day you switch
+
+In this order:
+
+1. **Verify the redirects.** With the new site live, check a few old URLs actually land on the new
+   pages: `curl -I https://philsautofleet.com/diesel-repair` should return `301` and a `location:`
+   header pointing at `/services/diesel-repair/`. Every old URL that 404s is ranking thrown away.
+2. **Point the second domain at the primary one.** `philsautoandfleetrepair.com` should 301 to
+   `philsautofleet.com`, not serve its own copy of the site.
+3. **Google Search Console** — add `philsautofleet.com` as a property, verify it, submit
+   `https://philsautofleet.com/sitemap.xml`. Watch the Pages report for a week; it will tell you
+   which old URLs are 404ing so you can add redirects for the ones this map missed.
+4. **Google Business Profile** — update the website link to the new URL, and add the service pages
+   as GBP "Services". The profile drives more calls than the site does; treat it as part of launch.
+5. **Bing Webmaster Tools** — import from Search Console, two clicks, some of your customers use it.
+6. **Test the form for real.** Submit it once from a phone and confirm the message arrives at
+   phil@philsautofleet.com. A silent form is worse than no form.
+7. **Call the shop from the site on a phone.** Tap the button, make sure it dials (209) 647-4953.
+
+Keep the old site's files for a month. Rolling back is then a matter of restoring a folder or
+pointing DNS back.
+
+## After launch
 
 ## After launch — the local SEO that actually moves the needle
 
