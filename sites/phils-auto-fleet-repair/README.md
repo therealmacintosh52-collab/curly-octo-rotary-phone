@@ -4,8 +4,8 @@ A fast, conversion-focused, SEO-ready static site for **Phil's Auto and Fleet Re
 103 E Elm St, Lodi, CA 95240 · (209) 647-4953.
 
 No frameworks, no build toolchain, no runtime dependencies. One Python script generates
-19 indexable pages plus `sitemap.xml` and `robots.txt` into `public/`, which you can drop
-on any host.
+25 indexable pages plus `sitemap.xml`, `robots.txt`, a web app manifest and the redirect
+rules into `public/`, which you can drop on any host.
 
 ---
 
@@ -30,6 +30,8 @@ so opening the HTML files directly with `file://` will not load CSS.
 | Reviews | `/reviews/` | Social proof, funnels new reviews to Google |
 | Service areas | `/service-areas/` | Captures nearby-city searches |
 | Contact | `/contact/` | NAP, hours, map, directions, quote form |
+| Advice guides | `/advice/`, `/advice/<slug>/` | Four in-depth guides answering what people search before they call |
+| Spanish | `/es/` | Full Spanish landing page with hreflang — roughly two in five Lodi residents speak Spanish at home |
 | Privacy | `/privacy/` | Required once a form collects data |
 | Thank you / 404 | `/thank-you/`, `/404.html` | Post-submit and error handling (noindex) |
 
@@ -62,8 +64,12 @@ electrical & batteries · AC & heating · suspension & steering.
   `BreadcrumbList`; `FAQPage` on the home page and each service page.
 - Local keyword targeting per page (city + service), internal linking hub-and-spoke from
   `/services/`, breadcrumbs, descriptive link text.
-- Fast by construction: one 17 KB stylesheet, one 4 KB deferred script, inline SVG icons,
-  system fonts, no third-party requests except the lazy-loaded map iframe.
+- `sameAs` links tying the Google, Yelp, Nextdoor, MapQuest and Carfax profiles to one entity,
+  and `hreflang` between the English and Spanish pages.
+- `Article` schema on the advice guides.
+- Fast by construction: the home page is ~10 KB gzipped and makes four local requests (stylesheet,
+  script, logo, illustration) plus the lazy-loaded map. No webfonts, no icon fonts, no CDN, no
+  tracking pixels, no cookie banner to need.
 - Accessible: skip link, semantic landmarks, labelled form fields, visible focus states,
   keyboard-operable nav and FAQ, reduced-motion support.
 
@@ -174,6 +180,25 @@ Set `FORM_ENDPOINT` in `build.py` and rebuild:
 Until it's set, submissions open a prefilled email to `SITE["email"]` so no lead is dropped.
 A honeypot field blocks the common spam bots.
 
+## Migrating from the current site — do not skip this
+
+The existing site has earned rankings that a new site does not inherit automatically. Two things
+protect them:
+
+**1. Redirect the old URLs.** `public/_redirects` (Netlify, Cloudflare Pages) and
+`public/.htaccess` (Apache, cPanel) map the current site's page URLs to their new equivalents with
+301s. A 301 passes ranking authority to the new page; a 404 throws it away. The map in
+`build.py` (`OLD_URL_MAP`) is based on the URL shapes the current site appears to use —
+**check every one against the live site or Search Console's page report before launch**, and add
+anything missing. This is the single highest-value item on this page.
+
+**2. Pick one domain.** The business currently appears at more than one address
+(`philsautofleet.com` and `philsautoandfleetrepair.com`). Two domains serving similar content
+split the ranking signals between them and compete with each other. Choose one — `philsautofleet.com`
+is what the site is configured for — and 301 the other to it at the DNS/host level. Same for
+`www` versus the bare domain and http versus https; `.htaccess` handles both on an Apache host,
+and Netlify and Cloudflare do it in their domain settings.
+
 ## Deploying
 
 `public/` is the web root. Any of these work:
@@ -220,6 +245,9 @@ public/                   generated site — deploy this
   assets/css/site.css     design system
   assets/js/site.js       nav, form handling, tracking hooks
   assets/img/             logo, favicon fallback, social share image, shop illustration
+  _redirects, .htaccess   301s from the old site's URLs (verify before launch)
+  _headers                caching and security headers
+  site.webmanifest        name, colours and icon for add-to-home-screen
 tools/
   og-cover.html           source for the 1200x630 social share image
   png_crop.py             crops a PNG to an exact size (standard library only)

@@ -60,6 +60,12 @@ li{margin-bottom:.45em}
 
 .wrap{max-width:var(--wrap);margin:0 auto;padding:0 22px}
 .narrow{max-width:780px}
+/* Prose columns read better on an article scale than the display scale used
+   by landing sections. */
+.narrow h2{font-size:clamp(1.45rem,1.1rem + 1.2vw,2rem);margin-top:1.5em}
+.narrow h2:first-child{margin-top:0}
+.narrow h3{font-size:1.12rem;margin-top:1.4em}
+.narrow p,.narrow li{max-width:68ch}
 section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
 .bg-alt{background:var(--paper-2)}
 .bg-dark{background:var(--grad-dark);color:#e7eef5}

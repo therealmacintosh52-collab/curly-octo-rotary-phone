@@ -82,6 +82,17 @@ MAPS_EMBED = ("https://maps.google.com/maps?q=103%20E%20Elm%20St%2C%20Lodi%2C%20
               "&t=&z=15&ie=UTF8&iwloc=&output=embed")
 YELP_URL = "https://www.yelp.com/biz/phils-auto-and-fleet-repair-lodi"
 
+# Profiles that already carry reviews and citations. Listing them as sameAs
+# tells search engines these are all one business, which consolidates the
+# authority currently split across them (and across two domains).
+PROFILES = [
+    MAPS_LISTING,
+    YELP_URL,
+    "https://nextdoor.com/pages/phils-auto-fleet-repair-lodi-ca/",
+    "https://www.mapquest.com/us/california/phils-auto-and-fleet-repair-355906651",
+    "https://www.carfax.com/Phils-Auto-and-Fleet-Repair-Lodi-CA_bs101148341",
+]  # TODO: paste the exact URLs from each dashboard; these are the expected forms
+
 FULL_ADDRESS = "{street}, {city}, {region} {zip}".format(**SITE)
 
 # Set this to your form endpoint (Formspree / Netlify / Basin / your own).
@@ -711,8 +722,8 @@ NAV = [
     ("Services", "/services/"),
     ("Fleet", "/services/fleet-services/"),
     ("Diesel", "/services/diesel-repair/"),
+    ("Advice", "/advice/"),
     ("Reviews", "/reviews/"),
-    ("About", "/about/"),
     ("Contact", "/contact/"),
 ]
 
@@ -758,6 +769,7 @@ def business_schema():
         '"address":{"@type":"PostalAddress","streetAddress":"%(street)s","addressLocality":"%(city)s",'
         '"addressRegion":"%(region)s","postalCode":"%(zip)s","addressCountry":"US"},'
         '"geo":{"@type":"GeoCoordinates","latitude":%(lat)s,"longitude":%(lng)s},'
+        '"sameAs":[%(profiles)s],'
         '"hasMap":"%(map)s",'
         '"openingHoursSpecification":[%(hours)s],'
         '"areaServed":[%(areas)s],'
@@ -767,7 +779,8 @@ def business_schema():
         % {"base": SITE["base_url"], "name": SITE["name"], "phone": SITE["phone_link"],
            "email": SITE["email"], "street": SITE["street"], "city": SITE["city"],
            "region": SITE["region"], "zip": SITE["zip"], "lat": SITE["lat"], "lng": SITE["lng"],
-           "map": MAPS_LISTING, "hours": hours, "areas": areas, "services": services}
+           "map": MAPS_LISTING, "hours": hours, "areas": areas, "services": services,
+           "profiles": ",".join(jstr(u) for u in PROFILES)}
     )
 
 
@@ -832,16 +845,29 @@ def brand(on_dark=False):
     </a>"""
 
 
-def header_html(active=None):
+ES_NAV = [
+    ("Servicios", "#servicios"),
+    ("Por qué nosotros", "#por-que"),
+    ("El taller", "#taller"),
+    ("Cotización", "#cotizacion"),
+    ("English", "/"),
+]
+
+
+def header_html(active=None, es=False):
     links = []
-    for label, url in NAV:
+    for label, url in (ES_NAV if es else NAV):
         cur = ' aria-current="page"' if active == url else ""
         links.append('<a href="%s"%s>%s</a>' % (url, cur, esc(label)))
+    hours_label = "Lunes a sábado, 8:00 AM – 5:00 PM" if es else "Mon–Sat 8:00 AM – 5:00 PM"
+    cta_label = "Cotización" if es else "Get a Quote"
+    call_label = "Llame al taller" if es else "Call the shop"
+    cta_href = "#cotizacion" if es else "/contact/#quote"
     return """<div class="topbar">
   <div class="wrap">
     <span>%(pin)s %(addr)s</span>
     <span class="dot" aria-hidden="true">•</span>
-    <span>%(clock)s Mon–Sat 8:00 AM – 5:00 PM</span>
+    <span>%(clock)s %(hours_label)s</span>
     <span class="dot" aria-hidden="true">•</span>
     <a href="tel:%(tel)s" data-loc="topbar">%(phone)s</a>
   </div>
@@ -852,9 +878,9 @@ def header_html(active=None):
     <nav class="nav" id="primary-nav" aria-label="Main">%(links)s</nav>
     <div class="header-cta">
       <a class="header-phone" href="tel:%(tel)s" data-loc="header">
-        <span>Call the shop</span><strong>%(phone)s</strong>
+        <span>%(call_label)s</span><strong>%(phone)s</strong>
       </a>
-      <a class="btn btn-accent btn-sm" href="/contact/#quote">Get a Quote</a>
+      <a class="btn btn-accent btn-sm" href="%(cta_href)s">%(cta_label)s</a>
     </div>
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Menu">
       <svg viewBox="0 0 24 24" aria-hidden="true">%(menu)s</svg>
@@ -862,26 +888,42 @@ def header_html(active=None):
   </div>
 </header>""" % {"brand": brand(), "pin": icon("pin"), "clock": icon("clock"), "addr": esc(FULL_ADDRESS),
                 "tel": SITE["phone_link"], "phone": SITE["phone_display"],
-                "links": "".join(links), "menu": ICONS["menu"]}
+                "links": "".join(links), "menu": ICONS["menu"],
+                "hours_label": hours_label, "cta_label": cta_label,
+                "call_label": call_label, "cta_href": cta_href}
 
 
-def footer_html():
+def footer_html(es=False):
     svc = "".join('<li><a href="/services/%s/">%s</a></li>' % (s["slug"], esc(s["nav"]))
                   for s in SERVICES)
+    t = {
+        "blurb": ("Taller local de autos, diésel y flotas en Lodi — una alternativa justa a la "
+                  "agencia, para quienes quieren la verdad sobre su vehículo."),
+        "services": "Servicios", "shop": "El taller", "visit": "Visítenos o llame",
+        "call": "Llame al taller", "callbar": ("Llamar", "Cómo llegar", "Cotización"),
+        "rights": "Todos los derechos reservados.", "privacy": "Privacidad",
+        "tagline": "Taller mecánico en Lodi, CA", "english": "See this page in English",
+    } if es else {
+        "blurb": ("Locally owned auto, diesel and fleet repair in Lodi — a value-driven alternative to "
+                  "the dealership, for drivers and businesses that need the truth about their vehicles."),
+        "services": "Services", "shop": "Shop", "visit": "Visit or Call",
+        "call": "Call the shop", "callbar": ("Call", "Directions", "Get a Quote"),
+        "rights": "All rights reserved.", "privacy": "Privacy",
+        "tagline": "Auto repair in Lodi, CA", "english": "",
+    }
     return """<footer class="site-footer">
   <div class="wrap">
     <div class="footer-grid">
       <div class="footer-brand">
         %(brand)s
-        <p>Locally owned auto, diesel and fleet repair in Lodi — a value-driven alternative to
-        the dealership, for drivers and businesses that need the truth about their vehicles.</p>
+        <p>%(blurb)s</p>
       </div>
       <div>
-        <h4>Services</h4>
+        <h4>%(services)s</h4>
         <ul>%(svc)s</ul>
       </div>
       <div>
-        <h4>Shop</h4>
+        <h4>%(shop)s</h4>
         <ul>
           <li><a href="/">Home</a></li>
           <li><a href="/services/">All Services</a></li>
@@ -889,44 +931,55 @@ def footer_html():
           <li><a href="/reviews/">Reviews</a></li>
           <li><a href="/service-areas/">Service Areas</a></li>
           <li><a href="/contact/">Contact &amp; Directions</a></li>
+          <li><a href="/advice/">Advice &amp; Guides</a></li>
+          <li><a href="/es/" hreflang="es" lang="es">Español</a></li>
         </ul>
       </div>
       <div>
-        <h4>Visit or Call</h4>
+        <h4>%(visit)s</h4>
         <ul>
           <li><a href="%(map)s" rel="noopener">%(street)s<br>%(city)s, %(region)s %(zip)s</a></li>
           <li><a href="tel:%(tel)s" data-loc="footer">%(phone)s</a></li>
           <li><a href="mailto:%(email)s">%(email)s</a></li>
           <li>%(hours)s</li>
         </ul>
-        <p style="margin-top:16px"><a class="btn btn-accent btn-sm" href="tel:%(tel)s" data-loc="footer-btn">%(picon)s<span>Call the shop</span></a></p>
+        <p style="margin-top:16px"><a class="btn btn-accent btn-sm" href="tel:%(tel)s" data-loc="footer-btn">%(picon)s<span>%(call)s</span></a></p>
       </div>
     </div>
     <div class="footer-bottom">
-      <span>&copy; <span data-year>2026</span> %(name)s. All rights reserved.</span>
-      <span><a href="/privacy/">Privacy</a> · <a href="/sitemap.xml">Sitemap</a> · Auto repair in Lodi, CA</span>
+      <span>&copy; <span data-year>2026</span> %(name)s. %(rights)s</span>
+      <span><a href="/privacy/">%(privacy)s</a> · <a href="/sitemap.xml">Sitemap</a> · %(tagline)s</span>
     </div>
   </div>
 </footer>
 <div class="callbar" aria-label="Quick actions">
-  <a class="primary" href="tel:%(tel)s" data-loc="callbar">%(picon)s<span>Call</span></a>
-  <a href="%(map)s" rel="noopener">%(micon)s<span>Directions</span></a>
-  <a href="/contact/#quote">%(cicon)s<span>Get a Quote</span></a>
+  <a class="primary" href="tel:%(tel)s" data-loc="callbar">%(picon)s<span>%(cb1)s</span></a>
+  <a href="%(map)s" rel="noopener">%(micon)s<span>%(cb2)s</span></a>
+  <a href="%(cta_href)s">%(cicon)s<span>%(cb3)s</span></a>
 </div>""" % {"brand": brand(on_dark=True), "svc": svc, "map": MAPS_DIRECTIONS, "street": esc(SITE["street"]),
              "city": SITE["city"], "region": SITE["region"], "zip": SITE["zip"],
              "tel": SITE["phone_link"], "phone": SITE["phone_display"],
              "hours": esc(SITE["hours_human"]), "name": esc(SITE["name"]),
              "email": SITE["email"],
-             "picon": icon("phone"), "micon": icon("map"), "cicon": icon("chat")}
+             "picon": icon("phone"), "micon": icon("map"), "cicon": icon("chat"),
+             "cb1": t["callbar"][0], "cb2": t["callbar"][1], "cb3": t["callbar"][2],
+             "cta_href": "#cotizacion" if es else "/contact/#quote",
+             "blurb": t["blurb"], "services": t["services"], "shop": t["shop"],
+             "visit": t["visit"], "call": t["call"], "rights": t["rights"],
+             "privacy": t["privacy"], "tagline": t["tagline"]}
 
 
-def render(path, title, description, body, schemas=None, active=None, noindex=False):
+def render(path, title, description, body, schemas=None, active=None, noindex=False,
+           lang="en", alternates=None):
     """Write one page. `path` is a URL path like '/services/brakes/' ('/' = home)."""
     canonical = SITE["base_url"] + path
     schemas = schemas or []
     schema_html = "".join('\n<script type="application/ld+json">%s</script>' % s for s in schemas)
+    alt_links = "".join(
+        '\n<link rel="alternate" hreflang="%s" href="%s%s">' % (code, SITE["base_url"], url)
+        for code, url in (alternates or []))
     doc = """<!DOCTYPE html>
-<html lang="en">
+<html lang="%(lang)s">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -953,7 +1006,8 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <meta name="ICBM" content="%(lat)s, %(lng)s">
 <link rel="icon" href="%(favicon)s" type="%(favicon_type)s">
 <link rel="apple-touch-icon" href="%(favicon)s">
-<link rel="stylesheet" href="/assets/css/site.css">%(schema)s
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="/assets/css/site.css">%(alts)s%(schema)s
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -971,7 +1025,9 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
        "favicon": SITE.get("favicon") or "/assets/img/favicon.svg",
        "favicon_type": "image/svg+xml" if (SITE.get("favicon") or ".svg").endswith(".svg") else "image/png",
        "lat": SITE["lat"], "lng": SITE["lng"], "schema": schema_html,
-       "header": header_html(active), "body": body, "footer": footer_html()}
+       "header": header_html(active, es=(lang == "es")), "body": body,
+       "footer": footer_html(es=(lang == "es")),
+       "lang": lang, "alts": alt_links}
 
     rel = "index.html" if path == "/" else path.strip("/") + "/index.html"
     dest = os.path.join(OUT, rel)
@@ -1012,6 +1068,16 @@ def quote_form(form_id="quote", heading="Get a free quote", sub=None, service_de
     <select id="%(id)s-service" name="service">%(opts)s</select>
   </div>
   <div class="field">
+    <label for="%(id)s-when">When could you bring it in?</label>
+    <select id="%(id)s-when" name="when">
+      <option value="">Whenever you have room</option>
+      <option>Today if possible — it's not drivable</option>
+      <option>This week</option>
+      <option>Next week</option>
+      <option>Just want an estimate for now</option>
+    </select>
+  </div>
+  <div class="field">
     <label for="%(id)s-message">What's happening with it?</label>
     <textarea id="%(id)s-message" name="message" placeholder="Noises, warning lights, when it started, anything another shop already told you."></textarea>
   </div>
@@ -1044,10 +1110,15 @@ def cta_band(heading="Ready to get a straight answer about your vehicle?",
     return '<section><div class="wrap">%s</div></section>' % inner
 
 
-def stat_band():
+def stat_band(es=False):
     """Overlapping card that lifts the four strongest trust signals out of the
     hero and into the eye-line of someone deciding whether to call."""
     stats = [
+        ("star", "%s de 5" % SITE["rating"], "%s reseñas de Google" % SITE["review_count"]),
+        ("shield", "Primero el diagnóstico", "Probamos antes de cambiar piezas"),
+        ("truck", "Autos · Diésel · Flotas", "Un taller para todo lo que maneja"),
+        ("clock", "Abierto seis días", "Lunes a sábado, 8 AM – 5 PM"),
+    ] if es else [
         ("star", "%s out of 5" % SITE["rating"], "%s Google reviews" % SITE["review_count"]),
         ("shield", "Diagnosis first", "We test before we replace parts"),
         ("truck", "Auto · Diesel · Fleet", "One shop for every vehicle you run"),
@@ -1381,7 +1452,7 @@ def build_home():
            "reviewers. Diagnosis before parts, no upsells. Call (209) 647-4953.",
            body,
            schemas=[business_schema(), faq_schema(HOME_FAQS), website_schema()],
-           active="/")
+           active="/", alternates=[("en", "/"), ("es", "/es/"), ("x-default", "/")])
     PAGES.append(("/", "1.0", "weekly"))
 
 
@@ -1864,6 +1935,515 @@ def build_404():
     shutil.copyfile(os.path.join(OUT, "404", "index.html"), os.path.join(OUT, "404.html"))
 
 
+# --------------------------------------------------------------------------
+# Advice guides. Real answers to what people actually type into Google before
+# they call a shop — the depth a template site never has.
+# --------------------------------------------------------------------------
+GUIDES = [
+    {
+        "slug": "check-engine-light",
+        "nav": "What your check engine light means",
+        "title": "Check Engine Light: What It Means, Lodi CA",
+        "meta": ("What a check engine light actually means, when it is safe to keep driving, "
+                 "and why a free code read is not a diagnosis. From a Lodi repair shop."),
+        "blurb": "Steady or flashing, what it means, and what it costs to find out for certain.",
+        "icon": "gauge",
+        "sections": [
+            ("Steady light vs flashing light", "p",
+             ["There is one distinction worth knowing before anything else. A <strong>steady</strong> "
+              "check engine light means the computer has recorded a fault and wants it looked at "
+              "soon. A <strong>flashing</strong> check engine light means an active misfire is "
+              "dumping raw fuel into your exhaust, and a catalytic converter can be destroyed in "
+              "minutes that way — a repair that often runs into four figures.",
+              "If your light is flashing, stop driving and call us. If it is steady, drive gently "
+              "and get it looked at in the next few days."]),
+            ("Why the free code read isn't a diagnosis", "p",
+             ["Any parts store will scan your car for free, and that is genuinely useful — it tells "
+              "you a code, say P0171. What it does not tell you is which part failed.",
+              "P0171 means the engine is running lean on bank 1. That can be a vacuum leak, a dirty "
+              "mass airflow sensor, a weak fuel pump, a leaking injector, a failing oxygen sensor "
+              "or an exhaust leak ahead of the sensor. The code names the symptom the computer "
+              "noticed. Diagnosis is the work of proving which of those causes is yours.",
+              "This is where most of the money gets wasted in car repair. Replacing the cheapest "
+              "likely part and hoping is faster than testing, and when it works nobody notices. "
+              "When it doesn't, you've paid for a part you didn't need and still have the problem."]),
+            ("What actually happens during a diagnosis", "ul",
+             ["Pull the codes and the freeze-frame data, which records what the engine was doing "
+              "the moment the fault set.",
+              "Read live sensor data with the engine running, and compare it against what the "
+              "manufacturer says those values should be.",
+              "Test the suspect circuit or component directly — pressure, voltage, resistance, "
+              "smoke-test for leaks, whatever the fault calls for.",
+              "Verify the repair by clearing the code and confirming the fault does not return "
+              "under the conditions that set it."]),
+            ("Codes we see most often around Lodi", "ul",
+             ["<strong>P0420 / P0430</strong> — catalyst efficiency below threshold. Often blamed on "
+              "the converter when the real cause is an upstream oxygen sensor or an exhaust leak.",
+              "<strong>P0171 / P0174</strong> — running lean. Vacuum leaks are common on higher-mileage "
+              "vehicles in this valley heat, which hardens rubber intake components.",
+              "<strong>P0300 series</strong> — misfires. Coils, plugs, injectors or a mechanical fault; "
+              "the cylinder number in the code narrows it, the testing confirms it.",
+              "<strong>P0455</strong> — large evaporative leak. Frequently a loose or failed fuel cap, "
+              "which is the cheapest fix in this entire article."]),
+        ],
+        "takeaway": ("Flashing light: stop driving, call us. Steady light: get it read properly "
+                     "before a small fault becomes an expensive one. We will tell you what the "
+                     "diagnosis costs before you commit to it."),
+    },
+    {
+        "slug": "second-opinion",
+        "nav": "Getting a second opinion on a repair quote",
+        "title": "Second Opinion on a Car Repair Quote, Lodi CA",
+        "meta": ("How to sanity-check a repair estimate before you pay it: what to ask, what to "
+                 "bring, and when a second opinion is worth the trip. Lodi, CA."),
+        "blurb": "How to sanity-check an estimate before you spend the money.",
+        "icon": "shield",
+        "sections": [
+            ("When a second opinion is worth it", "p",
+             ["Not every quote needs one. If the repair is straightforward, the price is in a "
+              "normal range and you trust the shop, get it done.",
+              "It is worth a second look when the number is large enough to matter, when the "
+              "explanation didn't make sense to you, when a shop recommends replacing several "
+              "parts to fix one symptom, or when work has already been done and the original "
+              "problem is still there."]),
+            ("What to bring with you", "ul",
+             ["The written estimate, with part names and labor hours if it lists them.",
+              "Any paperwork from work already performed on this problem.",
+              "The specific symptom in your own words — what it does, when it started, whether it "
+              "happens cold, hot, at speed or at idle.",
+              "The codes, if anyone has read them for you."]),
+            ("Questions worth asking any shop", "ul",
+             ["<strong>How do you know that's the failed part?</strong> A good answer describes a "
+              "test. A weak answer describes a guess.",
+              "<strong>What happens if we replace it and the symptom stays?</strong> Shops that test "
+              "before replacing can answer this comfortably.",
+              "<strong>Which of these items are safety, and which can wait?</strong> Any honest shop "
+              "will separate the list for you.",
+              "<strong>Can you show me?</strong> Worn brake pads, a leaking gasket and a cracked belt "
+              "are all things you can be walked out to see."]),
+            ("What we do with a second opinion", "p",
+             ["We start from your symptom, not from the previous shop's conclusion, because "
+              "inheriting an assumption is how a misdiagnosis gets repeated. We test, we tell you "
+              "what we find, and we tell you plainly when the first quote was right — that happens, "
+              "and it is a perfectly good outcome. You leave knowing the number was fair."]),
+        ],
+        "takeaway": ("Bring the estimate and the paperwork. We will test the vehicle ourselves and "
+                     "give you a straight answer, including when the other shop was right."),
+    },
+    {
+        "slug": "central-valley-heat",
+        "nav": "What Central Valley heat does to your vehicle",
+        "title": "Summer Car Care for Lodi & the Central Valley",
+        "meta": ("Triple-digit Lodi summers are hard on batteries, coolant, tires and AC. What to "
+                 "check before the heat arrives, from a local repair shop."),
+        "blurb": "Triple-digit summers are hard on batteries, cooling systems, tires and AC.",
+        "icon": "snow",
+        "sections": [
+            ("Heat kills batteries — it just bills you in winter", "p",
+             ["Most people blame cold mornings for a dead battery, but the damage is usually done in "
+              "summer. Heat accelerates the chemical wear inside the battery and evaporates "
+              "electrolyte; the first cold snap simply exposes a battery that summer already "
+              "finished off.",
+              "A battery and charging test takes minutes and is worth doing before a Lodi summer, "
+              "not after it."]),
+            ("Cooling systems have no margin at 105 degrees", "p",
+             ["A cooling system that copes fine in spring can be marginal in August. A slightly weak "
+              "water pump, a thermostat sticking a little, a radiator with a decade of debris in "
+              "the fins, coolant that has lost its corrosion inhibitors — none of it shows up until "
+              "the day it is 105 degrees and you're climbing a grade with the AC on.",
+              "Overheating is also the fastest way to turn a modest repair into a head gasket or an "
+              "engine. The temperature gauge climbing is a reason to pull over, not a reason to "
+              "hurry home."]),
+            ("Tires and hot asphalt", "p",
+             ["Pressure rises as tires heat, but starting underinflated is what causes trouble: an "
+              "underinflated tire flexes more, builds more heat, and heat is what makes a worn tire "
+              "fail on the highway. Check pressures when the tires are cold and set them to the "
+              "sticker in the door jamb, not to the number on the tire sidewall.",
+              "Worth a look at tread depth and sidewall cracking at the same time. Valley sun is "
+              "hard on rubber."]),
+            ("Air conditioning is a safety system here", "p",
+             ["In this valley, AC is not a comfort item — it is what makes a car usable in July with "
+              "kids or older passengers in it. If yours is cooling less than it did last year, it "
+              "is losing refrigerant, and refrigerant only leaves a sealed system one way.",
+              "Getting the leak found in spring costs less than an emergency in July, and far less "
+              "than the compressor that eventually fails from running low on the oil that travels "
+              "with the refrigerant."]),
+        ],
+        "takeaway": ("A battery test, a cooling system check, correct tire pressures and an AC that "
+                     "still blows cold — that is a short list, and it is the difference between "
+                     "summer being uneventful and being expensive."),
+    },
+    {
+        "slug": "diesel-warning-lights",
+        "nav": "Diesel warning lights, explained",
+        "title": "Diesel Warning Lights Explained — Lodi, CA",
+        "meta": ("DPF, regen, glow plug and derate warnings on a diesel truck: what each one means "
+                 "and how urgent it is. Diesel repair in Lodi, California."),
+        "blurb": "DPF, regen, glow plug and derate warnings — what each one is telling you.",
+        "icon": "truck",
+        "sections": [
+            ("The DPF light and what regeneration is", "p",
+             ["A diesel particulate filter traps soot. Periodically the truck burns that soot off at "
+              "high temperature — that is a regeneration, or regen. The DPF light usually means the "
+              "filter is loading up and a regen is needed or was interrupted.",
+              "Short trips are the usual culprit: the exhaust never gets hot enough or stays hot "
+              "long enough to complete a regen. Repeated interrupted regens are what turn a "
+              "warning light into a plugged filter and a real bill."]),
+            ("Derate and limp mode", "p",
+             ["A derate is the truck deliberately limiting power to protect itself or to force an "
+              "emissions problem to be dealt with. It is not a suggestion — power will keep "
+              "stepping down on a schedule until the fault is addressed.",
+              "If your truck is in a derate, say so when you call. A truck that cannot do its job "
+              "gets treated differently than a maintenance appointment."]),
+            ("Glow plug and hard starting", "p",
+             ["Glow plugs warm the combustion chamber so a cold diesel will light off. A glow plug "
+              "light that stays on, long cranking on cold mornings, or white smoke at startup all "
+              "point at that system — or at the fuel side.",
+              "Hard starting is worth diagnosing early. It rarely improves on its own and it is "
+              "usually cheaper before the batteries and starter take the abuse of extended cranking."]),
+            ("Fuel quality and water in the fuel", "p",
+             ["A water-in-fuel light is one to take seriously and immediately. Modern high-pressure "
+              "fuel systems are precise and unforgiving; water and contamination damage injectors "
+              "and pumps quickly, and those are the expensive parts on a diesel.",
+              "Draining the separator on schedule and changing filters at the correct interval is "
+              "some of the cheapest insurance available on a work truck."]),
+        ],
+        "takeaway": ("Diesel warning lights escalate. A DPF light dealt with this week is "
+                     "maintenance; the same light ignored for a month is a plugged filter and a "
+                     "truck that will not work."),
+    },
+]
+
+
+def guide_schema(g, path):
+    return ('{"@context":"https://schema.org","@type":"Article","headline":%s,'
+            '"description":%s,"inLanguage":"en-US",'
+            '"datePublished":"%s","dateModified":"%s",'
+            '"author":{"@id":"%s/#business"},"publisher":{"@id":"%s/#business"},'
+            '"mainEntityOfPage":{"@type":"WebPage","@id":"%s%s"}}'
+            % (jstr(g["title"]), jstr(g["meta"]), date.today().isoformat(),
+               date.today().isoformat(), SITE["base_url"], SITE["base_url"],
+               SITE["base_url"], path))
+
+
+def build_guide(g):
+    path = "/advice/%s/" % g["slug"]
+    trail = [("Home", "/"), ("Advice", "/advice/"), (g["nav"], path)]
+    blocks = []
+    for heading, kind, items in g["sections"]:
+        body_items = ("<ul>%s</ul>" % "".join("<li>%s</li>" % x for x in items) if kind == "ul"
+                      else "".join("<p>%s</p>" % x for x in items))
+        blocks.append("<h2>%s</h2>%s" % (esc(heading), body_items))
+    others = [x for x in GUIDES if x["slug"] != g["slug"]]
+    related = "".join('<a class="tag" href="/advice/%s/">%s</a>' % (o["slug"], esc(o["nav"]))
+                      for o in others)
+
+    body = f"""<div class="page-head">
+  <div class="wrap">
+    {crumbs_html(trail)}
+    <h1>{esc(g["nav"])}</h1>
+    <p>{esc(g["blurb"])}</p>
+  </div>
+  {angle_divider()}
+</div>
+
+<section>
+  <div class="wrap narrow">
+    {"".join(blocks)}
+    <div class="panel panel-accent" style="margin-top:2em">
+      <h3>The short version</h3>
+      <p style="margin-bottom:1.2em">{esc(g["takeaway"])}</p>
+      <div class="btn-row">
+        {tel_btn("btn btn-accent", "guide")}
+        <a class="btn btn-ghost" href="/contact/#quote">Ask us about it</a>
+      </div>
+    </div>
+    <p style="margin-top:2em;color:var(--slate);font-size:.9rem">Written by the team at
+      {esc(SITE["name"])}, {esc(FULL_ADDRESS)}. General guidance, not a substitute for having
+      your own vehicle looked at — every car tells its own story.</p>
+    <h2 style="margin-top:1.6em">More advice</h2>
+    <div class="tag-row">{related}<a class="tag" href="/advice/">All guides</a></div>
+  </div>
+</section>
+
+{cta_band("Rather just ask someone?",
+          "Call the shop and describe what your vehicle is doing. We will tell you what we think it is and what it takes to know for sure.")}"""
+
+    render(path, seo_title(g["title"]), g["meta"], body,
+           schemas=[business_schema(), guide_schema(g, path), breadcrumb_schema(trail)],
+           active="/advice/")
+    PAGES.append((path, "0.6", "yearly"))
+
+
+def build_advice_index():
+    trail = [("Home", "/"), ("Advice", "/advice/")]
+    cards = "".join(
+        f"""<a class="card" href="/advice/{g["slug"]}/">
+  <span class="card-ico">{icon(g["icon"])}</span>
+  <h3>{esc(g["nav"])}</h3>
+  <p>{esc(g["blurb"])}</p>
+  <span class="more">Read it {icon("arrow")}</span>
+</a>""" for g in GUIDES)
+    body = f"""<div class="page-head">
+  <div class="wrap">
+    {crumbs_html(trail)}
+    <h1>Straight answers about your vehicle</h1>
+    <p>The questions we get asked at the counter, written down — so you can decide what to do
+    before you spend anything.</p>
+    <div class="btn-row">{tel_btn("btn btn-accent", "advice-head")}
+    <a class="btn btn-ghost" href="/contact/#quote">Ask a question</a></div>
+  </div>
+  {angle_divider()}
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="grid g2">{cards}</div>
+  </div>
+</section>
+
+{cta_band()}"""
+    render("/advice/", seo_title("Car Repair Advice — Lodi, CA"),
+           "Plain-English guides from a Lodi repair shop: check engine lights, second opinions, "
+           "summer heat and diesel warning lights. Call (209) 647-4953.",
+           body, schemas=[business_schema(), breadcrumb_schema(trail)], active="/advice/")
+    PAGES.append(("/advice/", "0.6", "monthly"))
+
+
+# --------------------------------------------------------------------------
+# Deployment files: manifest, caching/security headers, and the redirect map
+# that carries the old site's rankings over to the new URLs.
+# --------------------------------------------------------------------------
+# Old paths -> new equivalents. These are the URL shapes the current site uses;
+# check them against the live site (or Search Console's page report) and add any
+# that are missing before launch. A 301 passes ranking on; a 404 throws it away.
+OLD_URL_MAP = [
+    ("/auto-repair", "/services/auto-repair/"),
+    ("/auto-repair-lodi", "/services/auto-repair/"),
+    ("/diesel-repair", "/services/diesel-repair/"),
+    ("/diesel-repair-lodi", "/services/diesel-repair/"),
+    ("/tire-repair", "/services/tire-repair/"),
+    ("/tires", "/services/tire-repair/"),
+    ("/car-diagnostics", "/services/car-diagnostics/"),
+    ("/car-diagnostics-lodi", "/services/car-diagnostics/"),
+    ("/brake-repair", "/services/brake-repair/"),
+    ("/brakes", "/services/brake-repair/"),
+    ("/engine-repair", "/services/engine-repair/"),
+    ("/transmission", "/services/transmission-repair/"),
+    ("/transmission-repair", "/services/transmission-repair/"),
+    ("/oil-change", "/services/oil-change-maintenance/"),
+    ("/fleet", "/services/fleet-services/"),
+    ("/fleet-services", "/services/fleet-services/"),
+    ("/ac-repair", "/services/ac-heating-repair/"),
+    ("/electrical", "/services/electrical-repair/"),
+    ("/about-us", "/about/"),
+    ("/contact-us", "/contact/"),
+    ("/reviews", "/reviews/"),
+    ("/testimonials", "/reviews/"),
+]
+
+
+def build_deploy_files():
+    with open(os.path.join(OUT, "site.webmanifest"), "w", encoding="utf-8") as fh:
+        fh.write("""{
+  "name": "%s",
+  "short_name": "Phil's Auto",
+  "description": "Honest auto, diesel and fleet repair in Lodi, California.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0a0a1f",
+  "icons": [
+    { "src": "%s", "sizes": "80x80", "type": "image/png", "purpose": "any" }
+  ]
+}
+""" % (SITE["name"], SITE.get("logo") or "/assets/img/favicon.svg"))
+
+    # Netlify / Cloudflare Pages
+    lines = ["# Old site URLs -> new pages. Keeps the rankings the current site has earned.",
+             "# Verify these against the live site before launch; add any that are missing."]
+    for old, new in OLD_URL_MAP:
+        lines.append("%-26s %-38s 301!" % (old, new))
+    lines += ["",
+              "# Trailing-slash variants",
+              ] + ["%-26s %-38s 301!" % (old + "/", new) for old, new in OLD_URL_MAP]
+    with open(os.path.join(OUT, "_redirects"), "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines) + "\n")
+
+    with open(os.path.join(OUT, "_headers"), "w", encoding="utf-8") as fh:
+        fh.write("""/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  X-Frame-Options: SAMEORIGIN
+
+# Fingerprint-free assets, so revalidate daily but serve instantly meanwhile
+/assets/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+""")
+
+    # Apache / cPanel hosts
+    rules = "\n".join("Redirect 301 %s %s" % (old, new) for old, new in OLD_URL_MAP)
+    with open(os.path.join(OUT, ".htaccess"), "w", encoding="utf-8") as fh:
+        fh.write("""# Phil's Auto and Fleet Repair — Apache configuration
+# Only needed on a traditional host (cPanel). Netlify and Cloudflare Pages use
+# the _redirects and _headers files instead.
+
+RewriteEngine On
+
+# One canonical hostname: https://philsautofleet.com
+RewriteCond %%{HTTPS} off
+RewriteRule ^(.*)$ https://%%{HTTP_HOST}/$1 [R=301,L]
+RewriteCond %%{HTTP_HOST} ^www\\.philsautofleet\\.com [NC]
+RewriteRule ^(.*)$ https://philsautofleet.com/$1 [R=301,L]
+
+# Old page URLs -> new equivalents
+%s
+
+ErrorDocument 404 /404.html
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript image/svg+xml
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+""" % rules)
+
+
+# --------------------------------------------------------------------------
+# Spanish landing page. Roughly two in five people in Lodi speak Spanish at
+# home; almost no independent shop in the area publishes in it.
+# --------------------------------------------------------------------------
+def build_spanish():
+    servicios = [
+        ("wrench", "Reparación general", "Vehículos nacionales, importados y de flota."),
+        ("gauge", "Diagnóstico y luz de motor", "Encontramos la causa en vez de adivinar."),
+        ("disc", "Frenos", "Pastillas, discos, mordazas y fallas de ABS."),
+        ("engine", "Motor", "Fallas de encendido, fugas, sobrecalentamiento y distribución."),
+        ("gears", "Transmisión", "Diagnóstico y reparación, automática y manual."),
+        ("truck", "Diésel y flotas", "Camionetas de trabajo y flotas comerciales."),
+        ("drop", "Cambio de aceite", "Servicio programado con inspección de verdad."),
+        ("tire", "Llantas", "Reparación de ponchaduras, rotación y balanceo."),
+        ("bolt", "Eléctrico y baterías", "No arranca, alternador, marcha y corrientes parásitas."),
+    ]
+    cards = "".join(
+        f'<div class="card"><span class="card-ico">{icon(ic)}</span><h3>{esc(t)}</h3>'
+        f'<p style="margin-bottom:0">{esc(d)}</p></div>' for ic, t, d in servicios)
+
+    body = f"""<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">Negocio local · Lodi, California</span>
+        <h1>Taller honesto de autos, diésel y flotas en <em>Lodi</em></h1>
+        <div class="rating">{stars()}<span class="rating-text"><strong>4.4 de 5</strong> en 83
+          reseñas de Google</span></div>
+        <p>Una alternativa justa a la agencia. Diagnosticamos el problema de verdad, se lo
+        explicamos en palabras claras y le damos el precio antes de tocar el vehículo — para que
+        nunca pague por piezas que su carro no necesitaba.</p>
+        <div class="btn-row">
+          {tel_btn("btn btn-accent", "es-hero", "Llame al " + SITE["phone_display"])}
+          <a class="btn btn-ghost" href="#cotizacion">Pedir cotización</a>
+        </div>
+        <ul class="hero-points">
+          <li>{icon("check-circle")}<span>Autos, camionetas, diésel y flotas comerciales</span></li>
+          <li>{icon("check-circle")}<span>Reparamos fallas que otros talleres no encontraron</span></li>
+          <li>{icon("check-circle")}<span>Sin ventas de más — usted autoriza cada reparación</span></li>
+          <li>{icon("check-circle")}<span>Abierto de lunes a sábado, 8:00 AM a 5:00 PM</span></li>
+        </ul>
+      </div>
+      <div id="cotizacion">
+        <form class="quote-card" data-quote-form action="{FORM_ENDPOINT}" method="post" data-mailto="{SITE["email"]}">
+          <h2>Pida su cotización</h2>
+          <p class="sub">Cuéntenos qué está pasando y le respondemos con los siguientes pasos.
+          ¿Prefiere hablar? Llame al {SITE["phone_display"]}.</p>
+          <div class="field"><label for="es-nombre">Su nombre</label>
+            <input id="es-nombre" name="name" type="text" autocomplete="name" required></div>
+          <div class="field"><label for="es-tel">Teléfono</label>
+            <input id="es-tel" name="phone" type="tel" autocomplete="tel" required></div>
+          <div class="field"><label for="es-vehiculo">Vehículo (año, marca, modelo)</label>
+            <input id="es-vehiculo" name="vehicle" type="text" placeholder="2016 Ram 2500 diésel"></div>
+          <div class="field"><label for="es-mensaje">¿Qué está haciendo el vehículo?</label>
+            <textarea id="es-mensaje" name="message" placeholder="Ruidos, luces del tablero, cuándo empezó, y qué le dijeron en otro taller."></textarea></div>
+          <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <button class="btn btn-accent" type="submit" style="width:100%">Enviar solicitud</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+          <p class="form-note">Sin compromiso. Nunca vendemos su información.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+{stat_band(es=True)}
+
+<section id="servicios">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">Servicios</span>
+      <h2>Todo, desde un cambio de aceite hasta un diésel que no arranca</h2>
+      <p>Un solo taller para su carro, su troca y toda su flota — con el mismo método:
+      primero diagnosticar, después cotizar.</p>
+    </div>
+    <div class="grid g3">{cards}</div>
+  </div>
+</section>
+
+<section class="bg-alt" id="por-que">
+  <div class="wrap">
+    <div class="split center-y">
+      <div>
+        <span class="eyebrow">Por qué la gente cambia de taller</span>
+        <h2>La agencia no es su única opción</h2>
+        <p>En la agencia el trabajo se organiza por volumen y por menú de precios. Eso funciona
+        hasta que su problema no cabe en el menú — y entonces termina pagando piezas que se
+        cambiaron porque estaban en una lista, no porque hubieran fallado.</p>
+        <ul class="checklist">
+          <li>{icon("check")}<span><strong>Habla con quien revisó su vehículo</strong>, no con un intermediario.</span></li>
+          <li>{icon("check")}<span><strong>Probamos antes de cambiar piezas</strong>, por eso una segunda opinión aquí suele costar menos que la primera cotización.</span></li>
+          <li>{icon("check")}<span><strong>Nada se repara sin su autorización</strong>, incluyendo lo que encontremos durante el trabajo.</span></li>
+          <li>{icon("check")}<span><strong>Le decimos qué puede esperar</strong> y qué es cuestión de seguridad.</span></li>
+        </ul>
+        <div class="btn-row" style="margin-top:26px">
+          {tel_btn("btn btn-dark", "es-body", "Llame al " + SITE["phone_display"])}
+          <a class="btn btn-outline" href="/">See this page in English</a>
+        </div>
+      </div>
+      <div class="panel panel-accent" id="taller">
+        <h3>El taller</h3>
+        <table class="hours"><tbody>
+          <tr><th scope="row">Dirección</th><td>{esc(FULL_ADDRESS)}</td></tr>
+          <tr><th scope="row">Teléfono</th><td><a href="tel:{SITE["phone_link"]}" data-loc="es-panel">{SITE["phone_display"]}</a></td></tr>
+          <tr><th scope="row">Correo</th><td><a href="mailto:{SITE["email"]}">{SITE["email"]}</a></td></tr>
+          <tr><th scope="row">Horario</th><td>Lunes a sábado, 8 AM – 5 PM</td></tr>
+          <tr><th scope="row">Domingo</th><td>Cerrado</td></tr>
+        </tbody></table>
+        <p style="margin:22px 0 0">
+          <a class="btn btn-accent" href="{MAPS_DIRECTIONS}" rel="noopener" style="width:100%">Cómo llegar</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{cta_band("¿Quiere una respuesta clara sobre su vehículo?",
+          "Llame al taller y hable con alguien que repara carros todos los días. Abierto de lunes a sábado, de 8:00 AM a 5:00 PM.")}"""
+
+    render("/es/", "Taller Mecánico en Lodi, CA | Phil's Auto",
+           "Taller de reparación de autos, diésel y flotas en Lodi, California. Diagnóstico "
+           "honesto, precio antes de reparar, sin ventas de más. Llame al (209) 647-4953.",
+           body, schemas=[business_schema()], lang="es",
+           alternates=[("en", "/"), ("es", "/es/"), ("x-default", "/")])
+    PAGES.append(("/es/", "0.7", "monthly"))
+
+
 def build_sitemap():
     today = date.today().isoformat()
     urls = "".join(
@@ -1890,7 +2470,7 @@ def clean():
         target = os.path.join(OUT, entry)
         if os.path.isdir(target):
             shutil.rmtree(target)
-        elif entry.endswith((".html", ".xml", ".txt")):
+        elif entry.endswith((".html", ".xml", ".txt", ".webmanifest")) or entry in ("_redirects", "_headers", ".htaccess"):
             os.remove(target)
 
 
@@ -1905,10 +2485,15 @@ def main():
     build_reviews()
     build_service_areas()
     build_contact()
+    build_spanish()
+    build_advice_index()
+    for g in GUIDES:
+        build_guide(g)
     build_privacy()
     build_thanks()
     build_404()
     build_sitemap()
+    build_deploy_files()
     print("Built %d pages into %s" % (len(PAGES) + 2, OUT))
     for p, _, _ in PAGES:
         print("  %s" % p)

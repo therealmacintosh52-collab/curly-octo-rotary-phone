@@ -1,0 +1,48 @@
+# Phil's Auto and Fleet Repair — Apache configuration
+# Only needed on a traditional host (cPanel). Netlify and Cloudflare Pages use
+# the _redirects and _headers files instead.
+
+RewriteEngine On
+
+# One canonical hostname: https://philsautofleet.com
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+RewriteCond %{HTTP_HOST} ^www\.philsautofleet\.com [NC]
+RewriteRule ^(.*)$ https://philsautofleet.com/$1 [R=301,L]
+
+# Old page URLs -> new equivalents
+Redirect 301 /auto-repair /services/auto-repair/
+Redirect 301 /auto-repair-lodi /services/auto-repair/
+Redirect 301 /diesel-repair /services/diesel-repair/
+Redirect 301 /diesel-repair-lodi /services/diesel-repair/
+Redirect 301 /tire-repair /services/tire-repair/
+Redirect 301 /tires /services/tire-repair/
+Redirect 301 /car-diagnostics /services/car-diagnostics/
+Redirect 301 /car-diagnostics-lodi /services/car-diagnostics/
+Redirect 301 /brake-repair /services/brake-repair/
+Redirect 301 /brakes /services/brake-repair/
+Redirect 301 /engine-repair /services/engine-repair/
+Redirect 301 /transmission /services/transmission-repair/
+Redirect 301 /transmission-repair /services/transmission-repair/
+Redirect 301 /oil-change /services/oil-change-maintenance/
+Redirect 301 /fleet /services/fleet-services/
+Redirect 301 /fleet-services /services/fleet-services/
+Redirect 301 /ac-repair /services/ac-heating-repair/
+Redirect 301 /electrical /services/electrical-repair/
+Redirect 301 /about-us /about/
+Redirect 301 /contact-us /contact/
+Redirect 301 /reviews /reviews/
+Redirect 301 /testimonials /reviews/
+
+ErrorDocument 404 /404.html
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript image/svg+xml
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
