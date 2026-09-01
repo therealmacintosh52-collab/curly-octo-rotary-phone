@@ -45,3 +45,16 @@ It is one page for a nationwide business, competing against every agency in
 the country. The head tags stop it looking like a hypocrite selling schema
 markup, and they help it show up when someone searches the business by name.
 They will not win competitive terms. Traffic has to come from somewhere else.
+
+## Careful when editing
+
+`public/index.html` is the source of truth. The head — meta, canonical, Open
+Graph and the three schema blocks — lives only in this file. Overwriting it
+with a copy from anywhere else silently drops all of it, which has happened
+once. If you regenerate the page, re-add the head, and check with:
+
+```bash
+python3 -c "import re,io;print(len(re.findall(r'ld\+json', io.open('public/index.html',encoding='utf-8').read())))"
+```
+
+Three is correct. Zero means the head is gone.
