@@ -12,12 +12,15 @@ the sitemap and the structured data stay in sync.
 """
 
 import html
+import io
+import json
 import os
 import re
 import re
 import shutil
 import sys
 from datetime import date
+from urllib.parse import quote, quote_plus
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(ROOT, "public")
@@ -34,88 +37,199 @@ if "--out" in sys.argv:                      # build somewhere other than ./publ
 # Profile, Yelp, Apple Maps and every citation: NAP consistency is a direct
 # local-ranking factor).
 # --------------------------------------------------------------------------
-SITE = {
-    "name": "Phil's Auto and Fleet Repair",
-    "short": "Phil's Auto & Fleet",
-    "base_url": "https://philsautofleet.com",
-    "phone_display": "(209) 647-4953",
-    "phone_link": "+12096474953",
-    "email": "phil@philsautofleet.com",
-    "street": "103 E Elm St",
-    "city": "Lodi",
-    "region": "CA",
-    "region_long": "California",
-    "zip": "95240",
-    "lat": "38.1341",
-    "lng": "-121.2724",
-    "hours_human": "Monday – Saturday, 8:00 AM – 5:00 PM",
-    "hours_rows": [
-        ("Monday", "8:00 AM – 5:00 PM"),
-        ("Tuesday", "8:00 AM – 5:00 PM"),
-        ("Wednesday", "8:00 AM – 5:00 PM"),
-        ("Thursday", "8:00 AM – 5:00 PM"),
-        ("Friday", "8:00 AM – 5:00 PM"),
-        ("Saturday", "8:00 AM – 5:00 PM"),
-        ("Sunday", "Closed"),
-    ],
-    "hours_schema": [
-        {"days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-         "opens": "08:00", "closes": "17:00"},
-    ],
-    "rating": "4.4",
-    "review_count": "83",
-    "areas": ["Lodi", "Stockton", "Galt", "Acampo", "Woodbridge", "Lockeford",
-              "Victor", "Thornton", "Clements", "Elk Grove"],
-    "founded_note": "a locally owned shop serving Lodi drivers and fleets",
-    # --- Logo -------------------------------------------------------------
-    # Drop the shop's real logo in public/assets/img/ and put its path here,
-    # e.g. "/assets/img/logo.svg" (SVG best, transparent PNG fine). Leave it
-    # empty and the site falls back to the "PA" monogram placeholder.
-    "logo": "/assets/img/logo.png",
-    # Optional light/reversed version for the dark footer. If it's empty and a
-    # logo is set, the footer puts the logo on a white chip so it stays legible.
-    "logo_dark_bg": "",
-    # "badge" keeps the shop name in text beside a round/square logo mark;
-    # "full" uses the logo on its own (for a logo that already reads as a
-    # wordmark). The badge mark needs the name spelled out next to it.
-    "logo_lockup": "badge",
-    # Set this when the site is served from a custom domain on GitHub Pages —
-    # it writes the CNAME file that Pages requires. Netlify, Cloudflare Pages
-    # and traditional hosts do not need it; leave it empty there.
-    "custom_domain": "",
-    # Optional: a favicon cut from the real logo (SVG or PNG). Falls back to
-    # the placeholder mark in assets/img/favicon.svg.
-    "favicon": "/assets/img/logo.png",
-}
+# --------------------------------------------------------------------------
+# Client config. Every shop is one JSON file in ./clients. Nothing about a
+# specific business lives in this file any more — the copy library below is
+# shared by every client, which is the whole economic point: the second site
+# costs the same to produce as the two-hundredth.
+#
+#   python3 build.py                       -> default client into ./public
+#   python3 build.py --client acme-auto    -> that client into ./public
+#   python3 build.py --all                 -> every client into ./dist/<slug>/
+# --------------------------------------------------------------------------
+CLIENT_DIR = os.path.join(ROOT, "clients")
+DEFAULT_CLIENT = "phils-auto-fleet-repair"
 
+if "--client" in sys.argv:
+    CLIENT = sys.argv[sys.argv.index("--client") + 1]
+else:
+    CLIENT = DEFAULT_CLIENT
+
+CLIENT_PATH = os.path.join(CLIENT_DIR, CLIENT + ".json")
+if not os.path.exists(CLIENT_PATH):
+    sys.exit("No client config at %s\nRun: python3 newclient.py --help" % CLIENT_PATH)
+
+with io.open(CLIENT_PATH, encoding="utf-8") as _fh:
+    CONFIG = json.load(_fh)
+
+REQUIRED = ("name", "base_url", "phone_display", "phone_link", "email",
+            "street", "city", "region", "zip")
+_missing = [k for k in REQUIRED if not CONFIG.get(k)]
+if _missing:
+    sys.exit("%s is missing required keys: %s" % (CLIENT_PATH, ", ".join(_missing)))
+
+SITE = dict(CONFIG)
+SITE.setdefault("short", SITE["name"])
+SITE.setdefault("region_long", SITE["region"])
+SITE.setdefault("lat", "")
+SITE.setdefault("lng", "")
+SITE.setdefault("rating", "")
+SITE.setdefault("review_count", "")
+SITE.setdefault("areas", [SITE["city"]])
+SITE.setdefault("founded_note", "a locally owned shop serving %s drivers" % SITE["city"])
+SITE.setdefault("logo", "")
+SITE.setdefault("logo_dark_bg", "")
+SITE.setdefault("logo_lockup", "badge")
+SITE.setdefault("custom_domain", "")
+SITE.setdefault("favicon", "")
+SITE.setdefault("hours_human", "Call for hours")
+SITE.setdefault("hours_rows", [])
+SITE.setdefault("hours_schema", [])
+SITE["base_url"] = SITE["base_url"].rstrip("/")
+
+FULL_ADDRESS = "{street}, {city}, {region} {zip}".format(**SITE)
+_ADDR_PLAIN = "{street} {city} {region} {zip}".format(**SITE)
+
+# Map URLs are derived, not pasted — one less thing to get wrong per client.
 MAPS_DIRECTIONS = ("https://www.google.com/maps/dir/?api=1&destination="
-                   + "103+E+Elm+St+Lodi+CA+95240")
-MAPS_LISTING = "https://www.google.com/maps/search/?api=1&query=Phil%27s+Auto+and+Fleet+Repair+Lodi+CA"
-MAPS_EMBED = ("https://maps.google.com/maps?q=103%20E%20Elm%20St%2C%20Lodi%2C%20CA%2095240"
-              "&t=&z=15&ie=UTF8&iwloc=&output=embed")
-YELP_URL = "https://www.yelp.com/biz/phils-auto-and-fleet-repair-lodi"
+                   + quote_plus(_ADDR_PLAIN))
+MAPS_LISTING = ("https://www.google.com/maps/search/?api=1&query="
+                + quote_plus("%s %s %s" % (SITE["name"], SITE["city"], SITE["region"])))
+MAPS_EMBED = ("https://maps.google.com/maps?q=" + quote(FULL_ADDRESS, safe="")
+              + "&t=&z=15&ie=UTF8&iwloc=&output=embed")
+YELP_URL = SITE.get("yelp_url", "")
 
 # Profiles that already carry reviews and citations. Listing them as sameAs
 # tells search engines these are all one business, which consolidates the
-# authority currently split across them (and across two domains).
-PROFILES = [
-    MAPS_LISTING,
-    YELP_URL,
-    "https://nextdoor.com/pages/phils-auto-fleet-repair-lodi-ca/",
-    "https://www.mapquest.com/us/california/phils-auto-and-fleet-repair-355906651",
-    "https://www.carfax.com/Phils-Auto-and-Fleet-Repair-Lodi-CA_bs101148341",
-]  # TODO: paste the exact URLs from each dashboard; these are the expected forms
+# authority otherwise split across them.
+PROFILES = [MAPS_LISTING] + [u for u in SITE.get("profiles", []) if u]
 
-FULL_ADDRESS = "{street}, {city}, {region} {zip}".format(**SITE)
+# Where quote requests go. FormSubmit needs no account: the first submission
+# emails SITE["email"] a one-time confirmation link. Click it once and every
+# submission after that arrives in the inbox directly. Swap in Formspree,
+# Basin, Netlify Forms or your own handler by changing this endpoint only —
+# the markup does not change.
+FORM_ENDPOINT = SITE.get("form_endpoint") or ("https://formsubmit.co/ajax/%s" % SITE["email"])
 
-# Where quote requests go. This uses FormSubmit, which needs no account: the
-# first time the form is used, FormSubmit emails SITE["email"] a one-time
-# confirmation link. Click it once and every submission after that arrives in
-# the inbox directly.
+
+# --------------------------------------------------------------------------
+# Localization.
 #
-# To move to another provider later (Formspree, Basin, Netlify Forms, your own
-# handler), replace this with their endpoint — the markup does not change.
-FORM_ENDPOINT = "https://formsubmit.co/ajax/%s" % SITE["email"]
+# The copy library below was written for one real shop (the reference client)
+# and still carries its name, city and phone number in ~150 places. Rather
+# than thread a variable through every sentence, each rendered page is passed
+# through a find-and-replace that maps the reference client's literals onto
+# the client being built. For the reference client itself every pair is
+# identical, so the pass is a no-op and its output is byte-for-byte unchanged.
+#
+# This gets identity right mechanically — name, city, phone, address, domain.
+# It cannot fix regional flavour: a guide about Central Valley summer heat
+# still reads oddly for a shop in Maine. Run `python3 build.py --lint` after
+# building; it fails loudly on any reference literal that survived, which is
+# your list of sentences to rewrite by hand for that client.
+# --------------------------------------------------------------------------
+REFERENCE_SLUG = "phils-auto-fleet-repair"
+_REF_PATH = os.path.join(CLIENT_DIR, REFERENCE_SLUG + ".json")
+with io.open(_REF_PATH, encoding="utf-8") as _fh:
+    REFERENCE = json.load(_fh)
+
+
+def _domain(url):
+    return url.replace("https://", "").replace("http://", "").strip("/")
+
+
+def _variants(text):
+    """A literal as it can appear in built HTML: raw, HTML-escaped both ways,
+    and URL-encoded both ways."""
+    out = [text,
+           html.escape(text, quote=True),
+           text.replace("'", "&#39;").replace("&", "&amp;"),
+           quote_plus(text),
+           quote(text, safe="")]
+    seen, uniq = set(), []
+    for v in out:
+        if v and v not in seen:
+            seen.add(v)
+            uniq.append(v)
+    return uniq
+
+
+def _build_swaps():
+    ref, cur = REFERENCE, SITE
+    pairs = []
+
+    def add(a, b):
+        if a and b and a != b:
+            pairs.append((a, b))
+
+    def add_all(key):
+        a, b = ref.get(key, ""), cur.get(key, "")
+        if not a or not b or a == b:
+            return
+        for va, vb in zip(_variants(a), _variants(b)):
+            add(va, vb)
+
+    # Longest and most specific first so a shorter literal never eats a longer
+    # one mid-replacement.
+    ref_full = "{street}, {city}, {region} {zip}".format(**ref)
+    cur_full = "{street}, {city}, {region} {zip}".format(**cur)
+    for va, vb in zip(_variants(ref_full), _variants(cur_full)):
+        add(va, vb)
+    add("{street} {city} {region} {zip}".format(**ref).replace(" ", "+"),
+        "{street} {city} {region} {zip}".format(**cur).replace(" ", "+"))
+
+    for key in ("name", "short", "street", "email"):
+        add_all(key)
+
+    add(_domain(ref["base_url"]), _domain(cur["base_url"]))
+    add(ref["base_url"], cur["base_url"])
+
+    # Ratings only inside their phrases — a bare "4.4" could be any number.
+    if ref.get("rating") and cur.get("rating"):
+        for tmpl in ("%s out of 5", "%s de 5", "%s stars", "%s-star"):
+            add(tmpl % ref["rating"], tmpl % cur["rating"])
+    if ref.get("review_count") and cur.get("review_count"):
+        for tmpl in ("%s Google review", "%s reseñas", "%s reviewers"):
+            add(tmpl % ref["review_count"], tmpl % cur["review_count"])
+
+    add_all("phone_display")
+    add(ref["phone_display"].replace("(", "").replace(") ", "-"),
+        cur["phone_display"].replace("(", "").replace(") ", "-"))
+    add_all("phone_link")
+    add_all("zip")
+
+    # Service areas map positionally: the reference shop's neighbour towns
+    # become this shop's neighbour towns.
+    ref_areas, cur_areas = ref.get("areas", []), cur.get("areas", [])
+    if cur_areas:
+        # The reference shop names ten neighbouring towns in its prose. A client
+        # with four gets those four cycled through, so the copy still reads as a
+        # real service area instead of naming another shop's neighbours.
+        for i, a in enumerate(ref_areas):
+            b = cur_areas[i] if i < len(cur_areas) else cur_areas[i % len(cur_areas)]
+            for va, vb in zip(_variants(a), _variants(b)):
+                add(va, vb)
+
+    add_all("region_long")
+    add_all("city")
+
+    # Regional colour, only when the client supplies a replacement.
+    for a, b in (cur.get("region_swaps") or {}).items():
+        for va, vb in zip(_variants(a), _variants(b)):
+            add(va, vb)
+
+    pairs.sort(key=lambda ab: -len(ab[0]))
+    return pairs
+
+
+SWAPS = _build_swaps()
+
+
+def localize(text):
+    for a, b in SWAPS:
+        text = text.replace(a, b)
+    return text
+
 
 # --------------------------------------------------------------------------
 # Inline SVG icons (no icon font, no network request)
@@ -162,7 +276,7 @@ def esc(text):
 def seo_title(base):
     """Append the longest brand suffix that keeps the title inside the ~60
     characters Google renders before truncating."""
-    for suffix in (" | Phil's Auto & Fleet Repair", " | Phil's Auto & Fleet", " | Phil's Auto"):
+    for suffix in SITE.get("title_suffixes") or [" | " + SITE["short"]]:
         if len(base) + len(suffix) <= 60:
             return base + suffix
     return base
@@ -1051,6 +1165,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
         depth = 0 if path == "/" else path.strip("/").count("/") + 1
         prefix = "./" if depth == 0 else "../" * depth
         doc = re.sub(r'(href|src)="/(?!/)', r'\1="%s' % prefix, doc)
+    doc = localize(doc)
 
     rel = "index.html" if path == "/" else path.strip("/") + "/index.html"
     dest = os.path.join(OUT, rel)
@@ -1215,36 +1330,9 @@ def service_cards(slugs=None, limit=None):
 
 # Verified, attributed customer feedback only. Add new entries here as the
 # shop collects real reviews — never invent them.
-REVIEWS = [
-    {"quote": "I highly recommend Phil's Auto and Fleet Repair. I called on a Saturday morning for "
-              "an appointment for an alignment on my BMW X3. They took me in right away, completed "
-              "the work in the said time, gave me a report and my suv drives smoothly.",
-     "name": "Tracey P.", "source": "Yelp", "url": ""},
-    {"quote": "Phil and his shop do the best work! My ford fusion kept having the service advance "
-              "track light come on randomly. I was leaving for a trip in 4 days and needed it fixed "
-              "desperately. I called Phil and he worked me into his schedule that day and put more "
-              "effort in than any other shop I have been to. I was back on the road that same day!",
-     "name": "Hannah K.", "source": "Yelp", "url": ""},
-    {"quote": "Replies back pretty quick and in a reasonable time. Their prices are fair and not "
-              "too overly expensive like going to some dealership that cost you an arm and a leg. "
-              "Thank you Phil's Auto and Fleet Repair for your time, quote and services.",
-     "name": "Michael D.", "source": "Yelp", "url": ""},
-    {"quote": "GREAT SERVICE! Above and beyond expectations!! Completed service on schedule!! "
-              "I will be bringing my cars here from now on!",
-     "name": "Verified customer", "source": "MapQuest", "url": ""},
-]
+REVIEWS = SITE.get("reviews", [])
 
-REVIEW_THEMES = [
-    ("gauge", "They find what others missed",
-     "The most common thread in public reviews: vehicles that were misdiagnosed elsewhere getting "
-     "sorted out here."),
-    ("dollar", "No pressure, no upsell",
-     "Customers repeatedly describe getting an objective service plan instead of a list of add-ons "
-     "they didn't ask for."),
-    ("clock", "Work finished when promised",
-     "Turnaround that matches what was quoted comes up again and again — the reason fleet customers "
-     "stay."),
-]
+REVIEW_THEMES = SITE.get("review_themes", [])
 
 
 def review_cards():
@@ -1839,18 +1927,7 @@ def build_contact():
     PAGES.append(("/contact/", "0.8", "yearly"))
 
 
-AREA_NOTES = {
-    "Lodi": "Our home city — downtown, the east side, Kettleman Lane and everywhere between.",
-    "Stockton": "A short run down Highway 99 for drivers who want a shop that isn't a chain.",
-    "Galt": "North of us on 99, and a regular stop for fleet and diesel customers.",
-    "Acampo": "Minutes away, including vineyard and agricultural vehicles.",
-    "Woodbridge": "Just west of Lodi — daily drivers and work trucks alike.",
-    "Lockeford": "East on Highway 12, well worth the drive for a proper diagnosis.",
-    "Victor": "Close by, and familiar territory for our diesel customers.",
-    "Thornton": "Delta-area drivers and farm fleets we've come to know.",
-    "Clements": "Rural miles are hard on vehicles; we service them accordingly.",
-    "Elk Grove": "Further north, but customers make the trip for second opinions.",
-}
+AREA_NOTES = SITE.get("area_notes", {})
 
 
 def build_service_areas():
@@ -2286,7 +2363,7 @@ OLD_URL_MAP = [
 def build_deploy_files():
     if SITE.get("custom_domain"):
         with open(os.path.join(OUT, "CNAME"), "w", encoding="utf-8") as fh:
-            fh.write(SITE["custom_domain"] + "\n")
+            fh.write(localize(SITE["custom_domain"] + "\n"))
 
     with open(os.path.join(OUT, "site.webmanifest"), "w", encoding="utf-8") as fh:
         fh.write("""{
@@ -2312,7 +2389,7 @@ def build_deploy_files():
               "# Trailing-slash variants",
               ] + ["%-26s %-38s 301!" % (old + "/", new) for old, new in OLD_URL_MAP]
     with open(os.path.join(OUT, "_redirects"), "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines) + "\n")
+        fh.write(localize("\n".join(lines) + "\n"))
 
     with open(os.path.join(OUT, "_headers"), "w", encoding="utf-8") as fh:
         fh.write("""/*
@@ -2522,7 +2599,136 @@ def clean():
             os.remove(target)
 
 
+def localize_files():
+    """render() localizes HTML as it writes. The deploy artifacts are written
+    as multi-line literals elsewhere, so they get the same pass here."""
+    for rel in ("site.webmanifest", "_redirects", "_headers", ".htaccess",
+                "robots.txt", "sitemap.xml", "404.html"):
+        fp = os.path.join(OUT, rel)
+        if not os.path.exists(fp):
+            continue
+        with io.open(fp, encoding="utf-8") as fh:
+            text = fh.read()
+        out = localize(text)
+        if out != text:
+            with io.open(fp, "w", encoding="utf-8") as fh:
+                fh.write(out)
+
+
+def copy_assets():
+    """Every client shares one asset base; a client-specific logo simply
+    overwrites the placeholder after the copy."""
+    srcdir = os.path.join(ROOT, "public", "assets")
+    dstdir = os.path.join(OUT, "assets")
+    if os.path.abspath(srcdir) == os.path.abspath(dstdir) or not os.path.isdir(srcdir):
+        return
+    if os.path.isdir(dstdir):
+        shutil.rmtree(dstdir)
+    shutil.copytree(srcdir, dstdir)
+
+
+def build_all():
+    """Build every client in ./clients into ./dist/<slug>/.
+
+    Each client runs in its own process: the page builders read module-level
+    globals, so a fresh interpreter is the honest way to keep two shops from
+    bleeding into each other."""
+    import subprocess
+    slugs = sorted(f[:-5] for f in os.listdir(CLIENT_DIR) if f.endswith(".json"))
+    if not slugs:
+        sys.exit("No client configs in %s" % CLIENT_DIR)
+    dist = os.path.join(ROOT, "dist")
+    failed = []
+    for slug in slugs:
+        out = os.path.join(dist, slug)
+        cmd = [sys.executable, os.path.abspath(__file__), "--client", slug, "--out", out]
+        if RELATIVE:
+            cmd.append("--relative")
+        print("\n=== %s ===" % slug)
+        if subprocess.call(cmd) != 0:
+            failed.append(slug)
+    print("\nBuilt %d of %d clients into %s" % (len(slugs) - len(failed), len(slugs), dist))
+    if failed:
+        sys.exit("Failed: %s" % ", ".join(failed))
+
+
+def lint(root=None):
+    """Fail on any reference-client literal that survived into built output.
+
+    Localization handles identity mechanically; this catches what it cannot —
+    regional colour, highway names, anything written for the reference shop
+    that does not travel. Every hit is a sentence to rewrite for that client,
+    or a pair to add to "region_swaps" in its config."""
+    root = root or os.path.join(ROOT, "dist")
+    if not os.path.isdir(root):
+        sys.exit("Nothing to lint at %s — run: python3 build.py --all" % root)
+
+    ref = REFERENCE
+    needles = [ref["name"], ref["short"], ref["city"], ref["phone_display"],
+               ref["street"], _domain(ref["base_url"]), ref["email"]]
+    needles += [n for n in ref.get("areas", [])[1:]]
+    needles += list((ref.get("region_swaps") or {}).keys())
+    needles += ["Central Valley", "San Joaquin", "Highway 99", "Highway 12"]
+    needles = sorted({n for n in needles if n and len(n) > 3}, key=len, reverse=True)
+
+    def own(cfg):
+        """Everything this client legitimately calls itself — a reference town
+        that is also this shop's own city is not a leak."""
+        vals = {str(cfg.get(k, "")) for k in
+                ("name", "short", "city", "street", "email", "phone_display", "region_long")}
+        vals |= set(cfg.get("areas", []))
+        vals.add(_domain(cfg.get("base_url", "")))
+        return {v for v in vals if v}
+
+    total = 0
+    for slug in sorted(os.listdir(root)):
+        cdir = os.path.join(root, slug)
+        if not os.path.isdir(cdir) or slug == REFERENCE_SLUG:
+            continue
+        cpath = os.path.join(CLIENT_DIR, slug + ".json")
+        mine = set()
+        if os.path.exists(cpath):
+            with io.open(cpath, encoding="utf-8") as fh:
+                mine = own(json.load(fh))
+        probe = [n for n in needles if n not in mine]
+        hits = {}
+        for dirpath, _dirs, files in os.walk(cdir):
+            if os.path.basename(dirpath) == "assets":
+                continue
+            for fn in files:
+                if not fn.endswith((".html", ".xml", ".txt", ".webmanifest")):
+                    continue
+                fp = os.path.join(dirpath, fn)
+                with io.open(fp, encoding="utf-8", errors="replace") as fh:
+                    text = fh.read()
+                for n in probe:
+                    c = text.count(n)
+                    if c:
+                        hits.setdefault(n, [0, set()])
+                        hits[n][0] += c
+                        hits[n][1].add(os.path.relpath(fp, cdir))
+        if hits:
+            total += 1
+            print("\n%s — %d reference literal(s) leaked:" % (slug, len(hits)))
+            for n, (c, files) in sorted(hits.items(), key=lambda kv: -kv[1][0]):
+                sample = sorted(files)[:3]
+                more = "" if len(files) <= 3 else " (+%d more)" % (len(files) - 3)
+                print("  %-28s %3d×  %s%s" % ('"%s"' % n, c, ", ".join(sample), more))
+        else:
+            print("%s — clean" % slug)
+
+    if total:
+        print("\n%d client(s) carry reference copy. Rewrite those sentences, or add"
+              "\nthe swap to \"region_swaps\" in the client config." % total)
+        sys.exit(1)
+    print("\nAll clients clean.")
+
+
 def main():
+    if "--lint" in sys.argv:
+        return lint()
+    if "--all" in sys.argv:
+        return build_all()
     os.makedirs(OUT, exist_ok=True)
     clean()
     build_home()
@@ -2542,7 +2748,9 @@ def main():
     build_404()
     build_sitemap()
     build_deploy_files()
-    print("Built %d pages into %s" % (len(PAGES) + 2, OUT))
+    localize_files()
+    copy_assets()
+    print("Built %d pages for %s into %s" % (len(PAGES) + 2, CLIENT, OUT))
     for p, _, _ in PAGES:
         print("  %s" % p)
 

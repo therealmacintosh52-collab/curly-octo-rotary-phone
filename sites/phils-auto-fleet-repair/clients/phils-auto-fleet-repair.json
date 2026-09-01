@@ -1,0 +1,76 @@
+{
+  "name": "Phil's Auto and Fleet Repair",
+  "short": "Phil's Auto & Fleet",
+  "base_url": "https://philsautofleet.com",
+  "phone_display": "(209) 647-4953",
+  "phone_link": "+12096474953",
+  "email": "phil@philsautofleet.com",
+  "street": "103 E Elm St",
+  "city": "Lodi",
+  "region": "CA",
+  "region_long": "California",
+  "zip": "95240",
+  "lat": "38.1341",
+  "lng": "-121.2724",
+  "hours_human": "Monday – Saturday, 8:00 AM – 5:00 PM",
+  "hours_rows": [
+    ["Monday", "8:00 AM – 5:00 PM"],
+    ["Tuesday", "8:00 AM – 5:00 PM"],
+    ["Wednesday", "8:00 AM – 5:00 PM"],
+    ["Thursday", "8:00 AM – 5:00 PM"],
+    ["Friday", "8:00 AM – 5:00 PM"],
+    ["Saturday", "8:00 AM – 5:00 PM"],
+    ["Sunday", "Closed"]
+  ],
+  "hours_schema": [
+    {"days": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+     "opens": "08:00", "closes": "17:00"}
+  ],
+  "rating": "4.4",
+  "review_count": "83",
+  "areas": ["Lodi","Stockton","Galt","Acampo","Woodbridge","Lockeford","Victor","Thornton","Clements","Elk Grove"],
+  "founded_note": "a locally owned shop serving Lodi drivers and fleets",
+  "logo": "/assets/img/logo.png",
+  "logo_dark_bg": "",
+  "logo_lockup": "badge",
+  "custom_domain": "",
+  "favicon": "/assets/img/logo.png",
+  "title_suffixes": [" | Phil's Auto & Fleet Repair", " | Phil's Auto & Fleet", " | Phil's Auto"],
+  "profiles": [
+    "https://www.yelp.com/biz/phils-auto-and-fleet-repair-lodi",
+    "https://nextdoor.com/pages/phils-auto-fleet-repair-lodi-ca/",
+    "https://www.mapquest.com/us/california/phils-auto-and-fleet-repair-355906651",
+    "https://www.carfax.com/Phils-Auto-and-Fleet-Repair-Lodi-CA_bs101148341"
+  ],
+  "yelp_url": "https://www.yelp.com/biz/phils-auto-and-fleet-repair-lodi",
+  "reviews": [
+    {"quote": "I highly recommend Phil's Auto and Fleet Repair. I called on a Saturday morning for an appointment for an alignment on my BMW X3. They took me in right away, completed the work in the said time, gave me a report and my suv drives smoothly.",
+     "name": "Tracey P.", "source": "Yelp", "url": ""},
+    {"quote": "Phil and his shop do the best work! My ford fusion kept having the service advance track light come on randomly. I was leaving for a trip in 4 days and needed it fixed desperately. I called Phil and he worked me into his schedule that day and put more effort in than any other shop I have been to. I was back on the road that same day!",
+     "name": "Hannah K.", "source": "Yelp", "url": ""},
+    {"quote": "Replies back pretty quick and in a reasonable time. Their prices are fair and not too overly expensive like going to some dealership that cost you an arm and a leg. Thank you Phil's Auto and Fleet Repair for your time, quote and services.",
+     "name": "Michael D.", "source": "Yelp", "url": ""},
+    {"quote": "GREAT SERVICE! Above and beyond expectations!! Completed service on schedule!! I will be bringing my cars here from now on!",
+     "name": "Verified customer", "source": "MapQuest", "url": ""}
+  ],
+  "review_themes": [
+    ["gauge", "They find what others missed",
+     "The most common thread in public reviews: vehicles that were misdiagnosed elsewhere getting sorted out here."],
+    ["dollar", "No pressure, no upsell",
+     "Customers repeatedly describe getting an objective service plan instead of a list of add-ons they didn't ask for."],
+    ["clock", "Work finished when promised",
+     "Turnaround that matches what was quoted comes up again and again — the reason fleet customers stay."]
+  ],
+  "area_notes": {
+    "Lodi": "Our home city — downtown, the east side, Kettleman Lane and everywhere between.",
+    "Stockton": "A short run down Highway 99 for drivers who want a shop that isn't a chain.",
+    "Galt": "North of us on 99, and a regular stop for fleet and diesel customers.",
+    "Acampo": "Minutes away, including vineyard and agricultural vehicles.",
+    "Woodbridge": "Just west of Lodi — daily drivers and work trucks alike.",
+    "Lockeford": "East on Highway 12, well worth the drive for a proper diagnosis.",
+    "Victor": "Close by, and familiar territory for our diesel customers.",
+    "Thornton": "Delta-area drivers and farm fleets we've come to know.",
+    "Clements": "Rural miles are hard on vehicles; we service them accordingly.",
+    "Elk Grove": "Further north, but customers make the trip for second opinions."
+  }
+}
