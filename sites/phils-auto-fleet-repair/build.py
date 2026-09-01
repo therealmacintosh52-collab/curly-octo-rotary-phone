@@ -26,6 +26,8 @@ OUT = os.path.join(ROOT, "public")
 # folder works wherever it is dropped — the domain root, a subfolder, a staging
 # URL — instead of only at the top level of a domain.
 RELATIVE = "--relative" in sys.argv
+if "--out" in sys.argv:                      # build somewhere other than ./public
+    OUT = os.path.abspath(sys.argv[sys.argv.index("--out") + 1])
 
 # --------------------------------------------------------------------------
 # Business facts — single source of truth (keep identical to Google Business
@@ -106,9 +108,14 @@ PROFILES = [
 
 FULL_ADDRESS = "{street}, {city}, {region} {zip}".format(**SITE)
 
-# Set this to your form endpoint (Formspree / Netlify / Basin / your own).
-# Until it is set, the form falls back to a prefilled email — see assets/js/site.js.
-FORM_ENDPOINT = "REPLACE_WITH_YOUR_FORM_ENDPOINT"
+# Where quote requests go. This uses FormSubmit, which needs no account: the
+# first time the form is used, FormSubmit emails SITE["email"] a one-time
+# confirmation link. Click it once and every submission after that arrives in
+# the inbox directly.
+#
+# To move to another provider later (Formspree, Basin, Netlify Forms, your own
+# handler), replace this with their endpoint — the markup does not change.
+FORM_ENDPOINT = "https://formsubmit.co/ajax/%s" % SITE["email"]
 
 # --------------------------------------------------------------------------
 # Inline SVG icons (no icon font, no network request)
@@ -1098,6 +1105,10 @@ def quote_form(form_id="quote", heading="Get a free quote", sub=None, service_de
     <textarea id="%(id)s-message" name="message" placeholder="Noises, warning lights, when it started, anything another shop already told you."></textarea>
   </div>
   <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <input type="hidden" name="_subject" value="Quote request from philsautofleet.com">
+  <input type="hidden" name="_template" value="table">
+  <input type="hidden" name="_captcha" value="false">
   <button class="btn btn-accent" type="submit" style="width:100%%">Request my quote</button>
   <p class="form-status" role="status" aria-live="polite"></p>
   <p class="form-note">No obligation. We'll never sell your information. Prefer to talk it through?
@@ -1896,8 +1907,10 @@ def build_privacy():
   <p><strong>Analytics.</strong> This site may use standard web analytics to understand how many
   people visit and which pages they use. That data is aggregated and is not used to identify you
   personally.</p>
-  <p><strong>Third-party services.</strong> Map and review links on this site lead to Google, Yelp
-  and similar services, which apply their own privacy policies once you leave our site.</p>
+  <p><strong>Third-party services.</strong> Quote requests are delivered to our inbox by FormSubmit,
+  a form-forwarding service, which processes the details you submit in order to send them to us.
+  Map and review links on this site lead to Google, Yelp and similar services, which apply their
+  own privacy policies once you leave our site.</p>
   <p><strong>Your choices.</strong> Ask us to delete the information you sent and we will —
   call {SITE["phone_display"]} or email <a href="mailto:{SITE["email"]}">{SITE["email"]}</a>.</p>
   <p><strong>Contact.</strong> {esc(SITE["name"])}, {esc(FULL_ADDRESS)},
@@ -2399,6 +2412,10 @@ def build_spanish():
           <div class="field"><label for="es-mensaje">¿Qué está haciendo el vehículo?</label>
             <textarea id="es-mensaje" name="message" placeholder="Ruidos, luces del tablero, cuándo empezó, y qué le dijeron en otro taller."></textarea></div>
           <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <input type="hidden" name="_subject" value="Cotización desde philsautofleet.com">
+          <input type="hidden" name="_template" value="table">
+          <input type="hidden" name="_captcha" value="false">
           <button class="btn btn-accent" type="submit" style="width:100%">Enviar solicitud</button>
           <p class="form-status" role="status" aria-live="polite"></p>
           <p class="form-note">Sin compromiso. Nunca vendemos su información.</p>

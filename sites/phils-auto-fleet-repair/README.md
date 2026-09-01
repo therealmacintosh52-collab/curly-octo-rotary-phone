@@ -173,37 +173,37 @@ The odd height and the crop step are deliberate: headless Chrome reserves about 
 for browser chrome, so rendering at 717 and trimming to 630 is what produces a full-bleed image.
 `tools/png_crop.py` does that with the standard library alone — no image packages to install.
 
-## Connecting the quote form
+## The quote form
 
-Set `FORM_ENDPOINT` in `build.py` and rebuild:
+The form is already connected, with no account to create. It posts to **FormSubmit**, which
+forwards submissions to `phil@philsautofleet.com`.
 
-- **Formspree** — `https://formspree.io/f/xxxxxxx`
-- **Basin** — `https://usebasin.com/f/xxxxxxx`
-- **Netlify Forms** — add `netlify` and `name="quote"` attributes to the `<form>` tag in
-  `quote_form()`, and point `FORM_ENDPOINT` at `/thank-you/`.
-- **Your own handler** — any endpoint accepting `multipart/form-data` POST and returning 2xx.
+**One step, once:** the first time the form is submitted, FormSubmit emails that address a
+confirmation link. Click it, and every submission afterwards arrives directly — name, phone,
+vehicle, timing and description, laid out as a table. Do this yourself before launch: open the
+site, submit the form with your own details, click the link in the email.
 
-Until it's set, submissions open a prefilled email to `SITE["email"]` so no lead is dropped.
-A honeypot field blocks the common spam bots.
+Each submission includes two honeypot fields that silently drop the common spam bots, and the
+subject line is set so the messages are easy to filter into a folder.
 
-## Migrating from the current site — do not skip this
+To move to another provider later — Formspree, Basin, Netlify Forms, your own handler — change
+`FORM_ENDPOINT` in `build.py` to their endpoint and rebuild. The markup does not change. If the
+endpoint is ever unreachable, the form tells the visitor to call rather than failing silently.
 
-The existing site has earned rankings that a new site does not inherit automatically. Two things
-protect them:
+Note for the privacy policy: a third party processes these submissions in order to deliver them,
+which is why the privacy page names FormSubmit.
 
-**1. Redirect the old URLs.** `public/_redirects` (Netlify, Cloudflare Pages) and
-`public/.htaccess` (Apache, cPanel) map the current site's page URLs to their new equivalents with
-301s. A 301 passes ranking authority to the new page; a 404 throws it away. The map in
-`build.py` (`OLD_URL_MAP`) is based on the URL shapes the current site appears to use —
-**check every one against the live site or Search Console's page report before launch**, and add
-anything missing. This is the single highest-value item on this page.
+## Downloading the site as a zip
 
-**2. Pick one domain.** The business currently appears at more than one address
-(`philsautofleet.com` and `philsautoandfleetrepair.com`). Two domains serving similar content
-split the ranking signals between them and compete with each other. Choose one — `philsautofleet.com`
-is what the site is configured for — and 301 the other to it at the DNS/host level. Same for
-`www` versus the bare domain and http versus https; `.htaccess` handles both on an Apache host,
-and Netlify and Cloudflare do it in their domain settings.
+`tools/make-download.py` builds the whole site with relative links, adds a plain-language
+`READ-ME-FIRST.txt`, and checks that the archive really contains the stylesheet, script, images
+and `.htaccess` before it finishes:
+
+```bash
+python3 tools/make-download.py phils-auto-website.zip
+```
+
+That archive can be uploaded to any host and works at the domain root or in a subfolder.
 
 ## Going live
 
