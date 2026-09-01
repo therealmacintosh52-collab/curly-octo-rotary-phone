@@ -13,8 +13,14 @@ rules into `public/`, which you can drop on any host.
 
 ```bash
 python3 build.py                      # regenerate ./public
+python3 build.py --relative           # same site, but links are relative so the
+                                      # folder works in a subfolder or anywhere
 python3 -m http.server 8000 -d public # preview at http://localhost:8000
 ```
+
+Use the plain build for a normal deployment at the root of a domain. Use `--relative` when the
+folder will live somewhere else — `yourdomain.com/new/` for a preview, a staging host, or any
+setup where you are not certain it will sit at the top level.
 
 Use the local server for previewing — the pages use root-relative paths (`/assets/...`),
 so opening the HTML files directly with `file://` will not load CSS.

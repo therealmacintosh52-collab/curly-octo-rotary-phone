@@ -14,11 +14,18 @@ the sitemap and the structured data stay in sync.
 import html
 import os
 import re
+import re
 import shutil
+import sys
 from datetime import date
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(ROOT, "public")
+
+# `python3 build.py --relative` rewrites internal links to relative paths so the
+# folder works wherever it is dropped — the domain root, a subfolder, a staging
+# URL — instead of only at the top level of a domain.
+RELATIVE = "--relative" in sys.argv
 
 # --------------------------------------------------------------------------
 # Business facts — single source of truth (keep identical to Google Business
@@ -1033,6 +1040,11 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
        "footer": footer_html(es=(lang == "es")),
        "lang": lang, "alts": alt_links}
 
+    if RELATIVE:
+        depth = 0 if path == "/" else path.strip("/").count("/") + 1
+        prefix = "./" if depth == 0 else "../" * depth
+        doc = re.sub(r'(href|src)="/(?!/)', r'\1="%s' % prefix, doc)
+
     rel = "index.html" if path == "/" else path.strip("/") + "/index.html"
     dest = os.path.join(OUT, rel)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -1936,7 +1948,12 @@ def build_404():
            "That page could not be found. Browse our auto, diesel and fleet repair services in "
            "Lodi, CA, or call the shop at (209) 647-4953.", body, noindex=True)
     # Most static hosts look for /404.html at the root.
-    shutil.copyfile(os.path.join(OUT, "404", "index.html"), os.path.join(OUT, "404.html"))
+    with open(os.path.join(OUT, "404", "index.html"), encoding="utf-8") as fh:
+        page = fh.read()
+    if RELATIVE:
+        page = page.replace('="../', '="./')
+    with open(os.path.join(OUT, "404.html"), "w", encoding="utf-8") as fh:
+        fh.write(page)
 
 
 # --------------------------------------------------------------------------
