@@ -117,6 +117,20 @@ The related settings, all in the `SITE` block at the top of `build.py`:
   footer puts the normal logo on a white disc so the dark line-art stays legible.
 - `SITE["favicon"]` — browser-tab icon, currently the logo itself.
 
+## Sharing a preview before launch
+
+`tools/make-preview.py` bundles every page, the stylesheet, the script and the images into one
+self-contained HTML file with a small hash router:
+
+```bash
+python3 tools/make-preview.py preview.html
+```
+
+The result opens in any browser with no web server, and the whole site can be clicked through from
+that single file — useful for showing the shop the site before the domain is pointed anywhere, or
+for emailing a reviewable copy. The map is a placeholder in the bundle (it needs a live
+connection) and the quote form says so instead of submitting.
+
 ## Regenerating the social share image
 
 `public/assets/img/og-cover.png` (1200x630) is what Facebook, LinkedIn, iMessage and WhatsApp
@@ -196,4 +210,5 @@ public/                   generated site — deploy this
 tools/
   og-cover.html           source for the 1200x630 social share image
   png_crop.py             crops a PNG to an exact size (standard library only)
+  make-preview.py         bundles the whole site into one shareable HTML file
 ```
