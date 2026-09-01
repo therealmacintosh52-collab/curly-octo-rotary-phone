@@ -116,7 +116,13 @@ const TIMELINES = [
  * Progressive enhancement: with JS off, every step is visible and the form is a
  * plain, fully working POST.
  */
-export function leadForm({ id = 'offer-form', compact = false, source = 'page', city = site.address.city } = {}) {
+export function leadForm({
+  id = 'offer-form',
+  compact = false,
+  source = 'page',
+  city = site.address.city,
+  stateAbbr = site.stateAbbr,
+} = {}) {
   const netlify = site.formAction === 'netlify';
   const action = netlify ? '/thank-you/' : site.formAction;
   return `
@@ -156,7 +162,7 @@ export function leadForm({ id = 'offer-form', compact = false, source = 'page', 
             type="text"
             required
             autocomplete="street-address"
-            placeholder="123 Main St, ${esc(city)}, ${esc(site.stateAbbr)}"
+            placeholder="123 Main St, ${esc(city)}, ${esc(stateAbbr)}"
             enterkeyhint="next"
           >
         </div>
@@ -443,6 +449,8 @@ export const ctaBand = ({
   heading = 'Get your free cash offer today',
   text = 'One form, about a minute. A written offer within 24 hours. No fees, no obligation, no pressure.',
   source = 'cta-band',
+  city,
+  stateAbbr,
 } = {}) => `
 <section class="cta-band" id="get-offer">
   <div class="container">
@@ -463,7 +471,7 @@ export const ctaBand = ({
       <div class="cta-band__form">
         <h3 class="form-card__title">Start with the address</h3>
         <p class="form-card__sub">No fees. No obligation. About 60 seconds.</p>
-        ${leadForm({ id: `offer-form-${source}`, compact: true, source })}
+        ${leadForm({ id: `offer-form-${source}`, compact: true, source, city, stateAbbr })}
       </div>
     </div>
   </div>

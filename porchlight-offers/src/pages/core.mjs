@@ -2,7 +2,8 @@ import { site } from '../config.mjs';
 import { esc } from '../lib/html.mjs';
 import { faqSchema } from '../layout.mjs';
 import { faqs, homeFaqs } from '../content/faqs.mjs';
-import { cities, metros, metroHubs } from '../content/cities.mjs';
+import { cities, statesTree, citiesByState, cityPath, statePath } from '../content/cities.mjs';
+import { states } from '../content/states.mjs';
 import { situations } from '../content/situations.mjs';
 import { icon } from '../lib/icons.mjs';
 import {
@@ -25,15 +26,15 @@ const S = site.stats;
 
 const home = () => ({
   path: '/',
-  title: `We Buy Houses in ${site.marketName} | Cash Offer in 24 Hours`,
-  description: `Sell your house fast for cash in ${site.marketName}. Any condition, any situation. No repairs, no fees, no commissions — and you pick the closing date.`,
+  title: `We Buy Houses for Cash | Sell Your House Fast, As-Is`,
+  description: `Sell your house fast for cash in ${states.map((s) => s.name).join(', ')}. Any condition, any situation. No repairs, no fees, no commissions — you pick the closing date.`,
   schema: [faqSchema(homeFaqs)],
   body: `
 <section class="hero">
   ${heroArt()}
   <div class="container hero__inner">
     <div class="hero__copy">
-      <p class="hero__eyebrow"><span class="hero__dot" aria-hidden="true"></span> Cash home buyers in ${esc(site.marketName)}</p>
+      <p class="hero__eyebrow"><span class="hero__dot" aria-hidden="true"></span> Cash home buyers in ${esc(states.map((s) => s.name).join(' · '))}</p>
       <h1 class="hero__title">Sell your house fast for cash — <em>any condition, any situation</em></h1>
       <p class="hero__lede">
         Get a fair written cash offer in ${esc(S.avgOfferHours)} hours and close in as
@@ -48,8 +49,8 @@ const home = () => ({
       </ul>
       <p class="hero__proof">
         <span class="hero__proof-stat"><strong data-count="${esc(S.housesBought)}">${esc(S.housesBought)}</strong> houses bought</span>
-        <span class="hero__proof-stat"><strong data-count="${esc(S.yearsBuying)}">${esc(S.yearsBuying)}</strong> years buying in ${esc(site.marketName)}</span>
-        <span class="hero__proof-stat"><strong data-count="${esc(String(cities.length))}">${esc(String(cities.length))}</strong> cities across ${esc(String(Object.keys(metros).length))} metros</span>
+        <span class="hero__proof-stat"><strong data-count="${esc(S.yearsBuying)}">${esc(S.yearsBuying)}</strong> years buying houses</span>
+        <span class="hero__proof-stat"><strong data-count="${esc(String(cities.length))}">${esc(String(cities.length))}</strong> cities in ${esc(String(states.length))} states</span>
       </p>
     </div>
     <div class="hero__form">
@@ -114,16 +115,16 @@ ${testimonialsSection()}
 <section class="section" data-reveal>
   <div class="container">
     <p class="eyebrow">${icon('pin')} Where we buy</p>
-    <h2 class="section__title">We buy houses across ${esc(site.marketName)}</h2>
-    <p class="section__lede">Local buyers, local title companies, local crews in every market we enter. If your city isn't listed, call us anyway — we probably still buy there.</p>
-    ${Object.entries(metros)
+    <h2 class="section__title">We buy houses in ${esc(String(states.length))} states — and counting</h2>
+    <p class="section__lede">Local buyers, local title companies and local crews in every market we enter. If your city isn't listed, call and ask — the list is where we buy most often, not a boundary.</p>
+    ${states
       .map(
-        ([metro, group]) => `
+        (st) => `
     <div class="metro-block">
-      <h3 class="metro-block__name">${esc(metro)}</h3>
+      <h3 class="metro-block__name"><a href="${statePath(st.name)}">${esc(st.name)}</a> · ${esc(String(citiesByState[st.name].length))} cities</h3>
       <ul class="pill-list">
-        ${group
-          .map((c) => `<li><a class="pill" href="/we-buy-houses/${c.slug}/">${esc(c.name)}</a></li>`)
+        ${citiesByState[st.name]
+          .map((c) => `<li><a class="pill" href="${cityPath(c)}">${esc(c.name)}</a></li>`)
           .join('\n        ')}
       </ul>
     </div>`,
@@ -314,14 +315,14 @@ ${ctaBand({ heading: 'Get a number to compare against', text: 'A free written of
 const about = () => ({
   path: '/about/',
   title: `About ${site.name} | Local Cash Home Buyers`,
-  description: `${site.name} buys houses across ${site.marketName} — ${metroHubs.map((c) => c.name).join(', ')}. We buy directly, show our math, and say so when listing would net you more.`,
+  description: `${site.name} buys houses for cash in ${states.map((s) => s.name).join(', ')}. We buy directly with our own funds, show our math, and say so when listing would net you more.`,
   crumbs: [{ name: 'About', path: '/about/' }],
   body: `
 ${breadcrumbs([{ name: 'About', path: '/about/' }])}
 ${pageHero({
   eyebrow: 'About us',
   h1: `Local buyers, not a national lead machine`,
-  lede: `We are a ${esc(site.marketName)} company buying in ${esc(metroHubs.map((c) => c.name).join(', '))} and the towns around them — with our own money, at local title companies, answering our own phone.`,
+  lede: `We buy houses in ${esc(states.map((s) => s.name).join(', '))} with our own money, close at local title companies, and answer our own phone.`,
 })}
 
 <section class="section">
@@ -368,7 +369,9 @@ ${pageHero({
       ${esc(site.legalName)} is a real estate investment company. We are not real estate agents or
       brokers and we do not represent sellers in a listing. We do not provide legal, tax or
       financial advice — for probate, foreclosure or tax questions, talk to a licensed attorney or
-      CPA. If you are facing foreclosure, HUD-approved housing counseling is free.
+      CPA in your state. If you are facing foreclosure, HUD-approved housing counseling is free.
+      <strong>TODO:</strong> confirm your entity is registered and, where required, licensed in
+      every state listed on this site before launch.
     </p>
   </div>
 </section>
@@ -383,7 +386,7 @@ ${ctaBand({ source: 'about' })}
 const contact = () => ({
   path: '/contact/',
   title: `Contact ${site.name} | Free Cash Offer, No Obligation`,
-  description: `Call ${site.phone} or send us your address for a free, no-obligation cash offer on your ${site.marketName} house. ${site.hours}.`,
+  description: `Call ${site.phone} or send us the address for a free, no-obligation cash offer on your house — ${states.map((s) => s.abbr).join(', ')}. ${site.hours}.`,
   crumbs: [{ name: 'Contact', path: '/contact/' }],
   body: `
 ${breadcrumbs([{ name: 'Contact', path: '/contact/' }])}
@@ -604,7 +607,7 @@ ${breadcrumbs([{ name: 'Terms of use', path: '/terms/' }])}
     <p>To the fullest extent permitted by law, we are not liable for indirect or consequential damages arising from your use of this website.</p>
 
     <h2>Governing law</h2>
-    <p>These terms are governed by the laws of the State of ${esc(site.stateName)}, without regard to conflict of law principles.</p>
+    <p>Any purchase agreement is governed by the law of the state in which the property is located. These website terms are governed by the laws of the State of ${esc(site.homeState)}, without regard to conflict of law principles. <strong>TODO:</strong> have counsel confirm this split works for every state you operate in — several states regulate residential equity purchases specifically, with their own required notices and rescission periods.</p>
 
     <h2>Contact</h2>
     <p><a href="mailto:${esc(site.email)}">${esc(site.email)}</a> · ${esc(site.phone)}</p>

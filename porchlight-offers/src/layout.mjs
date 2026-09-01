@@ -1,7 +1,8 @@
 import { site, hasAnalytics } from './config.mjs';
 import { esc, jsonLd, join, abs } from './lib/html.mjs';
 import { icon } from './lib/icons.mjs';
-import { cities, metros } from './content/cities.mjs';
+import { cities, statesTree, citiesByState, cityPath, statePath } from './content/cities.mjs';
+import { states } from './content/states.mjs';
 import { situations } from './content/situations.mjs';
 
 const A = site.address;
@@ -57,8 +58,8 @@ const orgGraph = () => [
       },
     ],
     areaServed: [
-      { '@type': 'State', name: site.stateName },
-      ...cities.map((c) => ({ '@type': 'City', name: `${c.name}, ${site.stateAbbr}` })),
+      ...states.map((st) => ({ '@type': 'State', name: st.name })),
+      ...cities.map((c) => ({ '@type': 'City', name: c.name })),
     ],
     knowsAbout: [
       'cash home buying',
@@ -164,7 +165,7 @@ const footer = () => `
       <div class="footer-brand">
         ${logo('logo logo--footer')}
         <p class="footer-tagline">${esc(site.tagline)}</p>
-        <p class="footer-blurb">We buy houses for cash across ${esc(site.marketName)} — any condition, any situation, no fees.</p>
+        <p class="footer-blurb">We buy houses for cash in ${esc(states.map((s) => s.name).join(', '))} — any condition, any situation, no fees.</p>
         <address class="footer-nap">
           <a class="footer-phone" href="tel:${esc(site.phoneHref)}" data-track="footer-call">${esc(site.phone)}</a><br>
           <a href="mailto:${esc(site.email)}">${esc(site.email)}</a><br>
@@ -194,18 +195,19 @@ const footer = () => `
       </div>
       <div class="footer-col">
         <h2 class="footer-head">Areas we buy houses</h2>
-        ${Object.entries(metros)
+        ${states
           .map(
-            ([metro, group]) => `
-        <p class="footer-metro">${esc(metro)}</p>
+            (st) => `
+        <p class="footer-metro"><a href="${statePath(st.name)}">${esc(st.name)}</a></p>
         <ul>
-          ${group
-            .map((c) => `<li><a href="/we-buy-houses/${c.slug}/">${esc(c.name)}</a></li>`)
+          ${citiesByState[st.name]
+            .slice(0, 5)
+            .map((c) => `<li><a href="${cityPath(c)}">${esc(c.name)}</a></li>`)
             .join('\n          ')}
         </ul>`,
           )
           .join('')}
-        <p class="footer-all"><a href="/locations/">All areas we buy →</a></p>
+        <p class="footer-all"><a href="/locations/">All ${esc(String(cities.length))} areas we buy →</a></p>
       </div>
     </div>
     <div class="footer-legal">

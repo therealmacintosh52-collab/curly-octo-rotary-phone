@@ -960,3 +960,11 @@ body { letter-spacing: -.005em; }
 }
 .footer-col .footer-metro:first-of-type { margin-top: 0; }
 .footer-all { margin: 1.1rem 0 0; font-weight: 600; }
+
+/* Heading that is also a link — keeps heading colour until hover. */
+.plain-link { color: inherit; text-decoration: none; }
+.plain-link:hover { color: var(--amber); text-decoration: underline; }
+.metro-block__name a { color: inherit; text-decoration: none; }
+.metro-block__name a:hover { color: var(--amber); text-decoration: underline; }
+.footer-metro a { color: inherit; text-decoration: none; }
+.footer-metro a:hover { color: var(--amber-hot); }

@@ -45,12 +45,15 @@ export const site = {
   ],
 
   // --- Market ------------------------------------------------------------
-  // marketName is the area the site claims to serve. The metros themselves come
-  // from src/content/cities.mjs — add a city there and it appears everywhere.
-  marketName: 'Texas', // TODO
-  marketShort: 'TX',
-  stateName: 'Texas',
-  stateAbbr: 'TX',
+  // The states, metros and cities you serve all come from src/content/ —
+  // states.mjs for the state hubs, cities.mjs for everything under them. The
+  // site's coverage copy is derived from that data, so adding a market is a
+  // content change, never a config change.
+  //
+  // homeState is only used for the office NAP and the default form placeholder.
+  homeState: 'Texas', // TODO
+  stateName: 'Texas', // TODO: legacy alias, same as homeState
+  stateAbbr: 'TX', // TODO
 
   // --- Conversion --------------------------------------------------------
   // Where the lead form posts. Options:

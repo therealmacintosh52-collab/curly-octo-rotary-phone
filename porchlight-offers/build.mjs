@@ -36,6 +36,15 @@ const pages = [...corePages(), ...localPages(), ...guidePages()];
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
+const seenRoutes = new Set();
+for (const page of pages) {
+  if (seenRoutes.has(page.path)) {
+    console.error(`✗ duplicate route: ${page.path} — a later page would overwrite an earlier one`);
+    process.exit(1);
+  }
+  seenRoutes.add(page.path);
+}
+
 const written = [];
 for (const page of pages) {
   const file = join(OUT, outputFileFor(page.path));
@@ -55,7 +64,9 @@ cpSync(join(root, 'assets/img'), join(OUT, 'img'), { recursive: true });
 
 const priorityFor = (p) => {
   if (p === '/') return '1.0';
-  if (p.startsWith('/we-buy-houses/') || p.startsWith('/situations/')) return '0.9';
+  // State hubs sit above their cities in the internal hierarchy.
+  if (/^\/we-buy-houses\/[^/]+\/$/.test(p)) return '0.9';
+  if (p.startsWith('/we-buy-houses/') || p.startsWith('/situations/')) return '0.8';
   if (['/how-it-works/', '/compare/', '/locations/', '/contact/'].includes(p)) return '0.8';
   if (p.startsWith('/blog/')) return '0.6';
   return '0.5';

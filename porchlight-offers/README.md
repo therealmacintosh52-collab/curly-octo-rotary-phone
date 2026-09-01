@@ -43,12 +43,16 @@ Offers · Keyway Home Buyers.
 **Money pages** — home, `/how-it-works/`, `/compare/` (cash vs. agent),
 `/contact/`, `/about/`, `/reviews/`, `/faq/`.
 
-**Local SEO** — `/locations/` plus one page per city at
-`/we-buy-houses/<city>/`: 15 cities across 4 Texas metros (Dallas–Fort Worth,
-Houston, San Antonio, Austin). Each city page has unique copy, real
-neighborhoods, real ZIPs, its own FAQ set and its own `Service` + `FAQPage`
-schema. Cities carry a `metro` field, and the locations page, the footer and
-the "we also buy in" links group themselves by metro automatically.
+**Local SEO** — a three-level geography: `/locations/` (national) →
+`/we-buy-houses/<state>/` (state hub) → `/we-buy-houses/<state>/<city>/`.
+27 cities across 3 states and 12 metros: Texas, California and Florida.
+
+State hubs carry what is genuinely state-level and drives the decision to sell
+— the foreclosure process, how probate works, what insurance is doing to
+sales. City pages carry unique copy, real neighborhoods, real ZIPs, their own
+FAQ set, and `Service` + `FAQPage` schema. Every city declares a `state` and a
+`metro`, and the home page, locations index, state hubs, footer and
+"we also buy in" links all group themselves from that.
 
 **Situation pages** — `/situations/<slug>/` for the eight highest-intent
 non-geo queries: inherited/probate, foreclosure, major repairs, tired landlord,
@@ -142,18 +146,24 @@ states you are not agents, not advisors, and never charge sellers a fee.
    name swapped are the #1 way local service sites get filtered out of Google.
    The 15 shipped here are written from general market knowledge, not local
    research: treat every specific as a claim to check.
-5. **One office, four metros** — the address in `config.mjs` is a single Dallas
-   office. If you genuinely operate statewide, a local phone number and a real
-   address per metro (each with its own Google Business Profile) is what makes
-   those city pages rank; without them, expect the home metro to outrank the
-   rest.
-6. **Form destination** — set `formAction` to `'netlify'` (works as-is on
+5. **One office, three states** — the address in `config.mjs` is a single
+   Dallas office. Multi-state coverage without local presence is the weakest
+   point of this build: what makes city pages rank is a real address and local
+   phone per market, each with its own verified Google Business Profile. With
+   one office you should expect the home metro to outrank everything else, and
+   you should not claim a market you cannot actually close in.
+6. **Register where you operate** — confirm your entity is registered, and
+   licensed where required, in every state the site lists. Several states
+   regulate residential equity purchases specifically, with mandatory notices
+   and rescission periods; California and Florida both warrant a look before
+   you take a single lead.
+7. **Form destination** — set `formAction` to `'netlify'` (works as-is on
    Netlify) or to your CRM / Formspree / Zapier endpoint URL.
-7. **Legal review** — have counsel check `/privacy/`, `/terms/`, the footer
+8. **Legal review** — have counsel check `/privacy/`, `/terms/`, the footer
    disclaimer, and the TCPA consent language on the form against your actual
    practices and your state's rules (several states regulate "we buy houses"
    marketing and equity-purchase contracts specifically).
-8. **Analytics** — add `gtmId` or `gaId` in config, then mark `generate_lead`
+9. **Analytics** — add `gtmId` or `gaId` in config, then mark `generate_lead`
    and `phone_call_click` as conversions.
 
 ## After you launch — the local SEO that actually moves the needle
@@ -174,15 +184,19 @@ off-page from here:
 
 ## Adding content
 
-- **A city**: add an entry to `src/content/cities.mjs` (unique intro, market
-  note, local note, neighborhoods, ZIPs, and the `metro` it belongs to) and
-  rebuild — page, footer, locations grouping, sitemap and internal links
-  generate themselves. A new `metro` value creates a new group with no other
-  changes.
-- **A whole new market**: set `marketName` in `src/config.mjs`, then write the
-  city entries. Note that the state-specific content — the Texas probate guide
-  and the governing-law clause in `/terms/` — is written for Texas and needs
-  rewriting if you expand beyond it.
+- **A city**: add an entry to `src/content/cities.mjs` with its `state`,
+  `metro`, unique intro, market note, local note, neighborhoods and ZIPs. The
+  page, its URL, the footer, the groupings, the sitemap and every internal link
+  generate themselves. A new `metro` value just creates a new group.
+- **A state**: add an entry to `src/content/states.mjs` (hub copy, four
+  "what's different here" points, three state FAQs), then add its cities. The
+  hub page, the national index, the footer and the schema follow.
+
+  A new state is a research job, not a copy-paste: the hub is where foreclosure
+  process, probate, tenancy and insurance differ, and getting those wrong is
+  how a page becomes worse than useless. Note too that the probate guide in
+  `src/content/posts.mjs` is Texas-specific — write a parallel one per state
+  rather than generalising it.
 - **A situation**: add an entry to `src/content/situations.mjs`.
 - **A guide**: add an entry to `src/content/posts.mjs`.
 - **Global FAQs**: `src/content/faqs.mjs` (drives both `/faq/` and the schema).

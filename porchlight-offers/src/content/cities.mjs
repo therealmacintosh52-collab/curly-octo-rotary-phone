@@ -10,6 +10,7 @@ export const cities = [
   {
     slug: 'dallas',
     name: 'Dallas',
+    state: 'Texas',
     metro: 'Dallas–Fort Worth',
     county: 'Dallas County',
     zips: ['75201', '75208', '75216', '75224', '75228', '75232', '75241'],
@@ -40,6 +41,7 @@ export const cities = [
   {
     slug: 'fort-worth',
     name: 'Fort Worth',
+    state: 'Texas',
     metro: 'Dallas–Fort Worth',
     county: 'Tarrant County',
     zips: ['76104', '76105', '76110', '76112', '76119', '76133', '76140'],
@@ -68,6 +70,7 @@ export const cities = [
   {
     slug: 'arlington',
     name: 'Arlington',
+    state: 'Texas',
     metro: 'Dallas–Fort Worth',
     county: 'Tarrant County',
     zips: ['76001', '76010', '76011', '76013', '76015', '76017'],
@@ -93,6 +96,7 @@ export const cities = [
   {
     slug: 'plano',
     name: 'Plano',
+    state: 'Texas',
     metro: 'Dallas–Fort Worth',
     county: 'Collin County',
     zips: ['75023', '75074', '75075', '75023', '75093'],
@@ -118,6 +122,7 @@ export const cities = [
   {
     slug: 'garland',
     name: 'Garland',
+    state: 'Texas',
     metro: 'Dallas–Fort Worth',
     county: 'Dallas County',
     zips: ['75040', '75041', '75042', '75043', '75044'],
@@ -143,6 +148,7 @@ export const cities = [
   {
     slug: 'irving',
     name: 'Irving',
+    state: 'Texas',
     metro: 'Dallas–Fort Worth',
     county: 'Dallas County',
     zips: ['75038', '75060', '75061', '75062', '75063'],
@@ -168,6 +174,7 @@ export const cities = [
   {
     slug: 'mesquite',
     name: 'Mesquite',
+    state: 'Texas',
     metro: 'Dallas–Fort Worth',
     county: 'Dallas County',
     zips: ['75149', '75150', '75180', '75181', '75182'],
@@ -193,6 +200,7 @@ export const cities = [
   {
     slug: 'grand-prairie',
     name: 'Grand Prairie',
+    state: 'Texas',
     metro: 'Dallas–Fort Worth',
     county: 'Dallas & Tarrant Counties',
     zips: ['75050', '75051', '75052', '75054'],
@@ -217,6 +225,7 @@ export const cities = [
   {
     slug: 'houston',
     name: 'Houston',
+    state: 'Texas',
     metro: 'Houston',
     county: 'Harris County',
     zips: ['77016', '77026', '77033', '77051', '77076', '77087', '77093'],
@@ -246,6 +255,7 @@ export const cities = [
   {
     slug: 'pasadena',
     name: 'Pasadena',
+    state: 'Texas',
     metro: 'Houston',
     county: 'Harris County',
     zips: ['77502', '77503', '77504', '77505', '77506'],
@@ -273,6 +283,7 @@ export const cities = [
   {
     slug: 'katy',
     name: 'Katy',
+    state: 'Texas',
     metro: 'Houston',
     county: 'Harris, Fort Bend & Waller Counties',
     zips: ['77449', '77450', '77493', '77494'],
@@ -299,6 +310,7 @@ export const cities = [
   {
     slug: 'san-antonio',
     name: 'San Antonio',
+    state: 'Texas',
     metro: 'San Antonio',
     county: 'Bexar County',
     zips: ['78207', '78210', '78214', '78220', '78228', '78237', '78242'],
@@ -325,6 +337,7 @@ export const cities = [
   {
     slug: 'converse',
     name: 'Converse',
+    state: 'Texas',
     metro: 'San Antonio',
     county: 'Bexar County',
     zips: ['78109', '78148', '78154'],
@@ -348,6 +361,7 @@ export const cities = [
   {
     slug: 'austin',
     name: 'Austin',
+    state: 'Texas',
     metro: 'Austin',
     county: 'Travis County',
     zips: ['78721', '78723', '78724', '78741', '78744', '78745', '78753'],
@@ -375,6 +389,7 @@ export const cities = [
   {
     slug: 'round-rock',
     name: 'Round Rock',
+    state: 'Texas',
     metro: 'Austin',
     county: 'Williamson County',
     zips: ['78664', '78665', '78681'],
@@ -397,9 +412,337 @@ export const cities = [
       'HVAC, aging roofs, and slab movement. We buy without asking you to fix ' +
       'any of it.',
   },
+  {
+    slug: 'los-angeles',
+    name: 'Los Angeles',
+    state: 'California',
+    metro: 'Los Angeles',
+    county: 'Los Angeles County',
+    zips: ['90003', '90011', '90044', '90059', '90063', '91331', '91405'],
+    neighborhoods: [
+      'South LA',
+      'Watts',
+      'Boyle Heights',
+      'Highland Park',
+      'Sylmar',
+      'Panorama City',
+      'Pacoima',
+    ],
+    intro:
+      'A lot of Los Angeles houses carry more value in the dirt than in the ' +
+      'structure, and the ones that transfer through an estate are often on ' +
+      'original 1950s systems with decades of unpermitted work behind them. ' +
+      'Renovating to retail standard here costs more than most families want to ' +
+      'front. We buy them as they are.',
+    localNote:
+      'Rent-controlled units, soft-story retrofit orders and unpermitted ADUs do ' +
+      'not stop us. Those are the exact things that make a retail buyer walk, ' +
+      'and they are ordinary for us.',
+    market:
+      'Probate and trust sales are a large share of what moves in this market. ' +
+      'We work with the estate attorney and the court timeline rather than ' +
+      'pushing you to close before you legally can.',
+  },
+  {
+    slug: 'riverside',
+    name: 'Riverside',
+    state: 'California',
+    metro: 'Inland Empire',
+    county: 'Riverside County',
+    zips: ['92501', '92503', '92504', '92507', '92509'],
+    neighborhoods: [
+      'Casa Blanca',
+      'Eastside',
+      'Arlanza',
+      'La Sierra',
+      'Northside',
+    ],
+    intro:
+      'The Inland Empire has long commutes, hard summers on aging HVAC, and a ' +
+      'lot of owners who bought at the wrong point in a cycle. When a house here ' +
+      'needs a roof and a system replacement at once, the repair bill often ' +
+      'exceeds what the owner can raise.',
+    localNote:
+      'Behind on payments? California runs a non-judicial foreclosure timeline ' +
+      'that moves on notice deadlines. The earlier you call, the more choices ' +
+      'you still have.',
+    market:
+      'We buy owner-occupied homes and small rentals alike, including properties ' +
+      'with permit problems from additions done without the county.',
+  },
+  {
+    slug: 'san-bernardino',
+    name: 'San Bernardino',
+    state: 'California',
+    metro: 'Inland Empire',
+    county: 'San Bernardino County',
+    zips: ['92404', '92405', '92407', '92410', '92411'],
+    neighborhoods: [
+      'Muscoy',
+      'Del Rosa',
+      'Arrowhead',
+      'Highland border',
+      'Waterman Gardens area',
+    ],
+    intro:
+      'San Bernardino has more vacant and code-flagged property than almost ' +
+      'anywhere else in the region. A house sitting empty here collects ' +
+      'citations, copper theft and an insurer who will not renew — and the ' +
+      'longer it sits the fewer buyers will touch it.',
+    localNote:
+      'Open code cases and city citations transfer to us at closing. Bring the ' +
+      'letter; it is not the obstacle you have been told it is.',
+    market:
+      'Wildfire risk has made insurance hard to place across parts of this ' +
+      'county. If your carrier non-renewed you, that alone is a reason a retail ' +
+      'buyer cannot finance the house.',
+  },
+  {
+    slug: 'sacramento',
+    name: 'Sacramento',
+    state: 'California',
+    metro: 'Sacramento',
+    county: 'Sacramento County',
+    zips: ['95815', '95820', '95821', '95823', '95838'],
+    neighborhoods: [
+      'Del Paso Heights',
+      'Oak Park',
+      'North Highlands',
+      'Arden-Arcade',
+      'Meadowview',
+    ],
+    intro:
+      'Sacramento is full of post-war tract housing that has been rented for ' +
+      'thirty years and never updated. Those are the properties we buy most: ' +
+      'tired rentals, inherited homes, and houses where the make-ready would ' +
+      'cost more than a year of rent.',
+    localNote:
+      'Statewide tenant protections make removing a tenant slow and expensive. ' +
+      'Sell to us with the tenant in place instead — the lease comes with the ' +
+      'house and we honor it.',
+    market:
+      'Parts of the county sit behind aging levees, and flood-zone status alone ' +
+      'narrows the buyer pool. It does not change our offer process.',
+  },
+  {
+    slug: 'fresno',
+    name: 'Fresno',
+    state: 'California',
+    metro: 'Central Valley',
+    county: 'Fresno County',
+    zips: ['93701', '93702', '93703', '93706', '93728'],
+    neighborhoods: [
+      'Tower District',
+      'Southwest Fresno',
+      'Sunnyside',
+      'Central Fresno',
+      'Pinedale',
+    ],
+    intro:
+      'Fresno housing is older and more affordable than the coast, which means ' +
+      'nearly every retail buyer here is financed — and a lender will not fund a ' +
+      'house with a failing roof, a red-tagged panel or an inoperable heater. ' +
+      'That is the gap we fill.',
+    localNote:
+      'Expansive valley soil moves foundations the same way clay does elsewhere. ' +
+      'We price it in rather than sending you to get piers installed.',
+    market:
+      'We buy inherited homes, tired rentals and vacant properties across the ' +
+      'county, including houses that already fell out of escrow once.',
+  },
+  {
+    slug: 'bakersfield',
+    name: 'Bakersfield',
+    state: 'California',
+    metro: 'Central Valley',
+    county: 'Kern County',
+    zips: ['93304', '93305', '93306', '93307', '93308'],
+    neighborhoods: [
+      'Oildale',
+      'East Bakersfield',
+      'Greenfield',
+      'Old Town Kern',
+      'Casa Loma',
+    ],
+    intro:
+      'Kern County runs on an industry with hard cycles, and housing here ' +
+      'follows it. We see owners who took a hit, landlords who are done, and ' +
+      'families holding a parent\u2019s house from four hours away.',
+    localNote:
+      'Out of the area? Sign remotely with a mobile notary and we wire the ' +
+      'funds. You never have to drive down for the closing.',
+    market:
+      'Much of the stock predates 1970. Original wiring, evaporative cooling and ' +
+      'end-of-life roofs are normal here, and normal for us to buy.',
+  },
+  {
+    slug: 'jacksonville',
+    name: 'Jacksonville',
+    state: 'Florida',
+    metro: 'Jacksonville',
+    county: 'Duval County',
+    zips: ['32206', '32208', '32209', '32210', '32218', '32244', '32254'],
+    neighborhoods: [
+      'Northside',
+      'Westside',
+      'Arlington',
+      'Murray Hill',
+      'Springfield',
+      'Southside',
+    ],
+    intro:
+      'Jacksonville is geographically enormous and full of affordable, aging ' +
+      'stock. The thing that kills sales here is not price, it is the roof: ' +
+      'Florida insurers routinely refuse to write a policy on an older roof, and ' +
+      'no policy means no mortgage means no retail buyer.',
+    localNote:
+      'Roof at end of life? That is a reason to call us, not a reason to spend ' +
+      '$18,000 first. We buy the house with the roof it has.',
+    market:
+      'We buy inherited homes, tired rentals and storm-damaged property across ' +
+      'Duval and the surrounding counties.',
+  },
+  {
+    slug: 'tampa',
+    name: 'Tampa',
+    state: 'Florida',
+    metro: 'Tampa Bay',
+    county: 'Hillsborough County',
+    zips: ['33604', '33605', '33610', '33612', '33614', '33619'],
+    neighborhoods: [
+      'Sulphur Springs',
+      'East Tampa',
+      'Seminole Heights',
+      "Town 'N' Country",
+      'Palm River',
+    ],
+    intro:
+      'Tampa combines three things that scare retail buyers at once: flood zones, ' +
+      'sinkhole history, and insurance premiums that have doubled for some ' +
+      'owners. A house with any of that on its record sits, even in a strong ' +
+      'market.',
+    localNote:
+      'Prior sinkhole activity or a remediated claim does not disqualify a house ' +
+      'with us. You still disclose it — we still buy it.',
+    market:
+      'Elevation certificates and flood insurance requirements can add hundreds ' +
+      'a month to a buyer\u2019s payment. We pay cash, so none of that applies.',
+  },
+  {
+    slug: 'st-petersburg',
+    name: 'St. Petersburg',
+    state: 'Florida',
+    metro: 'Tampa Bay',
+    county: 'Pinellas County',
+    zips: ['33701', '33705', '33711', '33713', '33714'],
+    neighborhoods: [
+      'Childs Park',
+      'Lealman',
+      'Historic Kenwood',
+      'Bartlett Park',
+      'Gulfport border',
+    ],
+    intro:
+      'Pinellas is dense, low-lying and full of small mid-century bungalows and ' +
+      'block homes. Many are lovely and many are one storm away from a claim ' +
+      'their owner cannot afford the deductible on.',
+    localNote:
+      'Storm-damaged, tarped, or mid-claim — we buy in that condition. Talk to ' +
+      'us before you sign anything with a restoration company that wants your ' +
+      'claim assigned to them.',
+    market:
+      'Flood elevation rules mean substantial repairs can trigger requirements ' +
+      'to elevate the structure. That stops most buyers cold. It does not stop ' +
+      'us.',
+  },
+  {
+    slug: 'orlando',
+    name: 'Orlando',
+    state: 'Florida',
+    metro: 'Orlando',
+    county: 'Orange County',
+    zips: ['32805', '32808', '32811', '32818', '32822', '32839'],
+    neighborhoods: [
+      'Pine Hills',
+      'Parramore',
+      'Azalea Park',
+      'Union Park',
+      'Rosemont',
+    ],
+    intro:
+      'Central Florida has an unusually high share of out-of-state owners — ' +
+      'people who bought a rental near the parks, or inherited a parent\u2019s ' +
+      'house after they retired here. Managing a tired property from another ' +
+      'state is where most of our Orlando calls start.',
+    localNote:
+      'We buy occupied rentals and short-term-rental properties, including ones ' +
+      'where the HOA or the county has changed the rules on you.',
+    market:
+      'Insurance and rising HOA assessments have flipped the math on a lot of ' +
+      'these properties. If it no longer pencils, we will give you a number.',
+  },
+  {
+    slug: 'cape-coral',
+    name: 'Cape Coral',
+    state: 'Florida',
+    metro: 'Southwest Florida',
+    county: 'Lee County',
+    zips: ['33904', '33909', '33914', '33990', '33993'],
+    neighborhoods: [
+      'Southwest Cape',
+      'Pelican',
+      'Northeast Cape',
+      'Gator Circle area',
+      'Burnt Store corridor',
+    ],
+    intro:
+      'Southwest Florida is still working through storm damage, and plenty of ' +
+      'owners are holding a house they have neither the money nor the appetite ' +
+      'to rebuild. Contractor waits are long and insurance settlements rarely ' +
+      'cover the whole job.',
+    localNote:
+      'Storm-damaged, half-repaired, or gutted to the studs — those are ordinary ' +
+      'purchases for us. So are vacant lots left after a teardown.',
+    market:
+      'Canal-front and flood-zone property comes with elevation and permitting ' +
+      'complications that a cash purchase simply absorbs.',
+  },
+  {
+    slug: 'lakeland',
+    name: 'Lakeland',
+    state: 'Florida',
+    metro: 'Orlando',
+    county: 'Polk County',
+    zips: ['33801', '33803', '33805', '33810', '33815'],
+    neighborhoods: [
+      'Dixieland',
+      'Webster Park',
+      'North Lakeland',
+      'Kathleen',
+      'Combee Settlement',
+    ],
+    intro:
+      'Polk County sits between Tampa and Orlando and has grown fast around a ' +
+      'core of much older housing. The homes we buy here are usually the older ' +
+      'ones: inherited, long-rented, or held by someone who has moved on and ' +
+      'kept paying the taxes out of habit.',
+    localNote:
+      'Paying taxes and insurance on a house nobody lives in? That is money out ' +
+      'the door every month. One call gets you a number to compare against it.',
+    market:
+      'Manufactured and mobile homes on owned land are common here. Tell us what ' +
+      'you have and we will tell you straight whether we buy it.',
+  },
 ];
 
 export const cityBySlug = Object.fromEntries(cities.map((c) => [c.slug, c]));
+
+const slugify = (v) => v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+/** URLs are hierarchical: /we-buy-houses/<state>/<city>/ */
+export const stateSlug = (stateName) => slugify(stateName);
+export const statePath = (stateName) => `/we-buy-houses/${slugify(stateName)}/`;
+export const cityPath = (c) => `/we-buy-houses/${slugify(c.state)}/${c.slug}/`;
 
 /** Metro name -> its cities, in the order they appear above. */
 export const metros = cities.reduce((acc, c) => {
@@ -407,5 +750,23 @@ export const metros = cities.reduce((acc, c) => {
   return acc;
 }, {});
 
+/** State name -> { metro -> cities }. Drives every geographic grouping. */
+export const statesTree = cities.reduce((acc, c) => {
+  acc[c.state] = acc[c.state] || {};
+  (acc[c.state][c.metro] = acc[c.state][c.metro] || []).push(c);
+  return acc;
+}, {});
+
+/** State name -> flat city list. */
+export const citiesByState = cities.reduce((acc, c) => {
+  (acc[c.state] = acc[c.state] || []).push(c);
+  return acc;
+}, {});
+
+export const stateNames = Object.keys(citiesByState);
+
 /** The first city listed for each metro — used where a short list is wanted. */
 export const metroHubs = Object.values(metros).map((group) => group[0]);
+
+/** The first city listed for each state. */
+export const stateHubs = Object.values(citiesByState).map((group) => group[0]);

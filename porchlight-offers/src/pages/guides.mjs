@@ -7,7 +7,8 @@ import { esc, abs, humanDate } from '../lib/html.mjs';
 import { faqSchema } from '../layout.mjs';
 import { situations } from '../content/situations.mjs';
 import { posts } from '../content/posts.mjs';
-import { cities } from '../content/cities.mjs';
+import { cities, cityPath, statePath } from '../content/cities.mjs';
+import { states } from '../content/states.mjs';
 import { icon, situationIcon } from '../lib/icons.mjs';
 import {
   heroArt,
@@ -43,7 +44,7 @@ const situationPage = (s) => {
         name: s.title,
         serviceType: 'Cash home buying',
         provider: { '@id': `${site.origin}/#organization` },
-        areaServed: { '@type': 'AdministrativeArea', name: site.marketName },
+        areaServed: states.map((st) => ({ '@type': 'State', name: st.name })),
         description: s.description,
       },
     ],
@@ -122,10 +123,10 @@ ${faqSection(s.faqs, { heading: `${s.nav}: common questions`, showAllLink: true 
     </ul>
     <h2 class="section__title">Areas we buy</h2>
     <ul class="pill-list">
-      ${cities
-        .slice(0, 6)
-        .map((c) => `<li><a class="pill" href="/we-buy-houses/${c.slug}/">${esc(c.name)}</a></li>`)
+      ${states
+        .map((st) => `<li><a class="pill" href="${statePath(st.name)}">${esc(st.name)}</a></li>`)
         .join('\n      ')}
+      <li><a class="pill" href="/locations/">All ${esc(String(cities.length))} cities →</a></li>
     </ul>
   </div>
 </section>
