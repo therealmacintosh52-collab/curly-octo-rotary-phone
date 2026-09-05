@@ -464,13 +464,42 @@ async function record() {
   const ext = mime.indexOf("mp4") > -1 ? "mp4" : "webm";
   const blob = new Blob(chunks, { type: mime.split(";")[0] });
   if (!blob.size) { status.textContent = "The encoder produced an empty file — try desktop Chrome."; btn.disabled = false; return; }
+  const name = "phils-auto-walk-in-" + W + "x" + H + "." + ext;
+  const size = (blob.size / 1048576).toFixed(1) + " MB";
+
+  try {
+    await handOver(name, blob);
+    status.textContent = "Saved " + name + " · " + size + " · " + tm.total.toFixed(1) + "s";
+  } catch (err) {
+    status.textContent = (err && err.message) || "The save was cancelled.";
+  }
+  btn.disabled = false; playing = true; $("play").textContent = "Pause";
+}
+
+/* Two ways out of the browser. Inside the artifact viewer a plain download
+ * link is inert, so the file goes through the host's save prompt; opened from
+ * a file or a web server, that host is not there and the link is the way. */
+async function handOver(name, blob) {
+  const host = window.claude && window.claude.use
+    ? await window.claude.use("downloads").catch(() => null)
+    : null;
+  if (host) {
+    const r = await host.save({ filename: name, data: blob }).catch(e => { throw asMessage(e); });
+    if (r && r.status === "delivered") throw new Error("Sent " + name + " on to where you chose.");
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = "phils-auto-walk-in-" + W + "x" + H + "." + ext;
+  a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
-  status.textContent = "Saved " + a.download + " · " + (blob.size / 1048576).toFixed(1) + " MB · " + tm.total.toFixed(1) + "s";
-  btn.disabled = false; playing = true; $("play").textContent = "Pause";
+}
+function asMessage(e) {
+  var code = e && e.code;
+  if (code === "declined") return new Error("Save cancelled — press the button again when you are ready.");
+  if (code === "rate_limited") return new Error("A save prompt is already open. Finish that one first.");
+  if (code === "too_large") return new Error("Too big for that destination — try a smaller format.");
+  return new Error("Could not save the file here. Try opening this page in desktop Chrome.");
 }
 
 boot();
