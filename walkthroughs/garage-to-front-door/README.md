@@ -1,54 +1,83 @@
 # Garage to Front Door
 
-An animated walkthrough built from `source/IMG_0247.mp4` — a 15.98 s handheld
-take, one continuous shot, from the garage bay through the utility door and down
-the hall to the front entry.
+A property walkthrough built from `source/IMG_0247.mp4` — a handheld take through
+the garage, hall, living area and front entry.
 
-Two outputs, both generated from the same station data:
+| Output | File |
+| --- | --- |
+| The page | `public/index.html` — scroll scrubs the film, a plan tracks the route, each space carries its own copy. One self-contained file; the video is inlined as a data URI. |
+| The film | `public/walkthrough-clean.mp4` — 15.8 s, 608×1080, cut, stabilised, slowed and graded. Usable on its own. |
 
-| Output | File | What it is |
+## What was wrong with the raw take, and what was done about it
+
+The 15.98 s original has three problems in one passage:
+
+| Problem | Where, in the original |
+| --- | --- |
+| Operator's shadow across the door | from ~4.0 s |
+| A hand reaching into frame | 6.20 s – 6.55 s |
+| Auto-exposure crashing to near-black | ~6.6 s – 7.4 s |
+
+All three sit between 3.8 s and 7.45 s, so **that passage is cut out and dissolved
+across** — the way an editor handles it, rather than trying to paint the hand out
+frame by frame. The 0.6 s dissolve reads as walking through the doorway. What is
+lost is the close-up of the door; what is gained is a clip with no operator in it.
+
+Then, on the whole thing:
+
+- **Stabilised** — `deshake`, with a 5% crop to trim the smeared edge it leaves.
+- **Slowed to 0.74×** and re-interpolated to 30 fps with `minterpolate` (motion
+  compensated), which is what turns a walking pace into a glide.
+- **Graded** — the black point pulled down to cut the window haze, mid contrast
+  and saturation up, warmed to ~5300 K, denoised then lightly sharpened.
+- **Eased** in and out of black.
+
+### What could not be fixed
+
+- **The blown-out slider and windows are gone for good.** Those pixels are pure
+  white in the source; there is nothing to recover. The grade only stops them
+  looking like a fault.
+- **Softness and motion blur** in the middle of the take are baked in. Slowing
+  the clip hides some of it; sharpening cannot invent detail.
+- The two rooms off the hall are never entered, so the plan marks them but says
+  nothing about them.
+
+A re-shoot at half this walking pace, with exposure locked before entering the
+hall, would beat any amount of post — and both builders would take the new file
+unchanged.
+
+## Privacy
+
+The source clip carries **GPS coordinates** in its metadata. Every derived file is
+written with `-map_metadata -1`, so nothing published contains them. The original
+in `source/` still does.
+
+## The spaces
+
+Boundaries live in `tools/stations.json`, written by `build_clean.py` and read by
+`build_page.py`, so the two never drift. Times are on the finished film.
+
+| # | In | Space |
 | --- | --- | --- |
-| Interactive page | `public/index.html` | Scroll scrubs the footage. A schematic plan tracks the camera along the route, the HUD reads out timecode and current station, and each station carries its observation notes. One self-contained file — video, poster and thumbnails are inlined as data URIs, so it runs from disk with no server. |
-| Annotated cut | `public/garage-to-front-door-annotated.mp4` | 21.8 s, 608×1080. Title card, per-station lower thirds, a live corner plan, a progress bar with station ticks, and an end card listing the route. |
-
-## Stations
-
-The take is cut into five stations. Both builders read the same boundaries.
-
-| # | In | Out | Station |
-| --- | --- | --- | --- |
-| 1 | 00:00.00 | 00:03.50 | Garage bay |
-| 2 | 00:03.50 | 00:06.60 | Utility door |
-| 3 | 00:06.60 | 00:11.40 | Hall |
-| 4 | 00:11.40 | 00:14.60 | Living area |
-| 5 | 00:14.60 | 00:15.98 | Front entry |
+| 01 | 00.0 s | Garage |
+| 02 | 04.3 s | Hall |
+| 03 | 09.7 s | Living area |
+| 04 | 14.0 s | Front entry |
 
 ## Rebuilding
 
 ```sh
-pip install Pillow imageio-ffmpeg     # imageio-ffmpeg only if ffmpeg isn't on PATH
-python3 tools/build_page.py           # -> public/index.html   (~1.9 MB)
-python3 tools/build_reel.py           # -> public/*-annotated.mp4 (~2.8 MB)
+pip install imageio-ffmpeg          # only if ffmpeg isn't already on PATH
+python3 tools/build_clean.py        # -> public/walkthrough-clean.mp4 + tools/stations.json
+python3 tools/build_page.py         # -> public/index.html
 ```
 
-`tools/build_page.py` re-encodes a web cut (H.264 at CRF 30, plus a VP9 fallback
-for browsers without H.264), pulls the poster and the five station thumbnails,
-and inlines all of it into `tools/template.html`. Edit the template for copy and
-layout; edit `THUMB_TIMES` in the builder if the station cues move.
-
-`tools/build_reel.py` draws all 653 overlay frames with Pillow and composites
-them with ffmpeg. Station copy, colours and the plan geometry live at the top of
-that file.
+`build_clean.py` takes about 2.5 minutes, nearly all of it in `minterpolate`.
+The cut points, slowdown factor and grade are constants at the top of that file.
+Page copy and layout live in `tools/template.html`.
 
 ## The plan drawing
 
-The schematic is authored once in a 440 × 300 space and drawn at three sizes —
-in the page's SVG, in the video's corner plan, and full-bleed on the end card.
-It is **traced from the take, not measured**: room proportions are approximate
-and the two doorways off the hall were never entered.
-
-## A note on the notes
-
-The observation copy describes what is visible in the frames. Readings marked
-`°` on the page are probable rather than certain — the footage is handheld,
-auto-exposed and moving. It is a record of a walk, not an inspection.
+Authored once in a 440 × 300 space and drawn twice — small under the film, large
+in the closing panel. It is **traced from the take, not measured**: proportions
+are approximate.

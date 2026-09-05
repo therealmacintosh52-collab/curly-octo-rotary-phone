@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Build the self-contained walkthrough page from the source clip.
+"""Inline the graded master into the walkthrough page.
 
-Re-encodes a web cut of the take (H.264 plus a VP9 fallback), pulls the station
-thumbnails and the poster frame, then inlines everything into
-tools/template.html as data URIs so the result is one file with no external
-assets.
+Reads public/walkthrough-clean.mp4 and tools/stations.json (both written by
+build_clean.py), makes a web-weight H.264 cut plus a VP9 fallback and a poster
+frame, and substitutes all of it into tools/template.html as data URIs. The
+result is one file with no external assets except the Google Fonts stylesheet.
 
-    python3 tools/build_page.py
+    python3 tools/build_clean.py     # first — makes the master
+    python3 tools/build_page.py      # then — makes the page
 """
 
 import base64
+import json
 import pathlib
 import shutil
 import subprocess
@@ -17,13 +19,14 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "source" / "IMG_0247.mp4"
+MASTER = ROOT / "public" / "walkthrough-clean.mp4"
+STATIONS_JSON = ROOT / "tools" / "stations.json"
 TEMPLATE = ROOT / "tools" / "template.html"
 OUT = ROOT / "public" / "index.html"
 
-# Station cue times, in seconds, matched to the stations in the template.
-THUMB_TIMES = [1.5, 4.6, 8.2, 12.6, 15.5]
-POSTER_TIME = 1.2
+POSTER_TIME = 1.4
+CRF_H264 = 29
+CRF_VP9 = 39
 
 
 def ffmpeg() -> str:
@@ -46,50 +49,45 @@ def b64(path: pathlib.Path) -> str:
 
 
 def main() -> None:
-    if not SOURCE.exists():
-        sys.exit(f"missing source clip: {SOURCE}")
+    for f in (MASTER, STATIONS_JSON):
+        if not f.exists():
+            sys.exit(f"missing {f.name} — run tools/build_clean.py first")
+
+    meta = json.loads(STATIONS_JSON.read_text())
+    stations = [{"name": s["name"], "in": s["in"]} for s in meta["stations"]]
 
     ff = ffmpeg()
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = pathlib.Path(tmpdir)
 
-        web = tmp / "walk.mp4"
-        run([ff, "-y", "-i", str(SOURCE), "-an",
-             "-vf", "scale=608:-2",
+        web = tmp / "web.mp4"
+        run([ff, "-y", "-i", str(MASTER), "-an", "-map_metadata", "-1",
              "-c:v", "libx264", "-profile:v", "main", "-pix_fmt", "yuv420p",
-             "-crf", "30", "-preset", "slow", "-g", "15",
+             "-crf", str(CRF_H264), "-preset", "slow", "-g", "15",
              "-movflags", "+faststart", str(web)])
 
-        webm = tmp / "walk.webm"
-        run([ff, "-y", "-i", str(SOURCE), "-an",
-             "-vf", "scale=608:-2",
-             "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "40",
+        webm = tmp / "web.webm"
+        run([ff, "-y", "-i", str(MASTER), "-an", "-map_metadata", "-1",
+             "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", str(CRF_VP9),
              "-row-mt", "1", "-deadline", "good", "-cpu-used", "2",
              "-pix_fmt", "yuv420p", str(webm)])
 
         poster = tmp / "poster.jpg"
-        run([ff, "-y", "-ss", str(POSTER_TIME), "-i", str(SOURCE), "-frames:v", "1",
+        run([ff, "-y", "-ss", str(POSTER_TIME), "-i", str(MASTER), "-frames:v", "1",
              "-vf", "scale=456:-2", "-q:v", "5", str(poster)])
 
-        thumbs = []
-        for i, t in enumerate(THUMB_TIMES, start=1):
-            th = tmp / f"t{i}.jpg"
-            run([ff, "-y", "-ss", str(t), "-i", str(SOURCE), "-frames:v", "1",
-                 "-vf", "scale=168:-2", "-q:v", "6", str(th)])
-            thumbs.append(th)
-
-        html = TEMPLATE.read_text()
+        html = TEMPLATE.read_text(encoding="utf-8")
         html = html.replace("__VIDEO_WEBM__", b64(webm))
         html = html.replace("__VIDEO__", b64(web))
         html = html.replace("__POSTER__", b64(poster))
-        for i, th in enumerate(thumbs, start=1):
-            html = html.replace(f"__T{i}__", b64(th))
+        html = html.replace("__DURATION__", f"{meta['duration']:.3f}")
+        html = html.replace("__STATIONS__", json.dumps(stations, separators=(",", ":")))
 
         OUT.parent.mkdir(parents=True, exist_ok=True)
-        OUT.write_text(html)
+        OUT.write_text(html, encoding="utf-8")
 
-    kb = OUT.stat().st_size / 1024
-    print(f"wrote {OUT.relative_to(ROOT)}  ({kb:,.0f} KB)")
+    print(f"wrote {OUT.relative_to(ROOT)}  ({OUT.stat().st_size / 1024:,.0f} KB)")
+    print(f"  {meta['duration']:.2f} s, {len(stations)} spaces")
 
 
 if __name__ == "__main__":

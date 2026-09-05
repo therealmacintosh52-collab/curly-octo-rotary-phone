@@ -1,0 +1,28 @@
+{
+  "duration": 15.795,
+  "fps": 30,
+  "width": 608,
+  "height": 1080,
+  "stations": [
+    {
+      "name": "Garage",
+      "in": 0.0,
+      "out": 5.13
+    },
+    {
+      "name": "Hall",
+      "in": 4.32,
+      "out": 9.653
+    },
+    {
+      "name": "Living area",
+      "in": 9.653,
+      "out": 13.973
+    },
+    {
+      "name": "Front entry",
+      "in": 13.973,
+      "out": 15.795
+    }
+  ]
+}
