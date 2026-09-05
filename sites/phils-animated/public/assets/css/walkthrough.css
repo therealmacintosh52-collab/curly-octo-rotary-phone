@@ -1,7 +1,8 @@
 /* Arrival sequence — a scroll-driven approach to the shop, using the Street
    View panorama of 103 E Elm St as the stage. */
 
-.arrival { position: relative; height: 320vh; background: var(--ink); }
+/* One screen to read each frame, plus one for the pinned stage itself. */
+.arrival { position: relative; height: calc(var(--frames, 4) * 62vh + 100vh); background: var(--ink); }
 .arrival-stage {
   position: sticky; top: 0; height: 100svh; overflow: hidden;
   background: var(--grad-dark);
@@ -95,7 +96,7 @@
 .arrival-fallback > div { pointer-events: auto; }
 
 @media (max-width: 900px) {
-  .arrival { height: 260vh; }
+  .arrival { height: calc(var(--frames, 4) * 52vh + 100vh); }
   .arrival-caption { bottom: 20vh; }
   .arrival-hud { top: 78px; }
 }

@@ -1324,23 +1324,31 @@ HOME_FAQS = [
 # carries its own caption, so the sequence reads as a walk-in rather than a
 # gallery. Supplied by the owner from the business's own Google listing.
 WALKTHROUGH_FRAMES = [
-    ("/media/01-front.jpg", "01", "103 E Elm St, Lodi",
-     "Just east of downtown, minutes off Highway 99. Park out front — the office "
-     "door is right there, and parts deliveries go through the bay.",
-     "The office door at Phil's Auto and Fleet Repair on E Elm Street"),
-    ("/media/02-bay.jpg", "02", "Straight into the bay",
-     "Roll-up door open most of the day. Domestic, import, diesel — whatever is "
-     "on the floor that morning.",
-     "A pickup with the hood up inside the service bay"),
-    ("/media/03-engine.jpg", "03", "Torn down because the tests said so",
+    ("/media/aerial.jpg", "01", "103 E Elm St, Lodi",
+     "Just east of downtown, minutes off Highway 99. The long building with the "
+     "parking out front — that's the shop.",
+     "Aerial view of the shop building and its parking lot on E Elm Street"),
+    ("/media/signage.jpg", "02", "Pull up to the bay",
+     "Roll-up door open most of the day. The sign on the wall has the number on "
+     "it if you'd rather call before you come in.",
+     "The open bay door with the Phil's Auto and Fleet Repair sign beside it"),
+    ("/media/01-front.jpg", "03", "The office door is right there",
+     "No appointment desk maze, no service-writer counter between you and the "
+     "people working on your vehicle.",
+     "The office door at Phil's Auto and Fleet Repair"),
+    ("/media/bronco.jpg", "04", "Inside, on any given day",
+     "Lifts down both sides, whatever's booked in that morning. Classics get the "
+     "same treatment as work trucks.",
+     "A restored Ford Bronco parked inside the shop, cars up on lifts behind it"),
+    ("/media/03-engine.jpg", "05", "Torn down because the tests said so",
      "Not because a trouble code said maybe. This is what diagnosis before parts "
      "actually looks like.",
      "An engine bay stripped down during a repair"),
-    ("/media/04-fleet.jpg", "04", "Work vans and trucks",
+    ("/media/04-fleet.jpg", "06", "Work vans and trucks",
      "Fleet maintenance on a schedule, so failures land on your calendar instead "
      "of on a job site.",
      "A cargo van being serviced with parts laid out on the shop floor"),
-    ("/media/05-diesel.jpg", "05", "Diesel is everyday work here",
+    ("/media/05-diesel.jpg", "07", "Diesel is everyday work here",
      "Pickups and work trucks — engine, fuel system, emissions and driveline.",
      "A diesel pickup up on the shop floor during driveline work"),
 ]
@@ -1429,14 +1437,15 @@ def arrival_section():
         for no, title, body in steps
     )
 
-    return """<section class="arrival" aria-label="Arriving at the shop">
+    frame_count = len(photos) if (photos and not (video or webm)) else len(ARRIVAL_STEPS)
+    return """<section class="arrival" style="--frames:%d" aria-label="Arriving at the shop">
   <div class="arrival-stage">
     %s
     <div class="arrival-hud"><span class="dot"></span>Lodi, California · 103 E Elm St</div>
     %s
     <span class="arrival-scroll">Scroll</span>
   </div>
-</section>""" % (stage_media, caps)
+</section>""" % (frame_count, stage_media, caps)
 
 
 def build_home():

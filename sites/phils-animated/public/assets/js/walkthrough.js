@@ -30,8 +30,10 @@
     for (var i = 0; i < captions.length; i++) {
       var start = i * slot;
       var last = i === captions.length - 1;
+      /* A short dead zone between captions lets the text clear the frame
+         before the next image arrives — but keep it tight. */
       captions[i].classList.toggle(
-        "on", p >= start - 0.02 && (last || p < start + slot - 0.04));
+        "on", p >= start - 0.015 && (last || p < start + slot - 0.018));
     }
   }
 
