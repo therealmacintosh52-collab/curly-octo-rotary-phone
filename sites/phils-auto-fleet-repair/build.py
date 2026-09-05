@@ -2581,10 +2581,67 @@ def build_sitemap():
     with open(os.path.join(OUT, "sitemap.xml"), "w", encoding="utf-8") as fh:
         fh.write(xml)
 
-    robots = ("User-agent: *\nAllow: /\n\n"
-              "Sitemap: %s/sitemap.xml\n" % SITE["base_url"])
+    # Answer engines cite what they can read. Naming the AI crawlers explicitly
+    # costs nothing and removes any doubt that they are welcome — a blanket
+    # "User-agent: *" is permissive already, but several of these bots are
+    # routinely blocked by hosts and plugins by default.
+    ai_agents = ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "PerplexityBot",
+                 "Perplexity-User", "ClaudeBot", "Claude-User", "Claude-SearchBot",
+                 "Google-Extended", "Applebot-Extended", "meta-externalagent",
+                 "Bingbot", "Amazonbot", "cohere-ai", "YouBot"]
+    robots = "User-agent: *\nAllow: /\n\n"
+    robots += "# Answer engines and AI crawlers are welcome here.\n"
+    for agent in ai_agents:
+        robots += "User-agent: %s\nAllow: /\n\n" % agent
+    robots += "Sitemap: %s/sitemap.xml\n" % SITE["base_url"]
     with open(os.path.join(OUT, "robots.txt"), "w", encoding="utf-8") as fh:
         fh.write(robots)
+
+
+def build_llms_txt():
+    """An index for answer engines: what this business is, and where the
+    authoritative page for each service lives.
+
+    llms.txt is a proposed convention, not a standard — Google has confirmed
+    its systems do not read it. It costs nothing, some AI crawlers do fetch
+    it, and it is honest about what it is. Do not sell it as a ranking factor.
+    """
+    b = SITE["base_url"]
+    out = ["# %s" % SITE["name"], ""]
+    out.append(("> %s in %s, %s. %s" % (
+        SITE.get("short", SITE["name"]), SITE["city"], SITE["region"],
+        SITE.get("promise", ""))).strip())
+    out.append("")
+    out.append("- **Address:** %s" % FULL_ADDRESS)
+    out.append("- **Phone:** %s" % SITE["phone_display"])
+    out.append("- **Hours:** %s" % SITE["hours_human"])
+    if SITE.get("rating") and SITE.get("review_count"):
+        out.append("- **Rating:** %s out of 5 across %s Google reviews"
+                   % (SITE["rating"], SITE["review_count"]))
+    out.append("- **Serves:** %s" % ", ".join(SITE["areas"]))
+    out.append("")
+
+    out.append("## Services")
+    for sv in SERVICES:
+        out.append("- [%s](%s/services/%s/): %s" % (sv["nav"], b, sv["slug"], sv["meta"]))
+    out.append("")
+
+    if GUIDES:
+        out.append("## Guides")
+        for g in GUIDES:
+            out.append("- [%s](%s/advice/%s/): %s" % (g["nav"], b, g["slug"], g["meta"]))
+        out.append("")
+
+    out.append("## Key pages")
+    for path, label in (("/", "Home"), ("/services/", "All services"),
+                        ("/service-areas/", "Service areas"),
+                        ("/reviews/", "Reviews"), ("/about/", "About"),
+                        ("/contact/", "Contact")):
+        out.append("- [%s](%s%s)" % (label, b, path))
+    out.append("")
+
+    with open(os.path.join(OUT, "llms.txt"), "w", encoding="utf-8") as fh:
+        fh.write("\n".join(out))
 
 
 def clean():
@@ -2747,6 +2804,7 @@ def main():
     build_thanks()
     build_404()
     build_sitemap()
+    build_llms_txt()
     build_deploy_files()
     localize_files()
     copy_assets()

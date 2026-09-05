@@ -47,4 +47,4 @@ Allow: /
 User-agent: YouBot
 Allow: /
 
-Sitemap: https://philsautofleet.com/sitemap.xml
+Sitemap: https://replace-with-your-domain.com/sitemap.xml

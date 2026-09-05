@@ -13,7 +13,8 @@ Re-runnable: it rewrites whatever domain is currently in the file.
 import io, os, re, sys
 
 PLACEHOLDER = "REPLACE-WITH-YOUR-DOMAIN.com"
-PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public", "index.html")
+PUB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
+FILES = ["index.html", "robots.txt", "llms.txt", "sitemap.xml"]
 
 
 def main():
@@ -24,7 +25,8 @@ def main():
     if not re.fullmatch(r"[a-z0-9][a-z0-9.-]*\.[a-z]{2,}", domain):
         sys.exit("That does not look like a domain: %s" % domain)
 
-    with io.open(PAGE, encoding="utf-8") as fh:
+    page = os.path.join(PUB, "index.html")
+    with io.open(page, encoding="utf-8") as fh:
         s = fh.read()
 
     current = PLACEHOLDER
@@ -35,12 +37,21 @@ def main():
         print("Already set to %s — nothing to do." % domain)
         return
 
-    n = s.count(current)
-    s = s.replace(current, domain)
-    with io.open(PAGE, "w", encoding="utf-8") as fh:
-        fh.write(s)
+    total = 0
+    for name in FILES:
+        fp = os.path.join(PUB, name)
+        if not os.path.exists(fp):
+            continue
+        with io.open(fp, encoding="utf-8") as fh:
+            text = fh.read()
+        n = text.count(current)
+        if n:
+            with io.open(fp, "w", encoding="utf-8") as fh:
+                fh.write(text.replace(current, domain))
+            total += n
+            print("  %-12s %d reference%s" % (name, n, "" if n == 1 else "s"))
 
-    print("Set %d references from %s to %s" % (n, current, domain))
+    print("Set %d references from %s to %s" % (total, current, domain))
     print("Deploy public/ to Cloudflare Pages, then add %s as the custom domain." % domain)
 
 

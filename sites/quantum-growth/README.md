@@ -58,3 +58,18 @@ python3 -c "import re,io;print(len(re.findall(r'ld\+json', io.open('public/index
 ```
 
 Three is correct. Zero means the head is gone.
+
+## Answer engine files
+
+`robots.txt` names sixteen AI crawlers explicitly and allows them — GPTBot,
+OAI-SearchBot, PerplexityBot, ClaudeBot, Google-Extended and the rest. A
+blanket `User-agent: *` already permits them, but several are blocked by
+default by hosts and plugins, so naming them removes the doubt.
+
+`llms.txt` is a plain-text index of the plans, terms and consulting options
+for answer engines to read. **It is a proposed convention, not a standard.**
+Google has confirmed its systems do not read it. Ship it because it is free
+and some crawlers do fetch it — never sell it as a ranking factor.
+
+`set-domain.py` stamps the real domain across `index.html`, `robots.txt`,
+`llms.txt` and `sitemap.xml` in one pass.
