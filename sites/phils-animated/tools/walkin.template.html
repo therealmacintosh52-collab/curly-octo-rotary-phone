@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phil's Auto Walk-In</title>
+<style>
+  :root { color-scheme: dark; --ink:#e8edf6; --dim:#94a4bd; --line:#242455; --accent:#5b4dff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#07071a; color:var(--ink);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width: 960px; margin:0 auto; padding: 40px 22px 90px; }
+  .kicker { font-size:.78rem; letter-spacing:.16em; text-transform:uppercase; color:#8b7dff; font-weight:800; margin:0 0 .5em; }
+  h1 { font-size: clamp(1.6rem, 5vw, 2.3rem); letter-spacing:-.03em; line-height:1.1; margin:0 0 .45em; }
+  p { color:var(--dim); max-width: 64ch; margin:0 0 1em; }
+  .stage { position:relative; margin:26px 0 18px; border-radius:16px; overflow:hidden;
+           background:#000; box-shadow:0 26px 70px rgba(0,0,0,.55), 0 0 0 1px var(--line); }
+  canvas { width:100%; display:block; }
+  .scrub { display:flex; align-items:center; gap:12px; margin:0 0 22px; }
+  .scrub input[type=range] { flex:1; accent-color:var(--accent); }
+  .time { font:600 .82rem/1 ui-monospace,Menlo,Consolas,monospace; color:var(--dim); min-width:74px; text-align:right; }
+  .row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+  button { font:inherit; font-weight:800; border:0; border-radius:12px; padding:14px 24px; cursor:pointer;
+           background:linear-gradient(135deg,#2f22e0,#6a5bff); color:#fff; box-shadow:0 12px 30px rgba(91,77,255,.38); }
+  button.ghost { background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line); }
+  button[disabled] { opacity:.5; cursor:default; box-shadow:none; }
+  label { display:block; font-size:.76rem; letter-spacing:.1em; text-transform:uppercase; color:var(--dim);
+          font-weight:800; margin:0 0 6px; }
+  select { font:inherit; background:#12122e; color:var(--ink); border:1px solid var(--line);
+           border-radius:10px; padding:12px 13px; min-width:190px; }
+  .status { font:.84rem/1.5 ui-monospace,Menlo,Consolas,monospace; color:#8fa0b8; margin-top:16px;
+            border-top:1px solid var(--line); padding-top:14px; }
+  .shots { margin:34px 0 0; padding:0; list-style:none; display:grid; gap:2px;
+           grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); }
+  .shots li { background:#101028; border:1px solid var(--line); padding:11px 12px; font-size:.78rem; color:var(--dim); }
+  .shots b { display:block; color:var(--ink); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; margin-bottom:3px; }
+  .note { font-size:.86rem; color:#7f8ca3; border-left:2px solid var(--line); padding-left:14px; margin-top:30px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">Phil's Auto &amp; Fleet Repair</p>
+  <h1>The walk-in</h1>
+  <p>Seven of the shop's own photographs cut into one continuous move: pull up to the bay,
+  past the office door, through the doorway into the light, across the floor, into the work,
+  out to the diesel. Graded so the phone shots read as one camera.</p>
+
+  <div class="stage"><canvas id="c" width="1280" height="720"></canvas></div>
+
+  <div class="scrub">
+    <button id="play" class="ghost" style="padding:10px 16px">Pause</button>
+    <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Scrub the film">
+    <span class="time" id="time">0.0s</span>
+  </div>
+
+  <div class="row">
+    <div>
+      <label for="size">Format</label>
+      <select id="size">
+        <option value="1280x720" selected>1280 × 720 — web / YouTube</option>
+        <option value="1920x1080">1920 × 1080 — full HD</option>
+        <option value="1080x1350">1080 × 1350 — Instagram feed</option>
+        <option value="1080x1920">1080 × 1920 — Reels / Stories / TikTok</option>
+      </select>
+    </div>
+    <div>
+      <label for="pace">Pace</label>
+      <select id="pace">
+        <option value="0.62">Fast cut — about 15s</option>
+        <option value="1" selected>Normal — about 24s</option>
+        <option value="1.35">Slow — about 32s</option>
+      </select>
+    </div>
+    <button id="go">Render the video</button>
+  </div>
+
+  <div class="status" id="s">Loading the photographs…</div>
+
+  <ul class="shots" id="shotlist"></ul>
+
+  <p class="note">The button records the canvas straight out of the browser, so it needs a desktop
+  Chrome or Edge window — phones and Safari will play the loop but usually cannot save it. The file
+  lands in your downloads as WebM; any editor, Instagram and YouTube all take it as-is.</p>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * The edit. Every crop is a rectangle in the source photograph, given
+ * as [x, y, w, h] in 0..1. `from` is the opening frame, `to` the
+ * closing one; the camera glides between them. `anchor` is the point
+ * that stays put when the output aspect differs from the crop's, so a
+ * vertical export keeps the subject instead of centre-cropping it.
+ * `grade` matches each phone photo to a common exposure.
+ * ------------------------------------------------------------------ */
+const SHOTS = [
+  { src: "__MEDIA_signage__",
+    label: "Arrive", caption: "103 E Elm St, Lodi",
+    secs: 4.2,
+    from: [0.00, 0.00, 1.00, 1.00], to: [0.05, 0.03, 0.70, 0.82],
+    anchor: [0.34, 0.42],
+    grade: { b: 1.14, c: 1.00, s: 1.10 } },
+
+  { src: "__MEDIA_01-front__",
+    label: "The door", caption: "Office is right there",
+    secs: 3.4,
+    from: [0.02, 0.09, 0.96, 0.44], to: [0.27, 0.29, 0.44, 0.26],
+    anchor: [0.47, 0.46],
+    grade: { b: 0.90, c: 0.96, s: 1.00 } },
+
+  { src: "__MEDIA_02-bay__",
+    label: "Step in", caption: "Through the bay door",
+    secs: 3.6,
+    from: [0.00, 0.19, 0.52, 0.30], to: [0.43, 0.24, 0.55, 0.33],
+    anchor: [0.45, 0.36],
+    grade: { b: 1.08, c: 0.95, s: 1.08 } },
+
+  { src: "__MEDIA_porsche__",
+    label: "The floor", caption: "A Porsche and a plow truck, same floor",
+    secs: 4.4, flash: 0.36,
+    from: [0.18, 0.37, 0.58, 0.28], to: [0.01, 0.23, 0.98, 0.44],
+    anchor: [0.50, 0.49],
+    grade: { b: 1.06, c: 1.08, s: 0.94 } },
+
+  { src: "__MEDIA_03-engine__",
+    label: "The work", caption: "Torn down because the tests said so",
+    secs: 3.4,
+    from: [0.02, 0.27, 0.96, 0.42], to: [0.21, 0.43, 0.54, 0.26],
+    anchor: [0.48, 0.55],
+    grade: { b: 1.14, c: 0.98, s: 1.16 } },
+
+  { src: "__MEDIA_04-fleet__",
+    label: "Fleet", caption: "Vans and trucks, on a schedule",
+    secs: 3.2,
+    from: [0.05, 0.15, 0.78, 0.36], to: [0.02, 0.38, 0.88, 0.42],
+    anchor: [0.42, 0.42],
+    grade: { b: 0.93, c: 1.02, s: 1.16 } },
+
+  { src: "__MEDIA_05-diesel__",
+    label: "Diesel", caption: "Diesel is everyday work here",
+    secs: 5.2, endcard: true,
+    from: [0.02, 0.04, 0.96, 0.44], to: [0.15, 0.27, 0.70, 0.35],
+    anchor: [0.47, 0.45],
+    grade: { b: 0.99, c: 0.96, s: 1.20 } }
+];
+
+const TITLE = {
+  name: "PHIL'S AUTO & FLEET REPAIR",
+  sub: "Auto · Diesel · Fleet — Lodi, California",
+  in: 0.8, out: 3.4
+};
+const ENDCARD = {
+  name: "PHIL'S AUTO & FLEET REPAIR",
+  phone: "(209) 647-4953",
+  addr: "103 E Elm St, Lodi, CA 95240",
+  hours: "Mon–Sat, 8am–5pm",
+  hold: 3.4
+};
+
+const FADE = 0.62, FPS = 30, BRAND = [47, 34, 224];
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+/* Nearly-linear glide: a gentle head and tail, constant velocity through
+ * the middle. A full ease-in-out makes every shot stop dead on the cut. */
+const smoother = t => t * t * t * (t * (t * 6 - 15) + 10);
+const glide = t => { t = clamp(t, 0, 1); return 0.34 * smoother(t) + 0.66 * t; };
+
+const timing = (pace) => {
+  const secs = SHOTS.map(s => s.secs * pace), fade = FADE * pace;
+  const starts = []; let acc = 0;
+  secs.forEach((s, i) => { starts.push(acc); acc += s - (i < secs.length - 1 ? fade : 0); });
+  return { secs, fade, starts, total: acc };
+};
+
+/* --- grain ---------------------------------------------------------- */
+let grainTile = null;
+function grain() {
+  if (grainTile) return grainTile;
+  const n = 160, c = document.createElement("canvas"); c.width = c.height = n;
+  const x = c.getContext("2d"), d = x.createImageData(n, n);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const v = 110 + Math.random() * 36;
+    d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255;
+  }
+  x.putImageData(d, 0, 0);
+  return (grainTile = c);
+}
+
+/* --- one shot ------------------------------------------------------- */
+function drawShot(ctx, img, shot, t, W, H, blurPx) {
+  const e = glide(t);
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  let x = (shot.from[0] + (shot.to[0] - shot.from[0]) * e) * iw;
+  let y = (shot.from[1] + (shot.to[1] - shot.from[1]) * e) * ih;
+  let w = (shot.from[2] + (shot.to[2] - shot.from[2]) * e) * iw;
+  let h = (shot.from[3] + (shot.to[3] - shot.from[3]) * e) * ih;
+
+  /* Fit the crop to the output aspect around the anchor, never letterbox. */
+  const outAR = W / H, ax = (shot.anchor ? shot.anchor[0] : 0.5) * iw,
+        ay = (shot.anchor ? shot.anchor[1] : 0.5) * ih;
+  if (w / h > outAR) { const nw = h * outAR; x = ax - nw * ((ax - x) / w); w = nw; }
+  else { const nh = w / outAR; y = ay - nh * ((ay - y) / h); h = nh; }
+
+  /* Never sample outside the photograph. */
+  if (w > iw) { h *= iw / w; w = iw; }
+  if (h > ih) { w *= ih / h; h = ih; }
+  x = clamp(x, 0, iw - w); y = clamp(y, 0, ih - h);
+
+  const g = shot.grade || { b: 1, c: 1, s: 1 };
+  ctx.filter = "brightness(" + g.b + ") contrast(" + g.c + ") saturate(" + g.s + ")"
+             + (blurPx > 0.15 ? " blur(" + blurPx.toFixed(2) + "px)" : "");
+  ctx.drawImage(img, x, y, w, h, 0, 0, W, H);
+  ctx.filter = "none";
+}
+
+/* --- type ----------------------------------------------------------- */
+function face(weight, px) {
+  return weight + " " + px + "px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+}
+/* Tracked capitals, drawn from a left edge. Chromium has ctx.letterSpacing;
+ * everywhere else we place the glyphs ourselves so the look is identical. */
+function trackedWidth(ctx, text, sp) {
+  if ("letterSpacing" in ctx) {
+    const keep = ctx.letterSpacing; ctx.letterSpacing = sp + "px";
+    const w = ctx.measureText(text).width; ctx.letterSpacing = keep; return w;
+  }
+  let w = 0; for (const ch of text) w += ctx.measureText(ch).width + sp; return w - sp;
+}
+function tracked(ctx, text, x, y, sp) {
+  const keep = ctx.textAlign; ctx.textAlign = "left";
+  if ("letterSpacing" in ctx) {
+    const k = ctx.letterSpacing; ctx.letterSpacing = sp + "px";
+    ctx.fillText(text, x, y); ctx.letterSpacing = k;
+  } else {
+    let cx = x;
+    for (const ch of text) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + sp; }
+  }
+  ctx.textAlign = keep;
+}
+/* Pick the largest size at or below `px` that keeps the line inside maxW. */
+function fitFace(ctx, text, weight, px, sp, maxW) {
+  for (let i = 0; i < 26; i++) {
+    ctx.font = face(weight, Math.round(px));
+    if (trackedWidth(ctx, text, sp) <= maxW || px < 9) break;
+    px *= 0.94;
+  }
+  return Math.round(px);
+}
+function shadowOn(ctx, blur) { ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = blur; ctx.shadowOffsetY = blur * 0.16; }
+function shadowOff(ctx) { ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; }
+
+/* Reels and TikTok cover the bottom of a vertical frame with their own UI. */
+const safeBottom = (W, H) => (H > W * 1.1 ? H * 0.095 : 0);
+
+function drawTitle(ctx, a, W, H, u) {
+  if (a <= 0.001) return;
+  const pad = Math.round(u * 3.4), maxW = W - pad * 2 - u * 1.6;
+  H -= safeBottom(W, H);
+  const rise = (1 - a) * u * 0.8;
+  ctx.save(); ctx.globalAlpha = a; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+
+  const nameSp = u * 0.05;
+  const nameSize = fitFace(ctx, TITLE.name, 800, u * 1.75, nameSp, maxW);
+  const subSize = Math.round(u * 0.98);
+  const baseY = H - Math.round(u * 3.0) + rise;
+  const topY = baseY - nameSize - u * 1.35;
+
+  ctx.fillStyle = "rgb(" + BRAND.join(",") + ")";
+  ctx.fillRect(pad, topY, Math.max(2, Math.round(u * 0.22)), baseY - topY + u * 0.35);
+
+  const tx = pad + Math.round(u * 1.1);
+  shadowOn(ctx, u * 0.9);
+  ctx.fillStyle = "#ffffff"; ctx.font = face(800, nameSize);
+  tracked(ctx, TITLE.name, tx, baseY - Math.round(u * 1.25), nameSp);
+  ctx.fillStyle = "rgba(226,233,246,.92)"; ctx.font = face(600, subSize);
+  tracked(ctx, TITLE.sub, tx, baseY + Math.round(u * 0.2), u * 0.03);
+  shadowOff(ctx); ctx.restore();
+}
+
+function drawCaption(ctx, text, a, W, H, u) {
+  if (a <= 0.001 || !text) return;
+  const pad = Math.round(u * 3.4), size = Math.round(u * 1.02);
+  H -= safeBottom(W, H);
+  const y = H - Math.round(u * 2.2) + (1 - a) * u * 0.6;
+  ctx.save(); ctx.globalAlpha = a; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.font = face(700, size);
+  const w = Math.min(W - pad * 2, ctx.measureText(text).width + u * 1.9);
+  const boxY = y - size - u * 0.6, boxH = size + u * 1.35;
+  ctx.fillStyle = "rgba(7,7,26,.58)";
+  if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(pad, boxY, w, boxH, u * 0.38); ctx.fill(); }
+  else ctx.fillRect(pad, boxY, w, boxH);
+  ctx.fillStyle = "rgb(" + BRAND.join(",") + ")";
+  ctx.fillRect(pad, boxY, Math.max(2, Math.round(u * 0.18)), boxH);
+  ctx.fillStyle = "#ffffff"; ctx.fillText(text, pad + u * 0.95, y);
+  ctx.restore();
+}
+
+function drawEndcard(ctx, a, W, H, u) {
+  if (a <= 0.001) return;
+  const maxW = W * 0.84, cx = W / 2, rise = (1 - a) * u * 1.1;
+  ctx.save();
+  ctx.globalAlpha = a * 0.9; ctx.fillStyle = "#07071a"; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = a; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+
+  /* Two lines so the name still reads big in a vertical crop. */
+  const lines = ["PHIL'S AUTO", "& FLEET REPAIR"];
+  const sp = u * 0.07;
+  let size = u * 2.2;
+  for (const l of lines) size = Math.min(size, fitFace(ctx, l, 800, size, sp, maxW));
+  const lead = size * 1.16;
+  let y = H / 2 - lead * 0.55 + rise;
+
+  ctx.fillStyle = "rgb(" + BRAND.join(",") + ")";
+  ctx.fillRect(cx - u * 1.6, y - size - u * 1.9, u * 3.2, Math.max(2, u * 0.2));
+
+  ctx.font = face(800, size); ctx.fillStyle = "#ffffff";
+  for (const l of lines) { tracked(ctx, l, cx - trackedWidth(ctx, l, sp) / 2, y, sp); y += lead; }
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(139,125,255,.95)"; ctx.font = face(800, Math.round(u * 0.78));
+  tracked(ctx, "CALL THE SHOP", cx - trackedWidth(ctx, "CALL THE SHOP", u * 0.2) / 2, y + u * 0.9, u * 0.2);
+
+  const phoneSize = fitFace(ctx, ENDCARD.phone, 800, u * 2.5, 0, maxW);
+  ctx.font = face(800, phoneSize); ctx.fillStyle = "#ffffff";
+  ctx.fillText(ENDCARD.phone, cx, y + u * 3.1);
+
+  ctx.fillStyle = "rgba(190,201,222,.8)"; ctx.font = face(600, Math.round(u * 0.92));
+  ctx.fillText(ENDCARD.addr, cx, y + u * 4.5);
+  ctx.fillText(ENDCARD.hours, cx, y + u * 5.8);
+  ctx.restore();
+}
+
+/* --- the frame ------------------------------------------------------ */
+function renderFrame(ctx, imgs, t, W, H, tm) {
+  const u = Math.min(W, H) / 30;           /* type unit: scales with format */
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.filter = "none";
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+
+  let flash = 0, capText = "", capAlpha = 0, titleAlpha = 0, endAlpha = 0;
+
+  for (let i = 0; i < SHOTS.length; i++) {
+    const local = t - tm.starts[i], secs = tm.secs[i];
+    if (local < 0 || local > secs) continue;
+    const fadingIn = i > 0 ? clamp(local / tm.fade, 0, 1) : 1;
+    ctx.globalAlpha = fadingIn;
+    drawShot(ctx, imgs[i], SHOTS[i], local / secs, W, H, (1 - fadingIn) * 5);
+    ctx.globalAlpha = 1;
+
+    if (SHOTS[i].flash && fadingIn < 1) flash = Math.max(flash, SHOTS[i].flash * Math.sin(Math.PI * fadingIn));
+
+    /* Captions belong to the shot that is arriving or holding. */
+    const own = fadingIn > 0.5 || i === SHOTS.length - 1;
+    if (own) {
+      const inA = clamp((local - 0.45) / 0.55, 0, 1);
+      const outA = clamp((secs - 0.55 - local) / 0.5, 0, 1);
+      const a = Math.min(inA, outA);
+      if (a > capAlpha) { capAlpha = a; capText = SHOTS[i].caption; }
+      if (i === 0) titleAlpha = Math.min(clamp((local - TITLE.in) / 0.6, 0, 1),
+                                         clamp((TITLE.out - local) / 0.6, 0, 1));
+      if (SHOTS[i].endcard) endAlpha = clamp((local - (secs - ENDCARD.hold)) / 0.9, 0, 1);
+    }
+  }
+
+  /* Grade: brand-tinted shadows, a soft vignette, a whisper of grain. */
+  ctx.globalCompositeOperation = "soft-light";
+  ctx.globalAlpha = 0.16; ctx.fillStyle = "rgb(" + BRAND.join(",") + ")";
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+
+  const vg = ctx.createRadialGradient(W / 2, H * 0.47, Math.min(W, H) * 0.34, W / 2, H * 0.5, Math.max(W, H) * 0.76);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(0.62, "rgba(0,0,0,.14)"); vg.addColorStop(1, "rgba(0,0,0,.52)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+  const g = grain();
+  ctx.globalCompositeOperation = "overlay"; ctx.globalAlpha = 0.045;
+  const ox = -Math.random() * 160, oy = -Math.random() * 160;
+  const pat = ctx.createPattern(g, "repeat");
+  ctx.save(); ctx.translate(ox, oy); ctx.fillStyle = pat; ctx.fillRect(0, 0, W + 160, H + 160); ctx.restore();
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+
+  if (flash > 0.002) { ctx.globalAlpha = flash; ctx.fillStyle = "#fff6e8"; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+
+  drawTitle(ctx, titleAlpha, W, H, u);
+  const capVis = capAlpha * (1 - Math.min(1, endAlpha * 2)) * (1 - Math.min(1, titleAlpha * 2));
+  drawCaption(ctx, capText, capVis, W, H, u);
+  drawEndcard(ctx, endAlpha, W, H, u);
+
+  /* Head and tail out of black. */
+  const fadeEdge = Math.min(clamp(t / 0.7, 0, 1), clamp((tm.total - t) / 0.9, 0, 1));
+  if (fadeEdge < 1) { ctx.globalAlpha = 1 - fadeEdge; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+}
+
+/* --- load ----------------------------------------------------------- */
+const loadAll = () => Promise.all(SHOTS.map(s => new Promise((res, rej) => {
+  const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("image")); i.src = s.src;
+})));
+
+/* --- preview -------------------------------------------------------- */
+let imgs = null, playing = true, headT = 0, lastNow = 0;
+
+async function boot() {
+  const list = $("shotlist");
+  list.innerHTML = SHOTS.map((s, i) =>
+    "<li><b>" + String(i + 1).padStart(2, "0") + " · " + s.label + "</b>" + s.caption + "</li>").join("");
+
+  try { imgs = await loadAll(); }
+  catch (e) { $("s").textContent = "Could not load the photographs."; return; }
+
+  const canvas = $("c"), ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  const tm = timing(1);
+  $("s").textContent = SHOTS.length + " shots · " + tm.total.toFixed(1) + "s · looping";
+
+  const seek = $("seek"), time = $("time"), playBtn = $("play");
+  seek.addEventListener("input", () => { playing = false; playBtn.textContent = "Play";
+    headT = (seek.value / 1000) * tm.total; });
+  playBtn.addEventListener("click", () => { playing = !playing; playBtn.textContent = playing ? "Pause" : "Play"; });
+
+  lastNow = performance.now();
+  (function loop(now) {
+    const dt = Math.min(0.1, (now - lastNow) / 1000); lastNow = now;
+    if (playing) headT = (headT + dt) % tm.total;
+    renderFrame(ctx, imgs, headT, canvas.width, canvas.height, tm);
+    if (playing) seek.value = Math.round((headT / tm.total) * 1000);
+    time.textContent = headT.toFixed(1) + "s";
+    requestAnimationFrame(loop);
+  })(lastNow);
+
+  $("go").addEventListener("click", record);
+}
+
+/* --- record --------------------------------------------------------- */
+async function record() {
+  const btn = $("go"), status = $("s");
+  const [W, H] = $("size").value.split("x").map(Number);
+  const pace = parseFloat($("pace").value);
+  const tm = timing(pace);
+
+  const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+  const mime = (window.MediaRecorder && candidates.find(t => MediaRecorder.isTypeSupported(t))) || "";
+  if (!mime) { status.textContent = "This browser has no video encoder. Open the page in desktop Chrome or Edge."; return; }
+
+  btn.disabled = true; playing = false; $("play").textContent = "Play";
+  const off = document.createElement("canvas"); off.width = W; off.height = H;
+  const ctx = off.getContext("2d");
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+
+  const stream = off.captureStream(0), track = stream.getVideoTracks()[0];
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: W * H > 1500000 ? 12000000 : 7000000 });
+  const chunks = []; rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  const stopped = new Promise(r => rec.onstop = r);
+  rec.start();
+
+  const frames = Math.round(tm.total * FPS);
+  for (let f = 0; f < frames; f++) {
+    renderFrame(ctx, imgs, f / FPS, W, H, tm);
+    track.requestFrame();
+    if (f % 6 === 0) { status.textContent = "Rendering " + Math.round((f / frames) * 100) + "% · frame " + f + " of " + frames;
+                       await new Promise(r => setTimeout(r, 0)); }
+  }
+  rec.stop(); await stopped;
+
+  const ext = mime.indexOf("mp4") > -1 ? "mp4" : "webm";
+  const blob = new Blob(chunks, { type: mime.split(";")[0] });
+  if (!blob.size) { status.textContent = "The encoder produced an empty file — try desktop Chrome."; btn.disabled = false; return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "phils-auto-walk-in-" + W + "x" + H + "." + ext;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  status.textContent = "Saved " + a.download + " · " + (blob.size / 1048576).toFixed(1) + " MB · " + tm.total.toFixed(1) + "s";
+  btn.disabled = false; playing = true; $("play").textContent = "Pause";
+}
+
+boot();
+</script>
+</body>
+</html>

@@ -28,7 +28,11 @@
 .arrival-stage .arrival-frame {
   object-fit: cover; inset: 0; width: 100%; height: 100%;
   opacity: 0; transform: scale(var(--k, 1.06));
-  transition: opacity .45s linear;
+  transform-origin: 50% 50%;
+  will-change: opacity, transform;
+  /* Scroll drives both opacity and transform frame by frame; a transition on
+     top of that only adds a quarter-second of lag behind the scrollbar. */
+  transition: none;
 }
 .arrival-stage .arrival-frame.is-first { opacity: 1; }
 .arrival-stage.media-failed .arrival-video { display: none; }

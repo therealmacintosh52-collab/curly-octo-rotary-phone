@@ -91,7 +91,36 @@
   }
 
   /* Stills: one frame per caption. Each holds, then cross-fades into the next
-     over the last fifth of its slot, with a slow push the whole time. */
+     over the last fifth of its slot. The move and the grade below are the same
+     ones the exported film uses, so the scroll version and the video read as
+     one piece of footage rather than two different edits.
+
+     Each entry is [scale, x%, y%] at the head of the shot and at its tail.
+     No two neighbours move the same way — a reel of identical slow zooms is
+     what makes a photo montage look like a screensaver. The translate is
+     applied after the scale, so it costs scale × x%; keep that under the
+     (scale − 1) / 2 overhang or the frame slides off its own edge. */
+  var MOVES = [
+    { a: [1.04,   0,  0], b: [1.16,   4,  1], g: [1.14, 1.00, 1.10] },  /* arrive  */
+    { a: [1.05,   0, -2], b: [1.20,   0,  2], g: [0.90, 0.96, 1.00] },  /* the door */
+    { a: [1.24,   9,  0], b: [1.24,  -9,  0], g: [1.08, 0.95, 1.08] },  /* step in */
+    { a: [1.22,   0,  0], b: [1.02,   0,  0], g: [1.06, 1.08, 0.94] },  /* the floor */
+    { a: [1.04,   0,  0], b: [1.22,   0, -3], g: [1.14, 0.98, 1.16] },  /* the work */
+    { a: [1.14,   0, -4], b: [1.10,   2,  4], g: [0.93, 1.02, 1.16] },  /* fleet   */
+    { a: [1.06,   0, -2], b: [1.16,   0,  3], g: [0.99, 0.96, 1.20] }   /* diesel  */
+  ];
+  /* Gentle head and tail, constant velocity through the middle. A full
+     ease-in-out makes every frame stop dead on the dissolve. */
+  function glide(t) {
+    var s = t * t * t * (t * (t * 6 - 15) + 10);
+    return 0.34 * s + 0.66 * t;
+  }
+
+  Array.prototype.forEach.call(frames, function (f, i) {
+    var m = MOVES[i % MOVES.length];
+    f.style.filter = "brightness(" + m.g[0] + ") contrast(" + m.g[1] + ") saturate(" + m.g[2] + ")";
+  });
+
   function paintFrames(p) {
     if (!frames.length) return;
     var slot = 1 / frames.length;
@@ -103,7 +132,14 @@
       else if (local < 0 && local > -0.2) opacity = 1 + local / 0.2;
       if (i === frames.length - 1 && local > 0.8) opacity = 1;   /* hold the last */
       frames[i].style.opacity = Math.max(0, Math.min(1, opacity));
-      frames[i].style.transform = "scale(" + (1.06 + Math.max(0, Math.min(1, local)) * 0.07).toFixed(4) + ")";
+
+      var m = MOVES[i % MOVES.length];
+      var e = glide(Math.max(0, Math.min(1, local)));
+      var sc = m.a[0] + (m.b[0] - m.a[0]) * e;
+      var tx = m.a[1] + (m.b[1] - m.a[1]) * e;
+      var ty = m.a[2] + (m.b[2] - m.a[2]) * e;
+      frames[i].style.transform =
+        "scale(" + sc.toFixed(4) + ") translate(" + tx.toFixed(2) + "%," + ty.toFixed(2) + "%)";
     }
   }
 

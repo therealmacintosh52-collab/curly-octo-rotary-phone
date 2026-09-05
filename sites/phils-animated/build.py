@@ -14,8 +14,8 @@ the sitemap and the structured data stay in sync.
 import html
 import os
 import re
-import re
 import shutil
+import struct
 import sys
 from datetime import date
 
@@ -1202,12 +1202,38 @@ def angle_divider(fill="#ffffff"):
             '<path d="M0 80 1440 0v80z" fill="%s"/></svg></div>' % fill)
 
 
+def media_dims(src, fallback=(1284, 1711)):
+    """Real pixel size of a shipped photo, so the browser reserves the right
+    box and nothing jumps as the arrival frames load."""
+    path = os.path.join(ROOT, "public", src.lstrip("/"))
+    try:
+        with open(path, "rb") as fh:
+            data = fh.read()
+    except OSError:
+        return fallback
+    i = 2
+    while i + 9 < len(data):
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+            height, width = struct.unpack(">HH", data[i + 5:i + 9])
+            return width, height
+        if marker in (0xD8, 0xD9) or 0xD0 <= marker <= 0xD7:
+            i += 2
+            continue
+        i += 2 + struct.unpack(">H", data[i + 2:i + 4])[0]
+    return fallback
+
+
 def photo_slot(caption, badge="Inside the shop", src=None, alt=None):
     """Styled image frame. Ships with a hand-drawn SVG so the page looks
     finished on day one — swap the <img> src for a real photo of the shop."""
     src = src or "/assets/img/shop-scene.svg"
     alt = alt or "Illustration of a pickup truck raised on a lift inside a service bay"
-    dims = 'width="1284" height="1711"' if src.endswith(".jpg") else 'width="720" height="460"'
+    dims = ('width="%d" height="%d"' % media_dims(src)) if src.endswith(".jpg") \
+        else 'width="720" height="460"'
     return """<figure class="photo">
   <span class="photo-badge">%s%s</span>
   <img src="%s" %s loading="lazy" alt="%s">
@@ -1324,21 +1350,23 @@ HOME_FAQS = [
 # carries its own caption, so the sequence reads as a walk-in rather than a
 # gallery. Supplied by the owner from the business's own Google listing.
 WALKTHROUGH_FRAMES = [
-    ("/media/aerial.jpg", "01", "103 E Elm St, Lodi",
-     "Just east of downtown, minutes off Highway 99. The long building with the "
-     "parking out front — that's the shop.",
-     "Aerial view of the shop building and its parking lot on E Elm Street"),
-    ("/media/signage.jpg", "02", "Pull up to the bay",
-     "Roll-up door open most of the day. The sign on the wall has the number on "
-     "it if you'd rather call before you come in.",
-     "The open bay door with the Phil's Auto and Fleet Repair sign beside it"),
-    ("/media/01-front.jpg", "03", "The office door is right there",
+    ("/media/signage.jpg", "01", "103 E Elm St, Lodi",
+     "Just east of downtown, minutes off Highway 99. Roll-up door open most of "
+     "the day, and the number is right there on the wall if you would rather "
+     "call before you come in.",
+     "The open bay door at Phil's Auto and Fleet Repair with the shop sign beside it"),
+    ("/media/01-front.jpg", "02", "The office door is right there",
      "No appointment desk maze, no service-writer counter between you and the "
      "people working on your vehicle.",
      "The office door at Phil's Auto and Fleet Repair"),
+    ("/media/02-bay.jpg", "03", "Step through the bay",
+     "Daylight on one side, the floor on the other. Lifts down both sides and "
+     "the parts wall behind them.",
+     "Looking into the shop from the open bay door, a pickup on the floor and "
+     "the parts shelving behind it"),
     ("/media/porsche.jpg", "04", "A Porsche and a plow truck, same floor",
-     "Lifts down both sides and whatever is booked in that morning. The range is "
-     "the point — the same diagnosis-first approach on all of it.",
+     "Whatever is booked in that morning. The range is the point — the same "
+     "diagnosis-first approach on all of it.",
      "A Porsche Cayman with its doors and engine lid open inside the shop, work "
      "trucks and cars on lifts behind it"),
     ("/media/03-engine.jpg", "05", "Torn down because the tests said so",
@@ -1405,9 +1433,10 @@ def arrival_section():
         # Cross-faded stills with a slow push on each — the arrival read without
         # a film crew. The first frame is eager so the section paints instantly.
         stage_media = "".join(
-            '<img class="arrival-frame%s" src="%s" alt="%s" %s width="1284" height="1711">'
+            '<img class="arrival-frame%s" src="%s" alt="%s" %s width="%d" height="%d">'
             % (" is-first" if i == 0 else "", src, esc(alt),
-               'fetchpriority="high"' if i == 0 else 'loading="lazy"')
+               'fetchpriority="high"' if i == 0 else 'loading="lazy"',
+               *media_dims(src))
             for i, (src, _no, _t, _b, alt) in enumerate(photos)
         )
     elif embed:
