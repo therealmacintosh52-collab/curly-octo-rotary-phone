@@ -90,6 +90,12 @@ SITE = {
     # open the shop → Street View → ⋮ → "Share or embed image" → Embed → copy
     # ONLY the src="..." value and paste it here. No API key needed.
     "streetview_embed": "",
+    # A phone video of walking up to and into the shop, scrubbed by scroll.
+    # One continuous take, no cuts, 15-25s, landscape. See the README for the
+    # ffmpeg line that makes it seek smoothly. Takes priority over Street View.
+    "walkthrough_video": "",          # e.g. "/media/walkthrough.mp4"
+    "walkthrough_video_webm": "",     # optional, smaller, served first
+    "walkthrough_poster": "",         # first frame, shown before the video decodes
     # Optional: a favicon cut from the real logo (SVG or PNG). Falls back to
     # the placeholder mark in assets/img/favicon.svg.
     "favicon": "/assets/img/logo.png",
@@ -1321,20 +1327,43 @@ ARRIVAL_STEPS = [
 
 
 def arrival_section():
-    """Scroll-driven approach to the shop over the Street View panorama."""
+    """Scroll-driven approach to the shop.
+
+    Three sources, in order of what the shop has supplied:
+      1. a walk-in video, scrubbed frame by frame as you scroll
+      2. the Street View panorama
+      3. an address panel, so the section is never a dead frame
+    """
+    video = SITE.get("walkthrough_video")
+    webm = SITE.get("walkthrough_video_webm")
+    poster = SITE.get("walkthrough_poster")
     embed = SITE.get("streetview_embed")
-    if embed:
+
+    if video or webm:
+        sources = ""
+        if webm:
+            sources += '<source src="%s" type="video/webm">' % webm
+        if video:
+            sources += '<source src="%s" type="video/mp4">' % video
+        stage_media = """<video data-scrub class="arrival-video" muted playsinline
+        preload="auto" disablepictureinpicture %s aria-label="Walking into %s">%s</video>""" % (
+            ('poster="%s"' % poster) if poster else "",
+            esc(SITE["name"]),
+            sources,
+        )
+    elif embed:
         stage_media = (
             '<iframe src="%s" title="Street View of %s" loading="lazy" '
             'referrerpolicy="no-referrer-when-downgrade" '
             'allow="accelerometer; gyroscope"></iframe>' % (embed, esc(FULL_ADDRESS))
         )
     else:
-        # Customer-facing fallback: no dev instructions on screen. How to
-        # supply the panorama is in the HTML comment below and the README.
-        stage_media = """<!-- Street View: Google Maps -> the shop -> Street View -> the ...
-     menu -> "Share or embed image" -> Embed -> copy only the src="..." value
-     and paste it into SITE["streetview_embed"] in build.py. No API key. -->
+        # Customer-facing fallback: no dev instructions on screen. How to supply
+        # the footage or the panorama is in the README.
+        stage_media = """<!-- Supply either SITE["walkthrough_video"] (a phone video of
+     walking in — see README for the ffmpeg settings that make it scrub) or
+     SITE["streetview_embed"] (Google Maps -> Street View -> share or embed
+     image -> Embed -> copy the src value). -->
       <div class="arrival-fallback">
         <div>
           <span class="addr">%s</span>

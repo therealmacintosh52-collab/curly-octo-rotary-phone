@@ -72,9 +72,10 @@
 <main id="main">
 <section class="arrival" aria-label="Arriving at the shop">
   <div class="arrival-stage">
-    <!-- Street View: Google Maps -> the shop -> Street View -> the ...
-     menu -> "Share or embed image" -> Embed -> copy only the src="..." value
-     and paste it into SITE["streetview_embed"] in build.py. No API key. -->
+    <!-- Supply either SITE["walkthrough_video"] (a phone video of
+     walking in — see README for the ffmpeg settings that make it scrub) or
+     SITE["streetview_embed"] (Google Maps -> Street View -> share or embed
+     image -> Embed -> copy the src value). -->
       <div class="arrival-fallback">
         <div>
           <span class="addr">103 E Elm St, Lodi, CA 95240</span>

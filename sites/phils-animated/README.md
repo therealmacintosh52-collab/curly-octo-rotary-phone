@@ -42,3 +42,47 @@ Until that's filled in, the stage shows the address with a Get directions button
 panel, not a broken embed.
 
 Captions live in `ARRIVAL_STEPS` in `build.py`.
+
+
+## Shooting the walk-in video
+
+This is the version where scroll drives a real video of walking into the shop. The player is
+already built — it needs footage.
+
+**Shooting it (a phone is fine):**
+- One continuous take, no cuts. Start at the sidewalk or the parking spot, walk up, through the
+  door, and end on the counter or a bay with a vehicle up on the lift.
+- Landscape, held steady at chest height, walking slowly. 15–25 seconds.
+- Daylight, and wipe the lens first — phone lenses are always smeared.
+- Watch what's in frame: customer faces and readable plates are worth avoiding.
+
+**Encoding it — this part matters.** Scrubbing is only smooth if every frame is a keyframe:
+
+```bash
+ffmpeg -i IMG_1234.mov \
+  -vf "scale=1280:-2,fps=30" -an \
+  -c:v libx264 -crf 26 -g 1 -pix_fmt yuv420p -movflags +faststart \
+  public/media/walkthrough.mp4
+
+# poster (first frame), shown before the video decodes
+ffmpeg -i public/media/walkthrough.mp4 -frames:v 1 public/media/walkthrough-poster.jpg
+```
+
+`-g 1` makes every frame a keyframe so the browser can jump anywhere instantly. It inflates the
+file, which is why the clip stays short and 1280px wide — aim for under 8 MB. `-an` drops the
+audio; nobody wants sound firing on scroll.
+
+Then in `build.py`:
+
+```python
+"walkthrough_video": "/media/walkthrough.mp4",
+"walkthrough_poster": "/media/walkthrough-poster.jpg",
+```
+
+**How the player behaves:** scroll position maps to the playhead, and the playhead chases its
+target rather than snapping, so a fast scroll doesn't ask the decoder for forty seeks a second.
+Verified: 0% → 0s, 50% → half the duration, 100% → the last frame, clamped at both ends. If the
+file fails to load the stage keeps the captions and the vignette instead of going black. Under
+reduced motion the section unpins, the captions stack, and the video gets normal controls.
+
+**Priority:** video, then Street View, then the address panel. Supply whichever you have.
