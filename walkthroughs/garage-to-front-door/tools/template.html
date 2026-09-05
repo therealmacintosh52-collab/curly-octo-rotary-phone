@@ -1,4 +1,4 @@
-<title>Garage to Front Door</title>
+<title>Hall to Front Door</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..700,0..100,0..1&family=Karla:wght@300;400;500;600&display=swap">
@@ -270,24 +270,26 @@ footer p{margin:0}
 
       <div class="filmbar">
         <button class="ghost" id="playBtn" type="button">Play</button>
-        <span class="where" id="whereNow">The garage</span>
+        <span class="where" id="whereNow">The hall</span>
       </div>
 
       <div class="plan-mini">
         <svg viewBox="12 40 416 238" role="img" aria-label="Plan of the route through the house">
           <g fill="none" stroke="var(--plan)" stroke-width="1" stroke-linecap="square">
-            <path d="M24 52H168M24 52V264M24 264H168M168 52V152M168 186V264"/>
             <path d="M168 152H196M168 186H196M268 152H300M268 186H300"/>
             <path d="M196 152V88M268 152V88M196 88H268M196 186V254M268 186V254M196 254H268"/>
             <path d="M196 152H212M252 152H268M196 186H212M252 186H268"/>
             <path d="M300 52V152M300 186V264M300 52H416M300 264H416M416 52V96M416 176V264"/>
           </g>
+          <g fill="none" stroke="var(--plan)" stroke-width="1" stroke-linecap="square" opacity=".45">
+            <path d="M24 52H168M24 52V264M24 264H168M168 52V152M168 186V264"/>
+          </g>
           <g stroke="var(--brass-graphic)" stroke-width="2.5" fill="none" opacity=".8">
             <path d="M416 96V136M419 136V176"/><path d="M332 264H382"/>
           </g>
-          <path d="M96 206 L152 178 L186 172 L262 170 L322 174 L350 214 L354 240"
+          <path d="M186 172 L262 170 L322 174 L350 214 L354 240"
                 fill="none" stroke="var(--brass-graphic)" stroke-width="1" opacity=".3"/>
-          <path id="routeDone" d="M96 206 L152 178 L186 172 L262 170 L322 174 L350 214 L354 240"
+          <path id="routeDone" d="M186 172 L262 170 L322 174 L350 214 L354 240"
                 fill="none" stroke="var(--brass-graphic)" stroke-width="1.75" stroke-linecap="round"/>
           <g id="cam">
             <circle r="10" fill="var(--brass-graphic)" opacity=".16"/>
@@ -301,34 +303,23 @@ footer p{margin:0}
     <div class="track" id="track">
 
       <div class="opening">
-        <h1>Garage to <em>front door</em></h1>
-        <p class="standfirst">Four spaces, one unbroken move through the house. Scroll to walk it.</p>
+        <h1>Hall to <em>front door</em></h1>
+        <p class="standfirst">Three rooms, one unbroken move through the house. Scroll to walk it.</p>
       </div>
 
-      <section class="space is-live" data-in="0" data-name="The garage">
-        <div class="space-no"><span class="n">01</span><span class="label">Garage</span></div>
-        <h2>Where the walk begins</h2>
-        <p>A full bay with the slab left open down the middle &mdash; <strong>room to work, room to park</strong> &mdash; and a door that goes straight into the house rather than around the outside.</p>
-        <ul class="details">
-          <li>Slab floor, runners to the door</li>
-          <li>Shelving and a bar overhead</li>
-          <li>Direct entry to the hall</li>
-        </ul>
-      </section>
-
-      <section class="space" data-in="4.32" data-name="The hall">
-        <div class="space-no"><span class="n">02</span><span class="label">Hall</span></div>
-        <h2>Through, and the house opens</h2>
-        <p>The door gives onto a hall that runs the depth of the plan. Two rooms open off it, left and right, and past them there is <strong>a clean sightline all the way to the glass</strong>.</p>
+      <section class="space is-live">
+        <div class="space-no"><span class="n">01</span><span class="label">Hall</span></div>
+        <h2>One sightline, end to end</h2>
+        <p>The hall runs the full depth of the plan, with rooms opening left and right. From the door at this end you can see <strong>straight through to the glass</strong> at the other &mdash; no turn, no step, nothing in the way.</p>
         <ul class="details">
           <li>Plank floor, wall to wall</li>
           <li>Rooms both sides</li>
-          <li>No turns, no steps</li>
+          <li>Garage door at this end</li>
         </ul>
       </section>
 
-      <section class="space" data-in="9.65" data-name="The living area">
-        <div class="space-no"><span class="n">03</span><span class="label">Living area</span></div>
+      <section class="space">
+        <div class="space-no"><span class="n">02</span><span class="label">Living area</span></div>
         <h2>Everything faces the glass</h2>
         <p>The hall releases into the main room, lit end to end by a two-panel slider. It is <strong>standing empty</strong> &mdash; which is the best way to see how much wall and floor there actually is.</p>
         <ul class="details">
@@ -338,10 +329,10 @@ footer p{margin:0}
         </ul>
       </section>
 
-      <section class="space" data-in="13.97" data-name="The front door">
-        <div class="space-no"><span class="n">04</span><span class="label">Front entry</span></div>
+      <section class="space">
+        <div class="space-no"><span class="n">03</span><span class="label">Front entry</span></div>
         <h2>Out the front</h2>
-        <p>The walk ends facing the front door &mdash; <strong>garage to street without a single turn</strong>, which is the part a plan drawing never quite tells you.</p>
+        <p>The walk ends facing the front door &mdash; <strong>hall to street without a single turn</strong>, which is the part a plan drawing never quite tells you.</p>
         <ul class="details">
           <li>Six-panel door, lever and deadbolt</li>
           <li>Floor runs to the threshold</li>
@@ -357,18 +348,20 @@ footer p{margin:0}
     <div>
       <svg viewBox="0 0 440 300" role="img" aria-label="Labelled plan of the route">
         <g fill="none" stroke="var(--plan)" stroke-width="1.2" stroke-linecap="square">
-          <path d="M24 52H168M24 52V264M24 264H168M168 52V152M168 186V264"/>
           <path d="M168 152H196M168 186H196M268 152H300M268 186H300"/>
           <path d="M196 152V88M268 152V88M196 88H268M196 186V254M268 186V254M196 254H268"/>
           <path d="M196 152H212M252 152H268M196 186H212M252 186H268"/>
           <path d="M300 52V152M300 186V264M300 52H416M300 264H416M416 52V96M416 176V264"/>
         </g>
+        <g fill="none" stroke="var(--plan)" stroke-width="1.2" stroke-linecap="square" opacity=".45">
+          <path d="M24 52H168M24 52V264M24 264H168M168 52V152M168 186V264"/>
+        </g>
         <g stroke="var(--brass-graphic)" stroke-width="3" fill="none">
           <path d="M416 96V136M419 136V176"/><path d="M332 264H382"/>
         </g>
-        <path d="M96 206 L152 178 L186 172 L262 170 L322 174 L350 214 L354 240"
+        <path d="M186 172 L262 170 L322 174 L350 214 L354 240"
               fill="none" stroke="var(--brass-graphic)" stroke-width="1" opacity=".3"/>
-        <path id="routeDone2" d="M96 206 L152 178 L186 172 L262 170 L322 174 L350 214 L354 240"
+        <path id="routeDone2" d="M186 172 L262 170 L322 174 L350 214 L354 240"
               fill="none" stroke="var(--brass-graphic)" stroke-width="2" stroke-linecap="round"/>
         <g id="cam2">
           <circle r="12" fill="var(--brass-graphic)" opacity=".16"/>
@@ -376,7 +369,7 @@ footer p{margin:0}
         </g>
         <g font-family="Karla, sans-serif" font-size="10" font-weight="600"
            letter-spacing="1.6" fill="var(--ink-3)">
-          <text x="42" y="76">GARAGE</text>
+          <text x="42" y="76" opacity=".5">GARAGE</text>
           <text x="316" y="76">LIVING</text>
           <text x="207" y="126">ROOM</text>
           <text x="207" y="222">ROOM</text>
@@ -388,15 +381,15 @@ footer p{margin:0}
     </div>
     <div>
       <p class="label">The route</p>
-      <h2>Fifteen seconds, end to end</h2>
+      <h2>One take, three rooms</h2>
       <p>No cuts between the rooms, so nothing is hidden by an edit &mdash; the distances and the sightlines are the real ones.</p>
       <ul class="legend" id="legend"></ul>
     </div>
   </div>
 
   <footer>
-    <p>Filmed handheld, then stabilised, graded and slowed for playback.</p>
-    <p>Garage to front door</p>
+    <p>Filmed handheld, then stabilised, graded and slowed. The garage end of the take is not included.</p>
+    <p>Hall to front door</p>
   </footer>
 </div>
 
