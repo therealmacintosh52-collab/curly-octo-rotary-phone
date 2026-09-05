@@ -17,6 +17,22 @@
   var frames = section.querySelectorAll(".arrival-frame");
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  /* When a video is the source the stills ship alongside it, unloaded, and
+     only become the sequence if the video never arrives — a wrong codec, a
+     404, a network that gave up. Better a slower walk-in than a dead frame. */
+  function useStills() {
+    if (!frames.length || stage.classList.contains("stills-on")) return;
+    Array.prototype.forEach.call(frames, function (f) {
+      if (f.dataset.src) { f.src = f.dataset.src; delete f.dataset.src; }
+    });
+    stage.classList.remove("has-video");
+    stage.classList.add("stills-on");
+    var v = section.querySelector("video");
+    if (v) v.remove();
+    if (booted) update();
+  }
+  var booted = false;
+
   /* Progress through the section, 0 → 1. */
   function progress() {
     var rect = section.getBoundingClientRect();
@@ -42,14 +58,58 @@
      A video just gets its controls back so it can be watched deliberately. */
   if (reduced) {
     if (video) { video.controls = true; video.removeAttribute("data-scrub"); }
-    Array.prototype.forEach.call(frames, function (f) { f.style.opacity = 1; f.style.position = "relative"; });
+    else {
+      Array.prototype.forEach.call(frames, function (f) {
+        if (f.dataset.src) { f.src = f.dataset.src; delete f.dataset.src; }
+        f.style.opacity = 1; f.style.position = "relative";
+      });
+    }
     Array.prototype.forEach.call(captions, function (c) { c.classList.add("on"); });
     return;
   }
 
-  /* ---------------- video: scrub by scroll ---------------- */
+  /* ---------------- video: scrub by scroll ----------------
+     A walk-in is a few megabytes. Nobody on a phone outside the shop should
+     pay for it before they have scrolled anywhere near it, and nobody on a
+     metered connection should pay for it at all — they get the stills. */
+  var link = navigator.connection || {};
+  var metered = !!(link.saveData || link.effectiveType === "slow-2g" || link.effectiveType === "2g");
+  if (video && metered) video = null;   /* the stills take over below */
+
   var scrub = null;
   if (video) {
+    /* The markup ships preload="none", so nothing is fetched until here. */
+    var started = false;
+    function startLoading() {
+      if (started) return;
+      started = true;
+      /* Raising preload is enough to start the fetch; calling load() as well
+         downloads the file twice. */
+      video.preload = "auto";
+      /* A <source> that 404s fires error on itself, not on the video, and a
+         stalled network fires nothing at all. Give it a window, then take the
+         stills rather than leaving the visitor on a gradient. */
+      setTimeout(function () { if (!scrub.ready) useStills(); }, 6000);
+    }
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries, obs) {
+        if (!entries[0].isIntersecting) return;
+        obs.disconnect();
+        startLoading();
+      }, { rootMargin: "150% 0px" }).observe(section);
+    } else {
+      startLoading();
+    }
+    /* A <source> that fails fires error on itself, never on the video, and it
+       leaves video.currentSrc pointing at the URL that just failed — so the
+       only honest test is whether metadata ever arrived. The delay lets a
+       following <source> have its turn first. */
+    Array.prototype.forEach.call(video.querySelectorAll("source"), function (src) {
+      src.addEventListener("error", function () {
+        setTimeout(function () { if (!scrub.ready) useStills(); }, 400);
+      });
+    });
+
     scrub = {
       duration: 0,
       inPoint: parseFloat(video.dataset.in || 0) || 0,
@@ -87,6 +147,7 @@
        the stage keeps the captions and the vignette rather than a black hole. */
     video.addEventListener("error", function () {
       stage.classList.add("media-failed");
+      useStills();
     });
   }
 
@@ -122,7 +183,7 @@
   });
 
   function paintFrames(p) {
-    if (!frames.length) return;
+    if (!frames.length || (video && !stage.classList.contains("stills-on"))) return;
     var slot = 1 / frames.length;
     for (var i = 0; i < frames.length; i++) {
       var local = (p - i * slot) / slot;          /* -inf … 1+ within this frame */
@@ -169,8 +230,10 @@
 
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", update);
+  booted = true;
+  if (metered) useStills();
   update();
 
   window.__arrival = { progress: progress, update: update, scrub: scrub,
-                       captions: captions, frames: frames };
+                       captions: captions, frames: frames, useStills: useStills };
 })();

@@ -93,7 +93,7 @@ SITE = {
     # A phone video of walking up to and into the shop, scrubbed by scroll.
     # One continuous take, no cuts, 15-25s, landscape. See the README for the
     # ffmpeg line that makes it seek smoothly. Takes priority over Street View.
-    "walkthrough_video": "",          # e.g. "/media/walkthrough.mp4"
+    "walkthrough_video": "/media/walkthrough.mp4",
     "walkthrough_video_webm": "",     # optional, smaller, served first
     "walkthrough_poster": "",         # first frame, shown before the video decodes
     # Editorial controls, applied at playback — no re-encoding needed.
@@ -1412,14 +1412,32 @@ def arrival_section():
     embed = SITE.get("streetview_embed")
     photos = WALKTHROUGH_FRAMES if SITE.get("use_photo_walkthrough") else []
 
+    def stills(as_fallback):
+        # Cross-faded stills with a slow push on each — the arrival read without
+        # a film crew, and the safety net when a video is present. Nothing here
+        # is fetched until the video actually fails.
+        return "".join(
+            '<img class="arrival-frame%s" %s alt="%s" width="%d" height="%d">'
+            % ("" if as_fallback else (" is-first" if i == 0 else ""),
+               # No src at all until wanted: an empty src re-requests the page.
+               ('data-src="%s"' % src) if as_fallback
+               else ('src="%s" %s' % (src, 'fetchpriority="high"' if i == 0
+                                           else 'loading="lazy"')),
+               esc(alt), *media_dims(src))
+            for i, (src, _no, _t, _b, alt) in enumerate(photos)
+        )
+
     if video or webm:
         sources = ""
         if webm:
             sources += '<source src="%s" type="video/webm">' % webm
         if video:
             sources += '<source src="%s" type="video/mp4">' % video
+        # preload="none" so the homepage costs nothing extra: the script
+        # starts the download only once the visitor is heading this way, and
+        # never on a metered connection. <noscript> keeps a picture there.
         stage_media = """<video data-scrub class="arrival-video" muted playsinline
-        preload="auto" disablepictureinpicture %s
+        preload="none" disablepictureinpicture %s
         data-in="%s" data-out="%s" style="object-position:%s"
         aria-label="Walking into %s">%s</video>""" % (
             ('poster="%s"' % poster) if poster else "",
@@ -1429,16 +1447,15 @@ def arrival_section():
             esc(SITE["name"]),
             sources,
         )
+        stage_media += stills(as_fallback=True)
+        if photos:
+            first, _no, _t, _b, alt = photos[0]
+            stage_media += (
+                '<noscript><img class="arrival-frame is-first" src="%s" alt="%s" '
+                'width="%d" height="%d" style="opacity:1"></noscript>'
+                % (first, esc(alt), *media_dims(first)))
     elif photos:
-        # Cross-faded stills with a slow push on each — the arrival read without
-        # a film crew. The first frame is eager so the section paints instantly.
-        stage_media = "".join(
-            '<img class="arrival-frame%s" src="%s" alt="%s" %s width="%d" height="%d">'
-            % (" is-first" if i == 0 else "", src, esc(alt),
-               'fetchpriority="high"' if i == 0 else 'loading="lazy"',
-               *media_dims(src))
-            for i, (src, _no, _t, _b, alt) in enumerate(photos)
-        )
+        stage_media = stills(as_fallback=False)
     elif embed:
         stage_media = (
             '<iframe src="%s" title="Street View of %s" loading="lazy" '

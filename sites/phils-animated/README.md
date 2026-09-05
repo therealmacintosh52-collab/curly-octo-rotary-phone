@@ -44,10 +44,32 @@ panel, not a broken embed.
 Captions live in `ARRIVAL_STEPS` in `build.py`.
 
 
-## Shooting the walk-in video
+## The walk-in video
 
-This is the version where scroll drives a real video of walking into the shop. The player is
-already built — it needs footage.
+`public/media/walkthrough.mp4` is the shop's own footage: 16 seconds, 1280×720, H.264, 30 fps,
+about 4 MB. Scroll position drives the playhead, so the visitor walks in at whatever speed they
+scroll.
+
+It came off a phone with its index at the end of the file, so `tools/mp4_faststart.py` moved the
+`moov` atom in front of `mdat` and rewrote the chunk offsets. Nothing was re-encoded — same
+pixels, same length, same tables — but the browser can now seek after a few kilobytes instead of
+downloading the whole file first. Run it on any replacement footage:
+
+```bash
+python3 tools/mp4_faststart.py IMG_1234.mp4 public/media/walkthrough.mp4
+```
+
+It prints the duration, frame count, frame rate and keyframe count, which is worth reading: the
+present file has 17 keyframes across 479 frames, so a seek lands within about half a second and
+the playhead chase smooths over the rest.
+
+**The host must answer byte-range requests.** Seeking is `Range:` requests; a server that ignores
+them makes the video report itself unseekable and the playhead never moves — it took a while to
+work out that this, not the code, was why scrubbing looked broken locally. Netlify, Cloudflare
+Pages and GitHub Pages all handle it. If the shop's current host does not, the section falls back
+to the photographs on its own.
+
+### Replacing the footage
 
 **Shooting it (a phone is fine):**
 - One continuous take, no cuts. Start at the sidewalk or the parking spot, walk up, through the
@@ -56,7 +78,7 @@ already built — it needs footage.
 - Daylight, and wipe the lens first — phone lenses are always smeared.
 - Watch what's in frame: customer faces and readable plates are worth avoiding.
 
-**Encoding it — this part matters.** Scrubbing is only smooth if every frame is a keyframe:
+**Encoding it, if you have ffmpeg.** Scrubbing is smoothest when every frame is a keyframe:
 
 ```bash
 ffmpeg -i IMG_1234.mov \
@@ -93,8 +115,19 @@ don't skip it and upload the phone file directly.
 
 **How the player behaves:** scroll position maps to the playhead, and the playhead chases its
 target rather than snapping, so a fast scroll doesn't ask the decoder for forty seeks a second.
-Verified: 0% → 0s, 50% → half the duration, 100% → the last frame, clamped at both ends. If the
-file fails to load the stage keeps the captions and the vignette instead of going black. Under
-reduced motion the section unpins, the captions stack, and the video gets normal controls.
+Verified in a browser: 0% → 0s, 25% → a quarter in, 100% → the last frame, clamped at both ends.
+Under reduced motion the section unpins, the captions stack, and the video gets normal controls.
 
-**Priority:** video, then Street View, then the address panel. Supply whichever you have.
+**What it costs a visitor.** The video ships `preload="none"` and is not fetched at all until the
+visitor scrolls within about one and a half screens of the section. On a connection reporting
+Save-Data or 2G it is never fetched: those visitors get the photographs instead. Without
+JavaScript a `<noscript>` still holds the frame.
+
+**If the video never arrives** — a 404, a codec the browser refuses, a network that stalls — the
+photographs in `WALKTHROUGH_FRAMES` take over as the sequence. They ship with the page carrying
+`data-src` rather than `src`, so they cost nothing unless they are needed. Worth knowing: a
+`<source>` that fails fires `error` on itself, never on the `<video>`, and leaves
+`video.currentSrc` pointing at the URL that just failed, so the only honest test of failure is
+whether metadata ever arrived.
+
+**Priority:** video, then the photographs, then Street View, then the address panel.

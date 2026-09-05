@@ -35,6 +35,10 @@
   transition: none;
 }
 .arrival-stage .arrival-frame.is-first { opacity: 1; }
+/* A still that still carries data-src has not been asked for yet: it is the
+   safety net behind a video, holding no image and taking up no space. */
+.arrival-stage .arrival-frame[data-src] { display: none; }
+.arrival-stage.stills-on.media-failed { background: #05050f; }
 .arrival-stage.media-failed .arrival-video { display: none; }
 .arrival-stage.media-failed { background: radial-gradient(90% 70% at 50% 45%, #1d1c54 0%, #0a0a1f 70%); }
 
