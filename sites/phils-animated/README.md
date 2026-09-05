@@ -77,7 +77,19 @@ Then in `build.py`:
 ```python
 "walkthrough_video": "/media/walkthrough.mp4",
 "walkthrough_poster": "/media/walkthrough-poster.jpg",
+"walkthrough_in": 2.5,          # skip the shaky first seconds
+"walkthrough_out": 18.0,        # stop before the camera swings away
+"walkthrough_focus": "50% 40%", # crop toward the top of frame
 ```
+
+**Trim without re-encoding.** `walkthrough_in` / `walkthrough_out` set which window of the file
+the scroll maps to, applied at playback. Adjust the numbers, rebuild, look again — no export
+cycle. `walkthrough_focus` is the crop's focal point, which matters if the clip is portrait and
+the screen is wide.
+
+**Codec, not just container.** iPhones record HEVC (`hvc1`) by default, and Chrome and Firefox
+refuse it on most machines. The ffmpeg line above converts to H.264, which everything plays —
+don't skip it and upload the phone file directly.
 
 **How the player behaves:** scroll position maps to the playhead, and the playhead chases its
 target rather than snapping, so a fast scroll doesn't ask the decoder for forty seeks a second.

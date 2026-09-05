@@ -46,6 +46,8 @@
   if (video) {
     scrub = {
       duration: 0,
+      inPoint: parseFloat(video.dataset.in || 0) || 0,
+      outPoint: parseFloat(video.dataset.out || 0) || 0,
       target: 0,
       current: 0,
       ready: false,
@@ -63,8 +65,14 @@
     };
 
     video.addEventListener("loadedmetadata", function () {
-      scrub.duration = video.duration || 0;
+      /* Trim happens here rather than in an encoder: scroll maps to the
+         chosen window of the file, so the in/out points can be adjusted
+         without touching the video. */
+      var end = scrub.outPoint > 0 ? Math.min(scrub.outPoint, video.duration) : video.duration;
+      scrub.inPoint = Math.max(0, Math.min(scrub.inPoint, end - 0.1));
+      scrub.duration = Math.max(0, end - scrub.inPoint);
       scrub.ready = scrub.duration > 0;
+      scrub.current = scrub.inPoint;
       stage.classList.add("has-video");
       update();
     });
@@ -82,7 +90,7 @@
     var p = progress();
     paintCaptions(p);
     stage.style.setProperty("--zoom", (1 + p * (scrub ? 0.04 : 0.18)).toFixed(4));
-    if (scrub && scrub.ready) scrub.target = p * scrub.duration;
+    if (scrub && scrub.ready) scrub.target = scrub.inPoint + p * scrub.duration;
     stage.classList.toggle("done", p > 0.985);
   }
 

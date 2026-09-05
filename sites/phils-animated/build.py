@@ -96,6 +96,13 @@ SITE = {
     "walkthrough_video": "",          # e.g. "/media/walkthrough.mp4"
     "walkthrough_video_webm": "",     # optional, smaller, served first
     "walkthrough_poster": "",         # first frame, shown before the video decodes
+    # Editorial controls, applied at playback — no re-encoding needed.
+    # Trim: scroll maps to this window of the clip, not the whole file.
+    "walkthrough_in": 0.0,            # seconds; where the scroll starts
+    "walkthrough_out": 0.0,           # seconds; 0 = run to the end
+    # Focal point for the crop, e.g. "50% 40%" to favour the top of frame.
+    # Matters most with a portrait clip on a wide screen.
+    "walkthrough_focus": "50% 50%",
     # Optional: a favicon cut from the real logo (SVG or PNG). Falls back to
     # the placeholder mark in assets/img/favicon.svg.
     "favicon": "/assets/img/logo.png",
@@ -1346,8 +1353,13 @@ def arrival_section():
         if video:
             sources += '<source src="%s" type="video/mp4">' % video
         stage_media = """<video data-scrub class="arrival-video" muted playsinline
-        preload="auto" disablepictureinpicture %s aria-label="Walking into %s">%s</video>""" % (
+        preload="auto" disablepictureinpicture %s
+        data-in="%s" data-out="%s" style="object-position:%s"
+        aria-label="Walking into %s">%s</video>""" % (
             ('poster="%s"' % poster) if poster else "",
+            SITE.get("walkthrough_in", 0) or 0,
+            SITE.get("walkthrough_out", 0) or 0,
+            SITE.get("walkthrough_focus", "50% 50%"),
             esc(SITE["name"]),
             sources,
         )
