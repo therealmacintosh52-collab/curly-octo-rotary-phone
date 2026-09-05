@@ -77,8 +77,8 @@ def main():
             body = body.replace('<script src="/assets/js/%s" defer></script>' % f, "")
         body = body.replace("/assets/img/logo.png", logo)
         body = body.replace("/assets/img/shop-scene.svg", scene)
-        for path, uri in media.items():
-            body = body.replace(path, uri)
+        for media_path, uri in media.items():   # not `path` — that is the route
+            body = body.replace(media_path, uri)
         body = re.sub(r'<iframe class="map-frame".*?</iframe>', MAP_PLACEHOLDER, body, flags=re.S)
         templates.append('<template data-route="%s">%s</template>' % (path, body))
 
