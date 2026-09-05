@@ -14,6 +14,7 @@
   var stage = section.querySelector(".arrival-stage");
   var captions = section.querySelectorAll(".arrival-caption");
   var video = section.querySelector("video[data-scrub]");
+  var frames = section.querySelectorAll(".arrival-frame");
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* Progress through the section, 0 → 1. */
@@ -28,7 +29,9 @@
     var slot = 1 / captions.length;
     for (var i = 0; i < captions.length; i++) {
       var start = i * slot;
-      captions[i].classList.toggle("on", p >= start - 0.02 && p < start + slot - 0.04);
+      var last = i === captions.length - 1;
+      captions[i].classList.toggle(
+        "on", p >= start - 0.02 && (last || p < start + slot - 0.04));
     }
   }
 
@@ -37,6 +40,7 @@
      A video just gets its controls back so it can be watched deliberately. */
   if (reduced) {
     if (video) { video.controls = true; video.removeAttribute("data-scrub"); }
+    Array.prototype.forEach.call(frames, function (f) { f.style.opacity = 1; f.style.position = "relative"; });
     Array.prototype.forEach.call(captions, function (c) { c.classList.add("on"); });
     return;
   }
@@ -84,12 +88,30 @@
     });
   }
 
+  /* Stills: one frame per caption. Each holds, then cross-fades into the next
+     over the last fifth of its slot, with a slow push the whole time. */
+  function paintFrames(p) {
+    if (!frames.length) return;
+    var slot = 1 / frames.length;
+    for (var i = 0; i < frames.length; i++) {
+      var local = (p - i * slot) / slot;          /* -inf … 1+ within this frame */
+      var opacity = 0;
+      if (local >= 0 && local <= 1) opacity = local > 0.8 ? (1 - local) / 0.2 : 1;
+      else if (local > 1 && local <= 1.2) opacity = 0;
+      else if (local < 0 && local > -0.2) opacity = 1 + local / 0.2;
+      if (i === frames.length - 1 && local > 0.8) opacity = 1;   /* hold the last */
+      frames[i].style.opacity = Math.max(0, Math.min(1, opacity));
+      frames[i].style.transform = "scale(" + (1.06 + Math.max(0, Math.min(1, local)) * 0.07).toFixed(4) + ")";
+    }
+  }
+
   var queued = false;
   function update() {
     queued = false;
     var p = progress();
     paintCaptions(p);
-    stage.style.setProperty("--zoom", (1 + p * (scrub ? 0.04 : 0.18)).toFixed(4));
+    paintFrames(p);
+    stage.style.setProperty("--zoom", (1 + p * (scrub || frames.length ? 0.04 : 0.18)).toFixed(4));
     if (scrub && scrub.ready) scrub.target = scrub.inPoint + p * scrub.duration;
     stage.classList.toggle("done", p > 0.985);
   }
@@ -111,5 +133,6 @@
   window.addEventListener("resize", update);
   update();
 
-  window.__arrival = { progress: progress, update: update, scrub: scrub, captions: captions };
+  window.__arrival = { progress: progress, update: update, scrub: scrub,
+                       captions: captions, frames: frames };
 })();

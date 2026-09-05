@@ -8,6 +8,7 @@
 }
 .arrival-stage iframe,
 .arrival-stage .arrival-video,
+.arrival-stage .arrival-frame,
 .arrival-fallback {
   position: absolute; inset: -6%;
   width: 112%; height: 112%; border: 0;
@@ -20,6 +21,15 @@
 /* A scrubbed video fills the frame and is never interactive — the scroll is
    the control. */
 .arrival-stage .arrival-video { object-fit: cover; inset: 0; width: 100%; height: 100%; }
+
+/* Cross-faded stills. Opacity and the push are set from scroll in JS; the
+   transitions here only smooth what JS does not set every frame. */
+.arrival-stage .arrival-frame {
+  object-fit: cover; inset: 0; width: 100%; height: 100%;
+  opacity: 0; transform: scale(var(--k, 1.06));
+  transition: opacity .45s linear;
+}
+.arrival-stage .arrival-frame.is-first { opacity: 1; }
 .arrival-stage.media-failed .arrival-video { display: none; }
 .arrival-stage.media-failed { background: radial-gradient(90% 70% at 50% 45%, #1d1c54 0%, #0a0a1f 70%); }
 
@@ -27,8 +37,8 @@
 .arrival-stage::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background:
-    linear-gradient(to top, rgba(6,7,14,.92) 0%, rgba(6,7,14,.25) 42%, rgba(6,7,14,.55) 100%),
-    radial-gradient(120% 80% at 50% 40%, transparent 40%, rgba(6,7,14,.7) 100%);
+    linear-gradient(to top, rgba(6,7,14,.90) 0%, rgba(6,7,14,.14) 46%, rgba(6,7,14,.30) 100%),
+    radial-gradient(125% 85% at 50% 42%, transparent 46%, rgba(6,7,14,.52) 100%);
 }
 
 .arrival-caption {
@@ -52,15 +62,19 @@
 .arrival-hud {
   position: absolute; top: 96px; left: clamp(22px, 6vw, 90px); z-index: 3;
   font-family: ui-monospace, Menlo, monospace; font-size: .72rem;
-  letter-spacing: .18em; text-transform: uppercase; color: #93a3b8;
+  letter-spacing: .18em; text-transform: uppercase; color: #dbe4ef;
   display: flex; align-items: center; gap: 12px;
+  /* The stills are bright; the HUD needs its own ground to stay readable. */
+  background: rgba(6,7,14,.55); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.12);
+  padding: 8px 14px; border-radius: 999px;
 }
 .arrival-hud .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-lt); }
 
 .arrival-scroll {
   position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 3;
   font-family: ui-monospace, Menlo, monospace; font-size: .7rem; letter-spacing: .2em;
-  color: #8fa0b5; text-transform: uppercase;
+  color: #dbe4ef; text-transform: uppercase; text-shadow: 0 2px 8px rgba(6,7,14,.9);
 }
 .arrival-scroll::after {
   content: ""; display: block; width: 1px; height: 34px; margin: 10px auto 0;

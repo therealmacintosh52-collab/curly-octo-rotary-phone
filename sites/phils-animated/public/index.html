@@ -72,34 +72,28 @@
 <main id="main">
 <section class="arrival" aria-label="Arriving at the shop">
   <div class="arrival-stage">
-    <!-- Supply either SITE["walkthrough_video"] (a phone video of
-     walking in — see README for the ffmpeg settings that make it scrub) or
-     SITE["streetview_embed"] (Google Maps -> Street View -> share or embed
-     image -> Embed -> copy the src value). -->
-      <div class="arrival-fallback">
-        <div>
-          <span class="addr">103 E Elm St, Lodi, CA 95240</span>
-          <p class="hint">Two bays on E Elm Street, minutes off Highway 99.</p>
-          <p style="margin-top:18px"><a class="btn btn-accent" href="https://www.google.com/maps/dir/?api=1&destination=103+E+Elm+St+Lodi+CA+95240" rel="noopener">Get directions</a></p>
-        </div>
-      </div>
+    <img class="arrival-frame is-first" src="/media/01-front.jpg" alt="The office door at Phil&#x27;s Auto and Fleet Repair on E Elm Street" fetchpriority="high" width="1284" height="1711"><img class="arrival-frame" src="/media/02-bay.jpg" alt="A pickup with the hood up inside the service bay" loading="lazy" width="1284" height="1711"><img class="arrival-frame" src="/media/03-engine.jpg" alt="An engine bay stripped down during a repair" loading="lazy" width="1284" height="1711"><img class="arrival-frame" src="/media/04-fleet.jpg" alt="A cargo van being serviced with parts laid out on the shop floor" loading="lazy" width="1284" height="1711"><img class="arrival-frame" src="/media/05-diesel.jpg" alt="A diesel pickup up on the shop floor during driveline work" loading="lazy" width="1284" height="1711">
     <div class="arrival-hud"><span class="dot"></span>Lodi, California · 103 E Elm St</div>
     <figure class="arrival-caption">
       <span class="step-no">01 — Arriving</span>
       <h2>103 E Elm St, Lodi</h2>
-      <p>Just east of downtown, a couple of minutes off Highway 99. If you&#x27;ve driven past the Elm Street tracks, you&#x27;ve driven past us.</p>
+      <p>Just east of downtown, minutes off Highway 99. Park out front — the office door is right there, and parts deliveries go through the bay.</p>
     </figure><figure class="arrival-caption">
       <span class="step-no">02 — Arriving</span>
-      <h2>Pull straight in</h2>
-      <p>Park in front, come through the office door. No appointment desk maze, no service-writer counter between you and the people working on your vehicle.</p>
+      <h2>Straight into the bay</h2>
+      <p>Roll-up door open most of the day. Domestic, import, diesel — whatever is on the floor that morning.</p>
     </figure><figure class="arrival-caption">
       <span class="step-no">03 — Arriving</span>
-      <h2>Two things happen first</h2>
-      <p>We listen to what the vehicle is doing, and we look at it ourselves. Nothing gets quoted off a code read alone.</p>
+      <h2>Torn down because the tests said so</h2>
+      <p>Not because a trouble code said maybe. This is what diagnosis before parts actually looks like.</p>
     </figure><figure class="arrival-caption">
       <span class="step-no">04 — Arriving</span>
-      <h2>Then you decide</h2>
-      <p>You get what we found, what it costs, and what can safely wait — before a wrench touches the vehicle.</p>
+      <h2>Work vans and trucks</h2>
+      <p>Fleet maintenance on a schedule, so failures land on your calendar instead of on a job site.</p>
+    </figure><figure class="arrival-caption">
+      <span class="step-no">05 — Arriving</span>
+      <h2>Diesel is everyday work here</h2>
+      <p>Pickups and work trucks — engine, fuel system, emissions and driveline.</p>
     </figure>
     <span class="arrival-scroll">Scroll</span>
   </div>
@@ -336,12 +330,9 @@
         </div>
       </div>
       <div>
-        <!-- Replace the illustration below with a real photo:
-     <img src="/assets/img/shop-front.jpg" alt="..." width="1200" height="900"> -->
-<figure class="photo">
+        <figure class="photo">
   <span class="photo-badge"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.6"/></svg>In the bay</span>
-  <img src="/assets/img/shop-scene.svg" width="720" height="460"
-       alt="Illustration of a pickup truck raised on a lift inside a service bay">
+  <img src="/media/04-fleet.jpg" width="1284" height="1711" loading="lazy" alt="A cargo van being serviced with parts laid out on the shop floor">
   <figcaption>Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.</figcaption>
 </figure>
       </div>

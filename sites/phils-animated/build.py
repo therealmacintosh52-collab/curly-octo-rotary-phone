@@ -103,6 +103,9 @@ SITE = {
     # Focal point for the crop, e.g. "50% 40%" to favour the top of frame.
     # Matters most with a portrait clip on a wide screen.
     "walkthrough_focus": "50% 50%",
+    # Set False to fall back to Street View / the address panel even though
+    # photographs are available.
+    "use_photo_walkthrough": True,
     # Optional: a favicon cut from the real logo (SVG or PNG). Falls back to
     # the placeholder mark in assets/img/favicon.svg.
     "favicon": "/assets/img/logo.png",
@@ -1199,17 +1202,17 @@ def angle_divider(fill="#ffffff"):
             '<path d="M0 80 1440 0v80z" fill="%s"/></svg></div>' % fill)
 
 
-def photo_slot(caption, badge="Inside the shop"):
+def photo_slot(caption, badge="Inside the shop", src=None, alt=None):
     """Styled image frame. Ships with a hand-drawn SVG so the page looks
     finished on day one — swap the <img> src for a real photo of the shop."""
-    return """<!-- Replace the illustration below with a real photo:
-     <img src="/assets/img/shop-front.jpg" alt="..." width="1200" height="900"> -->
-<figure class="photo">
+    src = src or "/assets/img/shop-scene.svg"
+    alt = alt or "Illustration of a pickup truck raised on a lift inside a service bay"
+    dims = 'width="1284" height="1711"' if src.endswith(".jpg") else 'width="720" height="460"'
+    return """<figure class="photo">
   <span class="photo-badge">%s%s</span>
-  <img src="/assets/img/shop-scene.svg" width="720" height="460"
-       alt="Illustration of a pickup truck raised on a lift inside a service bay">
+  <img src="%s" %s loading="lazy" alt="%s">
   <figcaption>%s</figcaption>
-</figure>""" % (icon("camera"), esc(badge), esc(caption))
+</figure>""" % (icon("camera"), esc(badge), src, dims, esc(alt), esc(caption))
 
 
 def faq_block(faqs, heading="Frequently asked questions", intro=None):
@@ -1317,6 +1320,31 @@ HOME_FAQS = [
 ]
 
 
+# Photographs of the shop, in the order someone actually arrives. Each frame
+# carries its own caption, so the sequence reads as a walk-in rather than a
+# gallery. Supplied by the owner from the business's own Google listing.
+WALKTHROUGH_FRAMES = [
+    ("/media/01-front.jpg", "01", "103 E Elm St, Lodi",
+     "Just east of downtown, minutes off Highway 99. Park out front — the office "
+     "door is right there, and parts deliveries go through the bay.",
+     "The office door at Phil's Auto and Fleet Repair on E Elm Street"),
+    ("/media/02-bay.jpg", "02", "Straight into the bay",
+     "Roll-up door open most of the day. Domestic, import, diesel — whatever is "
+     "on the floor that morning.",
+     "A pickup with the hood up inside the service bay"),
+    ("/media/03-engine.jpg", "03", "Torn down because the tests said so",
+     "Not because a trouble code said maybe. This is what diagnosis before parts "
+     "actually looks like.",
+     "An engine bay stripped down during a repair"),
+    ("/media/04-fleet.jpg", "04", "Work vans and trucks",
+     "Fleet maintenance on a schedule, so failures land on your calendar instead "
+     "of on a job site.",
+     "A cargo van being serviced with parts laid out on the shop floor"),
+    ("/media/05-diesel.jpg", "05", "Diesel is everyday work here",
+     "Pickups and work trucks — engine, fuel system, emissions and driveline.",
+     "A diesel pickup up on the shop floor during driveline work"),
+]
+
 ARRIVAL_STEPS = [
     ("01", "103 E Elm St, Lodi",
      "Just east of downtown, a couple of minutes off Highway 99. If you've driven "
@@ -1345,6 +1373,7 @@ def arrival_section():
     webm = SITE.get("walkthrough_video_webm")
     poster = SITE.get("walkthrough_poster")
     embed = SITE.get("streetview_embed")
+    photos = WALKTHROUGH_FRAMES if SITE.get("use_photo_walkthrough") else []
 
     if video or webm:
         sources = ""
@@ -1363,6 +1392,15 @@ def arrival_section():
             esc(SITE["name"]),
             sources,
         )
+    elif photos:
+        # Cross-faded stills with a slow push on each — the arrival read without
+        # a film crew. The first frame is eager so the section paints instantly.
+        stage_media = "".join(
+            '<img class="arrival-frame%s" src="%s" alt="%s" %s width="1284" height="1711">'
+            % (" is-first" if i == 0 else "", src, esc(alt),
+               'fetchpriority="high"' if i == 0 else 'loading="lazy"')
+            for i, (src, _no, _t, _b, alt) in enumerate(photos)
+        )
     elif embed:
         stage_media = (
             '<iframe src="%s" title="Street View of %s" loading="lazy" '
@@ -1370,12 +1408,8 @@ def arrival_section():
             'allow="accelerometer; gyroscope"></iframe>' % (embed, esc(FULL_ADDRESS))
         )
     else:
-        # Customer-facing fallback: no dev instructions on screen. How to supply
-        # the footage or the panorama is in the README.
-        stage_media = """<!-- Supply either SITE["walkthrough_video"] (a phone video of
-     walking in — see README for the ffmpeg settings that make it scrub) or
-     SITE["streetview_embed"] (Google Maps -> Street View -> share or embed
-     image -> Embed -> copy the src value). -->
+        stage_media = """<!-- Supply SITE["walkthrough_video"], photographs in
+     WALKTHROUGH_FRAMES, or SITE["streetview_embed"] — see the README. -->
       <div class="arrival-fallback">
         <div>
           <span class="addr">%s</span>
@@ -1384,13 +1418,15 @@ def arrival_section():
         </div>
       </div>""" % (esc(FULL_ADDRESS), MAPS_DIRECTIONS)
 
+    steps = ([(n, t, b) for _s, n, t, b, _a in photos] if photos and not (video or webm)
+             else ARRIVAL_STEPS)
     caps = "".join(
         """<figure class="arrival-caption">
       <span class="step-no">%s — Arriving</span>
       <h2>%s</h2>
       <p>%s</p>
     </figure>""" % (no, esc(title), esc(body))
-        for no, title, body in ARRIVAL_STEPS
+        for no, title, body in steps
     )
 
     return """<section class="arrival" aria-label="Arriving at the shop">
@@ -1535,7 +1571,9 @@ def build_home():
         </div>
       </div>
       <div>
-        {photo_slot("Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.", "In the bay")}
+        {photo_slot("Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.",
+                    "In the bay", "/media/04-fleet.jpg",
+                    "A cargo van being serviced with parts laid out on the shop floor")}
       </div>
     </div>
   </div>
@@ -1787,7 +1825,9 @@ def build_about():
         </table>
         <p style="margin:22px 0 0">{tel_btn("btn btn-accent", "about-panel")}</p>
         <div style="margin-top:26px">
-          {photo_slot("103 E Elm St — the shop where every one of these vehicles gets diagnosed before it gets quoted.", "Our shop")}
+          {photo_slot("103 E Elm St — the shop where every one of these vehicles gets diagnosed before it gets quoted.",
+                      "Our shop", "/media/01-front.jpg",
+                      "The office door at Phil's Auto and Fleet Repair on E Elm Street")}
         </div>
       </div>
     </div>
@@ -2623,9 +2663,10 @@ def build_sitemap():
 
 
 def clean():
-    """Remove previously generated HTML, leaving /assets untouched."""
+    """Remove previously generated HTML. Hand-maintained directories stay."""
+    KEEP = {"assets", "media"}
     for entry in os.listdir(OUT):
-        if entry == "assets":
+        if entry in KEEP:
             continue
         target = os.path.join(OUT, entry)
         if os.path.isdir(target):

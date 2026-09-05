@@ -58,6 +58,15 @@ def main():
     js = scripts
     logo = data_uri("/assets/img/logo.png", "image/png")
     scene = data_uri("/assets/img/shop-scene.svg", "image/svg+xml")
+    # Photographs live in /media; inline them so the single file is self-contained.
+    media = {}
+    media_dir = os.path.join(PUB, "media")
+    if os.path.isdir(media_dir):
+        for name in sorted(os.listdir(media_dir)):
+            if name.lower().endswith((".jpg", ".jpeg")):
+                media["/media/" + name] = data_uri("/media/" + name, "image/jpeg")
+            elif name.lower().endswith(".png"):
+                media["/media/" + name] = data_uri("/media/" + name, "image/png")
 
     templates = []
     for path, filename in routes().items():
@@ -68,6 +77,8 @@ def main():
             body = body.replace('<script src="/assets/js/%s" defer></script>' % f, "")
         body = body.replace("/assets/img/logo.png", logo)
         body = body.replace("/assets/img/shop-scene.svg", scene)
+        for path, uri in media.items():
+            body = body.replace(path, uri)
         body = re.sub(r'<iframe class="map-frame".*?</iframe>', MAP_PLACEHOLDER, body, flags=re.S)
         templates.append('<template data-route="%s">%s</template>' % (path, body))
 
