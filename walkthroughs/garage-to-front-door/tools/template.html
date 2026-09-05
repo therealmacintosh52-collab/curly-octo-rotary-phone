@@ -1,0 +1,662 @@
+<title>Garage to Front Door</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+<style>
+:root{
+  --paper:#E3E0D6;
+  --sheet:#F1EFE8;
+  --sheet-2:#EAE7DE;
+  --ink:#1B2023;
+  --ink-2:#5A6165;
+  --ink-3:#878D8F;
+  --rule:#C4BFB2;
+  --rule-soft:#D5D1C5;
+  --day:#8C6212;
+  --day-graphic:#B8801F;
+  --mark:#A8351D;
+  --shade:rgba(27,32,35,.07);
+
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-data:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+
+  --step:clamp(14px,1.1vw,18px);
+  --gutter:clamp(18px,4vw,56px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#121618;
+    --sheet:#1B2124;
+    --sheet-2:#20272A;
+    --ink:#E6E2D8;
+    --ink-2:#A2A8AA;
+    --ink-3:#7C8385;
+    --rule:#303739;
+    --rule-soft:#272E31;
+    --day:#DDA53E;
+    --day-graphic:#DDA53E;
+    --mark:#D0563A;
+    --shade:rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#121618;
+  --sheet:#1B2124;
+  --sheet-2:#20272A;
+  --ink:#E6E2D8;
+  --ink-2:#A2A8AA;
+  --ink-3:#7C8385;
+  --rule:#303739;
+  --rule-soft:#272E31;
+  --day:#DDA53E;
+  --day-graphic:#DDA53E;
+  --mark:#D0563A;
+  --shade:rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:var(--step);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:2px solid var(--mark);outline-offset:3px;border-radius:2px}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--gutter)}
+
+/* ---------- masthead ---------- */
+.masthead{padding:clamp(28px,5vw,60px) 0 0}
+.eyebrow{
+  font-family:var(--f-data);font-size:11px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+}
+.eyebrow .dot{width:6px;height:6px;background:var(--mark);border-radius:50%;flex:none}
+h1{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 112;
+  font-weight:600;
+  font-size:clamp(38px,7.2vw,84px);
+  line-height:.95;
+  letter-spacing:-.02em;
+  margin:14px 0 0;
+  text-wrap:balance;
+}
+.standfirst{
+  font-size:clamp(17px,1.5vw,21px);
+  color:var(--ink-2);
+  max-width:58ch;
+  margin:18px 0 0;
+}
+.standfirst em{color:var(--ink);font-style:italic}
+
+/* spec strip */
+.specs{
+  margin-top:clamp(24px,3vw,38px);
+  border-top:1px solid var(--ink);
+  border-bottom:1px solid var(--rule);
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+}
+.spec{padding:12px 16px 14px 0;border-right:1px solid var(--rule-soft)}
+.spec:last-child{border-right:0}
+.spec dt{
+  font-family:var(--f-data);font-size:10px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+}
+.spec dd{
+  margin:5px 0 0;font-family:var(--f-data);font-size:14px;
+  font-variant-numeric:tabular-nums;color:var(--ink);
+}
+
+/* ---------- main grid ---------- */
+.sheetgrid{
+  display:grid;
+  grid-template-columns:clamp(256px,24vw,300px) minmax(0,1fr);
+  gap:clamp(24px,4vw,64px);
+  align-items:start;
+  padding:clamp(28px,4vw,56px) 0 0;
+}
+@media (max-width:860px){
+  .sheetgrid{grid-template-columns:1fr;gap:0}
+}
+
+/* ---------- stage ---------- */
+.stage{position:sticky;top:16px}
+@media (max-width:860px){
+  .stage{top:0;z-index:5;background:var(--paper);padding:10px 0 12px;margin:0 calc(var(--gutter)*-1);padding-left:var(--gutter);padding-right:var(--gutter);border-bottom:1px solid var(--rule)}
+}
+.viewer{
+  position:relative;
+  background:#0B0E10;
+  border:1px solid var(--rule);
+  overflow:hidden;
+}
+@media (max-width:860px){
+  .viewer{display:grid;grid-template-columns:132px 1fr;align-items:stretch;background:var(--sheet)}
+}
+.viewer video{
+  display:block;width:100%;height:auto;
+  aspect-ratio:608/1080;object-fit:cover;background:#0B0E10;
+}
+@media (max-width:860px){
+  .viewer video{aspect-ratio:608/1080;height:100%}
+}
+
+/* HUD over the frame */
+.hud{
+  position:absolute;left:0;right:0;bottom:0;
+  padding:44px 14px 12px;
+  background:linear-gradient(to top,rgba(8,11,13,.88) 12%,rgba(8,11,13,0));
+  color:#EDEAE1;
+  display:flex;flex-direction:column;gap:7px;
+  pointer-events:none;
+}
+@media (max-width:860px){
+  .hud{position:static;background:none;color:var(--ink);padding:14px 14px 12px;justify-content:center}
+}
+.hud-line{display:flex;align-items:baseline;gap:10px;justify-content:space-between}
+.tc{
+  font-family:var(--f-data);font-weight:500;font-size:22px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+}
+.hud .station-now{
+  font-family:var(--f-display);font-variation-settings:"wdth" 106;
+  font-weight:600;font-size:14px;letter-spacing:.02em;text-align:right;
+}
+.scrub{height:3px;background:rgba(237,234,225,.25);position:relative}
+@media (max-width:860px){.scrub{background:var(--rule)}}
+.scrub-fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--mark)}
+.scrub-ticks{position:absolute;inset:0;pointer-events:none}
+.scrub-ticks i{position:absolute;top:-3px;width:1px;height:9px;background:rgba(237,234,225,.55)}
+@media (max-width:860px){.scrub-ticks i{background:var(--ink-3)}}
+
+/* controls */
+.stagebar{
+  display:flex;align-items:center;gap:10px;
+  border:1px solid var(--rule);border-top:0;
+  background:var(--sheet);padding:9px 10px;
+}
+.btn{
+  font-family:var(--f-data);font-size:11px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);
+  border:0;padding:8px 13px;cursor:pointer;
+}
+.btn:hover{background:var(--mark)}
+.stagebar .mode{
+  font-family:var(--f-data);font-size:11px;color:var(--ink-3);
+  letter-spacing:.08em;text-transform:uppercase;margin-left:auto;text-align:right;
+}
+
+/* plan */
+.plan{
+  border:1px solid var(--rule);border-top:0;background:var(--sheet);
+  padding:10px 10px 8px;
+}
+.plan svg{display:block;width:100%;height:auto}
+.plan-cap{
+  font-family:var(--f-data);font-size:9px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);margin-top:6px;
+}
+@media (max-width:860px){.plan{border-top:1px solid var(--rule)}}
+
+/* ---------- stations ---------- */
+.track{padding-bottom:clamp(40px,10vh,120px)}
+.station{
+  padding:clamp(30px,7vh,84px) 0;
+  border-bottom:1px solid var(--rule-soft);
+}
+.station:first-child{padding-top:clamp(6px,1vh,14px)}
+.station-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.station-idx{
+  font-family:var(--f-data);font-size:11px;font-weight:700;
+  letter-spacing:.12em;color:var(--mark);
+}
+.station-time{
+  font-family:var(--f-data);font-size:11px;letter-spacing:.08em;
+  color:var(--ink-3);font-variant-numeric:tabular-nums;
+  background:none;border:0;padding:0;cursor:pointer;
+}
+.station-time:hover{color:var(--mark);text-decoration:underline}
+.station h2{
+  font-family:var(--f-display);font-variation-settings:"wdth" 108;
+  font-weight:600;font-size:clamp(26px,3.4vw,40px);line-height:1.05;
+  letter-spacing:-.015em;margin:10px 0 0;text-wrap:balance;
+}
+.station.is-live h2{color:var(--ink)}
+.station:not(.is-live) h2{color:var(--ink-2)}
+.lede{margin:14px 0 0;max-width:60ch;font-size:1.06em}
+.lede b{font-weight:600;color:var(--ink)}
+
+.obs{
+  margin:22px 0 0;padding:0;list-style:none;
+  display:grid;gap:1px;background:var(--rule-soft);
+  border-top:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);
+  max-width:62ch;
+}
+.obs li{
+  background:var(--paper);
+  display:grid;grid-template-columns:118px minmax(0,1fr);
+  gap:16px;padding:11px 0;align-items:baseline;
+}
+.obs .k{
+  font-family:var(--f-data);font-size:10px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-3);padding-top:4px;
+}
+.obs .v{font-size:.97em}
+.obs .v sup{color:var(--mark);font-family:var(--f-data);font-size:10px}
+@media (max-width:560px){
+  .obs li{grid-template-columns:1fr;gap:2px}
+  .obs .k{padding-top:0}
+}
+
+.note{
+  margin:20px 0 0;padding:12px 14px;
+  background:var(--sheet-2);border-left:2px solid var(--day-graphic);
+  font-size:.94em;color:var(--ink-2);max-width:58ch;
+}
+.note b{color:var(--ink);font-weight:600}
+
+/* station index */
+.index{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:1px;background:var(--rule-soft);
+  border-bottom:1px solid var(--rule);
+  margin-top:clamp(22px,3vw,34px);
+}
+@media (max-width:640px){
+  .index{display:flex;overflow-x:auto;gap:1px;scrollbar-width:thin}
+  .index button{flex:0 0 46%}
+}
+.index button{
+  background:var(--paper);border:0;padding:12px 12px 14px 0;cursor:pointer;
+  text-align:left;display:grid;grid-template-columns:44px minmax(0,1fr);
+  gap:11px;align-items:start;color:inherit;
+  border-top:2px solid transparent;
+}
+.index button:hover{background:var(--sheet-2)}
+.index button.is-live{border-top-color:var(--mark);background:var(--sheet-2)}
+.index img{display:block;width:44px;height:78px;object-fit:cover;border:1px solid var(--rule-soft)}
+.index .ix-t{
+  font-family:var(--f-data);font-size:10px;letter-spacing:.1em;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;display:block;
+}
+.index button.is-live .ix-t{color:var(--mark)}
+.index .ix-n{
+  font-family:var(--f-display);font-variation-settings:"wdth" 106;
+  font-weight:600;font-size:13px;line-height:1.25;color:var(--ink-2);
+  display:block;margin-top:4px;
+}
+.index button.is-live .ix-n{color:var(--ink)}
+
+/* footer */
+footer{
+  border-top:1px solid var(--ink);
+  margin-top:clamp(30px,5vw,60px);
+  padding:22px 0 clamp(40px,7vw,80px);
+  display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;
+  font-family:var(--f-data);font-size:11px;letter-spacing:.06em;
+  color:var(--ink-3);text-transform:uppercase;
+}
+.legend{
+  font-family:var(--f-body);font-size:.92em;color:var(--ink-2);
+  text-transform:none;letter-spacing:0;max-width:52ch;
+}
+.legend sup{color:var(--mark);font-family:var(--f-data)}
+
+@media (prefers-reduced-motion:no-preference){
+  .scrub-fill,.station h2{transition:width .12s linear,color .3s ease}
+  .btn{transition:background .18s ease}
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow"><span class="dot"></span> Field take · IMG_0247 · one continuous shot</p>
+    <h1>Garage to Front Door</h1>
+    <p class="standfirst">Sixteen seconds, handheld, no cuts — from the garage bay through the utility door and down the hall to the front entry. Scroll to walk the take; the plan tracks where the camera stood.</p>
+
+    <dl class="specs">
+      <div class="spec"><dt>Runtime</dt><dd>15.98 s</dd></div>
+      <div class="spec"><dt>Frame rate</dt><dd>29.98 fps</dd></div>
+      <div class="spec"><dt>Source</dt><dd>1280×720 H.264</dd></div>
+      <div class="spec"><dt>Display</dt><dd>720×1280 ↻</dd></div>
+      <div class="spec"><dt>Stations</dt><dd>5</dd></div>
+      <div class="spec"><dt>Cuts</dt><dd>0</dd></div>
+    </dl>
+  </header>
+
+    <nav class="index" id="rail" aria-label="Station index">
+      <button type="button" data-t="0.4"><img src="data:image/jpeg;base64,__T1__" alt=""><span><span class="ix-t">1 · 00:00.0</span><span class="ix-n">Garage bay</span></span></button>
+      <button type="button" data-t="3.9"><img src="data:image/jpeg;base64,__T2__" alt=""><span><span class="ix-t">2 · 00:03.5</span><span class="ix-n">Utility door</span></span></button>
+      <button type="button" data-t="7.0"><img src="data:image/jpeg;base64,__T3__" alt=""><span><span class="ix-t">3 · 00:06.6</span><span class="ix-n">Hall</span></span></button>
+      <button type="button" data-t="11.7"><img src="data:image/jpeg;base64,__T4__" alt=""><span><span class="ix-t">4 · 00:11.4</span><span class="ix-n">Living area</span></span></button>
+      <button type="button" data-t="14.8"><img src="data:image/jpeg;base64,__T5__" alt=""><span><span class="ix-t">5 · 00:14.6</span><span class="ix-n">Front entry</span></span></button>
+    </nav>
+
+
+  <div class="sheetgrid">
+
+    <!-- ============ STAGE ============ -->
+    <div class="stage">
+      <div class="viewer">
+        <video id="film" playsinline muted preload="auto" poster="data:image/jpeg;base64,__POSTER__">
+          <source src="data:video/mp4;base64,__VIDEO__" type="video/mp4">
+          <source src="data:video/webm;base64,__VIDEO_WEBM__" type="video/webm">
+        </video>
+        <div class="hud">
+          <div class="hud-line">
+            <span class="tc" id="tc">00:00.00</span>
+            <span class="station-now" id="stationNow">Garage bay</span>
+          </div>
+          <div class="scrub">
+            <div class="scrub-fill" id="scrubFill"></div>
+            <div class="scrub-ticks" id="scrubTicks"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stagebar">
+        <button class="btn" id="playBtn" type="button">Play take</button>
+        <span class="mode" id="modeLabel">Scroll to scrub</span>
+      </div>
+
+      <div class="plan">
+        <svg viewBox="0 0 440 300" role="img" aria-labelledby="planTitle">
+          <title id="planTitle">Schematic plan of the route: garage, hall, living area, front entry</title>
+          <g fill="none" stroke="var(--rule)" stroke-width="1.25">
+            <!-- garage -->
+            <path d="M24 52 H168 M24 52 V264 M24 264 H168" stroke="var(--ink-2)" stroke-width="2"/>
+            <path d="M168 52 V152 M168 186 V264" stroke="var(--ink-2)" stroke-width="2"/>
+            <!-- hall -->
+            <path d="M168 152 H196 M168 186 H196"/>
+            <path d="M196 152 V88 M268 152 V88 M196 88 H268" stroke="var(--rule)"/>
+            <path d="M196 186 V254 M268 186 V254 M196 254 H268" stroke="var(--rule)"/>
+            <path d="M212 152 H252 M212 186 H252" stroke="var(--sheet)" stroke-width="3"/>
+            <path d="M268 152 H300 M268 186 H300"/>
+            <!-- living -->
+            <path d="M300 52 V152 M300 186 V264" stroke="var(--ink-2)" stroke-width="2"/>
+            <path d="M300 52 H416 M300 264 H416" stroke="var(--ink-2)" stroke-width="2"/>
+            <path d="M416 52 V96 M416 176 V264" stroke="var(--ink-2)" stroke-width="2"/>
+          </g>
+          <!-- slider -->
+          <g stroke="var(--day-graphic)" stroke-width="3" fill="none">
+            <path d="M416 96 V136"/><path d="M419 136 V176"/>
+          </g>
+          <!-- front door swing -->
+          <g stroke="var(--mark)" stroke-width="2" fill="none">
+            <path d="M332 264 H382"/>
+            <path d="M382 264 A50 50 0 0 1 332 214" stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 3"/>
+          </g>
+          <!-- utility door swing -->
+          <g stroke="var(--ink-2)" stroke-width="2" fill="none">
+            <path d="M168 152 V186"/>
+            <path d="M168 186 A34 34 0 0 0 202 152" stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 3"/>
+          </g>
+          <!-- route -->
+          <path id="route" d="M96 206 L152 178 L186 172 L262 170 L322 174 L350 214 L354 240"
+                fill="none" stroke="var(--day-graphic)" stroke-width="2" stroke-dasharray="5 4" opacity=".55"/>
+          <path id="routeDone" d="M96 206 L152 178 L186 172 L262 170 L322 174 L350 214 L354 240"
+                fill="none" stroke="var(--mark)" stroke-width="2.5"/>
+          <g id="cam">
+            <path id="cone" d="M0 0 L26 -13 L26 13 Z" fill="var(--mark)" opacity=".18"/>
+            <circle r="5" fill="var(--mark)"/>
+            <circle r="9" fill="none" stroke="var(--mark)" stroke-width="1" opacity=".45"/>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="1.4" fill="var(--ink-3)">
+            <text x="40" y="76">GARAGE</text>
+            <text x="204" y="146">— DOOR L —</text>
+            <text x="204" y="202">— DOOR R —</text>
+            <text x="316" y="76">LIVING</text>
+            <text x="330" y="282">FRONT</text>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="1.4" fill="var(--day)">
+            <text x="342" y="146">SLIDER</text>
+          </g>
+        </svg>
+        <p class="plan-cap">Schematic — drawn from the take, not measured</p>
+      </div>
+
+    </div>
+
+    <!-- ============ STATIONS ============ -->
+    <div class="track" id="track">
+
+      <article class="station is-live" data-in="0" data-out="3.5" data-name="Garage bay">
+        <div class="station-head">
+          <span class="station-idx">STATION 1 / 5</span>
+          <button class="station-time" type="button" data-t="0.4">00:00.0 → 00:03.5</button>
+        </div>
+        <h2>The garage, wide</h2>
+        <p class="lede">The take opens standing back from the interior door, holding the whole bay in frame — <b>bare concrete slab</b>, storage pushed to the right-hand wall, a working corner set up on the left.</p>
+        <ul class="obs">
+          <li><span class="k">Floor</span><span class="v">Unsealed concrete, stained; two rubber runner mats laid end to end toward the door</span></li>
+          <li><span class="k">Left wall</span><span class="v">Folding side table with spray bottles and a jug; pedestal fan; surface conduit dropping to a duplex outlet near the floor</span></li>
+          <li><span class="k">At the door</span><span class="v">Keypad panel<sup>°</sup> and a two-gang rocker switch, both left of the frame; paper notices taped to the jamb</span></li>
+          <li><span class="k">Right wall</span><span class="v">Wall shelf carrying a pull-up bar; stacked totes, a shop bag, a cardboard box; fire extinguisher standing on the floor, not bracketed</span></li>
+          <li><span class="k">Light</span><span class="v">Flat and even, no window in frame — overheads only</span></li>
+        </ul>
+        <div class="note"><b>Worth flagging:</b> the extinguisher is loose on the slab and the mats stop short of the threshold. Both are five-minute fixes if this is being handed over.</div>
+      </article>
+
+      <article class="station" data-in="3.5" data-out="6.6" data-name="Utility door">
+        <div class="station-head">
+          <span class="station-idx">STATION 2 / 5</span>
+          <button class="station-time" type="button" data-t="3.9">00:03.5 → 00:06.6</button>
+        </div>
+        <h2>Closing on the utility door</h2>
+        <p class="lede">The camera walks in and the frame tightens until the door fills it. This is the garage-to-house connection, and it gets the longest single hold in the take.</p>
+        <ul class="obs">
+          <li><span class="k">Door</span><span class="v">Flush slab, painted white, scuffed low on the push side</span></li>
+          <li><span class="k">Hardware</span><span class="v">Round knob in dark bronze — no deadbolt, no closer visible</span></li>
+          <li><span class="k">Jamb</span><span class="v">Two service notices taped at eye height, left side</span></li>
+          <li><span class="k">Threshold</span><span class="v">Sits proud of the slab; daylight gap under the sweep<sup>°</sup></span></li>
+          <li><span class="k">Framing</span><span class="v">Painted casing, no visible fire-rated tag</span></li>
+        </ul>
+        <div class="note">A garage-to-dwelling door is normally the one door in a house with a rating and a self-closer. Neither is readable from this footage — <b>worth a closer look in person</b>, not a conclusion from a phone video.</div>
+      </article>
+
+      <article class="station" data-in="6.6" data-out="11.4" data-name="Hall">
+        <div class="station-head">
+          <span class="station-idx">STATION 3 / 5</span>
+          <button class="station-time" type="button" data-t="7.0">00:06.6 → 00:11.4</button>
+        </div>
+        <h2>Through, and down the hall</h2>
+        <p class="lede">For about a second the frame goes almost black — the sensor is still metered for the garage when the door opens onto daylight. It recovers into a <b>narrow hall running toward a wall of glass</b>.</p>
+        <ul class="obs">
+          <li><span class="k">Floor</span><span class="v">Wood-look plank, laid along the length of the hall</span></li>
+          <li><span class="k">Ceiling</span><span class="v">Sprayed texture throughout; a supply register set into it near the entry</span></li>
+          <li><span class="k">Openings</span><span class="v">Doorways both sides — the right-hand door stands open into the hall</span></li>
+          <li><span class="k">Loose</span><span class="v">Extension cord run along the base of the left wall and out across the floor</span></li>
+          <li><span class="k">Sightline</span><span class="v">Clean from the utility door straight to the patio slider — no turn in between</span></li>
+        </ul>
+        <div class="note"><b>Exposure, not damage:</b> the dark second and the milky bloom further down are the phone's auto-exposure chasing the window. Colour and contrast here are unreliable; geometry is fine.</div>
+      </article>
+
+      <article class="station" data-in="11.4" data-out="14.6" data-name="Living area">
+        <div class="station-head">
+          <span class="station-idx">STATION 4 / 5</span>
+          <button class="station-time" type="button" data-t="11.7">00:11.4 → 00:14.6</button>
+        </div>
+        <h2>Living area and the slider</h2>
+        <p class="lede">The hall releases into an open room lit almost entirely by a two-panel sliding door. The space reads as <b>essentially empty</b> — no seating, no table, nothing against the walls.</p>
+        <ul class="obs">
+          <li><span class="k">Glazing</span><span class="v">Sliding patio door, two panels, floor to header — fully blown out, so nothing outside is readable</span></li>
+          <li><span class="k">Contents</span><span class="v">A carpeted cat tree at the right; a second post or stand mid-floor; a small object left near the baseboard</span></li>
+          <li><span class="k">Floor</span><span class="v">Same plank as the hall, continuous through the opening</span></li>
+          <li><span class="k">Walls</span><span class="v">Flat white, no picture hooks or patch marks in frame</span></li>
+          <li><span class="k">Beyond</span><span class="v">A further opening to the left of the slider<sup>°</sup> — likely the kitchen, never entered</span></li>
+        </ul>
+      </article>
+
+      <article class="station" data-in="14.6" data-out="15.98" data-name="Front entry">
+        <div class="station-head">
+          <span class="station-idx">STATION 5 / 5</span>
+          <button class="station-time" type="button" data-t="14.8">00:14.6 → 00:15.9</button>
+        </div>
+        <h2>Front entry, and out</h2>
+        <p class="lede">The last beat is a pivot to the front door. The take ends here, facing it — <b>the route is garage to street in one unbroken move</b>, and nothing along it required a turn or a step down.</p>
+        <ul class="obs">
+          <li><span class="k">Door</span><span class="v">Moulded six-panel, white, hinged to swing inward and left</span></li>
+          <li><span class="k">Hardware</span><span class="v">Lever handle over a single deadbolt, both dark bronze; a bar or holder mounted high on the panel</span></li>
+          <li><span class="k">Floor</span><span class="v">Plank continues to the threshold; a small item and a bag left at the base</span></li>
+          <li><span class="k">Trim</span><span class="v">Painted casing and baseboard, caulk line visible at the strike side</span></li>
+        </ul>
+        <div class="note"><b>Route total:</b> five stations, one take, no cuts — garage slab to front threshold in 15.98 seconds at a walking pace.</div>
+      </article>
+
+    </div>
+  </div>
+
+  <footer>
+    <p class="legend">Notes describe what is visible in the frames. A <sup>°</sup> marks a reading that is probable rather than certain — the footage is handheld, auto-exposed and moving, and it is not a substitute for standing in the room.</p>
+    <p>Built from IMG_0247 · web cut 608×1080 CRF 30, audio dropped</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var film      = document.getElementById('film');
+  var track     = document.getElementById('track');
+  var stations  = Array.prototype.slice.call(track.querySelectorAll('.station'));
+  var railBtns  = Array.prototype.slice.call(document.querySelectorAll('#rail button'));
+  var tcEl      = document.getElementById('tc');
+  var nowEl     = document.getElementById('stationNow');
+  var fillEl    = document.getElementById('scrubFill');
+  var ticksEl   = document.getElementById('scrubTicks');
+  var modeEl    = document.getElementById('modeLabel');
+  var playBtn   = document.getElementById('playBtn');
+  var routeDone = document.getElementById('routeDone');
+  var cam       = document.getElementById('cam');
+  var cone      = document.getElementById('cone');
+
+  var DUR = 15.98;
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var routeLen = routeDone.getTotalLength();
+  routeDone.style.strokeDasharray = routeLen;
+
+  // ticks at station boundaries
+  stations.forEach(function(s){
+    var t = parseFloat(s.dataset['in']);
+    if (t <= 0) return;
+    var i = document.createElement('i');
+    i.style.left = (t / DUR * 100) + '%';
+    ticksEl.appendChild(i);
+  });
+
+  function fmt(t){
+    if (!isFinite(t) || t < 0) t = 0;
+    var hs = Math.round(t * 100), s = Math.floor(hs / 100), cs = hs % 100;
+    return '00:' + (s < 10 ? '0' : '') + s + '.' + (cs < 10 ? '0' : '') + cs;
+  }
+
+  function paint(t){
+    var p = Math.max(0, Math.min(1, t / DUR));
+    tcEl.textContent = fmt(t);
+    fillEl.style.width = (p * 100) + '%';
+    routeDone.style.strokeDashoffset = routeLen * (1 - p);
+
+    var L = routeLen * p;
+    var pt = routeDone.getPointAtLength(L);
+    var pt2 = routeDone.getPointAtLength(Math.min(routeLen, L + 4));
+    var ang = Math.atan2(pt2.y - pt.y, pt2.x - pt.x) * 180 / Math.PI;
+    cam.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ',' + pt.y.toFixed(1) + ') rotate(' + ang.toFixed(1) + ')');
+    cone.setAttribute('opacity', p > 0.985 ? '0.05' : '0.18');
+
+    var live = stations[0];
+    for (var i = 0; i < stations.length; i++){
+      if (t >= parseFloat(stations[i].dataset['in'])) live = stations[i];
+    }
+    var idx = stations.indexOf(live);
+    nowEl.textContent = live.dataset.name;
+    stations.forEach(function(s, j){ s.classList.toggle('is-live', j === idx); });
+    railBtns.forEach(function(b, j){ b.classList.toggle('is-live', j === idx); });
+  }
+
+  // ---- scroll drives the frame -------------------------------------------
+  var scrollT = 0, shownT = -1, playing = false, seeking = false;
+
+  function measure(){
+    var r = track.getBoundingClientRect();
+    var vh = window.innerHeight;
+    var span = r.height - vh * 0.55;
+    var p = span > 0 ? (vh * 0.35 - r.top) / span : 0;
+    scrollT = Math.max(0, Math.min(1, p)) * DUR;
+  }
+
+  function seekTo(t){
+    if (seeking) return;
+    seeking = true;
+    try { film.currentTime = t; } catch (e) {}
+    seeking = false;
+  }
+
+  function frame(){
+    if (playing){
+      paint(film.currentTime);
+    } else {
+      var target = scrollT;
+      var next = reduced ? target : shownT + (target - shownT) * 0.22;
+      if (shownT < 0 || Math.abs(target - shownT) < 0.012) next = target;
+      shownT = next;
+      if (film.readyState >= 1) seekTo(shownT);
+      paint(shownT);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function stopPlay(){
+    if (!playing) return;
+    playing = false;
+    film.pause();
+    shownT = film.currentTime;
+    playBtn.textContent = 'Play take';
+    modeEl.textContent = 'Scroll to scrub';
+  }
+
+  playBtn.addEventListener('click', function(){
+    if (playing){ stopPlay(); measure(); return; }
+    playing = true;
+    if (film.currentTime >= DUR - 0.06) film.currentTime = 0;
+    playBtn.textContent = 'Pause';
+    modeEl.textContent = 'Playing through';
+    var pr = film.play();
+    if (pr && pr.catch) pr.catch(function(){ stopPlay(); });
+  });
+
+  film.addEventListener('ended', function(){ stopPlay(); measure(); });
+
+  window.addEventListener('scroll', function(){
+    if (playing) stopPlay();
+    measure();
+  }, {passive:true});
+  window.addEventListener('resize', measure);
+
+  function jump(t){
+    stopPlay();
+    var s = stations[0];
+    for (var i = 0; i < stations.length; i++){
+      if (t >= parseFloat(stations[i].dataset['in'])) s = stations[i];
+    }
+    s.scrollIntoView({behavior: reduced ? 'auto' : 'smooth', block:'center'});
+  }
+  railBtns.forEach(function(b){ b.addEventListener('click', function(){ jump(parseFloat(b.dataset.t)); }); });
+  Array.prototype.forEach.call(document.querySelectorAll('.station-time'), function(b){
+    b.addEventListener('click', function(){ jump(parseFloat(b.dataset.t)); });
+  });
+
+  film.addEventListener('loadeddata', function(){ if (!playing) seekTo(shownT > 0 ? shownT : 0.05); });
+
+  measure();
+  shownT = scrollT;
+  paint(scrollT);
+  requestAnimationFrame(frame);
+})();
+</script>
