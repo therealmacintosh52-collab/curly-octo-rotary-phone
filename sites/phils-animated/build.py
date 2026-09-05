@@ -1336,10 +1336,11 @@ WALKTHROUGH_FRAMES = [
      "No appointment desk maze, no service-writer counter between you and the "
      "people working on your vehicle.",
      "The office door at Phil's Auto and Fleet Repair"),
-    ("/media/bronco.jpg", "04", "Inside, on any given day",
-     "Lifts down both sides, whatever's booked in that morning. Classics get the "
-     "same treatment as work trucks.",
-     "A restored Ford Bronco parked inside the shop, cars up on lifts behind it"),
+    ("/media/porsche.jpg", "04", "A Porsche and a plow truck, same floor",
+     "Lifts down both sides and whatever is booked in that morning. The range is "
+     "the point — the same diagnosis-first approach on all of it.",
+     "A Porsche Cayman with its doors and engine lid open inside the shop, work "
+     "trucks and cars on lifts behind it"),
     ("/media/03-engine.jpg", "05", "Torn down because the tests said so",
      "Not because a trouble code said maybe. This is what diagnosis before parts "
      "actually looks like.",
@@ -1835,8 +1836,8 @@ def build_about():
         <p style="margin:22px 0 0">{tel_btn("btn btn-accent", "about-panel")}</p>
         <div style="margin-top:26px">
           {photo_slot("103 E Elm St — the shop where every one of these vehicles gets diagnosed before it gets quoted.",
-                      "Our shop", "/media/01-front.jpg",
-                      "The office door at Phil's Auto and Fleet Repair on E Elm Street")}
+                      "In the shop", "/media/bronco.jpg",
+                      "A restored Ford Bronco parked inside the shop with cars up on lifts behind it")}
         </div>
       </div>
     </div>
