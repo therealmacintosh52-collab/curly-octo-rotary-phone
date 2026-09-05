@@ -12,7 +12,7 @@ Re-runnable: it rewrites whatever domain is currently in the file.
 """
 import io, os, re, sys
 
-PLACEHOLDER = "REPLACE-WITH-YOUR-DOMAIN.com"
+PLACEHOLDER = "replace-with-your-domain.com"
 PUB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 FILES = ["index.html", "robots.txt", "llms.txt", "sitemap.xml"]
 
