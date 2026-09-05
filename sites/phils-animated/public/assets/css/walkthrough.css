@@ -1,0 +1,86 @@
+/* Arrival sequence — a scroll-driven approach to the shop, using the Street
+   View panorama of 103 E Elm St as the stage. */
+
+.arrival { position: relative; height: 320vh; background: var(--ink); }
+.arrival-stage {
+  position: sticky; top: 0; height: 100svh; overflow: hidden;
+  background: var(--grad-dark);
+}
+.arrival-stage iframe,
+.arrival-fallback {
+  position: absolute; inset: -6%;
+  width: 112%; height: 112%; border: 0;
+  transform: scale(var(--zoom, 1));
+  transition: transform .25s linear;
+  pointer-events: none;              /* scroll passes through during the sequence */
+}
+.arrival-stage.done iframe { pointer-events: auto; }
+
+/* Vignette + floor gradient so type always has something to sit on. */
+.arrival-stage::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(6,7,14,.92) 0%, rgba(6,7,14,.25) 42%, rgba(6,7,14,.55) 100%),
+    radial-gradient(120% 80% at 50% 40%, transparent 40%, rgba(6,7,14,.7) 100%);
+}
+
+.arrival-caption {
+  position: absolute; left: 0; right: 0; bottom: 16vh; z-index: 2;
+  padding: 0 clamp(22px, 6vw, 90px);
+  opacity: 0; transform: translate3d(0, 22px, 0);
+  transition: opacity .5s ease, transform .6s cubic-bezier(.16,1,.3,1);
+  pointer-events: none;
+}
+.arrival-caption.on { opacity: 1; transform: none; }
+.arrival-caption .step-no {
+  display: block; font-family: ui-monospace, Menlo, monospace;
+  font-size: .72rem; letter-spacing: .22em; color: var(--accent-lt); margin-bottom: 14px;
+}
+.arrival-caption h2 {
+  color: #fff; font-size: clamp(1.9rem, 1.2rem + 2.6vw, 3.4rem);
+  max-width: 18ch; margin: 0 0 .35em;
+}
+.arrival-caption p { color: #c9d3e2; max-width: 46ch; font-size: 1.06rem; margin: 0; }
+
+.arrival-hud {
+  position: absolute; top: 96px; left: clamp(22px, 6vw, 90px); z-index: 3;
+  font-family: ui-monospace, Menlo, monospace; font-size: .72rem;
+  letter-spacing: .18em; text-transform: uppercase; color: #93a3b8;
+  display: flex; align-items: center; gap: 12px;
+}
+.arrival-hud .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-lt); }
+
+.arrival-scroll {
+  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 3;
+  font-family: ui-monospace, Menlo, monospace; font-size: .7rem; letter-spacing: .2em;
+  color: #8fa0b5; text-transform: uppercase;
+}
+.arrival-scroll::after {
+  content: ""; display: block; width: 1px; height: 34px; margin: 10px auto 0;
+  background: linear-gradient(#8fa0b5, transparent);
+}
+
+/* Shown when the panorama can't load — offline, blocked, or no embed pasted.
+   Has to look deliberate, not broken. */
+.arrival-fallback {
+  display: grid; place-items: center; text-align: center; padding: 40px;
+  background:
+    radial-gradient(90% 70% at 50% 45%, #1d1c54 0%, #0a0a1f 70%);
+  color: #c9d3e2;
+}
+.arrival-fallback .addr { font-size: clamp(1.4rem, 1rem + 1.6vw, 2.2rem); color: #fff; font-weight: 800; letter-spacing: -.03em; }
+.arrival-fallback .hint { margin-top: 10px; font-size: .95rem; max-width: 44ch; }
+.arrival-fallback .btn { pointer-events: auto; }
+.arrival-fallback > div { pointer-events: auto; }
+
+@media (max-width: 900px) {
+  .arrival { height: 260vh; }
+  .arrival-caption { bottom: 20vh; }
+  .arrival-hud { top: 78px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrival { height: auto; }
+  .arrival-stage { position: relative; height: 70svh; }
+  .arrival-caption { position: relative; opacity: 1; transform: none; bottom: auto; padding-top: 24px; }
+  .arrival-caption + .arrival-caption { margin-top: 18px; }
+}

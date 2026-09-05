@@ -1,0 +1,12 @@
+{
+  "name": "Phil's Auto and Fleet Repair",
+  "short_name": "Phil's Auto",
+  "description": "Honest auto, diesel and fleet repair in Lodi, California.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0a0a1f",
+  "icons": [
+    { "src": "/assets/img/logo.png", "sizes": "80x80", "type": "image/png", "purpose": "any" }
+  ]
+}
