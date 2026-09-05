@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Render the walk-in video — Phil's Auto</title>
+<title>Phil's Auto Walk-In</title>
 <style>
   :root { color-scheme: dark; }
   body { margin:0; background:#0a0a1f; color:#e6ecf5; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
@@ -21,10 +21,11 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Walk-in video</h1>
-  <p>Renders a camera move through the shop from your photographs — the building from above, up to
-  the bay, to the office door, onto the floor, across the work — and saves it as a video file.
-  Everything happens in this browser; nothing is uploaded anywhere.</p>
+  <h1>Walk-in</h1>
+  <p>A camera move built from the shop's own photographs: the building from above, up to the bay,
+  the office door, across the floor, into the work, out to the diesel. It plays on a loop below.
+  On a computer running Chrome, the button saves it as a video file you can post or hand to an
+  editor.</p>
 
   <canvas id="c" width="1280" height="720"></canvas>
 
@@ -46,7 +47,7 @@
       </select>
     </label>
   </div>
-  <div class="status" id="s">Ready. Chrome does the encoding, so use Chrome.</div>
+  <div class="status" id="s">Playing…</div>
 </div>
 
 <script>
@@ -72,7 +73,45 @@ function drawShot(ctx, img, shot, t, W, H) {
   ctx.drawImage(img, sx, sy, sw, sh, (W-dw)/2, (H-dh)/2, dw, dh);
 }
 
+/* ---------- watch it ---------- */
+let playing = true;
+async function play() {
+  const canvas = $("c"), ctx = canvas.getContext("2d");
+  canvas.width = 1280; canvas.height = 720;
+  ctx.imageSmoothingQuality = "high";
+  const imgs = await Promise.all(SHOTS.map(s => new Promise((res, rej) => {
+    const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = s.src;
+  })));
+  const secs = SHOTS.map(s => s.secs), fade = FADE;
+  const starts = []; let acc = 0;
+  secs.forEach((s, i) => { starts.push(acc); acc += s - (i < secs.length - 1 ? fade : 0); });
+  const W = 1280, H = 720, started = performance.now();
+  (function frame(now) {
+    if (!playing) return;
+    const t = ((now - started) / 1000) % acc;
+    ctx.fillStyle = "#07080c"; ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < SHOTS.length; i++) {
+      const local = t - starts[i];
+      if (local < 0 || local > secs[i]) continue;
+      let a = 1;
+      if (i > 0 && local < fade) a = local / fade;
+      if (i < SHOTS.length - 1 && local > secs[i] - fade) a = Math.min(a, (secs[i] - local) / fade);
+      ctx.globalAlpha = Math.max(0, Math.min(1, a));
+      drawShot(ctx, imgs[i], SHOTS[i], local / secs[i], W, H);
+    }
+    ctx.globalAlpha = 1;
+    const g = ctx.createRadialGradient(W/2, H*0.46, H*0.30, W/2, H*0.5, H*0.95);
+    g.addColorStop(0, "rgba(6,7,14,0)"); g.addColorStop(1, "rgba(6,7,14,0.42)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    requestAnimationFrame(frame);
+  })(performance.now());
+  $("s").textContent = "Playing on a loop \u2014 " + Math.round(acc) + " seconds.";
+}
+play();
+
+/* ---------- save it as a file (needs a browser that can encode) ---------- */
 $("go").addEventListener("click", async () => {
+  playing = false;
   const btn = $("go"); btn.disabled = true;
   const [W, H] = $("size").value.split("x").map(Number);
   const pace = parseFloat($("pace").value);
@@ -84,8 +123,13 @@ $("go").addEventListener("click", async () => {
     const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = s.src;
   })));
 
-  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-    ? "video/webm;codecs=vp9" : "video/webm;codecs=vp8";
+  const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+  const mime = (window.MediaRecorder && candidates.find(t => MediaRecorder.isTypeSupported(t))) || "";
+  if (!mime) {
+    $("s").textContent = "This browser cannot save video \u2014 open the page in Chrome on a computer.";
+    btn.disabled = false; playing = true; play(); return;
+  }
+  const ext = mime.indexOf("mp4") > -1 ? "mp4" : "webm";
   const stream = canvas.captureStream(0);
   const track = stream.getVideoTracks()[0];
   const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 });
@@ -124,13 +168,13 @@ $("go").addEventListener("click", async () => {
   rec.stop(); await stopped;
   const blob = new Blob(chunks, { type: "video/webm" });
   if (blob.size < 5000) {
-    $("s").textContent = "This browser did not encode anything — try Chrome.";
-    btn.disabled = false; return;
+    $("s").textContent = "This browser did not encode anything \u2014 open the page in Chrome on a computer.";
+    btn.disabled = false; playing = true; play(); return;
   }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = "phils-walkthrough.webm"; a.click();
-  $("s").textContent = "Done — " + (blob.size/1048576).toFixed(1) + " MB saved as phils-walkthrough.webm";
+  a.href = url; a.download = "phils-walkthrough." + ext; a.click();
+  $("s").textContent = "Done \u2014 " + (blob.size/1048576).toFixed(1) + " MB saved as phils-walkthrough." + ext;
   btn.disabled = false;
 });
 </script>
