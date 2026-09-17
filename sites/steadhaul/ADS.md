@@ -4,7 +4,7 @@ Short-form. The ad's only job is to get a call or a form fill; the selling
 happens on the phone. Call script is at the bottom — that's where the detail
 that used to be in these ads now lives.
 
-Replace `(000) 000-0000` before posting.
+Replace `(916) 868-2447` before posting.
 
 ## What's held back, and what isn't
 
@@ -57,7 +57,7 @@ We cap every dispatcher at 8 trucks, so we're not taking everybody.
 Dry van, reefer, flatbed, hotshot, box truck, power only, step deck.
 All 48 states. Most carriers are rolling within 24-48 hours.
 
-Call or text (000) 000-0000, seven days.
+Call or text (916) 868-2447, seven days.
 steadhauldispatch.com
 ```
 
@@ -109,7 +109,7 @@ A percentage dispatcher's raise comes out of your best week. Ours doesn't.
 
 Sacramento, CA → all 48 states. Rolling in 24-48 hours.
 
-Call or text (000) 000-0000
+Call or text (916) 868-2447
 ```
 
 ---
@@ -308,7 +308,7 @@ rather your clients stay in business than pay you for names.
 Worth a 10-minute call?
 
 [name] — Steadhaul Dispatch
-(000) 000-0000 · steadhauldispatch.com
+(916) 868-2447 · steadhauldispatch.com
 ```
 
 Offering *not* to pay a referral fee is deliberate. An insurance agent taking
