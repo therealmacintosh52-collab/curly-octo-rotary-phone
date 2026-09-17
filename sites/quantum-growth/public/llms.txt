@@ -10,6 +10,10 @@
 - **Annual:** One month free on any plan
 
 ## Plans
+- **Basic Site** — $599 one-time, or $400 if decided on the call, plus $29/month
+  hosting and upkeep. The 25-page website on the client's domain with hosting,
+  SSL, backups and 30 days of free text edits. No email, no profile
+  management, no posts or reporting.
 - **Starter** — $79/month or $869/year, $699 one-time build. 25-page website,
   business email with two mailboxes, social profiles, hosting and maintenance.
 - **Local** — $299/month or $3,289/year, build included free. Everything in
