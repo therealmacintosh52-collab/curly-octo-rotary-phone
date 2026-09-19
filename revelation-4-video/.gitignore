@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+build/probe/
+build/*.wav
+build/video.mp4
+build/render.log
