@@ -34,23 +34,28 @@ def write_wav(path, x):
 def main():
     voice = read_wav(os.path.join(BUILD, "narration.wav"))
     music = read_wav(os.path.join(BUILD, "score.wav"))
-    n = max(len(voice), len(music))
+    fx_path = os.path.join(BUILD, "sfx.wav")
+    effects = read_wav(fx_path) if os.path.exists(fx_path) else voice * 0.0
+    n = max(len(voice), len(music), len(effects))
     voice = np.stack([dsp.pad_to(voice[:, c], n) for c in range(2)], axis=1)
     music = np.stack([dsp.pad_to(music[:, c], n) for c in range(2)], axis=1)
+    effects = np.stack([dsp.pad_to(effects[:, c], n) for c in range(2)], axis=1)
 
-    # Carve a little room for the voice in the score's midrange.
+    # Carve a little room for the voice in the score's midrange, and keep the
+    # effects out of the way of the consonants.
     for c in range(2):
         music[:, c] = filt(music[:, c], "peak", 1900.0, 1.1, -2.6)
+        effects[:, c] = filt(effects[:, c], "peak", 2600.0, 1.0, -2.0)
 
-    mix = voice * 0.94 + music * 0.62
+    mix = voice * 0.94 + music * 0.50 + effects * 0.80
     for c in range(2):
         mix[:, c] = filt(mix[:, c], "highpass", 30.0, 0.7)
-        mix[:, c] = dsp.compress(mix[:, c], thresh_db=-14.0, ratio=1.9,
-                                 attack=0.012, release=0.28, makeup_db=1.0)
+        mix[:, c] = dsp.compress(mix[:, c], thresh_db=-17.0, ratio=2.4,
+                                 attack=0.012, release=0.28, makeup_db=2.6)
         mix[:, c] = dsp.limit(mix[:, c], 0.95)
 
     peak = np.max(np.abs(mix))
-    mix *= 0.93 / (peak + 1e-9)
+    mix *= 0.95 / (peak + 1e-9)
     out = os.path.join(BUILD, "master.wav")
     write_wav(out, mix)
     rms = 20 * np.log10(np.sqrt(np.mean(mix ** 2)) + 1e-12)

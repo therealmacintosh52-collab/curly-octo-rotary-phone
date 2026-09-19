@@ -51,8 +51,10 @@ def resample_rate(x, ratio):
 
 
 def pitch_down(x, semitones, sr=SR):
-    """Drop pitch by resampling; the clip also gets proportionally longer."""
-    return resample_rate(x, 2.0 ** (semitones / 12.0))
+    """Shift pitch by resampling. Negative semitones means lower, and the
+    clip gets proportionally longer -- which is the point: a line slowed
+    this way has no stretched vowels, only more weight."""
+    return resample_rate(x, 2.0 ** (-semitones / 12.0))
 
 
 # ---------------------------------------------------------------- filters

@@ -12,6 +12,7 @@ import wave
 import numpy as np
 
 import dsp
+import script_text
 from dsp import SR, add_at, db, fade, filt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -238,21 +239,19 @@ def build(tl):
     at(high, shimmer(dur - b("worthy"), note(D, 1), 0.12, seed=8), b("worthy"))
 
     # thunder under every flash of lightning
-    strikes = [(b("lightning") + 0.55, 1.0), (b("lightning") + 1.15, 0.7),
-               (b("lightning") + 1.55, 1.15), (b("lightning") + 2.35, 0.55),
-               (b("lightning") + 3.20, 0.9), (b("lightning") + 4.05, 0.65),
-               (b("holy") + 0.15, 0.8), (b("holy") + 1.55, 0.9),
-               (b("holy") + 3.10, 1.1), (b("worthy") + 0.4, 0.6),
-               (b("created") + 2.6, 1.0)]
+    strikes = [(b("lightning") + off, p) for off, p in script_text.STRIKES]
+    strikes += [(b("holy") + off, 0.8 + 0.15 * i)
+                for i, off in enumerate(script_text.HOLY_PULSES)]
+    strikes += [(b("created") + script_text.FINAL_PEAL, 1.0)]
     for i, (t0, power) in enumerate(strikes):
-        at(low, thunder(6.5, 0.40 * power, seed=20 + i, crack=0.9), t0 + 0.06)
+        at(low, thunder(6.5, 0.26 * power, seed=20 + i, crack=0.5), t0 + 0.20)
 
     # --- worship -------------------------------------------------
     # three swells under "Holy, holy, holy"
     for k, (off, ch) in enumerate([
-            (0.0, [(D, 0), (A, 0), (D, 1), (Fs, 1)]),
-            (1.45, [(D, 0), (A, 0), (E, 1), (A, 1)]),
-            (2.95, [(D, 0), (A, 0), (Fs, 1), (D, 2)])]):
+            (script_text.HOLY_PULSES[0] - 0.1, [(D, 0), (A, 0), (D, 1), (Fs, 1)]),
+            (script_text.HOLY_PULSES[1] - 0.1, [(D, 0), (A, 0), (E, 1), (A, 1)]),
+            (script_text.HOLY_PULSES[2] - 0.1, [(D, 0), (A, 0), (Fs, 1), (D, 2)])]):
         at(mid, choir(n(*ch), 3.6, 0.20 + 0.05 * k, seed=30 + k),
            b("holy") + off - 0.25)
     at(high, bell(note(D, 2), 10.0, 0.26, seed=41), b("holy") - 0.1)

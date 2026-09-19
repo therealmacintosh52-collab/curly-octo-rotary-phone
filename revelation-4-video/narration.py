@@ -27,16 +27,19 @@ VOICE_MODEL = os.path.join(VOICE_DIR, "voice-en-us-ryan-high",
                            "en-us-ryan-high.onnx")
 
 # Delivery per voice: how the raw TTS is slowed, dropped and placed in space.
+# Pace note: the pitch drop is done by resampling, so it lengthens the line
+# too. Most of the slowing is done that way on purpose: resampling stretches
+# a line without the smeared vowels a big length_scale gives you.
 STYLE = {
-    # John recounting the vision: unhurried, chest-weighted, a room around it.
-    "narrator": dict(length=0.99, noise=0.50, noise_w=0.70, semis=-2.2,
-                     rt60=2.4, wet=0.30, layers=1),
+    # John recounting the vision: slow, chest-weighted, a room around it.
+    "narrator": dict(length=0.90, noise=0.42, noise_w=0.62, semis=-3.2,
+                     rt60=3.1, wet=0.32, layers=1, drive=0.30, double=0.26),
     # The trumpet-voice out of the open door: slower, deeper, vast.
-    "throne": dict(length=1.06, noise=0.42, noise_w=0.60, semis=-4.6,
-                   rt60=5.2, wet=0.52, layers=2),
+    "throne": dict(length=0.95, noise=0.34, noise_w=0.50, semis=-5.0,
+                   rt60=6.6, wet=0.58, layers=2, drive=0.42, double=0.0),
     # Sung by the living creatures and the elders: many voices as one.
-    "worship": dict(length=1.05, noise=0.48, noise_w=0.68, semis=-3.0,
-                    rt60=5.8, wet=0.46, layers=3),
+    "worship": dict(length=0.93, noise=0.42, noise_w=0.58, semis=-3.6,
+                    rt60=6.6, wet=0.50, layers=3, drive=0.24, double=0.0),
 }
 
 
@@ -69,12 +72,30 @@ def trim(x, thresh=2e-3, pad=0.04):
 
 
 def voice_eq(x):
-    x = dsp.filt(x, "highpass", 78.0, 0.7)
-    x = dsp.filt(x, "lowshelf", 165.0, 0.7, 2.6)     # chest / authority
-    x = dsp.filt(x, "peak", 420.0, 1.1, -2.4)        # clear the boxiness
-    x = dsp.filt(x, "peak", 2900.0, 0.9, 2.6)        # presence, consonants
-    x = dsp.filt(x, "highshelf", 9000.0, 0.7, 1.4)   # air
+    x = dsp.filt(x, "highpass", 62.0, 0.7)
+    x = dsp.filt(x, "peak", 105.0, 1.2, 2.2)         # the floor of the voice
+    x = dsp.filt(x, "lowshelf", 155.0, 0.7, 3.4)     # chest / authority
+    x = dsp.filt(x, "peak", 430.0, 1.1, -2.8)        # clear the boxiness
+    x = dsp.filt(x, "peak", 2700.0, 0.9, 2.2)        # presence, consonants
+    x = dsp.filt(x, "peak", 6200.0, 1.6, -1.6)       # take the edge off
+    x = dsp.filt(x, "highshelf", 9500.0, 0.7, 0.6)   # a little air, no hiss
     return x
+
+
+def saturate(x, drive=0.3):
+    """Parallel harmonic drive: density, which the ear hears as power."""
+    if drive <= 0:
+        return x
+    hot = np.tanh(dsp.filt(x, "lowpass", 2400.0, 0.7) * 3.2) * 0.45
+    return x * (1.0 - 0.25 * drive) + hot * drive
+
+
+def parallel_compress(x, amount=0.45):
+    """Crushed copy tucked under the dry: it never lets the line go slack."""
+    crushed = dsp.compress(x, thresh_db=-34.0, ratio=8.0, attack=0.004,
+                           release=0.26, makeup_db=9.0)
+    crushed = dsp.filt(crushed, "lowpass", 5200.0, 0.7)
+    return x + crushed * amount
 
 
 def render_beat(voice, beat):
@@ -83,8 +104,21 @@ def render_beat(voice, beat):
     base = trim(synth_raw(voice, beat["say"], style))
     base = dsp.pitch_down(base, style["semis"])
     base = voice_eq(base)
-    base = dsp.compress(base, thresh_db=-21.0, ratio=3.6, makeup_db=3.4)
+    base = saturate(base, style["drive"])
+    # Slow attack so the consonants still land before the gain moves.
+    base = dsp.compress(base, thresh_db=-23.0, ratio=4.2, attack=0.014,
+                        release=0.30, makeup_db=4.2)
+    base = parallel_compress(base, 0.42)
     base = dsp.normalize(base, 0.82)
+
+    # A close double thickens the narrator without reading as an effect.
+    if style["double"] > 0.0:
+        dbl = dsp.pitch_down(base, -0.14)
+        dbl = dsp.filt(dbl, "lowpass", 4200.0, 0.7)
+        buf = np.zeros(max(len(base), len(dbl)) + SR // 4)
+        dsp.add_at(buf, base, 0)
+        dsp.add_at(buf, dbl * style["double"], int(0.019 * SR))
+        base = dsp.normalize(buf, 0.84)
 
     n = len(base)
     # Layered voices: detuned, slightly offset copies read as a multitude.

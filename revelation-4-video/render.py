@@ -18,6 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 import fx
 import scenes
+import script_text
 from fx import H, W, ease, ramp
 from scenes import Stage
 
@@ -123,27 +124,27 @@ _STRIKES = None
 
 
 def strike_times():
-    """Lightning out of the throne: dense at verse 5, echoing after."""
+    """Lightning out of the throne, on the same clock as the thunder."""
     global _STRIKES
     if _STRIKES is not None:
         return _STRIKES
     t0 = b("lightning")
-    s = [(t0 + 0.55, 3, 1.0), (t0 + 1.15, 11, 0.7), (t0 + 1.55, 19, 1.15),
-         (t0 + 2.35, 27, 0.55), (t0 + 3.20, 35, 0.9), (t0 + 4.05, 43, 0.65)]
-    s += [(b("holy") + 0.15, 51, 0.8), (b("holy") + 1.55, 59, 0.9),
-          (b("holy") + 3.10, 67, 1.1)]
-    s += [(b("worthy") + 0.4, 71, 0.6), (b("created") + 2.6, 79, 1.0)]
+    s = [(t0 + off, 3 + i * 8, p)
+         for i, (off, p) in enumerate(script_text.STRIKES)]
+    s += [(b("holy") + off, 51 + i * 8, 0.8 + 0.15 * i)
+          for i, off in enumerate(script_text.HOLY_PULSES)]
+    s += [(b("created") + script_text.FINAL_PEAL, 79, 1.0)]
     _STRIKES = s
     return s
 
 
 def voice_ring_times():
+    """Rings going out from the throne, tied to the voices you can hear."""
     r = [(b("ascend") + 0.15, 1.0), (b("ascend") + 1.9, 0.8)]
-    t0 = b("lightning")
-    r += [(t0 + 3.6, 0.9), (t0 + 4.2, 0.7)]
-    r += [(b("holy") + 0.2, 1.0), (b("holy") + 1.6, 0.9),
-          (b("holy") + 3.0, 1.1)]
-    r += [(b("worthy") + 0.2, 0.8), (b("created") + 0.3, 0.9)]
+    r += [(b("lightning") + 3.8, 0.9), (b("lightning") + 4.6, 0.7)]
+    r += [(b("holy") + off, 1.0 + 0.05 * i)
+          for i, off in enumerate(script_text.HOLY_PULSES)]
+    r += [(b("worthy") + 0.3, 0.8), (b("created") + 0.4, 0.9)]
     return r
 
 
