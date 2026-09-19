@@ -3,4 +3,6 @@ __pycache__/
 build/probe/
 build/*.wav
 build/video.mp4
+build/tail.mp4
+build/check/
 build/render.log

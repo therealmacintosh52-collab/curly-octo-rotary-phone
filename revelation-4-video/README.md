@@ -43,6 +43,18 @@ python3 render.py       # 1080p30     -> build/video.mp4    (~20 min, 4 cores)
 python3 mix.py          # mix + mux   -> revelation-4.mp4
 ```
 
+The committed master was assembled with a denoise pass, which cuts the file
+to a third without a visible difference (the grain is what costs the bits):
+
+```bash
+ffmpeg -i build/video.mp4 -i build/master.wav -vf hqdn3d=1.5:1.2:5:5 \
+  -c:v libx264 -preset slow -crf 22 -x264-params aq-mode=3:aq-strength=0.9 \
+  -pix_fmt yuv420p -c:a aac -b:a 224k -movflags +faststart revelation-4.mp4
+```
+
+`build/revelation-4-share.mp4` is the same cut at ~1.45 Mbps for sending
+around; at this material's contrast it looks the same as the master.
+
 Useful while working:
 
 ```bash
@@ -62,6 +74,7 @@ python3 render.py --range 80 90        # just that stretch
 - `fx.py` — noise, bloom, anamorphic streak, ACES tonemap, grain, grade
 - `render.py` — timeline, camera, subtitles, frame pipeline, encode
 - `mix.py` — final mix and mux
+- `revelation-4.mp4` — the film; `build/revelation-4-share.mp4`, a smaller copy
 
 ## Note on the text
 

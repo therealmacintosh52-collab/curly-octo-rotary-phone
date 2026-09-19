@@ -281,11 +281,11 @@ def text_mask(t):
         drew = True
 
     # closing credit
-    cs = TL["speech_end"] + 1.4
-    a = ramp(t, cs, cs + 1.6) * (1.0 - ramp(t, TL["duration"] - 3.2,
-                                            TL["duration"] - 1.6))
+    cs = TL["speech_end"] + 2.6
+    a = ramp(t, cs, cs + 1.8) * (1.0 - ramp(t, TL["duration"] - 3.0,
+                                            TL["duration"] - 1.4))
     if a > 0.01:
-        _center(d, TL["credit"], f["credit"], H * 0.52, int(225 * a), sp=3)
+        _center(d, TL["credit"], f["credit"], H * 0.53, int(238 * a), sp=3)
         drew = True
 
     return np.asarray(im, np.float32) / 255.0 if drew else None
@@ -343,6 +343,9 @@ def frame(i):
     sat = 1.06
     rgb = fx.grade(st.hdr, t, exposure=expo, sat=sat, vig=0.40, ca=1.5)
     rgb *= ramp(t, 0.0, 2.2)                                   # fade up
+    # the vision lets go before the credit, so the credit can be read
+    rgb *= 1.0 - 0.80 * ramp(t, TL["speech_end"] + 0.6,
+                             TL["speech_end"] + 4.6)
     rgb *= 1.0 - ramp(t, TL["duration"] - 2.6, TL["duration"])  # fade out
     rgb = draw_text(rgb, t)
     return fx.to_bytes(rgb)

@@ -60,8 +60,12 @@ def main():
     video = os.path.join(BUILD, "video.mp4")
     final = os.path.join(HERE, "revelation-4.mp4")
     if os.path.exists(video):
+        # The grain is expensive to store; re-encode for delivery with the
+        # adaptive quantiser leaning on the flat, dark areas.
         cmd = ["ffmpeg", "-v", "error", "-y", "-i", video, "-i", out,
-               "-c:v", "copy", "-c:a", "aac", "-b:a", "224k",
+               "-c:v", "libx264", "-preset", "slow", "-crf", "20",
+               "-x264-params", "aq-mode=3:aq-strength=0.9:psy-rd=1.0,0.15",
+               "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "224k",
                "-movflags", "+faststart", "-shortest", final]
         subprocess.run(cmd, check=True)
         size = os.path.getsize(final) / 1e6
