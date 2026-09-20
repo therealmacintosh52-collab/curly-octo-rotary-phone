@@ -47,7 +47,15 @@ def main():
         music[:, c] = filt(music[:, c], "peak", 1900.0, 1.1, -2.6)
         effects[:, c] = filt(effects[:, c], "peak", 2600.0, 1.0, -2.0)
 
-    mix = voice * 0.94 + music * 0.50 + effects * 0.80
+    # Effects sit under the reading, not beside it: duck them with the voice.
+    venv = np.abs(voice).max(axis=1)
+    venv = filt(dsp.envelope(venv, attack=0.02, release=0.35), "lowpass",
+                3.0, 0.7)
+    venv = np.clip(venv / (np.percentile(venv, 99) + 1e-9), 0, 1)
+    duck = dsp.db(-5.0 * venv ** 0.7)[:, None]
+    effects = effects * duck
+
+    mix = voice * 0.98 + music * 0.46 + effects * 0.42
     for c in range(2):
         mix[:, c] = filt(mix[:, c], "highpass", 30.0, 0.7)
         mix[:, c] = dsp.compress(mix[:, c], thresh_db=-17.0, ratio=2.4,
