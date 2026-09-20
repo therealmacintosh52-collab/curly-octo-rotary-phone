@@ -23,23 +23,29 @@ VOICE_DIR = os.environ.get(
     "/tmp/claude-0/-home-user-curly-octo-rotary-phone/"
     "95ecc93b-21f3-503b-89d8-1426cc1fb6f2/scratchpad/voices",
 )
-VOICE_MODEL = os.path.join(VOICE_DIR, "voice-en-us-ryan-high",
-                           "en-us-ryan-high.onnx")
+VOICE_MODEL = os.path.join(VOICE_DIR, "voice-en-us-libritts-high",
+                           "en-us-libritts-high.onnx")
+# LibriTTS is multi-speaker; 538 is a man whose voice actually sits near
+# 98 Hz, so the depth is his and not an effect laid over someone lighter.
+SPEAKER = 538
 
 # Delivery per voice: how the raw TTS is slowed, dropped and placed in space.
 # Pace note: the pitch drop is done by resampling, so it lengthens the line
 # too. Most of the slowing is done that way on purpose: resampling stretches
 # a line without the smeared vowels a big length_scale gives you.
 STYLE = {
-    # John recounting the vision: slow, chest-weighted, a room around it.
-    "narrator": dict(length=0.90, noise=0.42, noise_w=0.62, semis=-3.2,
-                     rt60=3.1, wet=0.32, layers=1, drive=0.30, double=0.26),
-    # The trumpet-voice out of the open door: slower, deeper, vast.
-    "throne": dict(length=0.95, noise=0.34, noise_w=0.50, semis=-5.0,
-                   rt60=6.6, wet=0.58, layers=2, drive=0.42, double=0.0),
+    # John recounting the vision. No pitch shifting at all -- resampling a
+    # voice down drags its formants with it, and that is what makes a
+    # reading sound processed instead of deep.
+    "narrator": dict(length=1.26, noise=0.40, noise_w=0.58, semis=0.0,
+                     rt60=2.1, wet=0.16, layers=1, drive=0.22, double=0.18),
+    # The trumpet-voice out of the open door: slower, a shade lower, and
+    # given more room than the narration -- but not a cathedral.
+    "throne": dict(length=1.33, noise=0.34, noise_w=0.50, semis=-1.2,
+                   rt60=4.0, wet=0.33, layers=2, drive=0.30, double=0.0),
     # Sung by the living creatures and the elders: many voices as one.
-    "worship": dict(length=0.93, noise=0.42, noise_w=0.58, semis=-3.6,
-                    rt60=6.6, wet=0.50, layers=3, drive=0.24, double=0.0),
+    "worship": dict(length=1.29, noise=0.40, noise_w=0.56, semis=-0.6,
+                    rt60=4.0, wet=0.29, layers=3, drive=0.20, double=0.0),
 }
 
 
@@ -49,6 +55,7 @@ def synth_raw(voice, text, style):
     cfg = SynthesisConfig(length_scale=style["length"],
                           noise_scale=style["noise"],
                           noise_w_scale=style["noise_w"],
+                          speaker_id=SPEAKER,
                           normalize_audio=True)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
@@ -73,8 +80,8 @@ def trim(x, thresh=2e-3, pad=0.04):
 
 def voice_eq(x):
     x = dsp.filt(x, "highpass", 62.0, 0.7)
-    x = dsp.filt(x, "peak", 105.0, 1.2, 2.2)         # the floor of the voice
-    x = dsp.filt(x, "lowshelf", 155.0, 0.7, 3.4)     # chest / authority
+    x = dsp.filt(x, "peak", 105.0, 1.2, 1.0)         # the floor of the voice
+    x = dsp.filt(x, "lowshelf", 155.0, 0.7, 2.0)     # chest / authority
     x = dsp.filt(x, "peak", 430.0, 1.1, -2.8)        # clear the boxiness
     x = dsp.filt(x, "peak", 2700.0, 0.9, 2.2)        # presence, consonants
     x = dsp.filt(x, "peak", 6200.0, 1.6, -1.6)       # take the edge off
@@ -102,7 +109,8 @@ def render_beat(voice, beat):
     """Return (dry_audio, wet_audio_with_tail) for one spoken line."""
     style = STYLE[beat["voice"]]
     base = trim(synth_raw(voice, beat["say"], style))
-    base = dsp.pitch_down(base, style["semis"])
+    if style["semis"]:
+        base = dsp.pitch_down(base, style["semis"])
     base = voice_eq(base)
     base = saturate(base, style["drive"])
     # Slow attack so the consonants still land before the gain moves.

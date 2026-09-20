@@ -282,11 +282,11 @@ def main():
     print("building score...")
     low, mid, high = build(tl)
 
-    ir_hall = dsp.impulse_response(rt60=4.2, size=1.3, damping=0.5, seed=5)
-    mid_w = dsp.reverb(mid, ir_hall, wet=0.42)[: len(mid)]
-    high_w = dsp.reverb(high, ir_hall, wet=0.55)[: len(high)]
-    low_w = dsp.reverb(low, dsp.impulse_response(rt60=2.6, seed=6),
-                       wet=0.22)[: len(low)]
+    ir_hall = dsp.impulse_response(rt60=3.4, size=1.1, damping=0.55, seed=5)
+    mid_w = dsp.reverb(mid, ir_hall, wet=0.32)[: len(mid)]
+    high_w = dsp.reverb(high, ir_hall, wet=0.40)[: len(high)]
+    low_w = dsp.reverb(low, dsp.impulse_response(rt60=2.2, seed=6),
+                       wet=0.17)[: len(low)]
 
     mix = low_w * 1.0 + mid_w * 1.0 + high_w * 1.0
     mix = filt(mix, "highpass", 28.0, 0.7)

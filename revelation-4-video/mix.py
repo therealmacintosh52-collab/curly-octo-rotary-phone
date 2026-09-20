@@ -31,6 +31,23 @@ def write_wav(path, x):
         w.writeframes((np.clip(x, -1, 1) * 32767).astype("<i2").tobytes())
 
 
+def stale(video, audio_seconds, tol=0.5):
+    """True if the rendered picture does not match this audio's length.
+
+    The two only line up when the picture was rendered from the same
+    timeline, so this is a cheap guard against muxing an old render onto a
+    new reading and shipping something that drifts.
+    """
+    try:
+        out = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "csv=p=0", video], capture_output=True, text=True,
+            check=True).stdout.strip()
+        return abs(float(out) - audio_seconds) > tol
+    except Exception:
+        return True
+
+
 def main():
     voice = read_wav(os.path.join(BUILD, "narration.wav"))
     music = read_wav(os.path.join(BUILD, "score.wav"))
@@ -72,7 +89,7 @@ def main():
 
     video = os.path.join(BUILD, "video.mp4")
     final = os.path.join(HERE, "revelation-4.mp4")
-    if os.path.exists(video):
+    if os.path.exists(video) and not stale(video, len(mix) / SR):
         # The grain is expensive to store; re-encode for delivery with the
         # adaptive quantiser leaning on the flat, dark areas.
         cmd = ["ffmpeg", "-v", "error", "-y", "-i", video, "-i", out,
@@ -83,6 +100,9 @@ def main():
         subprocess.run(cmd, check=True)
         size = os.path.getsize(final) / 1e6
         print(f"muxed -> {final}  ({size:.1f} MB)")
+    elif os.path.exists(video):
+        print("picture is cut to a different length than this audio; "
+              "re-render before muxing. Audio master written.")
     else:
         print("no video yet; audio master written")
     return 0

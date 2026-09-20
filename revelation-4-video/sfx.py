@@ -427,10 +427,10 @@ def main():
     print("building sound effects...")
     near, far = build(tl)
 
-    hall = dsp.impulse_response(rt60=5.0, size=1.4, damping=0.45, seed=21)
+    hall = dsp.impulse_response(rt60=3.8, size=1.2, damping=0.5, seed=21)
     room = dsp.impulse_response(rt60=1.8, size=0.8, damping=0.6, seed=22)
-    wet_far = dsp.reverb(far, hall, wet=0.62)[: len(far)]
-    wet_near = dsp.reverb(near, room, wet=0.26)[: len(near)]
+    wet_far = dsp.reverb(far, hall, wet=0.44)[: len(far)]
+    wet_near = dsp.reverb(near, room, wet=0.19)[: len(near)]
 
     mix = wet_near + wet_far
     mix = filt(mix, "highpass", 24.0, 0.7)
