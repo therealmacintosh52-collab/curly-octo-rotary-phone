@@ -72,15 +72,18 @@ def main():
     effects = effects * dsp.db(-7.5 * venv ** 0.7)[:, None]
     music = music * dsp.db(-3.5 * venv ** 0.7)[:, None]
 
-    mix = voice * 1.10 + music * 0.33 + effects * 0.31
+    mix = voice * 1.10 + music * 0.30 + effects * 0.21
     for c in range(2):
         mix[:, c] = filt(mix[:, c], "highpass", 30.0, 0.7)
-        mix[:, c] = dsp.compress(mix[:, c], thresh_db=-22.0, ratio=3.0,
-                                 attack=0.012, release=0.28, makeup_db=3.0)
+        mix[:, c] = dsp.compress(mix[:, c], thresh_db=-24.0, ratio=2.2,
+                                 attack=0.020, release=0.35, makeup_db=2.0)
     # Ride the peaks rather than scaling to them, then land on a level a
     # spoken piece can actually be heard at.
     for c in range(2):
-        mix[:, c] = dsp.fit_loudness(mix[:, c], target_db=-17.5, ceiling=0.95)
+        # Quieter and less squeezed than a film mix would be. This plays
+        # for an hour and a half; loudness is what makes that tiring.
+        mix[:, c] = filt(mix[:, c], "highshelf", 9000.0, 0.7, -1.5)
+        mix[:, c] = dsp.fit_loudness(mix[:, c], target_db=-20.0, ceiling=0.92)
     peak = np.max(np.abs(mix))
     out = os.path.join(BUILD, "master.wav")
     write_wav(out, mix)

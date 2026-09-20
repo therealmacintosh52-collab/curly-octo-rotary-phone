@@ -1,8 +1,14 @@
-# Revelation 4 — a spoken-vision film
+# Revelation 4 — a spoken-vision film and a listening loop
 
-A 2:07 film of Revelation 4:1–11 (The Passion Translation): the text read
-aloud with authority over a vision built only from what the chapter itself
-describes.
+Revelation 4:1–11 (The Passion Translation) read aloud over a vision built
+only from what the chapter itself describes. One pass runs about 3:26, and
+`loop.py` lays it end to end into a seamless ninety-minute track for use as
+an ascension listening guide.
+
+Made to be heard on repeat, which drives most of the audio decisions. The
+voice is processed lightly, the master sits quiet and uncompressed (crest
+factor above 20 dB), the top end is rolled off, and nothing startles: what
+sounds impressive on one pass is unbearable on the twentieth.
 
 Everything here is generated — no stock footage, no sample libraries, no
 image models. The picture is drawn per-frame with numpy and PIL; the voice is
@@ -41,6 +47,8 @@ python3 narration.py    # TTS + DSP  -> build/narration.wav, build/timeline.json
 python3 score.py        # synth score -> build/score.wav
 python3 render.py       # 1080p30     -> build/video.mp4    (~20 min, 4 cores)
 python3 mix.py          # mix + mux   -> revelation-4.mp4
+python3 sfx.py          # effects     -> build/sfx.wav
+python3 loop.py         # 90 min loop -> build/revelation-4-loop.mp3
 ```
 
 The committed master was assembled with a denoise pass, which cuts the file
@@ -73,7 +81,9 @@ python3 render.py --range 80 90        # just that stretch
 - `scenes.py` — every element of the vision, drawn in HDR linear light
 - `fx.py` — noise, bloom, anamorphic streak, ACES tonemap, grain, grade
 - `render.py` — timeline, camera, subtitles, frame pipeline, encode
+- `sfx.py` — the effects layer, one sound per verse
 - `mix.py` — final mix and mux
+- `loop.py` — crossfaded repeats for long listening
 - `revelation-4.mp4` — the film; `build/revelation-4-share.mp4`, a smaller copy
 
 ## Note on the text

@@ -2,6 +2,12 @@
 
 The timeline is the single source of truth for the visuals: every scene is cut
 against the real, measured length of the spoken lines.
+
+This is made to be listened to for an hour and a half on repeat, so the
+processing is deliberately light. Heavy compression, saturation and doubling
+all read as "machine" within a few passes, and what sounds impressive once
+becomes unbearable on the twentieth loop. The voice is left close to how the
+model actually speaks; the weight comes from pace and from silence.
 """
 
 import io
@@ -26,29 +32,31 @@ VOICE_DIR = os.environ.get(
 VOICE_MODEL = os.path.join(VOICE_DIR, "voice-en-us-libritts-high",
                            "en-us-libritts-high.onnx")
 # LibriTTS is multi-speaker; 538 is a man whose voice actually sits near
-# 98 Hz, so the depth is his and not an effect laid over someone lighter.
+# 100 Hz, so the depth is his and not an effect laid over someone lighter.
 SPEAKER = 538
 
-# Delivery per voice: how the raw TTS is slowed, dropped and placed in space.
-# Pace note: the pitch drop is done by resampling, so it lengthens the line
-# too. Most of the slowing is done that way on purpose: resampling stretches
-# a line without the smeared vowels a big length_scale gives you.
+# Delivery per voice.
+#
+# `length` stays near 1.2: past about 1.3 this model holds its vowels and
+# the reading starts to sound dragged rather than slow. The slowness that
+# matters lives in the gaps between lines, not inside the words.
+#
+# `noise` and `noise_w` are kept high on purpose. They are what vary the
+# pitch and the length of each phoneme, and a voice with that variation
+# turned down is exactly what a robot sounds like.
 STYLE = {
-    # John recounting the vision. No pitch shifting at all -- resampling a
-    # voice down drags its formants with it, and that is what makes a
-    # reading sound processed instead of deep.
-    "narrator": dict(length=1.38, noise=0.38, noise_w=0.52, semis=0.0,
-                     rt60=2.1, wet=0.16, layers=1, drive=0.28, double=0.18),
+    # John recounting the vision.
+    "narrator": dict(length=1.20, noise=0.62, noise_w=0.80, semis=0.0,
+                     rt60=2.2, wet=0.15, layers=1, drive=0.08),
     # The trumpet-voice out of the open door: slower, a shade lower, and
     # given more room than the narration -- but not a cathedral.
-    "throne": dict(length=1.50, noise=0.32, noise_w=0.44, semis=-1.2,
-                   rt60=4.0, wet=0.33, layers=2, drive=0.34, double=0.0),
-    # Sung by the living creatures and the elders: many voices as one, and
-    # the slowest thing in the film. "Holy, holy, holy ... the Was, the Is,
-    # and the Coming" is sung without ceasing, not recited.
-    "worship": dict(length=1.40, noise=0.36, noise_w=0.46, semis=-0.6,
-                    rt60=3.4, wet=0.21, layers=3, drive=0.24, double=0.0),
+    "throne": dict(length=1.30, noise=0.55, noise_w=0.72, semis=-1.2,
+                   rt60=3.6, wet=0.30, layers=2, drive=0.12),
+    # Sung by the living creatures and the elders: many voices as one.
+    "worship": dict(length=1.24, noise=0.58, noise_w=0.76, semis=-0.6,
+                    rt60=3.4, wet=0.22, layers=3, drive=0.08),
 }
+
 
 # NOTE: this model's duration predictor is stochastic and ONNX gives no seed
 # to pin, so line lengths move a little between runs. Build the narration
@@ -77,93 +85,66 @@ def synth_raw(voice, text, style):
     return x
 
 
-def trim(x, thresh=2e-3, pad=0.04):
+def trim(x, thresh=2e-3, pad=0.06):
     idx = np.where(np.abs(x) > thresh)[0]
     if len(idx) == 0:
         return x
     p = int(pad * SR)
-    return x[max(0, idx[0] - p): min(len(x), idx[-1] + p)]
+    y = x[max(0, idx[0] - p): min(len(x), idx[-1] + p)]
+    return dsp.fade(y, 0.012, 0.045)      # no clicks at the joins
 
 
 def voice_eq(x):
-    x = dsp.filt(x, "highpass", 62.0, 0.7)
-    x = dsp.filt(x, "peak", 105.0, 1.2, 1.0)         # the floor of the voice
-    x = dsp.filt(x, "lowshelf", 155.0, 0.7, 2.8)     # chest / authority
-    x = dsp.filt(x, "peak", 430.0, 1.1, -2.8)        # clear the boxiness
-    x = dsp.filt(x, "peak", 2700.0, 0.9, 3.0)        # presence, consonants
-    x = dsp.filt(x, "peak", 6200.0, 1.6, -1.6)       # take the edge off
-    x = dsp.filt(x, "highshelf", 9500.0, 0.7, 0.6)   # a little air, no hiss
+    """A light touch: clear the rumble and the boxiness, and little else."""
+    x = dsp.filt(x, "highpass", 68.0, 0.7)
+    x = dsp.filt(x, "lowshelf", 150.0, 0.7, 1.6)     # a little chest
+    x = dsp.filt(x, "peak", 430.0, 1.0, -2.0)        # clear the boxiness
+    x = dsp.filt(x, "peak", 2600.0, 0.8, 1.1)        # just enough presence
+    x = dsp.filt(x, "peak", 5600.0, 1.4, -1.8)       # the edge that tires
+    x = dsp.filt(x, "highshelf", 10000.0, 0.7, -1.0)
     return x
 
 
-def saturate(x, drive=0.3):
-    """Parallel harmonic drive: density, which the ear hears as power."""
+def soften(x, drive=0.08):
+    """A trace of harmonic warmth. More than this and it starts to buzz."""
     if drive <= 0:
         return x
-    hot = np.tanh(dsp.filt(x, "lowpass", 2400.0, 0.7) * 3.2) * 0.45
-    return x * (1.0 - 0.25 * drive) + hot * drive
-
-
-def parallel_compress(x, amount=0.45):
-    """Crushed copy tucked under the dry: it never lets the line go slack."""
-    crushed = dsp.compress(x, thresh_db=-34.0, ratio=8.0, attack=0.004,
-                           release=0.26, makeup_db=9.0)
-    crushed = dsp.filt(crushed, "lowpass", 5200.0, 0.7)
-    return x + crushed * amount
+    hot = np.tanh(dsp.filt(x, "lowpass", 2200.0, 0.7) * 2.2) * 0.45
+    return x * (1.0 - 0.15 * drive) + hot * drive
 
 
 def dry_line(voice, text, style):
-    """One utterance, synthesised and shaped, before any room is added."""
+    """One utterance, synthesised and lightly shaped."""
     base = trim(synth_raw(voice, text, style))
     if style["semis"]:
         base = dsp.pitch_down(base, style["semis"])
     base = voice_eq(base)
-    base = saturate(base, style["drive"])
-    # Slow attack so the consonants still land before the gain moves.
-    base = dsp.compress(base, thresh_db=-25.0, ratio=5.0, attack=0.014,
-                        release=0.30, makeup_db=5.4)
-    base = parallel_compress(base, 0.55)
-    base = dsp.normalize(base, 0.88)
+    base = soften(base, style["drive"])
+    # Gentle and slow: enough to even the line out, not enough to hear.
+    base = dsp.compress(base, thresh_db=-20.0, ratio=2.4, attack=0.020,
+                        release=0.34, makeup_db=1.6)
 
-    # A close double thickens the narrator without reading as an effect.
-    if style["double"] > 0.0:
-        dbl = dsp.pitch_down(base, -0.14)
-        dbl = dsp.filt(dbl, "lowpass", 4200.0, 0.7)
-        buf = np.zeros(max(len(base), len(dbl)) + SR // 4)
-        dsp.add_at(buf, base, 0)
-        dsp.add_at(buf, dbl * style["double"], int(0.019 * SR))
-        base = dsp.normalize(buf, 0.90)
-
-    n = len(base)
     # Layered voices read as a multitude. The offsets stay short and the
     # copies are rolled off hard: a detuned copy 30ms behind the lead
-    # doubles every consonant, which is what turns a sung line to mush.
-    # All the articulation comes from the lead; the layers only add body.
+    # doubles every consonant, which turns a sung line to mush. All the
+    # articulation comes from the lead; the layers only add body.
     if style["layers"] > 1:
-        acc = base.copy()
+        acc, weight = base.copy(), 1.0
         offsets = [(-0.11, 0.009, 0.26), (0.09, 0.016, 0.21)]
         for i in range(style["layers"] - 1):
             semi, delay, gain = offsets[i % len(offsets)]
             lay = dsp.pitch_down(base, semi)
             lay = dsp.filt(lay, "lowpass", 1900.0, 0.7)
-            buf = np.zeros(max(n, len(lay) + int(abs(delay) * SR)) + SR // 2)
-            dsp.add_at(buf, lay * gain, int(max(0.0, delay) * SR))
-            acc = dsp.pad_to(acc, len(buf))
-            acc += buf
-        base = dsp.normalize(acc, 0.92)
-        n = len(base)
-
+            buf = np.zeros(max(len(acc), len(lay) + int(delay * SR)))
+            dsp.add_at(buf, lay * gain, int(delay * SR))
+            acc = dsp.pad_to(acc, len(buf)) + buf
+            weight += gain
+        base = acc / weight               # keep the level, not just the size
     return base
 
 
-def render_beat(voice, beat):
-    """Return (dry_length, wet_audio_with_tail) for one spoken line.
-
-    A beat carrying `parts` is spoken in pieces with silence between them.
-    That is how the worship lines are slowed: by leaving air around the
-    words rather than by drawing the words themselves out, which only
-    smears them.
-    """
+def dry_beat(voice, beat):
+    """The whole beat, dry, plus where each spoken piece begins."""
     style = STYLE[beat["voice"]]
     offsets = []
     if beat.get("parts"):
@@ -178,12 +159,7 @@ def render_beat(voice, beat):
             at += len(piece) + int(gap * SR)
     else:
         base = dry_line(voice, beat["say"], style)
-    n = len(base)
-
-    ir = dsp.impulse_response(rt60=style["rt60"], size=1.0, damping=0.55,
-                              seed=abs(hash(beat["id"])) % 1000)
-    wet = dsp.reverb(base, ir, wet=style["wet"])
-    return n, wet, offsets
+    return base, offsets
 
 
 def main():
@@ -193,18 +169,29 @@ def main():
     print("loading voice:", VOICE_MODEL)
     voice = PiperVoice.load(VOICE_MODEL)
 
-    rendered = []
+    dry = []
     for beat in BEATS:
-        n, wet, offsets = render_beat(voice, beat)
-        rendered.append((beat, n, wet, offsets))
-        print(f"  {beat['id']:<10} {n / SR:6.2f}s")
+        base, offsets = dry_beat(voice, beat)
+        dry.append((beat, base, offsets))
+        print(f"  {beat['id']:<10} {len(base) / SR:6.2f}s")
 
-    total = LEAD_IN + sum(n / SR + b["gap"] for b, n, _, _ in rendered) + TAIL
+    # One gain for the whole reading rather than one per line. Normalising
+    # each line separately flattens the natural rise and fall between them,
+    # and that evenness is a good part of what sounds mechanical.
+    peak = max(np.max(np.abs(b)) for _, b, _ in dry) + 1e-9
+    gain = 0.80 / peak
+
+    total = LEAD_IN + sum(len(b) / SR + bt["gap"] for bt, b, _ in dry) + TAIL
     master = np.zeros(int(total * SR) + SR * 8)
 
     events, t = [], LEAD_IN
-    for beat, n, wet, offsets in rendered:
+    for beat, base, offsets in dry:
+        style = STYLE[beat["voice"]]
+        ir = dsp.impulse_response(rt60=style["rt60"], size=1.0, damping=0.6,
+                                  seed=abs(hash(beat["id"])) % 1000)
+        wet = dsp.reverb(base * gain, ir, wet=style["wet"])
         dsp.add_at(master, wet, int(t * SR))
+        n = len(base)
         events.append(dict(id=beat["id"], text=beat["text"],
                            voice=beat["voice"], start=round(t, 3),
                            end=round(t + n / SR, 3),
@@ -214,7 +201,7 @@ def main():
     duration = speech_end + TAIL
 
     master = master[: int(duration * SR)]
-    master = dsp.limit(dsp.normalize(master, 0.88))
+    master = dsp.normalize(master, 0.84)
 
     # Per-frame loudness envelope so the light can breathe with the voice.
     fps = 30
@@ -224,7 +211,7 @@ def main():
     venv = env[idx]
     venv = venv / (np.percentile(venv, 99) + 1e-9)
 
-    left, right = dsp.widen(master, 0.009)
+    left, right = dsp.widen(master, 0.007)
     out = dsp.stereo(left, right)
     path = os.path.join(BUILD, "narration.wav")
     with wave.open(path, "wb") as w:

@@ -351,14 +351,14 @@ def build(tl):
 
     # --- verse 2: taken up ----------------------------------------
     rush = b("spirit")
-    at(near, whoosh(b("spirit", "end") - rush + 1.2, 1.00, seed=14,
-                    f0=120, f1=5200, peak=0.86), rush + 0.3)
+    at(near, whoosh(b("spirit", "end") - rush + 1.2, 0.78, seed=14,
+                    f0=120, f1=4200, peak=0.86), rush + 0.3)
     at(near, sub_drop(4.0, 0.75, 72.0, 24.0), b("spirit", "end") - 0.5)
-    at(far, impact(0.55, seed=15, dur=7.0, f0=80, f1=26),
+    at(far, impact(0.42, seed=15, dur=7.0, f0=80, f1=26),
        b("spirit", "end") + 0.15)
 
     # --- verse 2: the throne set in place --------------------------
-    at(far, impact(0.95, seed=16, dur=8.0, f0=88, f1=28),
+    at(far, impact(0.70, seed=16, dur=8.0, f0=88, f1=28),
        b("throne_set") + 2.2)
     at(far, impact(0.40, seed=17, dur=6.0, f0=64, f1=22),
        b("throne_set") + 2.6)
@@ -380,8 +380,8 @@ def build(tl):
     # --- verse 5: lightning, thunder, and voices -------------------
     for i, (off, p) in enumerate(script_text.STRIKES):
         t0 = b("lightning") + off
-        at(near, zap(1.25 * p, seed=50 + i), t0)
-        at(far, thunder_crack(1.60 * p, seed=60 + i, dur=8.0), t0 + 0.14)
+        at(near, zap(0.70 * p, seed=50 + i), t0)
+        at(far, thunder_crack(1.05 * p, seed=60 + i, dur=8.0), t0 + 0.14)
     at(far, whispers(6.0, 0.55, seed=70), b("lightning") + 3.4)
 
     # --- verse 5: seven torches ------------------------------------
@@ -420,7 +420,7 @@ def build(tl):
     rng = np.random.default_rng(7)
     for k in range(24):
         t0 = b("crowns") + 1.4 + k * 0.105 + rng.uniform(-0.04, 0.06)
-        at(near, crown_fall(0.75 * rng.uniform(0.6, 1.0), seed=140 + k), t0)
+        at(near, crown_fall(0.52 * rng.uniform(0.6, 1.0), seed=140 + k), t0)
     at(far, glass_chime(1046, 5.0, 0.35, seed=170), b("crowns") + 1.5)
 
     # --- verse 11: worthy ------------------------------------------
@@ -449,6 +449,7 @@ def main():
     mix = wet_near + wet_far
     mix = filt(mix, "highpass", 24.0, 0.7)
     mix = dsp.compress(mix, thresh_db=-20.0, ratio=2.4, makeup_db=1.0)
+    mix = filt(mix, "highshelf", 7000.0, 0.7, -3.0)
     mix = dsp.normalize(mix, 0.82)
 
     left, right = dsp.widen(mix, 0.013)
