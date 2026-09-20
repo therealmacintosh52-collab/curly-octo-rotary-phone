@@ -69,18 +69,19 @@ def main():
     venv = filt(dsp.envelope(venv, attack=0.02, release=0.35), "lowpass",
                 3.0, 0.7)
     venv = np.clip(venv / (np.percentile(venv, 99) + 1e-9), 0, 1)
-    duck = dsp.db(-5.0 * venv ** 0.7)[:, None]
-    effects = effects * duck
+    effects = effects * dsp.db(-7.5 * venv ** 0.7)[:, None]
+    music = music * dsp.db(-3.5 * venv ** 0.7)[:, None]
 
-    mix = voice * 0.98 + music * 0.46 + effects * 0.42
+    mix = voice * 1.10 + music * 0.33 + effects * 0.31
     for c in range(2):
         mix[:, c] = filt(mix[:, c], "highpass", 30.0, 0.7)
-        mix[:, c] = dsp.compress(mix[:, c], thresh_db=-17.0, ratio=2.4,
-                                 attack=0.012, release=0.28, makeup_db=2.6)
-        mix[:, c] = dsp.limit(mix[:, c], 0.95)
-
+        mix[:, c] = dsp.compress(mix[:, c], thresh_db=-22.0, ratio=3.0,
+                                 attack=0.012, release=0.28, makeup_db=3.0)
+    # Ride the peaks rather than scaling to them, then land on a level a
+    # spoken piece can actually be heard at.
+    for c in range(2):
+        mix[:, c] = dsp.fit_loudness(mix[:, c], target_db=-17.5, ceiling=0.95)
     peak = np.max(np.abs(mix))
-    mix *= 0.95 / (peak + 1e-9)
     out = os.path.join(BUILD, "master.wav")
     write_wav(out, mix)
     rms = 20 * np.log10(np.sqrt(np.mean(mix ** 2)) + 1e-12)

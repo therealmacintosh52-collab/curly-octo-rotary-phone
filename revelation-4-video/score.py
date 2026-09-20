@@ -298,7 +298,7 @@ def main():
     idx = np.clip(np.arange(len(mix)) / SR * fps, 0, len(venv) - 1)
     v = np.interp(idx, np.arange(len(venv)), venv)
     v = filt(np.clip(v, 0, 1), "lowpass", 2.5, 0.7)
-    duck = db(-7.0 * np.clip(v, 0, 1) ** 0.7)
+    duck = db(-9.5 * np.clip(v, 0, 1) ** 0.7)
     mix = mix * duck
 
     mix = dsp.normalize(mix, 0.75)

@@ -175,6 +175,32 @@ def limit(x, ceiling=0.97):
     return np.tanh(x * 1.02) * 0.985
 
 
+def brickwall(x, ceiling=0.95, attack=0.0015, release=0.09, sr=SR):
+    """Hold the peaks down so the quiet things can come up.
+
+    Peak-normalising a mix like this one is useless: one thunderclap sets
+    the ceiling and the reading stays buried under it. This rides the gain
+    against the peaks instead, which is what lets the voice sit forward.
+    """
+    env = envelope(x, attack, release, sr)
+    gr = np.minimum(1.0, ceiling / (env + 1e-9))
+    y = x * gr
+    return np.tanh(y / ceiling) * ceiling
+
+
+def fit_loudness(x, target_db=-18.0, ceiling=0.95, iters=8):
+    """Drive into the limiter until the whole thing sits at target_db RMS."""
+    g, y = 1.0, brickwall(x, ceiling)
+    for _ in range(iters):
+        rms = 20.0 * np.log10(np.sqrt(np.mean(y ** 2)) + 1e-12)
+        err = target_db - rms
+        if abs(err) < 0.15:
+            break
+        g *= 10.0 ** (err / 20.0 * 0.85)
+        y = brickwall(x * g, ceiling)
+    return y
+
+
 def normalize(x, peak=0.9):
     m = np.max(np.abs(x)) + 1e-12
     return x * (peak / m)

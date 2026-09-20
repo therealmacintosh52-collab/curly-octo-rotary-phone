@@ -37,16 +37,23 @@ STYLE = {
     # John recounting the vision. No pitch shifting at all -- resampling a
     # voice down drags its formants with it, and that is what makes a
     # reading sound processed instead of deep.
-    "narrator": dict(length=1.26, noise=0.40, noise_w=0.58, semis=0.0,
-                     rt60=2.1, wet=0.16, layers=1, drive=0.22, double=0.18),
+    "narrator": dict(length=1.38, noise=0.38, noise_w=0.52, semis=0.0,
+                     rt60=2.1, wet=0.16, layers=1, drive=0.28, double=0.18),
     # The trumpet-voice out of the open door: slower, a shade lower, and
     # given more room than the narration -- but not a cathedral.
-    "throne": dict(length=1.33, noise=0.34, noise_w=0.50, semis=-1.2,
-                   rt60=4.0, wet=0.33, layers=2, drive=0.30, double=0.0),
-    # Sung by the living creatures and the elders: many voices as one.
-    "worship": dict(length=1.29, noise=0.40, noise_w=0.56, semis=-0.6,
-                    rt60=4.0, wet=0.29, layers=3, drive=0.20, double=0.0),
+    "throne": dict(length=1.50, noise=0.32, noise_w=0.44, semis=-1.2,
+                   rt60=4.0, wet=0.33, layers=2, drive=0.34, double=0.0),
+    # Sung by the living creatures and the elders: many voices as one, and
+    # the slowest thing in the film. "Holy, holy, holy ... the Was, the Is,
+    # and the Coming" is sung without ceasing, not recited.
+    "worship": dict(length=1.62, noise=0.38, noise_w=0.48, semis=-0.6,
+                    rt60=4.0, wet=0.29, layers=3, drive=0.24, double=0.0),
 }
+
+# NOTE: this model's duration predictor is stochastic and ONNX gives no seed
+# to pin, so line lengths move a little between runs. Build the narration
+# once and render the picture against the timeline it writes -- re-running
+# this after a render will put the two out of step.
 
 
 def synth_raw(voice, text, style):
@@ -81,9 +88,9 @@ def trim(x, thresh=2e-3, pad=0.04):
 def voice_eq(x):
     x = dsp.filt(x, "highpass", 62.0, 0.7)
     x = dsp.filt(x, "peak", 105.0, 1.2, 1.0)         # the floor of the voice
-    x = dsp.filt(x, "lowshelf", 155.0, 0.7, 2.0)     # chest / authority
+    x = dsp.filt(x, "lowshelf", 155.0, 0.7, 2.8)     # chest / authority
     x = dsp.filt(x, "peak", 430.0, 1.1, -2.8)        # clear the boxiness
-    x = dsp.filt(x, "peak", 2700.0, 0.9, 2.2)        # presence, consonants
+    x = dsp.filt(x, "peak", 2700.0, 0.9, 3.0)        # presence, consonants
     x = dsp.filt(x, "peak", 6200.0, 1.6, -1.6)       # take the edge off
     x = dsp.filt(x, "highshelf", 9500.0, 0.7, 0.6)   # a little air, no hiss
     return x
@@ -114,10 +121,10 @@ def render_beat(voice, beat):
     base = voice_eq(base)
     base = saturate(base, style["drive"])
     # Slow attack so the consonants still land before the gain moves.
-    base = dsp.compress(base, thresh_db=-23.0, ratio=4.2, attack=0.014,
-                        release=0.30, makeup_db=4.2)
-    base = parallel_compress(base, 0.42)
-    base = dsp.normalize(base, 0.82)
+    base = dsp.compress(base, thresh_db=-25.0, ratio=5.0, attack=0.014,
+                        release=0.30, makeup_db=5.4)
+    base = parallel_compress(base, 0.55)
+    base = dsp.normalize(base, 0.88)
 
     # A close double thickens the narrator without reading as an effect.
     if style["double"] > 0.0:
@@ -126,7 +133,7 @@ def render_beat(voice, beat):
         buf = np.zeros(max(len(base), len(dbl)) + SR // 4)
         dsp.add_at(buf, base, 0)
         dsp.add_at(buf, dbl * style["double"], int(0.019 * SR))
-        base = dsp.normalize(buf, 0.84)
+        base = dsp.normalize(buf, 0.90)
 
     n = len(base)
     # Layered voices: detuned, slightly offset copies read as a multitude.
@@ -141,7 +148,7 @@ def render_beat(voice, beat):
             dsp.add_at(buf, lay * gain, int(max(0.0, delay) * SR))
             acc = dsp.pad_to(acc, len(buf))
             acc += buf
-        base = dsp.normalize(acc, 0.86)
+        base = dsp.normalize(acc, 0.90)
         n = len(base)
 
     ir = dsp.impulse_response(rt60=style["rt60"], size=1.0, damping=0.55,
