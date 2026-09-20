@@ -119,6 +119,15 @@ BEATS = [
         voice="worship",
         gap=3.0,
         text="“Holy, holy, holy is the Lord God, the Almighty!\nThe Was, the Is, and the Coming!”",
+        # Spoken in pieces, with air between them. Stretching the phonemes of
+        # one long utterance only smears it; the weight belongs in the
+        # silences, and this way every word stays intelligible.
+        parts=[("Holy.", 1.40),
+               ("Holy.", 1.40),
+               ("Holy is the Lord God, the Almighty!", 1.80),
+               ("The Was...", 1.20),
+               ("the Is...", 1.20),
+               ("and the Coming!", 0.0)],
         say="Holy. Holy. Holy is the Lord God, the Almighty! The Was, the Is, and the Coming!",
     ),
     dict(

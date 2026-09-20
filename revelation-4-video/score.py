@@ -169,6 +169,19 @@ def brass(freq, dur, gain=1.0):
 
 # ---------------------------------------------------------------- score
 
+def holy_pulses(ev):
+    """When the three 'Holy's land, read off the actual reading.
+
+    The worship line is spoken in pieces, so its word offsets are measured
+    at synthesis time and written into the timeline. Reading them here is
+    what keeps a flash of lightning on the word rather than near it.
+    """
+    parts = ev["holy"].get("parts") or []
+    if len(parts) >= 6:
+        return [parts[0], parts[1], parts[2], parts[5]]
+    return list(script_text.HOLY_PULSES)
+
+
 def build(tl):
     ev = {e["id"]: e for e in tl["events"]}
 
@@ -241,18 +254,21 @@ def build(tl):
     # thunder under every flash of lightning
     strikes = [(b("lightning") + off, p) for off, p in script_text.STRIKES]
     strikes += [(b("holy") + off, 0.8 + 0.15 * i)
-                for i, off in enumerate(script_text.HOLY_PULSES)]
+                for i, off in enumerate(holy_pulses(ev))]
     strikes += [(b("created") + script_text.FINAL_PEAL, 1.0)]
     for i, (t0, power) in enumerate(strikes):
         at(low, thunder(6.5, 0.26 * power, seed=20 + i, crack=0.5), t0 + 0.20)
 
     # --- worship -------------------------------------------------
     # three swells under "Holy, holy, holy"
+    _hp = holy_pulses(ev)
     for k, (off, ch) in enumerate([
-            (script_text.HOLY_PULSES[0] - 0.1, [(D, 0), (A, 0), (D, 1), (Fs, 1)]),
-            (script_text.HOLY_PULSES[1] - 0.1, [(D, 0), (A, 0), (E, 1), (A, 1)]),
-            (script_text.HOLY_PULSES[2] - 0.1, [(D, 0), (A, 0), (Fs, 1), (D, 2)])]):
-        at(mid, choir(n(*ch), 3.6, 0.20 + 0.05 * k, seed=30 + k),
+            (_hp[0] - 0.1, [(D, 0), (A, 0), (D, 1), (Fs, 1)]),
+            (_hp[1] - 0.1, [(D, 0), (A, 0), (E, 1), (A, 1)]),
+            (_hp[2] - 0.1, [(D, 0), (A, 0), (Fs, 1), (D, 2)])]):
+        # Kept well down: this sits in the same range as the sung line, and
+        # the words have to come through it.
+        at(mid, choir(n(*ch), 3.0, 0.085 + 0.02 * k, seed=30 + k),
            b("holy") + off - 0.25)
     at(high, bell(note(D, 2), 10.0, 0.26, seed=41), b("holy") - 0.1)
 

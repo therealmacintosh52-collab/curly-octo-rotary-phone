@@ -123,6 +123,19 @@ def camera(t):
 _STRIKES = None
 
 
+def holy_pulses(ev):
+    """When the three 'Holy's land, read off the actual reading.
+
+    The worship line is spoken in pieces, so its word offsets are measured
+    at synthesis time and written into the timeline. Reading them here is
+    what keeps a flash of lightning on the word rather than near it.
+    """
+    parts = ev["holy"].get("parts") or []
+    if len(parts) >= 6:
+        return [parts[0], parts[1], parts[2], parts[5]]
+    return list(script_text.HOLY_PULSES)
+
+
 def strike_times():
     """Lightning out of the throne, on the same clock as the thunder."""
     global _STRIKES
@@ -131,8 +144,8 @@ def strike_times():
     t0 = b("lightning")
     s = [(t0 + off, 3 + i * 8, p)
          for i, (off, p) in enumerate(script_text.STRIKES)]
-    s += [(b("holy") + off, 51 + i * 8, 0.8 + 0.15 * i)
-          for i, off in enumerate(script_text.HOLY_PULSES)]
+    s += [(b("holy") + off, 51 + i * 8, 0.85 + 0.12 * i)
+          for i, off in enumerate(holy_pulses(EV))]
     s += [(b("created") + script_text.FINAL_PEAL, 79, 1.0)]
     _STRIKES = s
     return s
@@ -143,7 +156,7 @@ def voice_ring_times():
     r = [(b("ascend") + 0.15, 1.0), (b("ascend") + 1.9, 0.8)]
     r += [(b("lightning") + 3.8, 0.9), (b("lightning") + 4.6, 0.7)]
     r += [(b("holy") + off, 1.0 + 0.05 * i)
-          for i, off in enumerate(script_text.HOLY_PULSES)]
+          for i, off in enumerate(holy_pulses(EV))]
     r += [(b("worthy") + 0.3, 0.8), (b("created") + 0.4, 0.9)]
     return r
 

@@ -46,8 +46,8 @@ STYLE = {
     # Sung by the living creatures and the elders: many voices as one, and
     # the slowest thing in the film. "Holy, holy, holy ... the Was, the Is,
     # and the Coming" is sung without ceasing, not recited.
-    "worship": dict(length=1.62, noise=0.38, noise_w=0.48, semis=-0.6,
-                    rt60=4.0, wet=0.29, layers=3, drive=0.24, double=0.0),
+    "worship": dict(length=1.40, noise=0.36, noise_w=0.46, semis=-0.6,
+                    rt60=3.4, wet=0.21, layers=3, drive=0.24, double=0.0),
 }
 
 # NOTE: this model's duration predictor is stochastic and ONNX gives no seed
@@ -112,10 +112,9 @@ def parallel_compress(x, amount=0.45):
     return x + crushed * amount
 
 
-def render_beat(voice, beat):
-    """Return (dry_audio, wet_audio_with_tail) for one spoken line."""
-    style = STYLE[beat["voice"]]
-    base = trim(synth_raw(voice, beat["say"], style))
+def dry_line(voice, text, style):
+    """One utterance, synthesised and shaped, before any room is added."""
+    base = trim(synth_raw(voice, text, style))
     if style["semis"]:
         base = dsp.pitch_down(base, style["semis"])
     base = voice_eq(base)
@@ -136,25 +135,55 @@ def render_beat(voice, beat):
         base = dsp.normalize(buf, 0.90)
 
     n = len(base)
-    # Layered voices: detuned, slightly offset copies read as a multitude.
+    # Layered voices read as a multitude. The offsets stay short and the
+    # copies are rolled off hard: a detuned copy 30ms behind the lead
+    # doubles every consonant, which is what turns a sung line to mush.
+    # All the articulation comes from the lead; the layers only add body.
     if style["layers"] > 1:
         acc = base.copy()
-        offsets = [(-0.16, 0.030, 0.42), (0.13, -0.055, 0.36)]
+        offsets = [(-0.11, 0.009, 0.26), (0.09, 0.016, 0.21)]
         for i in range(style["layers"] - 1):
             semi, delay, gain = offsets[i % len(offsets)]
             lay = dsp.pitch_down(base, semi)
-            lay = dsp.filt(lay, "lowpass", 5200.0, 0.7)
+            lay = dsp.filt(lay, "lowpass", 1900.0, 0.7)
             buf = np.zeros(max(n, len(lay) + int(abs(delay) * SR)) + SR // 2)
             dsp.add_at(buf, lay * gain, int(max(0.0, delay) * SR))
             acc = dsp.pad_to(acc, len(buf))
             acc += buf
-        base = dsp.normalize(acc, 0.90)
+        base = dsp.normalize(acc, 0.92)
         n = len(base)
+
+    return base
+
+
+def render_beat(voice, beat):
+    """Return (dry_length, wet_audio_with_tail) for one spoken line.
+
+    A beat carrying `parts` is spoken in pieces with silence between them.
+    That is how the worship lines are slowed: by leaving air around the
+    words rather than by drawing the words themselves out, which only
+    smears them.
+    """
+    style = STYLE[beat["voice"]]
+    offsets = []
+    if beat.get("parts"):
+        pieces = [(dry_line(voice, text, style), gap)
+                  for text, gap in beat["parts"]]
+        total = sum(len(p) + int(g * SR) for p, g in pieces)
+        base = np.zeros(total)
+        at = 0
+        for piece, gap in pieces:
+            offsets.append(round(at / SR, 3))
+            dsp.add_at(base, piece, at)
+            at += len(piece) + int(gap * SR)
+    else:
+        base = dry_line(voice, beat["say"], style)
+    n = len(base)
 
     ir = dsp.impulse_response(rt60=style["rt60"], size=1.0, damping=0.55,
                               seed=abs(hash(beat["id"])) % 1000)
     wet = dsp.reverb(base, ir, wet=style["wet"])
-    return n, wet
+    return n, wet, offsets
 
 
 def main():
@@ -166,20 +195,20 @@ def main():
 
     rendered = []
     for beat in BEATS:
-        n, wet = render_beat(voice, beat)
-        rendered.append((beat, n, wet))
+        n, wet, offsets = render_beat(voice, beat)
+        rendered.append((beat, n, wet, offsets))
         print(f"  {beat['id']:<10} {n / SR:6.2f}s")
 
-    total = LEAD_IN + sum(n / SR + b["gap"] for b, n, _ in rendered) + TAIL
+    total = LEAD_IN + sum(n / SR + b["gap"] for b, n, _, _ in rendered) + TAIL
     master = np.zeros(int(total * SR) + SR * 8)
 
     events, t = [], LEAD_IN
-    for beat, n, wet in rendered:
+    for beat, n, wet, offsets in rendered:
         dsp.add_at(master, wet, int(t * SR))
         events.append(dict(id=beat["id"], text=beat["text"],
                            voice=beat["voice"], start=round(t, 3),
                            end=round(t + n / SR, 3),
-                           gap=beat["gap"]))
+                           gap=beat["gap"], parts=offsets))
         t += n / SR + beat["gap"]
     speech_end = t
     duration = speech_end + TAIL

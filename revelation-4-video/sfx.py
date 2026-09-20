@@ -300,6 +300,19 @@ def trumpet_blast(dur=6.0, gain=1.0, freq=146.8):
 
 # ---------------------------------------------------------------- placement
 
+def holy_pulses(ev):
+    """When the three 'Holy's land, read off the actual reading.
+
+    The worship line is spoken in pieces, so its word offsets are measured
+    at synthesis time and written into the timeline. Reading them here is
+    what keeps a flash of lightning on the word rather than near it.
+    """
+    parts = ev["holy"].get("parts") or []
+    if len(parts) >= 6:
+        return [parts[0], parts[1], parts[2], parts[5]]
+    return list(script_text.HOLY_PULSES)
+
+
 def build(tl):
     ev = {e["id"]: e for e in tl["events"]}
 
@@ -394,11 +407,12 @@ def build(tl):
         at(near, wing_beat(0.85, seed=200 + k), b("creatures") + 2.0 + k * 1.6)
 
     # --- verse 8: holy, holy, holy ---------------------------------
-    at(far, whispers(7.0, 0.55, seed=100), b("holy") - 0.6)
-    for k, off in enumerate(script_text.HOLY_PULSES):
-        at(far, impact(0.42, seed=110 + k, dur=6.0, f0=70, f1=25),
+    # The multitude arrives before the words and gets out of their way.
+    at(far, whispers(4.5, 0.30, seed=100), b("holy") - 3.2)
+    for k, off in enumerate(holy_pulses(ev)):
+        at(far, impact(0.30, seed=110 + k, dur=6.0, f0=70, f1=25),
            b("holy") + off)
-        at(far, thunder_crack(0.45, seed=120 + k, dur=7.0), b("holy") + off + 0.2)
+        at(far, thunder_crack(0.32, seed=120 + k, dur=7.0), b("holy") + off + 0.2)
 
     # --- verse 10: they fall, and the crowns go down ---------------
     at(near, rustle(2.6, 0.85, seed=130), b("facedown") + 2.4)
