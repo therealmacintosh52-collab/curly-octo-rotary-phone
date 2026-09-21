@@ -1101,6 +1101,63 @@ def footer_html(es=False):
              "privacy": t["privacy"], "tagline": t["tagline"]}
 
 
+# Reveal-on-scroll bootstrap.
+#
+# The selector list lives here and nowhere else. This script writes the
+# hidden state into the head before the body paints, so nothing flashes in
+# and back out, and it hands the same list to site.js through window.__rv.
+# One list means the two can never disagree — and a browser without
+# IntersectionObserver, or a visitor who asked for reduced motion, never
+# gets the hidden state applied at all. A section stuck at opacity 0 is far
+# worse than a section that simply does not animate.
+REVEAL_BOOT = """<script>
+(function(d,w){try{
+  if(!('IntersectionObserver' in w))return;
+  if(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var sel=['.sec-head','.grid>*','.steps>*','.statband-inner','.review','.panel',
+           '.cta-band','.table-scroll','.faq','.masonry','.photo','.quote-card',
+           '.checklist','.tag-row','.listed .wrap','[data-rv]'];
+  var e='cubic-bezier(.2,.8,.3,1)';
+  var st=d.createElement('style');
+  st.textContent=sel.map(function(x){return '.reveal '+x}).join(',')
+    +'{opacity:0;transform:translateY(20px)}'
+    +'.reveal .rv-in{opacity:1;transform:none;transition:opacity .7s '+e+',transform .7s '+e+'}';
+  d.head.appendChild(st);
+  d.documentElement.className+=' reveal';
+  w.__rv=sel;
+}catch(err){}})(document,window);
+</script>"""
+
+
+def theme_css():
+    """Per-client colour and display face, as a :root override.
+
+    site.css is shared verbatim by every client, so a client's own palette
+    cannot live in it. Anything the config does not set keeps the stylesheet
+    default, so an older config still builds unchanged.
+    """
+    keys = [("accent", "--accent"), ("accent_dk", "--accent-dk"),
+            ("accent_lt", "--accent-lt"), ("accent_soft", "--accent-soft"),
+            ("ink", "--ink"), ("steel", "--steel"),
+            ("grad_accent", "--grad-accent"), ("grad_dark", "--grad-dark"),
+            ("display_font", "--display"), ("display_weight", "--display-weight"),
+            ("display_track", "--display-track"), ("display_case", "--display-case")]
+    rules = ["%s:%s" % (var, SITE[key]) for key, var in keys if SITE.get(key)]
+
+    # A display webfont costs two DNS lookups and a render-blocking
+    # stylesheet. Opt-in per client, never the default, because these sites
+    # are sold on loading before the competitor's does.
+    link = ""
+    url = SITE.get("display_font_url")
+    if url:
+        link = ('\n<link rel="preconnect" href="https://fonts.googleapis.com">'
+                '\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+                '\n<link rel="stylesheet" href="%s">' % esc(url))
+    if not rules:
+        return link
+    return link + "\n<style>:root{%s}</style>" % ";".join(rules)
+
+
 def render(path, title, description, body, schemas=None, active=None, noindex=False,
            lang="en", alternates=None):
     """Write one page. `path` is a URL path like '/services/brakes/' ('/' = home)."""
@@ -1139,7 +1196,8 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <link rel="icon" href="%(favicon)s" type="%(favicon_type)s">
 <link rel="apple-touch-icon" href="%(favicon)s">
 <link rel="manifest" href="/site.webmanifest">
-<link rel="stylesheet" href="/assets/css/site.css">%(alts)s%(schema)s
+<link rel="stylesheet" href="/assets/css/site.css">%(theme)s%(alts)s%(schema)s
+%(reveal)s
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -1157,6 +1215,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
        "favicon": SITE.get("favicon") or "/assets/img/favicon.svg",
        "favicon_type": "image/svg+xml" if (SITE.get("favicon") or ".svg").endswith(".svg") else "image/png",
        "lat": SITE["lat"], "lng": SITE["lng"], "schema": schema_html,
+       "theme": theme_css(), "reveal": REVEAL_BOOT,
        "header": header_html(active, es=(lang == "es")), "body": body,
        "footer": footer_html(es=(lang == "es")),
        "lang": lang, "alts": alt_links}
@@ -1186,7 +1245,7 @@ def quote_form(form_id="quote", heading="Get a free quote", sub=None, service_de
         sel = " selected" if service_default == s["slug"] else ""
         opts.append('<option value="%s"%s>%s</option>' % (esc(s["nav"]), sel, esc(s["nav"])))
     opts.append('<option value="Not sure — please diagnose">Not sure — please diagnose</option>')
-    return """<form class="quote-card" id="%(id)s" data-quote-form action="%(action)s" method="post" data-mailto="%(email)s">
+    return """<form class="quote-card" id="%(id)s" data-quote-form action="%(action)s" method="post" data-mailto="%(email)s" data-phone="%(phone)s">
   <h2>%(heading)s</h2>
   <p class="sub">%(sub)s</p>
   <div class="field">
@@ -1299,6 +1358,40 @@ def photo_slot(caption, badge="Inside the shop"):
        alt="Illustration of a pickup truck raised on a lift inside a service bay">
   <figcaption>%s</figcaption>
 </figure>""" % (icon("camera"), esc(badge), esc(caption))
+
+
+def photo_wall(heading="See the work", eyebrow="Inside the shop"):
+    """Masonry wall of the client's own photos, with the lightbox from site.js.
+
+    Renders nothing when the config has no `gallery`, and nothing when it has
+    fewer than three shots. A sparse wall, or one padded out with stock
+    images, reads worse than no gallery at all — and stock photos of other
+    people's premises are the single fastest way to lose a local visitor's
+    trust. Each entry is {"src": ..., "alt": ..., "caption": ...}; caption is
+    optional.
+    """
+    shots = SITE.get("gallery") or []
+    if len(shots) < 3:
+        return ""
+    items = []
+    for shot in shots:
+        cap = ('<figcaption>%s</figcaption>' % esc(shot["caption"])) if shot.get("caption") else ""
+        items.append(
+            '<figure class="mas-item">'
+            '<img src="%s" alt="%s" loading="lazy" decoding="async">%s</figure>'
+            % (esc(shot["src"]), esc(shot["alt"]), cap))
+    return """<section class="bg-alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">%s</span>
+      <h2>%s</h2>
+      <p>Real photos of this shop, not stock images of somebody else's.</p>
+    </div>
+    <div class="masonry">
+%s
+    </div>
+  </div>
+</section>""" % (esc(eyebrow), esc(heading), "\n".join("      " + i for i in items))
 
 
 def faq_block(faqs, heading="Frequently asked questions", intro=None):
@@ -1557,12 +1650,13 @@ def build_home():
       </div>
       <div>
         <iframe class="map-frame" src="{MAPS_EMBED}" title="Map showing Phil's Auto and Fleet Repair at {esc(FULL_ADDRESS)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-    <p class="map-note"><a href="{MAPS_LISTING}" rel="noopener">Open {esc(FULL_ADDRESS)} in Google Maps {icon("arrow")}</a></p>
         <p class="map-note"><a href="{MAPS_LISTING}" rel="noopener">Open {esc(FULL_ADDRESS)} in Google Maps {icon("arrow")}</a></p>
       </div>
     </div>
   </div>
 </section>
+
+{photo_wall()}
 
 {faq_block(HOME_FAQS)}
 
@@ -2482,7 +2576,7 @@ def build_spanish():
         </ul>
       </div>
       <div id="cotizacion">
-        <form class="quote-card" data-quote-form action="{FORM_ENDPOINT}" method="post" data-mailto="{SITE["email"]}">
+        <form class="quote-card" data-quote-form action="{FORM_ENDPOINT}" method="post" data-mailto="{SITE["email"]}" data-phone="{SITE["phone_display"]}">
           <h2>Pida su cotización</h2>
           <p class="sub">Cuéntenos qué está pasando y le respondemos con los siguientes pasos.
           ¿Prefiere hablar? Llame al {SITE["phone_display"]}.</p>

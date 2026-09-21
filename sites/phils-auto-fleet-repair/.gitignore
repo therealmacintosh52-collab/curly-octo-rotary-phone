@@ -1,0 +1,4 @@
+# `build.py --all` scratch output: every client rendered side by side so
+# --lint can check one shop's town has not leaked into another's pages.
+# Regenerated on demand, never deployed from.
+dist/

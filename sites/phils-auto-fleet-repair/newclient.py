@@ -16,6 +16,35 @@ Writes clients/<slug>.json, then:
 Fields the shop has to confirm before launch are written as empty strings or
 marked TODO. Do not invent them — a wrong address or a made-up rating is the
 one mistake that costs the Google listing.
+
+OPTIONAL LOOK-AND-FEEL KEYS
+
+None of these are written by this script; add them to the client's JSON by
+hand when you want them. Anything left out keeps the shared stylesheet
+default, so an existing config keeps building unchanged.
+
+  accent, accent_dk, accent_lt, accent_soft
+      The brand hue. Sample accent_dk straight out of the client's logo and
+      build the other three around it — a palette taken from the logo is why
+      these sites do not read as one template with the colour swapped.
+  ink, steel, grad_accent, grad_dark
+      The dark surfaces. Bias them toward the brand hue rather than leaving
+      them neutral navy.
+  display_case
+      "uppercase" (the default) or "none", for the hero and page-head H1
+      only. Set it to "none" when the headline is long enough that caps push
+      the phone button below the fold.
+  display_font, display_weight, display_track, display_font_url
+      An optional display webfont. display_font_url loads it — normally a
+      Google Fonts stylesheet — and display_font names the family. This costs
+      two DNS lookups and a render-blocking stylesheet on a site sold on
+      loading before the competitor's does, so only do it for a brand that
+      genuinely needs it.
+  gallery
+      A list of the client's own photos, as {"src", "alt", "caption"}. Three
+      or more renders a masonry wall with a lightbox on the home page; fewer
+      renders nothing. Use the shop's real photos only — stock images of
+      somebody else's premises are the fastest way to lose a local visitor.
 """
 
 import argparse

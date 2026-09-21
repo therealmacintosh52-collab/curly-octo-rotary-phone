@@ -1,4 +1,7 @@
-/* Phil's Auto and Fleet Repair — minimal progressive-enhancement JS */
+/* Client site — minimal progressive-enhancement JS.
+   Shared by every client build (build.py copies public/assets verbatim), so
+   nothing in here may name a specific business. Contact details come from
+   data- attributes on the markup. */
 (function () {
   "use strict";
 
@@ -15,6 +18,75 @@
         nav.classList.remove("open");
         toggle.setAttribute("aria-expanded", "false");
       }
+    });
+  }
+
+  /* --- Reveal on scroll ---------------------------------------------
+     The page's head script (REVEAL_BOOT in build.py) owns the selector
+     list and hands it over as window.__rv, so the hidden state written into
+     the head and the elements observed here can never disagree. Anything already on screen is revealed
+     by the first callback. A pass on load catches anything the observer
+     missed, because a section left at opacity 0 is far worse than a
+     section that simply did not animate. */
+  if (window.__rv && document.documentElement.classList.contains("reveal")) {
+    var sel = window.__rv.join(",");
+    var io = new IntersectionObserver(function (entries) {
+      for (var n = 0; n < entries.length; n++) {
+        if (entries[n].isIntersecting) {
+          entries[n].target.classList.add("rv-in");
+          io.unobserve(entries[n].target);
+        }
+      }
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
+    var rv = document.querySelectorAll(sel);
+    for (var r = 0; r < rv.length; r++) { io.observe(rv[r]); }
+    window.addEventListener("load", function () {
+      setTimeout(function () {
+        var left = document.querySelectorAll(sel);
+        for (var k = 0; k < left.length; k++) {
+          if (left[k].classList.contains("rv-in")) continue;
+          var box = left[k].getBoundingClientRect();
+          if (box.top < window.innerHeight && box.bottom > 0) { left[k].classList.add("rv-in"); }
+        }
+      }, 400);
+    });
+  }
+
+  /* --- Gallery lightbox ---------------------------------------------
+     Opens a .masonry figure full size. Nothing is required in the markup
+     beyond the figure itself, and with no JS the images stay perfectly
+     usable in place. */
+  var wall = document.querySelector(".masonry");
+  if (wall) {
+    var box = document.createElement("div");
+    box.className = "lightbox";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-label", "Image viewer");
+    box.innerHTML = '<button type="button" class="lightbox-close" aria-label="Close viewer">&#10005;</button><img alt="">';
+    document.body.appendChild(box);
+    var shot = box.querySelector("img");
+    var opener = null;
+
+    function shut() {
+      box.classList.remove("open");
+      shot.removeAttribute("src");
+      if (opener && opener.focus) { opener.focus(); }
+    }
+    wall.addEventListener("click", function (e) {
+      var img = e.target.closest && e.target.closest(".mas-item img");
+      if (!img) return;
+      opener = img;
+      shot.src = img.currentSrc || img.src;
+      shot.alt = img.alt || "";
+      box.classList.add("open");
+      box.querySelector(".lightbox-close").focus();
+    });
+    box.addEventListener("click", function (e) {
+      if (e.target === box || e.target.closest(".lightbox-close")) shut();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && box.classList.contains("open")) shut();
     });
   }
 
@@ -47,6 +119,12 @@
   Array.prototype.forEach.call(forms, function (form) {
     var status = form.querySelector(".form-status");
 
+    /* The phone number belongs to the page, not to this file. */
+    function callback(msg) {
+      var tel = form.dataset.phone;
+      return tel ? msg + " Prefer to talk? Call " + tel + "." : msg;
+    }
+
     function say(msg, kind) {
       if (!status) { window.alert(msg); return; }
       status.textContent = msg;
@@ -68,12 +146,13 @@
         fd.forEach(function (v, k) {
           if (k.charAt(0) !== "_" && String(v).trim()) { lines.push(k + ": " + v); }
         });
-        var mail = form.dataset.mailto || "service@philsautofleet.com";
+        var mail = form.dataset.mailto;
+        if (!mail) { say(callback("We could not open your email app."), "err"); return; }
         window.location.href =
           "mailto:" + mail +
           "?subject=" + encodeURIComponent("Website quote request") +
           "&body=" + encodeURIComponent(lines.join("\n"));
-        say("Opening your email app so you can send this request. Prefer to talk? Call (209) 647-4953.", "ok");
+        say(callback("Opening your email app so you can send this request."), "ok");
         return;
       }
 
@@ -88,10 +167,10 @@
       }).then(function (res) {
         if (!res.ok) throw new Error("bad status");
         form.reset();
-        say("Thanks — we got it. We'll call you back with next steps. Need us sooner? Call (209) 647-4953.", "ok");
+        say(callback("Thanks — we got it. We'll call you back with next steps."), "ok");
         track("generate_lead", { form_id: form.id || "quote" });
       }).catch(function () {
-        say("That didn't go through. Please call (209) 647-4953 and we'll take care of you.", "err");
+        say(callback("That didn't go through, sorry."), "err");
       }).finally(function () {
         if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || "Send request"; }
       });

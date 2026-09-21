@@ -29,6 +29,23 @@
 <link rel="apple-touch-icon" href="/assets/img/logo.png">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="stylesheet" href="/assets/css/site.css">
+<script>
+(function(d,w){try{
+  if(!('IntersectionObserver' in w))return;
+  if(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var sel=['.sec-head','.grid>*','.steps>*','.statband-inner','.review','.panel',
+           '.cta-band','.table-scroll','.faq','.masonry','.photo','.quote-card',
+           '.checklist','.tag-row','.listed .wrap','[data-rv]'];
+  var e='cubic-bezier(.2,.8,.3,1)';
+  var st=d.createElement('style');
+  st.textContent=sel.map(function(x){return '.reveal '+x}).join(',')
+    +'{opacity:0;transform:translateY(20px)}'
+    +'.reveal .rv-in{opacity:1;transform:none;transition:opacity .7s '+e+',transform .7s '+e+'}';
+  d.head.appendChild(st);
+  d.documentElement.className+=' reveal';
+  w.__rv=sel;
+}catch(err){}})(document,window);
+</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>

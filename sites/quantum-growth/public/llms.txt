@@ -66,6 +66,7 @@ position, profile gaps, who ranks ahead and why. Requested by phone or text on
 business day.
 
 ## What every build includes
-25 indexable pages, 12 types of structured data, 75 KB total first load, no
+25 indexable pages, 12 types of structured data, a 25 KB compressed first
+load, no
 external scripts, a full Spanish version, and keyboard and screen-reader
 accessibility throughout.
