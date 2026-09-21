@@ -44,6 +44,27 @@
 - Domain, website, Google Business Profile and email are registered in the
   client's name and stay with them if they leave.
 
+## Compared to a typical national vendor
+Figures on the right reflect pricing and terms quoted to a shop owner on a
+sales call in 2026, not a survey of the industry.
+- Website build: free from $299/month, or $699 on Starter — vendor: $1,000 one time
+- Hosting and maintenance: in every plan — vendor: $99/month on top
+- Entry marketing plan: $299/month with the build included — vendor: $350/month, build extra
+- Domain registered to: the client — vendor: often the vendor
+- Google Business Profile role: the client is Owner — vendor: the client is often only Manager
+- On cancellation: the client keeps site, domain, listing and email — vendor: the site goes dark
+- Contract: none, month to month — vendor: a term with a notice period
+- Pause: $29/month for up to two months a year — vendor: cancel or keep paying
+- Contact: the person who builds the site — vendor: a rotating account manager
+- Reporting: Google's own numbers, verifiable by the client — vendor: a vendor dashboard
+- Pages built: 25, each targeting a real search — vendor: five and a contact form
+
+## Free visibility check
+A no-obligation review of a business's Google profile and website — map-pack
+position, profile gaps, who ranks ahead and why. Requested by phone or text on
+(916) 868-2447, or through the form at the top of the site. Reply within one
+business day.
+
 ## What every build includes
 25 indexable pages, 12 types of structured data, 75 KB total first load, no
 external scripts, a full Spanish version, and keyboard and screen-reader
