@@ -3,6 +3,16 @@
 **To put this live, see [DEPLOY.md](DEPLOY.md).** Ad copy for Craigslist,
 Facebook, Google Business Profile and Indeed is in [ADS.md](ADS.md).
 
+**Carrier onboarding** — `onboarding.html` is the link you send a carrier to sign up.
+How the whole system runs, and which tab backs each promise the site makes, is in
+[ONBOARDING.md](ONBOARDING.md). What the dispatch agreement needs to cover is in
+[AGREEMENT-BRIEF.md](AGREEMENT-BRIEF.md). `carrier-roster.xlsx` is the operating
+workbook — upload it to Google Sheets.
+
+**The rule that must not be undone: no documents on this site.** Netlify Forms cannot
+delete uploaded files, which makes Cal. Civ. Code § 1798.81 impossible to satisfy.
+Documents go through the signing service only. See ONBOARDING.md.
+
 **To put this live, see [DEPLOY.md](DEPLOY.md).** Run `sh preflight.sh` first —
 it blocks the deploy while the placeholder phone number is still in the file.
 

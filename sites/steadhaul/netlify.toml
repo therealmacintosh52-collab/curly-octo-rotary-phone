@@ -18,6 +18,11 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+[[headers]]
+  for = "/onboarding.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 # Assets are not content-hashed, so a day is the sane ceiling. If you swap the
 # logo or the OG card, allow 24h before every visitor sees it.
 [[headers]]

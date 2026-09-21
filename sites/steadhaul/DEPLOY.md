@@ -94,8 +94,9 @@ If you'd rather use a different domain, search and replace
 
 ## After deploying — verify these four things
 
-1. **Submit the form yourself.** Then check Netlify → **Forms** →
-   `carrier-intake`. If the submission isn't there, Netlify didn't detect the
+1. **Submit both forms yourself.** Then check Netlify → **Forms** — there are two:
+   `carrier-intake` (the lead form on the home page) and `carrier-onboarding` (the
+   longer one on `onboarding.html`). Enable notifications for **both**. If the submission isn't there, Netlify didn't detect the
    form; redeploy and check the form tag still has `data-netlify="true"`.
 2. **Turn on form notifications.** Netlify → Forms → **Form notifications** →
    add an email notification, and ideally a Slack or webhook one. Without this
