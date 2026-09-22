@@ -1,0 +1,6 @@
+# Environment config — created per deployment from the .example files.
+# These hold the Supabase anon key, which is public by design, but they are
+# environment-specific so they do not belong in the repo.
+sites/steadhaul/sh-config.js
+sites/steadhaul/dashboard/config.js
+sites/steadhaul/.email-confirmed

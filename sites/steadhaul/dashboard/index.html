@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steadhaul Dispatch — Desk</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0F2237">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0F2237;--navy2:#16304B;--slate:#33475B;--orange:#F4711F;--orange2:#DA560B;--amber:#FFB347;--cream:#FAF7F2;--concrete:#F0F3F6;--line:#DCE3EA;--white:#fff;--ink:#0B1826;--green:#127A46;--red:#B4442A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;color:var(--slate);background:var(--concrete);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Barlow Condensed',Impact,sans-serif;font-weight:800;letter-spacing:.02em;line-height:1.05;color:var(--navy);text-transform:uppercase}
+a{color:var(--orange)}
+button{font:inherit}
+.hide{display:none!important}
+/* ── shell ─────────────────────────────────────────────── */
+.top{position:sticky;top:0;z-index:40;background:var(--navy);color:#fff;display:flex;align-items:center;gap:16px;padding:0 16px;height:56px}
+.top .brand{font-family:'Barlow Condensed';font-weight:800;font-size:21px;letter-spacing:.06em;display:flex;align-items:center;gap:9px;white-space:nowrap}
+.top .brand em{font-style:normal;color:var(--orange);font-size:11px;letter-spacing:.28em;font-weight:600}
+.top .sp{flex:1}
+.top .who{font-size:12.5px;color:#9FB8CE;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+.top button.out{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:7px 12px;font-size:13px;cursor:pointer}
+.top button.out:hover{background:rgba(255,255,255,.2)}
+nav.tabs{background:var(--navy2);display:flex;gap:2px;padding:0 10px;overflow-x:auto;position:sticky;top:56px;z-index:39;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:none;border:0;color:#B8CADA;padding:13px 15px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent}
+nav.tabs button:hover{color:#fff}
+nav.tabs button[aria-current=page]{color:#fff;border-bottom-color:var(--orange)}
+main{padding:20px 16px 80px;max-width:1240px;margin:0 auto}
+/* ── auth gate ─────────────────────────────────────────── */
+.gate{min-height:100svh;display:grid;place-items:center;background:var(--navy);padding:24px}
+.gate .card{background:#fff;border-radius:14px;padding:clamp(26px,5vw,40px);width:min(420px,100%);box-shadow:0 24px 70px rgba(0,0,0,.45)}
+.gate h1{font-size:30px;margin-bottom:6px}
+.gate p{font-size:14.5px;margin-bottom:20px}
+.gate label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:7px}
+.gate input{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:8px;font:inherit;min-height:48px}
+.gate input:focus{outline:2px solid var(--orange);border-color:var(--orange)}
+.gate button{width:100%;margin-top:14px;background:var(--orange);color:#fff;border:0;border-radius:8px;padding:14px;font-weight:700;font-size:15.5px;cursor:pointer;min-height:50px}
+.gate button:hover{background:#ff7d2e}
+.gate button:disabled{opacity:.6;cursor:default}
+.gate .msg{margin-top:14px;font-size:14px;padding:12px 14px;border-radius:8px}
+.gate .msg.ok{background:#E6F4EC;color:var(--green)}
+.gate .msg.bad{background:#FBEAE6;color:var(--red)}
+/* ── cards, tables, chips ──────────────────────────────── */
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 4px 16px rgba(15,34,55,.07)}
+.card h2{font-size:19px;margin-bottom:12px;display:flex;align-items:center;gap:9px}
+.card h2 .n{background:var(--orange);color:#fff;border-radius:20px;font-size:12px;padding:2px 9px;font-family:Inter;font-weight:700;letter-spacing:0}
+.card h2 .n.zero{background:var(--line);color:#7A8B9C}
+.sect{margin-bottom:22px}
+.sect>h2{font-size:22px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:14px}
+.tw{overflow-x:auto;border-radius:12px;box-shadow:0 4px 16px rgba(15,34,55,.07)}
+th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{background:var(--navy);color:#fff;font-family:'Barlow Condensed';font-weight:700;font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;position:sticky;top:0}
+tbody tr:hover{background:#FAFCFE}
+tbody tr:last-child td{border-bottom:0}
+td.wrap{white-space:normal;min-width:180px}
+.chip{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700}
+.chip.new{background:#FFF0E2;color:#A9540F}
+.chip.onboarding{background:#FFF6E6;color:#8A6410}
+.chip.active{background:#E2F3E9;color:var(--green)}
+.chip.paused{background:#EEF1F4;color:#66798C}
+.chip.left{background:#F4EAE8;color:var(--red)}
+.chip.ok{background:#E2F3E9;color:var(--green)}
+.chip.warn{background:#FFF3DF;color:#8A6410}
+.chip.bad{background:#FBEAE6;color:var(--red)}
+.muted{color:#7A8B9C;font-size:13px}
+.empty{padding:22px;text-align:center;color:#7A8B9C;font-size:14px;background:#fff;border-radius:12px}
+/* ── controls ──────────────────────────────────────────── */
+.btn{background:var(--orange);color:#fff;border:0;border-radius:7px;padding:9px 15px;font-weight:600;font-size:14px;cursor:pointer;min-height:40px}
+.btn:hover{background:#ff7d2e}
+.btn.sm{padding:6px 11px;font-size:13px;min-height:33px}
+.btn.gh{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
+.btn.gh:hover{background:var(--concrete)}
+.btn:disabled{opacity:.55;cursor:default}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.bar input[type=search],.bar select,.bar input[type=date]{padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;font:inherit;font-size:14px;background:#fff;min-height:40px}
+.bar input[type=search]{flex:1;min-width:180px}
+select.mini{padding:5px 8px;border:1.5px solid var(--line);border-radius:6px;font:inherit;font-size:13px;background:#fff}
+input[type=checkbox]{width:19px;height:19px;accent-color:var(--orange);cursor:pointer;vertical-align:middle}
+/* ── drawer ────────────────────────────────────────────── */
+.scrim{position:fixed;inset:0;background:rgba(11,24,38,.55);z-index:60;display:none}
+.scrim.on{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(620px,100%);background:var(--concrete);z-index:61;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;box-shadow:-10px 0 40px rgba(0,0,0,.3)}
+.drawer.on{transform:none}
+.drawer header{position:sticky;top:0;background:var(--navy);color:#fff;padding:16px 18px;display:flex;align-items:flex-start;gap:12px;z-index:2}
+.drawer header h2{color:#fff;font-size:22px;flex:1}
+.drawer header .x{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:20px;line-height:1;border-radius:6px;width:34px;height:34px;cursor:pointer;flex:none}
+.drawer .body{padding:16px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:5px 12px;font-size:14px}
+.kv dt{color:#7A8B9C;font-weight:600}
+.kv dd{color:var(--ink);word-break:break-word}
+.check{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.check:last-child{border-bottom:0}
+.check label{flex:1;cursor:pointer;color:var(--navy);font-weight:500}
+.check .when{font-size:12.5px;color:#7A8B9C}
+/* ── toast ─────────────────────────────────────────────── */
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120%);background:var(--navy);color:#fff;padding:13px 20px;border-radius:9px;font-size:14.5px;font-weight:600;z-index:90;transition:transform .25s ease;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:90vw}
+#toast.on{transform:translateX(-50%)}
+#toast.bad{background:var(--red)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#9FB8CE;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--green);display:block}
+.live.off i{background:#7A8B9C}
+@media(max-width:700px){
+  .kv{grid-template-columns:1fr;gap:1px 0}
+  .kv dt{margin-top:9px}
+  .top .who{display:none}
+  main{padding:16px 11px 70px}
+}
+</style>
+</head>
+<body>
+<!-- ── sign in ─────────────────────────────────────────── -->
+<div class="gate" id="gate">
+  <div class="card">
+    <h1>Steadhaul Desk</h1>
+    <p class="muted">Sign in with your email. We'll send a link — there's no password to forget or leak.</p>
+    <form id="loginForm">
+      <label for="em">Email</label>
+      <input id="em" type="email" required autocomplete="email" placeholder="you@steadhauldispatch.com">
+      <button type="submit" id="loginBtn">Send me a link</button>
+    </form>
+    <div id="loginMsg" class="msg hide"></div>
+  </div>
+</div>
+
+<!-- ── app ─────────────────────────────────────────────── -->
+<div id="app" class="hide">
+  <div class="top">
+    <span class="brand">STEADHAUL<em>DESK</em></span>
+    <span class="live" id="liveDot"><i></i>Live</span>
+    <span class="sp"></span>
+    <span class="who" id="who"></span>
+    <button class="out" id="signout">Sign out</button>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-view="today" aria-current="page">Today</button>
+    <button data-view="carriers">Carriers</button>
+    <button data-view="loads">Loads</button>
+    <button data-view="brokers">Brokers</button>
+    <button data-view="billing">Billing</button>
+    <button data-view="friday">Friday</button>
+  </nav>
+  <main>
+    <section id="v-today"></section>
+    <section id="v-carriers" class="hide"></section>
+    <section id="v-loads" class="hide"></section>
+    <section id="v-brokers" class="hide"></section>
+    <section id="v-billing" class="hide"></section>
+    <section id="v-friday" class="hide"></section>
+  </main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header><h2 id="drawerTitle">Carrier</h2><button class="x" id="drawerX" aria-label="Close">×</button></header>
+  <div class="body" id="drawerBody"></div>
+</aside>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+/* ============================================================================
+   Steadhaul Desk
+   The anon key below is public by design — Row Level Security in the database
+   is what protects the data, not the key. An unauthenticated caller can insert
+   a submission and read nothing. Never put the service key in this file.
+   ========================================================================== */
+(function(){
+'use strict';
+
+if(!window.SH_CONFIG || !SH_CONFIG.url || SH_CONFIG.url.indexOf('YOUR-') === 0){
+  document.getElementById('gate').innerHTML =
+    '<div class="card"><h1>Not configured</h1><p class="muted">Copy <code>config.example.js</code> to '+
+    '<code>config.js</code> and fill in your Supabase project URL and anon key. '+
+    'Setup steps are in DASHBOARD.md.</p></div>';
+  return;
+}
+
+var sb = supabase.createClient(SH_CONFIG.url, SH_CONFIG.anonKey);
+var $  = function(s,r){ return (r||document).querySelector(s); };
+var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+
+/* ── helpers ─────────────────────────────────────────────────────────── */
+function esc(v){
+  if(v===null||v===undefined) return '';
+  return String(v).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function money(n){ return (n===null||n===undefined||n==='') ? '' : '$'+Number(n).toLocaleString('en-US'); }
+function day(d){ return d ? String(d).slice(0,10) : ''; }
+var toastT;
+function toast(msg,bad){
+  var t=$('#toast'); t.textContent=msg; t.className='on'+(bad?' bad':'');
+  clearTimeout(toastT); toastT=setTimeout(function(){ t.className=bad?'bad':''; },3200);
+}
+// Every write goes through here. A failed write must never look like a success —
+// same rule the public forms follow.
+function guard(promise, okMsg){
+  return promise.then(function(r){
+    if(r && r.error) throw r.error;
+    if(okMsg) toast(okMsg);
+    return r;
+  }).catch(function(e){
+    toast('Did not save: '+(e.message||'unknown error'), true);
+    throw e;
+  });
+}
+
+/* ── auth ────────────────────────────────────────────────────────────── */
+var gate=$('#gate'), app=$('#app');
+
+$('#loginForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var btn=$('#loginBtn'), msg=$('#loginMsg'), email=$('#em').value.trim();
+  btn.disabled=true; btn.textContent='Sending…';
+  sb.auth.signInWithOtp({ email: email, options:{ emailRedirectTo: location.href.split('#')[0] } })
+    .then(function(r){
+      btn.disabled=false; btn.textContent='Send me a link';
+      msg.className='msg '+(r.error?'bad':'ok');
+      msg.textContent = r.error ? ('Could not send: '+r.error.message)
+        : 'Check '+email+' — the link signs you straight in. It expires in an hour.';
+    });
+});
+
+$('#signout').addEventListener('click', function(){
+  sb.auth.signOut().then(function(){ location.reload(); });
+});
+
+sb.auth.onAuthStateChange(function(_e, session){ render(session); });
+sb.auth.getSession().then(function(r){ render(r.data.session); });
+
+var booted=false;
+function render(session){
+  if(session && session.user){
+    gate.classList.add('hide'); app.classList.remove('hide');
+    $('#who').textContent = session.user.email;
+    if(!booted){ booted=true; boot(); }
+  } else {
+    gate.classList.remove('hide'); app.classList.add('hide');
+  }
+}
+
+/* ── state ───────────────────────────────────────────────────────────── */
+var S = { carriers:[], insurance:[], documents:[], brokers:[], loads:[], billing:[], friday:[] };
+var view='today';
+
+function loadAll(){
+  return Promise.all([
+    sb.from('carriers').select('*').order('created_at',{ascending:false}),
+    sb.from('v_insurance_status').select('*'),
+    sb.from('documents').select('*'),
+    sb.from('v_broker_recheck').select('*').order('name'),
+    sb.from('loads').select('*').order('load_date',{ascending:false}).limit(400),
+    sb.from('billing').select('*').order('week_ending',{ascending:false}),
+    sb.from('v_friday_report').select('*').order('week_ending',{ascending:false})
+  ]).then(function(r){
+    var err=r.filter(function(x){return x.error;})[0];
+    if(err){ toast('Could not load: '+err.error.message,true); throw err.error; }
+    S.carriers=r[0].data||[]; S.insurance=r[1].data||[]; S.documents=r[2].data||[];
+    S.brokers=r[3].data||[];  S.loads=r[4].data||[];     S.billing=r[5].data||[];
+    S.friday=r[6].data||[];
+  });
+}
+
+function boot(){
+  loadAll().then(draw);
+  // Live: any change from anywhere repaints this screen.
+  sb.channel('desk')
+    .on('postgres_changes',{event:'*',schema:'public'},function(){ loadAll().then(draw); })
+    .subscribe(function(status){
+      $('#liveDot').className = 'live'+(status==='SUBSCRIBED'?'':' off');
+    });
+}
+
+$$('#tabs button').forEach(function(b){
+  b.addEventListener('click',function(){
+    view=b.dataset.view;
+    $$('#tabs button').forEach(function(x){ x.removeAttribute('aria-current'); });
+    b.setAttribute('aria-current','page');
+    $$('main section').forEach(function(s){ s.classList.add('hide'); });
+    $('#v-'+view).classList.remove('hide');
+    draw();
+  });
+});
+
+function carrier(id){ return S.carriers.filter(function(c){return c.id===id;})[0]||{}; }
+function docFor(id){ return S.documents.filter(function(d){return d.carrier_id===id;})[0]||{}; }
+function insFor(id){ return S.insurance.filter(function(i){return i.carrier_id===id;})[0]||{}; }
+
+/* ── views ───────────────────────────────────────────────────────────── */
+function draw(){ ({today:drawToday,carriers:drawCarriers,loads:drawLoads,
+                   brokers:drawBrokers,billing:drawBilling,friday:drawFriday})[view](); }
+
+function card(title,n,html){
+  return '<div class="card"><h2>'+esc(title)+'<span class="n'+(n?'':' zero')+'">'+n+'</span></h2>'+
+         (n? html : '<p class="muted">Nothing needs you here.</p>')+'</div>';
+}
+function miniList(rows){
+  return '<div>'+rows.map(function(r){
+    return '<div class="check"><label>'+r+'</label></div>'; }).join('')+'</div>';
+}
+
+function drawToday(){
+  var newC = S.carriers.filter(function(c){ return c.status==='New'; });
+  var exp  = S.insurance.filter(function(i){ return i.days_left!==null && i.days_left<=30; })
+                        .sort(function(a,b){ return a.days_left-b.days_left; });
+  var stale= S.brokers.filter(function(b){ return b.days_since_check===null || b.days_since_check>30; });
+  var unpaid=S.loads.filter(function(l){ return l.pod_in && !l.invoiced; });
+  var unapp =S.loads.filter(function(l){ return !l.carrier_approved; });
+
+  $('#v-today').innerHTML =
+    '<div class="sect"><h2>Today</h2><div class="grid">'+
+    card('New carriers to onboard', newC.length, miniList(newC.map(function(c){
+        return '<a href="#" data-open="'+c.id+'">'+esc(c.legal_name)+'</a> <span class="muted">'+esc(c.mc||'no MC')+'</span>'; }))) +
+    card('Insurance expiring', exp.length, miniList(exp.map(function(i){
+        var cls = i.days_left<0?'bad':(i.days_left<=14?'bad':'warn');
+        return '<a href="#" data-open="'+i.carrier_id+'">'+esc(i.legal_name)+'</a> '+
+               '<span class="chip '+cls+'">'+(i.days_left<0?'EXPIRED':i.days_left+' days')+'</span><br>'+
+               '<span class="muted">'+esc(i.agent||'no agent on file')+' · '+esc(i.agent_phone||'')+'</span>'; }))) +
+    card('Brokers needing a re-check', stale.length, miniList(stale.slice(0,12).map(function(b){
+        return esc(b.name)+' <span class="muted">'+(b.days_since_check===null?'never checked':b.days_since_check+' days ago')+'</span>'; }))) +
+    card('Delivered, not invoiced', unpaid.length, miniList(unpaid.slice(0,12).map(function(l){
+        return esc(carrier(l.carrier_id).legal_name)+' <span class="muted">'+day(l.load_date)+' · '+money(l.linehaul)+'</span>'; }))) +
+    card('Loads without carrier approval', unapp.length, miniList(unapp.slice(0,12).map(function(l){
+        return esc(carrier(l.carrier_id).legal_name)+' <span class="muted">'+day(l.load_date)+' · '+esc(l.origin||'')+' → '+esc(l.destination||'')+'</span>'; }))) +
+    '</div></div>';
+}
+
+function statusChip(s){ return '<span class="chip '+String(s||'').toLowerCase()+'">'+esc(s)+'</span>'; }
+
+function drawCarriers(){
+  var q=(window.__cq||'').toLowerCase(), f=window.__cf||'';
+  var rows=S.carriers.filter(function(c){
+    if(f && c.status!==f) return false;
+    if(!q) return true;
+    return (c.legal_name+' '+(c.mc||'')+' '+(c.contact_name||'')+' '+(c.phone||'')).toLowerCase().indexOf(q)>=0;
+  });
+  $('#v-carriers').innerHTML =
+    '<div class="bar">'+
+      '<input type="search" id="cq" placeholder="Search name, MC, phone…" value="'+esc(window.__cq||'')+'">'+
+      '<select id="cf"><option value="">All statuses</option>'+
+      ['New','Onboarding','Active','Paused','Left'].map(function(s){
+        return '<option'+(f===s?' selected':'')+'>'+s+'</option>'; }).join('')+'</select>'+
+      '<span class="muted">'+rows.length+' of '+S.carriers.length+'</span>'+
+    '</div>'+
+    (rows.length? '<div class="tw"><table><thead><tr>'+
+      '<th>Carrier</th><th>MC</th><th>Status</th><th>Equipment</th><th>Phone</th><th>Insurance</th><th></th>'+
+      '</tr></thead><tbody>'+rows.map(function(c){
+        var i=insFor(c.id), dl=i.days_left;
+        var ins = dl===null||dl===undefined ? '<span class="muted">—</span>'
+                : '<span class="chip '+(dl<0?'bad':dl<=30?'warn':'ok')+'">'+(dl<0?'EXPIRED':dl+'d')+'</span>';
+        return '<tr><td><strong>'+esc(c.legal_name)+'</strong></td><td>'+esc(c.mc||'')+'</td>'+
+          '<td>'+statusChip(c.status)+'</td><td>'+esc(c.equipment||'')+'</td>'+
+          '<td>'+esc(c.phone||'')+'</td><td>'+ins+'</td>'+
+          '<td><button class="btn sm gh" data-open="'+c.id+'">Open</button></td></tr>';
+      }).join('')+'</tbody></table></div>'
+     : '<div class="empty">No carriers yet. They appear here the moment someone finishes the onboarding form.</div>');
+
+  var cq=$('#cq'); if(cq) cq.addEventListener('input',function(){ window.__cq=cq.value; drawCarriers(); cq=$('#cq'); if(cq){cq.focus(); cq.setSelectionRange(cq.value.length,cq.value.length);} });
+  var cf=$('#cf'); if(cf) cf.addEventListener('change',function(){ window.__cf=cf.value; drawCarriers(); });
+}
+
+function drawLoads(){
+  $('#v-loads').innerHTML =
+    '<div class="bar"><button class="btn" id="addLoad">+ Add load</button>'+
+      '<span class="muted">'+S.loads.length+' loads</span></div>'+
+    (S.loads.length? '<div class="tw"><table><thead><tr>'+
+      '<th>Date</th><th>Carrier</th><th>Lane</th><th>Miles</th><th>Linehaul</th><th>RPM</th>'+
+      '<th>Approved</th><th>Rate con</th><th>POD</th><th>Invoiced</th><th>Paid</th></tr></thead><tbody>'+
+      S.loads.map(function(l){
+        function tick(field){
+          return '<input type="checkbox" data-load="'+l.id+'" data-field="'+field+'"'+(l[field]?' checked':'')+'>';
+        }
+        return '<tr><td>'+day(l.load_date)+'</td>'+
+          '<td>'+esc(carrier(l.carrier_id).legal_name||'—')+'</td>'+
+          '<td class="wrap">'+esc(l.origin||'')+' → '+esc(l.destination||'')+'</td>'+
+          '<td>'+esc(l.loaded_miles||'')+'</td><td>'+money(l.linehaul)+'</td>'+
+          '<td><strong>'+(l.rpm?'$'+l.rpm:'')+'</strong></td>'+
+          '<td>'+tick('carrier_approved')+'</td><td>'+tick('rate_con_sent')+'</td>'+
+          '<td>'+tick('pod_in')+'</td><td>'+tick('invoiced')+'</td><td>'+tick('paid')+'</td></tr>';
+      }).join('')+'</tbody></table></div>'
+     : '<div class="empty">No loads yet.</div>');
+}
+
+function drawBrokers(){
+  $('#v-brokers').innerHTML =
+    '<div class="bar"><button class="btn" id="addBroker">+ Add broker</button></div>'+
+    (S.brokers.length? '<div class="tw"><table><thead><tr>'+
+      '<th>Broker</th><th>MC/FF</th><th>Bond</th><th>Days to pay</th><th>Last checked</th><th>Status</th><th></th>'+
+      '</tr></thead><tbody>'+S.brokers.map(function(b){
+        var d=b.days_since_check, stale = d===null||d>30;
+        return '<tr><td><strong>'+esc(b.name)+'</strong></td><td>'+esc(b.mc_ff||'')+'</td>'+
+          '<td>'+(b.bond_amount!==null&&b.bond_amount!==undefined
+              ? '<span class="chip '+(b.bond_amount<75000?'bad':'ok')+'">'+money(b.bond_amount)+'</span>':'')+'</td>'+
+          '<td>'+(b.days_to_pay||'')+'</td>'+
+          '<td>'+(b.last_checked?day(b.last_checked):'<span class="muted">never</span>')+
+            (stale?' <span class="chip warn">re-check</span>':'')+'</td>'+
+          '<td><select class="mini" data-broker="'+b.id+'" data-field="status">'+
+            ['Unchecked','Approved','Watch','Blocked'].map(function(s){
+              return '<option'+(b.status===s?' selected':'')+'>'+s+'</option>'; }).join('')+'</select></td>'+
+          '<td><button class="btn sm" data-check="'+b.id+'">Checked today</button></td></tr>';
+      }).join('')+'</tbody></table></div>'
+     : '<div class="empty">No brokers yet. Add one before you book against it — the site promises a bond check before every booking.</div>');
+}
+
+function drawBilling(){
+  $('#v-billing').innerHTML =
+    '<div class="bar"><button class="btn" id="genBilling">Build this week</button>'+
+      '<span class="muted">Free weeks, truck-down weeks and zero-load weeks bill $0 automatically.</span></div>'+
+    (S.billing.length? '<div class="tw"><table><thead><tr>'+
+      '<th>Week ending</th><th>Carrier</th><th>Plan</th><th>Loads</th><th>Standard</th>'+
+      '<th>Free week</th><th>Truck down</th><th>Fee due</th><th>Invoiced</th><th>Paid</th></tr></thead><tbody>'+
+      S.billing.map(function(b){
+        function tick(f){ return '<input type="checkbox" data-bill="'+b.id+'" data-field="'+f+'"'+(b[f]?' checked':'')+'>'; }
+        return '<tr><td>'+day(b.week_ending)+'</td><td>'+esc(carrier(b.carrier_id).legal_name||'—')+'</td>'+
+          '<td>'+esc(b.plan)+'</td><td>'+b.loads_booked+'</td><td class="muted">'+money(b.standard_fee)+'</td>'+
+          '<td>'+tick('free_week')+'</td><td>'+tick('truck_down')+'</td>'+
+          '<td><strong>'+money(b.fee_due)+'</strong></td>'+
+          '<td>'+tick('invoiced')+'</td><td>'+tick('paid')+'</td></tr>';
+      }).join('')+'</tbody></table></div>'
+     : '<div class="empty">No billing weeks yet. "Build this week" creates a row for every active carrier.</div>');
+}
+
+function drawFriday(){
+  $('#v-friday').innerHTML =
+    '<div class="bar"><span class="muted">Straight from the loads you booked. Deadhead over 15% is flagged.</span></div>'+
+    (S.friday.length? '<div class="tw"><table><thead><tr>'+
+      '<th>Week ending</th><th>Carrier</th><th>Loads</th><th>Gross</th><th>Loaded miles</th>'+
+      '<th>Deadhead</th><th>Avg RPM</th><th>Deadhead %</th></tr></thead><tbody>'+
+      S.friday.map(function(f){
+        var dp = f.deadhead_pct===null?null:Math.round(f.deadhead_pct*1000)/10;
+        return '<tr><td>'+day(f.week_ending)+'</td><td>'+esc(f.legal_name)+'</td>'+
+          '<td>'+f.loads+'</td><td><strong>'+money(f.gross)+'</strong></td>'+
+          '<td>'+(f.loaded_miles||'')+'</td><td>'+(f.deadhead_miles||0)+'</td>'+
+          '<td>'+(f.avg_rpm?'$'+f.avg_rpm:'')+'</td>'+
+          '<td>'+(dp===null?'':'<span class="chip '+(dp>15?'warn':'ok')+'">'+dp+'%</span>')+'</td></tr>';
+      }).join('')+'</tbody></table></div>'
+     : '<div class="empty">Book some loads and the weekly numbers appear here.</div>');
+}
+
+/* ── carrier drawer: the onboarding checklist, with actions ──────────── */
+function openCarrier(id){
+  var c=carrier(id), d=docFor(id), i=insFor(id);
+  $('#drawerTitle').textContent = c.legal_name || 'Carrier';
+  function box(field,label,dated){
+    var v=d[field];
+    return '<div class="check">'+
+      '<input type="checkbox" id="d_'+field+'" data-doc="'+id+'" data-field="'+field+'"'+
+        (v?' checked':'')+(dated?' data-dated="1"':'')+'>'+
+      '<label for="d_'+field+'">'+label+'</label>'+
+      (dated&&v?'<span class="when">'+day(v)+'</span>':'')+'</div>';
+  }
+  $('#drawerBody').innerHTML =
+    '<div class="card" style="margin-bottom:14px">'+
+      '<h2>Status</h2>'+
+      '<div class="row"><select class="mini" id="stSel" style="font-size:15px;padding:9px 12px">'+
+        ['New','Onboarding','Active','Paused','Left'].map(function(s){
+          return '<option'+(c.status===s?' selected':'')+'>'+s+'</option>'; }).join('')+
+      '</select>'+
+      '<select class="mini" id="planSel" style="font-size:15px;padding:9px 12px">'+
+        '<option value="">No plan yet</option>'+
+        ['Core','Pro','Full Desk'].map(function(p){
+          return '<option'+(c.plan===p?' selected':'')+'>'+p+'</option>'; }).join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div class="card" style="margin-bottom:14px"><h2>Onboarding checklist</h2>'+
+      box('authority_letter','MC authority letter')+
+      box('agreement_signed','Dispatch agreement signed',true)+
+      box('w9_received','W-9 received',true)+
+      box('coi','Certificate of insurance')+
+      box('noa','Notice of assignment')+
+      box('cdl','Driver licence')+
+      box('w9_deleted','W-9 deleted after broker setup',true)+
+      '<p class="muted" style="margin-top:10px">Ticking the last one writes the retention log for you — '+
+      'that is the record that shows you disposed of it.</p>'+
+    '</div>'+
+    '<div class="card" style="margin-bottom:14px"><h2>Insurance</h2>'+
+      (i.policy_expiry
+        ? '<p style="margin-bottom:10px">Expires <strong>'+day(i.policy_expiry)+'</strong> '+
+          '<span class="chip '+(i.days_left<0?'bad':i.days_left<=30?'warn':'ok')+'">'+
+          (i.days_left<0?'EXPIRED':i.days_left+' days left')+'</span></p>'
+        : '<p class="muted" style="margin-bottom:10px">No policy date on file.</p>')+
+      '<dl class="kv">'+
+        '<dt>Agent</dt><dd>'+esc(i.agent||'—')+'</dd>'+
+        '<dt>Agency</dt><dd>'+esc(i.agency||'—')+'</dd>'+
+        '<dt>Phone</dt><dd>'+(i.agent_phone?'<a href="tel:'+esc(i.agent_phone)+'">'+esc(i.agent_phone)+'</a>':'—')+'</dd>'+
+        '<dt>Email</dt><dd>'+esc(i.agent_email||'—')+'</dd>'+
+        '<dt>Auto liability</dt><dd>'+esc(i.auto_liability||'—')+'</dd>'+
+        '<dt>Cargo</dt><dd>'+esc(i.cargo_limit||'—')+'</dd>'+
+      '</dl></div>'+
+    '<div class="card"><h2>What they told us</h2><dl class="kv">'+
+      [['MC','mc'],['DOT','dot'],['Contact','contact_name'],['Phone','phone'],['Email','email'],
+       ['Equipment','equipment'],['Trailer','trailer_length'],['Trucks','trucks'],
+       ['Can haul','equipment_notes'],['Factoring','factoring'],['Home base','home_zip'],
+       ['Lanes','lanes'],['Avoids','avoid'],['Home time','home_time'],['Min RPM','min_rpm'],
+       ['Goal','revenue_goal'],['Notes','notes']].map(function(p){
+        return c[p[1]] ? '<dt>'+p[0]+'</dt><dd>'+esc(c[p[1]])+'</dd>' : ''; }).join('')+
+    '</dl></div>';
+
+  $('#stSel').addEventListener('change',function(){
+    var v=this.value;
+    guard(sb.from('carriers').update({status:v}).eq('id',id),'Status → '+v);
+  });
+  $('#planSel').addEventListener('change',function(){
+    var v=this.value||null;
+    guard(sb.from('carriers').update({plan:v}).eq('id',id),'Plan saved');
+  });
+  $('#scrim').classList.add('on');
+  $('#drawer').classList.add('on');
+  $('#drawer').setAttribute('aria-hidden','false');
+}
+function closeDrawer(){
+  $('#scrim').classList.remove('on');
+  $('#drawer').classList.remove('on');
+  $('#drawer').setAttribute('aria-hidden','true');
+}
+$('#scrim').addEventListener('click',closeDrawer);
+$('#drawerX').addEventListener('click',closeDrawer);
+addEventListener('keydown',function(e){ if(e.key==='Escape') closeDrawer(); });
+
+/* ── one delegated handler for every action on the page ──────────────── */
+document.addEventListener('click',function(e){
+  var o=e.target.closest('[data-open]');
+  if(o){ e.preventDefault(); openCarrier(o.dataset.open); return; }
+
+  var chk=e.target.closest('[data-check]');
+  if(chk){
+    var bid=chk.dataset.check, today=new Date().toISOString().slice(0,10);
+    guard(sb.from('brokers').update({last_checked:today,bond_verified_at:today}).eq('id',bid),
+          'Bond and authority check recorded');
+    return;
+  }
+  if(e.target.id==='addLoad')   return addLoad();
+  if(e.target.id==='addBroker') return addBroker();
+  if(e.target.id==='genBilling')return buildWeek();
+});
+
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.dataset.load){
+    var p={}; p[t.dataset.field]=t.checked;
+    guard(sb.from('loads').update(p).eq('id',t.dataset.load),'Saved');
+  } else if(t.dataset.bill){
+    var q={}; q[t.dataset.field]=t.checked;
+    guard(sb.from('billing').update(q).eq('id',t.dataset.bill),'Saved');
+  } else if(t.dataset.broker){
+    var r={}; r[t.dataset.field]=t.value;
+    guard(sb.from('brokers').update(r).eq('id',t.dataset.broker),'Broker updated');
+  } else if(t.dataset.doc){
+    // Dated fields store the day it happened; plain ones are true/false.
+    var f=t.dataset.field, val;
+    if(t.dataset.dated) val = t.checked ? new Date().toISOString().slice(0,10) : null;
+    else val = t.checked;
+    var u={}; u[f]=val;
+    guard(sb.from('documents').update(u).eq('carrier_id',t.dataset.doc),
+          t.checked?'Ticked off':'Un-ticked');
+  }
+});
+
+/* ── create actions ──────────────────────────────────────────────────── */
+function pick(msg,list){
+  var names=list.map(function(x,n){ return (n+1)+') '+x.label; }).join('\n');
+  var a=prompt(msg+'\n'+names);
+  if(a===null) return null;
+  var n=parseInt(a,10);
+  return (n>=1 && n<=list.length) ? list[n-1].value : null;
+}
+function addLoad(){
+  var act=S.carriers.filter(function(c){ return c.status==='Active'||c.status==='Onboarding'; });
+  if(!act.length) return toast('No active carriers yet',true);
+  var cid=pick('Which carrier?',act.map(function(c){ return {label:c.legal_name,value:c.id}; }));
+  if(!cid) return;
+  var o=prompt('Origin (city, ST)'); if(o===null) return;
+  var d=prompt('Destination (city, ST)'); if(d===null) return;
+  var m=prompt('Loaded miles'); if(m===null) return;
+  var lh=prompt('Linehaul in dollars'); if(lh===null) return;
+  var dh=prompt('Deadhead miles (0 if none)','0');
+  var br=prompt('Broker name');
+  guard(sb.from('loads').insert({
+    carrier_id:cid, origin:o, destination:d,
+    loaded_miles:Number(m)||null, linehaul:Number(lh)||null,
+    deadhead_miles:Number(dh)||0, broker_name:br||null
+  }),'Load added');
+}
+function addBroker(){
+  var n=prompt('Broker name'); if(!n) return;
+  var mc=prompt('Their MC or FF number');
+  var bond=prompt('Bond amount (75000 if standard)','75000');
+  var dtp=prompt('Days to pay');
+  guard(sb.from('brokers').insert({
+    name:n, mc_ff:mc||null,
+    bond_amount:Number(bond)||null, days_to_pay:Number(dtp)||null,
+    last_checked:new Date().toISOString().slice(0,10),
+    bond_verified_at:new Date().toISOString().slice(0,10),
+    status:'Approved'
+  }),'Broker added and marked checked');
+}
+function buildWeek(){
+  // week_ending is the coming Friday
+  var t=new Date(), dow=t.getDay(), add=(5-dow+7)%7;
+  var fri=new Date(t.getTime()+add*86400000).toISOString().slice(0,10);
+  var act=S.carriers.filter(function(c){ return c.status==='Active' && c.plan; });
+  if(!act.length) return toast('No active carriers with a plan set',true);
+  var rows=act.map(function(c){
+    var n=S.loads.filter(function(l){
+      return l.carrier_id===c.id && l.load_date>fri.slice(0,8)+'01'; }).length;
+    return { week_ending:fri, carrier_id:c.id, plan:c.plan, loads_booked:n };
+  });
+  guard(sb.from('billing').upsert(rows,{onConflict:'carrier_id,week_ending'}),
+        'Built '+rows.length+' billing rows for week ending '+fri);
+}
+
+})();
+</script>
+</body></html>

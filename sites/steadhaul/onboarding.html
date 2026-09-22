@@ -675,6 +675,7 @@ html:not(.js) form fieldset[data-step="0"]{border-top:0;padding-top:0;margin-top
   <p style="margin-top:18px"><a href="tel:+19168682447" style="color:#fff;text-decoration:none;font-weight:700">(916) 868-2447</a> · <a href="mailto:hello@steadhauldispatch.com" style="color:#fff;text-decoration:none">hello@steadhauldispatch.com</a> · Sacramento, CA · Serving all 48 states</p>
   <p class="legal">Steadhaul Dispatch is a carrier's bona fide agent, not a freight broker. We do not hold broker authority, do not solicit shippers, and do not arrange transportation between shippers and carriers. Freight payments flow directly from broker to carrier or the carrier's factoring company. © <span id="yr"></span> Steadhaul Dispatch.</p>
 </div></footer>
+<script src="sh-config.js"></script>
 <script>
 document.getElementById('yr').textContent=new Date().getFullYear();
 var nav=document.getElementById('nav');
@@ -763,13 +764,39 @@ if('IntersectionObserver' in window){
       var t=document.getElementById(id);
       t.style.display='block'; t.focus();
     }
-    fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(f)).toString()})
-      .then(function(r){
-        // Never confirm receipt we did not get — they would stop chasing.
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        done('obthanks');
+    var fd=new FormData(f), payload={};
+    fd.forEach(function(v,k){ if(k!=='form-name' && k!=='website') payload[k]=v; });
+
+    // Netlify Forms is the fallback, not the primary. It also keeps the
+    // no-JS path working, since that posts here natively.
+    function toNetlify(){
+      return fetch('/',{method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:new URLSearchParams(fd).toString()});
+    }
+    function toSupabase(){
+      if(!window.SH_CONFIG || SH_CONFIG.url.indexOf('YOUR-')===0)
+        return Promise.reject(new Error('not configured'));
+      return fetch(SH_CONFIG.url+'/rest/v1/submissions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',
+                 'apikey':SH_CONFIG.anonKey,
+                 'Authorization':'Bearer '+SH_CONFIG.anonKey,
+                 'Prefer':'return=minimal'},
+        body:JSON.stringify({payload:payload,source:'onboarding'})
+      });
+    }
+
+    toSupabase()
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); })
+      .catch(function(){ 
+        // Database unreachable or unconfigured: do not lose the carrier.
+        return toNetlify().then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); });
       })
+      .then(function(){ done('obthanks'); })
       .catch(function(){
+        // Both routes failed. Never confirm receipt we did not get —
+        // they would sit waiting for a call that is not coming.
         btn.disabled=false; btn.textContent=label;
         done('obfailed');
       });

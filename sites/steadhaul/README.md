@@ -3,6 +3,10 @@
 **To put this live, see [DEPLOY.md](DEPLOY.md).** Ad copy for Craigslist,
 Facebook, Google Business Profile and Indeed is in [ADS.md](ADS.md).
 
+**Live dashboard** — `dashboard/` is Steadhaul Desk: carriers land automatically from
+the onboarding form, and you work them with real actions. Setup in
+[DASHBOARD.md](DASHBOARD.md); database in [db/schema.sql](db/schema.sql). $0/month.
+
 **Carrier onboarding** — `onboarding.html` is the link you send a carrier to sign up.
 How the whole system runs, and which tab backs each promise the site makes, is in
 [ONBOARDING.md](ONBOARDING.md). What the dispatch agreement needs to cover is in

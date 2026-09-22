@@ -1,0 +1,49 @@
+# Steadhaul Desk — keepalive + morning digest.
+#
+# This lives on GitHub Actions rather than Netlify on purpose: Netlify's free
+# tier is a hard 300-credit ceiling, and running a cron against it risks taking
+# the public website down. Actions cannot.
+#
+# Secrets required (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_URL          https://xxxx.supabase.co
+#   SUPABASE_SERVICE_KEY  service_role key — bypasses RLS, never in the browser
+#   RESEND_API_KEY        optional; without it the digest is skipped
+#   DIGEST_TO             where the digest goes
+name: Dispatch desk
+
+on:
+  schedule:
+    - cron: '0 14 * * *'   # 14:00 UTC — ~6/7am Pacific
+  workflow_dispatch:        # lets you run it by hand from the Actions tab
+
+jobs:
+  desk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The free Supabase tier pauses a project after 7 idle days, and a paused
+      # project has to be restored by hand. One write a day prevents that.
+      - name: Keepalive
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -euo pipefail
+          code=$(curl -s -o /tmp/ka.txt -w '%{http_code}' \
+            -X PATCH "$SUPABASE_URL/rest/v1/heartbeat?id=eq.1" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{\"last_ping\":\"$(date -u +%FT%TZ)\"}")
+          echo "keepalive HTTP $code"
+          [ "$code" -lt 300 ] || { cat /tmp/ka.txt; exit 1; }
+
+      - name: Build and send digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_TO: ${{ secrets.DIGEST_TO }}
+        run: node .github/scripts/digest.mjs
