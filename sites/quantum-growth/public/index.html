@@ -465,19 +465,66 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   box-shadow:0 6px 18px rgba(242,100,25,.32)}
 
 /* ---------- scroll reveal ----------
-   .reveal is set on <html> by an inline script only when this browser can
-   animate the elements back in. Without it every .rv stays visible, so a
-   blocked script or a missing IntersectionObserver costs a nice effect
-   rather than the content itself. */
-.reveal .rv{opacity:0;transform:translateY(22px)}
-.reveal .rv.in{opacity:1;transform:none;
-  transition:opacity .7s var(--ease),transform .7s var(--ease)}
+   The hidden state and the selector list live in the head bootstrap, not
+   here, so one list drives both the CSS and the observer. Nothing in this
+   block hides anything — the stagger only ever makes an already-revealed
+   element arrive slightly later. */
+.reveal .plan:nth-child(2).rv-in,.reveal .term:nth-child(2).rv-in,
+.reveal .ccard:nth-child(2).rv-in,.reveal .inc>div:nth-child(2).rv-in,
+.reveal .prom>div:nth-child(2).rv-in{transition-delay:.06s}
+.reveal .plan:nth-child(3).rv-in,.reveal .term:nth-child(3).rv-in,
+.reveal .ccard:nth-child(3).rv-in,.reveal .inc>div:nth-child(3).rv-in,
+.reveal .prom>div:nth-child(3).rv-in{transition-delay:.12s}
+.reveal .plan:nth-child(4).rv-in,.reveal .inc>div:nth-child(4).rv-in,
+.reveal .prom>div:nth-child(4).rv-in{transition-delay:.18s}
+.reveal .inc>div:nth-child(5).rv-in{transition-delay:.24s}
+.reveal .inc>div:nth-child(6).rv-in{transition-delay:.30s}
+.reveal .faq details:nth-child(even).rv-in{transition-delay:.05s}
+/* Table rows ripple rather than arriving as one slab. */
+.reveal .compare tbody tr{transform:translateY(12px)}
+.reveal .compare tbody tr:nth-child(2).rv-in{transition-delay:.04s}
+.reveal .compare tbody tr:nth-child(3).rv-in{transition-delay:.08s}
+.reveal .compare tbody tr:nth-child(4).rv-in{transition-delay:.12s}
+.reveal .compare tbody tr:nth-child(5).rv-in{transition-delay:.16s}
+.reveal .compare tbody tr:nth-child(n+6).rv-in{transition-delay:.2s}
+
+/* ---------- scroll-driven decoration ----------
+   Ornament only. Where scroll-driven animations are unsupported none of it
+   runs and nothing depends on it. No JS, no extra markup — the reading
+   progress bar rides on body::before. */
+@supports (animation-timeline:scroll()){
+  body::before{content:"";position:fixed;top:0;left:0;right:0;height:3px;z-index:200;
+    background:var(--grad-fire);transform:scaleX(0);transform-origin:0 50%;
+    animation:sc-progress linear both;animation-timeline:scroll(root block)}
+  @keyframes sc-progress{to{transform:scaleX(1)}}
+  .hero::before{animation:sc-drift linear both;animation-timeline:scroll(root block);
+    animation-range:0 95vh}
+  @keyframes sc-drift{to{transform:translate3d(0,8%,0) scale(1.06)}}
+}
+
+/* The header tightens, and the floating CTA and call bar arrive once the
+   hero's own buttons have scrolled away. */
+.site-header{transition:box-shadow .2s ease}
+.site-header.shrunk{box-shadow:0 6px 24px rgba(21,17,12,.13)}
+.site-header.shrunk .header-inner{padding-top:7px;padding-bottom:7px}
+.site-header.shrunk .brand small{display:none}
+.site-header.shrunk .brand svg{transform:scale(.86);transition:transform .2s var(--ease)}
+.fab{transform:translateY(140%);opacity:0;pointer-events:none;
+  transition:transform .3s var(--ease),opacity .3s ease,box-shadow .16s ease}
+.fab.up{transform:none;opacity:1;pointer-events:auto}
+.callbar{transform:translateY(102%);transition:transform .28s var(--ease)}
+.callbar.up{transform:none}
 
 :focus-visible{outline:3px solid var(--fire);outline-offset:3px;border-radius:6px}
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  .reveal .rv{opacity:1;transform:none}
+  /* The head bootstrap never applies the hidden state under reduced motion,
+     so there is nothing to undo there. These three are plain CSS, though, so
+     they have to be put back by hand or the CTA never appears. */
+  body::before{display:none}
   .hero h1 .line>span{transform:none}
+  .fab{transform:none;opacity:1;pointer-events:auto}
+  .callbar{transform:none}
 }
 
 /* ---------- responsive ---------- */
@@ -527,13 +574,28 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"I already have a website.","acceptedAnswer":{"@type":"Answer","text":"Most of our clients did. The website is not really what you are buying — being found is. If your current site works, keep it and take a plan that leaves it alone. We will tell you honestly if replacing it would not change anything."}},{"@type":"Question","name":"I'm already paying someone for this.","acceptedAnswer":{"@type":"Answer","text":"Then ask them two questions before you do anything else. Whose name is your domain registered in? And are you the Owner on your Google Business Profile, or just a Manager? If the answer is the vendor's name, you do not own the two things your business runs on. That is worth knowing regardless of whether you ever work with us."}},{"@type":"Question","name":"How do I know it's actually working?","acceptedAnswer":{"@type":"Answer","text":"Your monthly report is Google's own data — calls from your listing, direction requests, form submissions, reviews gained. You can log into your profile and verify every number yourself. We are not the source of the scoreboard."}},{"@type":"Question","name":"How long until I see something?","acceptedAnswer":{"@type":"Answer","text":"Profile work — photos, categories, posts, reviews — can move within weeks. Ranking for competitive searches takes months, and depends on how strong your competitors already are. Anyone promising page one in thirty days is either lying or about to do something that gets your listing suspended."}},{"@type":"Question","name":"Do I have to sign a contract?","acceptedAnswer":{"@type":"Answer","text":"No. Month to month, cancel whenever, no notice period. Paying for a year up front gets you one month free, and you can still leave — unused full months are refunded. If you would rather not stop entirely, you can pause for up to two months a year at $29 a month, or drop to a smaller plan at any time."}},{"@type":"Question","name":"What happens if I leave?","acceptedAnswer":{"@type":"Answer","text":"You keep everything. The domain, website, Google profile and email are already in your name, so there is nothing for us to switch off or hand over. After six months you just stop paying. Inside six months there is a fee of $100 to $500 depending on the plan, which recovers part of the build we gave you free. Annual plans get unused full months back."}},{"@type":"Question","name":"You're not in my town. Does that matter?","acceptedAnswer":{"@type":"Answer","text":"Not for the work. Your Google profile, your reviews and your website do not care where the person managing them sits, and everything is verifiable by you from your own logins. What you would lose with a local agency is someone who can walk in. What you gain here is one person who picks up the phone rather than a ticket queue."}},{"@type":"Question","name":"Why are you cheaper than the company that cold-called me?","acceptedAnswer":{"@type":"Answer","text":"Because they are paying for a sales floor and you are not. A commissioned rep, a manager, a retention team and a marketing budget all sit inside that monthly price. We do not carry that cost, so we do not have to charge you for it."}},{"@type":"Question","name":"Who writes the content and the posts?","acceptedAnswer":{"@type":"Answer","text":"We do, using what you tell us about the business during setup. You approve anything you want to approve. Nothing goes out under your name that you have asked to see first."}},{"@type":"Question","name":"What if I want changes later?","acceptedAnswer":{"@type":"Answer","text":"Text edits are unlimited on every plan and are not billed. Bigger changes — new pages, new sections — are included from Growth up, and quoted flat-rate below that."}}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Quantum Growth","url":"https://replace-with-your-domain.com/","publisher":{"@id":"https://replace-with-your-domain.com/#business"}}</script>
 <script>
-/* Set before first paint so revealed content never flashes in and back out.
-   Skipped entirely when the visitor asks for reduced motion. */
-(function(d){try{
-  if(!('IntersectionObserver' in window))return;
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+/* Reveal bootstrap. This owns the selector list and writes the hidden state
+   into the head before the body paints, so nothing flashes in and back out,
+   then hands the same list to the script at the end of the body as
+   window.__rv. One list means the CSS and the observer cannot disagree and
+   leave a section stuck at opacity 0. It does not run at all without
+   IntersectionObserver or when the visitor has asked for reduced motion. */
+(function(d,w){try{
+  if(!('IntersectionObserver' in w))return;
+  if(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var sel=['.sec-head','.plan','.basic','.term','.ccard','.inc>div','.prom>div',
+           '.bill','.founder','.faq details','.table-scroll','.compare tbody tr',
+           '.fig','.statband-inner','.rv'];
+  var e='cubic-bezier(.2,.8,.3,1)';
+  var st=d.createElement('style');
+  st.textContent=sel.map(function(x){return '.reveal '+x}).join(',')
+    +'{opacity:0;transform:translateY(26px) scale(.985)}'
+    +'.reveal .rv-in{opacity:1;transform:none;'
+    +'transition:opacity .62s '+e+',transform .62s '+e+'}';
+  d.head.appendChild(st);
   d.documentElement.className+=' reveal';
-}catch(e){}})(document);
+  w.__rv=sel;
+}catch(err){}})(document,window);
 </script>
 </head>
 <body>
@@ -724,7 +786,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       <p class="lede">Maintenance and social posting are in every plan — nothing here is an add-on that shows up on the bill later. The build is free on Local and above, so there is nothing to pay before we start.</p>
     </div>
 
-    <div class="plans rv">
+    <div class="plans">
       <div class="plan">
         <h3>Starter</h3>
         <div class="price">$79<small>/mo</small></div>
@@ -856,7 +918,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       <h2>Built properly, <span class="hl">not from a template</span></h2>
       <p class="lede">Most agency sites are five pages and a contact form. Here is what actually ships, and it is the same on every plan.</p>
     </div>
-    <div class="inc rv">
+    <div class="inc">
       <div><b>25</b><span>Indexable pages, each targeting a real search</span></div>
       <div><b>12</b><span>Types of structured data feeding Google and AI answers</span></div>
       <div><b>25 KB</b><span>Compressed first load — no bloat, no trackers</span></div>
@@ -886,7 +948,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       <h2>Life happens. You have options <span class="hl">besides quitting.</span></h2>
       <p class="lede">Slow season, cash is tight, or the shop is closed for a month — none of that has to mean starting over later.</p>
     </div>
-    <div class="g3 rv">
+    <div class="g3">
       <div class="term">
         <h3>Pause instead of cancel</h3>
         <div class="amt">$29/mo</div>
@@ -922,7 +984,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       <h2>Or just borrow <span class="hl">the expertise</span></h2>
       <p class="lede">Not everyone wants it managed. If you have someone in-house, or you only need the plan, work with us directly.</p>
     </div>
-    <div class="g3 rv">
+    <div class="g3">
       <div class="ccard">
         <h3>Visibility Audit</h3>
         <div class="cprice">$499</div>
@@ -950,7 +1012,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       <h2>Four promises, <span class="hl">in writing</span></h2>
       <p class="lede">These are the things that go wrong with the companies that cold-call you. We put the opposite in the agreement.</p>
     </div>
-    <div class="g4 prom rv">
+    <div class="g4 prom">
       <div>
         <span class="mk"><svg class="ico"><use href="#i-key"/></svg></span>
         <h3>You own everything</h3>
@@ -1027,7 +1089,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       <h2>The questions <span class="hl">everyone asks</span></h2>
       <p class="lede">Including the awkward ones. If something is not here, call and ask.</p>
     </div>
-    <div class="faq rv">
+    <div class="faq">
       <details>
         <summary>I already have a website.</summary>
         <div class="answer"><p>Most of our clients did. The website is not really what you are buying — being found is. If your current site works, keep it and take a plan that leaves it alone. We will tell you honestly if replacing it would not change anything.</p></div>
@@ -1130,20 +1192,77 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   });
   var y=document.querySelector('[data-year]'); if(y)y.textContent=new Date().getFullYear();
 
-  /* Reveal on scroll. The head script only adds .reveal when this browser has
-     IntersectionObserver, so if we got here the observer exists. Anything
-     already on screen is revealed on the first callback. */
+  /* ---- Header, floating CTA and call bar react to scroll ----
+     All cosmetic. The hidden start positions live in CSS that reduced motion
+     reverts, so the phone number is always reachable. */
+  var hdr=document.querySelector('.site-header'),
+      fab=document.querySelector('.fab'),
+      bar=document.querySelector('.callbar'),
+      ticking=false;
+  function onScroll(){
+    if(ticking)return; ticking=true;
+    requestAnimationFrame(function(){
+      var y=pageYOffset||document.documentElement.scrollTop;
+      if(hdr)hdr.classList.toggle('shrunk',y>60);
+      if(fab)fab.classList.toggle('up',y>320);
+      if(bar)bar.classList.toggle('up',y>260);
+      ticking=false;
+    });
+  }
+  addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+
+  /* ---- Reveal on scroll ----
+     window.__rv is the one selector list, set by the head bootstrap. Its
+     presence also means IntersectionObserver exists and the visitor has not
+     asked for reduced motion. */
   var root=document.documentElement;
-  if(!root.classList.contains('reveal'))return;
+  if(!window.__rv||!root.classList.contains('reveal'))return;
+  var sel=window.__rv.join(',');
   var io=new IntersectionObserver(function(es){
-    es.forEach(function(e){ if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)} });
+    es.forEach(function(e){ if(e.isIntersecting){e.target.classList.add('rv-in');io.unobserve(e.target)} });
   },{rootMargin:'0px 0px -8% 0px',threshold:.05});
-  [].forEach.call(document.querySelectorAll('.rv'),function(e){io.observe(e)});
-  /* Belt and braces: if anything is still hidden after load, show it. */
+  [].forEach.call(document.querySelectorAll(sel),function(e){io.observe(e)});
+
+  /* ---- Numbers count up as they arrive ----
+     The real value is already in the HTML, so no JS, reduced motion, or a
+     throw in here all leave the correct number on screen. Only a value
+     starting with a digit (optionally after a currency symbol) is touched,
+     which leaves "ES" and "A11y" alone. */
+  function countUp(el){
+    var m=/^([$£€]?)(\d[\d,]*(?:\.\d+)?)([\s\S]*)$/.exec(el.textContent.trim());
+    if(!m)return;
+    var pre=m[1],raw=m[2],post=m[3],
+        dec=(raw.split('.')[1]||'').length,
+        grouped=raw.indexOf(',')>-1,
+        target=parseFloat(raw.replace(/,/g,''));
+    if(!isFinite(target)||target<=0)return;
+    var t0=null;
+    requestAnimationFrame(function frame(ts){
+      if(t0===null)t0=ts;
+      var p=Math.min(1,(ts-t0)/850),v=target*(1-Math.pow(1-p,3)),
+          t=dec?v.toFixed(dec):String(Math.round(v));
+      if(grouped)t=t.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+      el.textContent=pre+t+post;
+      if(p<1)requestAnimationFrame(frame); else el.textContent=pre+raw+post;
+    });
+  }
+  var nums=document.querySelectorAll('.stat b,.inc b,.price,.bp .num,.promo .big,.amt,.cprice');
+  if(nums.length){
+    var nio=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){countUp(e.target);nio.unobserve(e.target)} });
+    },{threshold:.6});
+    [].forEach.call(nums,function(e){nio.observe(e)});
+  }
+
+  /* ---- Belt and braces ----
+     If anything is still hidden shortly after load, show it. A section stuck
+     at opacity 0 is far worse than a section that did not animate. */
   addEventListener('load',function(){setTimeout(function(){
-    [].forEach.call(document.querySelectorAll('.rv:not(.in)'),function(e){
+    [].forEach.call(document.querySelectorAll(sel),function(e){
+      if(e.classList.contains('rv-in'))return;
       var r=e.getBoundingClientRect();
-      if(r.top<innerHeight&&r.bottom>0)e.classList.add('in');
+      if(r.top<innerHeight&&r.bottom>0)e.classList.add('rv-in');
     });
   },400)});
 })();

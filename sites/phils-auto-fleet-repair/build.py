@@ -87,6 +87,14 @@ SITE.setdefault("hours_rows", [])
 SITE.setdefault("hours_schema", [])
 SITE["base_url"] = SITE["base_url"].rstrip("/")
 
+# newclient.py deliberately leaves rating, review_count and reviews empty,
+# because a made-up rating is the one mistake that costs the Google listing.
+# That means every brand-new client builds without them, so each block that
+# shows a rating has to drop out rather than print "out of 5" with a hole
+# where the number should be.
+HAS_RATING = bool(str(SITE.get("rating", "")).strip()
+                  and str(SITE.get("review_count", "")).strip())
+
 FULL_ADDRESS = "{street}, {city}, {region} {zip}".format(**SITE)
 _ADDR_PLAIN = "{street} {city} {region} {zip}".format(**SITE)
 
@@ -964,17 +972,17 @@ def brand(on_dark=False):
         return """<a class="brand" href="/">
       <img class="brand-badge%s" src="%s" alt="" width="46" height="46">
       <span class="brand-text">
-        <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
-        <span class="brand-sub">Lodi, California</span>
+        <span class="brand-name">%s</span>
+        <span class="brand-sub">%s</span>
       </span>
-    </a>""" % (" brand-badge--chip" if chip else "", src)
+    </a>""" % (" brand-badge--chip" if chip else "", src, esc(SITE["short"]), esc(BRAND_SUB))
     return """<a class="brand" href="/">
-      <span class="brand-mark" aria-hidden="true">PA</span>
+      <span class="brand-mark" aria-hidden="true">%s</span>
       <span class="brand-text">
-        <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
-        <span class="brand-sub">Lodi, California</span>
+        <span class="brand-name">%s</span>
+        <span class="brand-sub">%s</span>
       </span>
-    </a>"""
+    </a>""" % (monogram(), esc(SITE["short"]), esc(BRAND_SUB))
 
 
 ES_NAV = [
@@ -984,6 +992,20 @@ ES_NAV = [
     ("Cotización", "#cotizacion"),
     ("English", "/"),
 ]
+
+
+def monogram():
+    """Two initials for the fallback brand mark, from the client's own name.
+
+    Skips the joining words so "Phil's Auto and Fleet Repair" gives PA rather
+    than PF, and "Ridgeline Auto & Fleet" gives RA.
+    """
+    skip = {"and", "the", "of", "&", "for"}
+    words = [w for w in re.split(r"[^A-Za-z]+", SITE["name"]) if w and w.lower() not in skip]
+    return "".join(w[0].upper() for w in words[:2]) or SITE["name"][:2].upper()
+
+
+BRAND_SUB = "%s, %s" % (SITE["city"], SITE.get("region_long") or SITE["region"])
 
 
 def header_html(active=None, es=False):
@@ -1114,19 +1136,37 @@ REVEAL_BOOT = """<script>
 (function(d,w){try{
   if(!('IntersectionObserver' in w))return;
   if(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  var sel=['.sec-head','.grid>*','.steps>*','.statband-inner','.review','.panel',
-           '.cta-band','.table-scroll','.faq','.masonry','.photo','.quote-card',
-           '.checklist','.tag-row','.listed .wrap','[data-rv]'];
+  var sel=['.sec-head','.grid>*','.steps>*','.split>*','.statband-inner','.review',
+           '.panel','.cta-band','.table-scroll','.faq','.masonry','.mas-item',
+           '.photo','.quote-card','.checklist','.tag-row','.listed .wrap',
+           '.hours','.compare tbody tr','[data-rv]'];
   var e='cubic-bezier(.2,.8,.3,1)';
   var st=d.createElement('style');
   st.textContent=sel.map(function(x){return '.reveal '+x}).join(',')
-    +'{opacity:0;transform:translateY(20px)}'
-    +'.reveal .rv-in{opacity:1;transform:none;transition:opacity .7s '+e+',transform .7s '+e+'}';
+    +'{opacity:0;transform:translateY(26px) scale(.985)}'
+    +'.reveal .rv-in{opacity:1;transform:none;'
+    +'transition:opacity .62s '+e+',transform .62s '+e+'}';
   d.head.appendChild(st);
   d.documentElement.className+=' reveal';
   w.__rv=sel;
 }catch(err){}})(document,window);
 </script>"""
+
+
+def demo_bar():
+    """Banner for a sample build, when the config sets "demo": true.
+
+    A demo shown to a prospect has to be unmistakably a demo. Without this
+    banner a sample site carrying a plausible business name, address and
+    phone number is indistinguishable from that business's real site to
+    anyone who lands on the link.
+    """
+    if not SITE.get("demo"):
+        return ""
+    return ('<div class="demo-bar" role="note">'
+            '<strong>Sample site.</strong> %s is not a real business \u2014 the name, '
+            'address, phone number and content here are examples, shown to '
+            'demonstrate what a finished site looks like.</div>' % esc(SITE["name"]))
 
 
 def theme_css():
@@ -1175,7 +1215,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <title>%(title)s</title>
 <meta name="description" content="%(desc)s">
 <link rel="canonical" href="%(canonical)s">
-%(robots)s<meta name="theme-color" content="#0a0a1f">
+%(robots)s%(demometa)s<meta name="theme-color" content="#0a0a1f">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="%(name)s">
 <meta property="og:title" content="%(title)s">
@@ -1201,7 +1241,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-%(header)s
+%(demobar)s%(header)s
 <main id="main">
 %(body)s
 </main>
@@ -1216,6 +1256,11 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
        "favicon_type": "image/svg+xml" if (SITE.get("favicon") or ".svg").endswith(".svg") else "image/png",
        "lat": SITE["lat"], "lng": SITE["lng"], "schema": schema_html,
        "theme": theme_css(), "reveal": REVEAL_BOOT,
+       "demobar": demo_bar(),
+       # A sample build must never be indexed as though it were the real
+       # business, whatever domain it happens to be sitting on.
+       "demometa": ('<meta name="robots" content="noindex,nofollow">\n'
+                    if SITE.get("demo") and not noindex else ""),
        "header": header_html(active, es=(lang == "es")), "body": body,
        "footer": footer_html(es=(lang == "es")),
        "lang": lang, "alts": alt_links}
@@ -1314,13 +1359,19 @@ def cta_band(heading="Ready to get a straight answer about your vehicle?",
 def stat_band(es=False):
     """Overlapping card that lifts the four strongest trust signals out of the
     hero and into the eye-line of someone deciding whether to call."""
+    star_es = (("star", "%s de 5" % SITE["rating"], "%s reseñas de Google" % SITE["review_count"])
+               if HAS_RATING else
+               ("user", "Taller local", "Atendido por su dueño, no una cadena"))
+    star_en = (("star", "%s out of 5" % SITE["rating"], "%s Google reviews" % SITE["review_count"])
+               if HAS_RATING else
+               ("user", "Locally owned", "Owner-run, not a chain"))
     stats = [
-        ("star", "%s de 5" % SITE["rating"], "%s reseñas de Google" % SITE["review_count"]),
+        star_es,
         ("shield", "Primero el diagnóstico", "Probamos antes de cambiar piezas"),
         ("truck", "Autos · Diésel · Flotas", "Un taller para todo lo que maneja"),
         ("clock", "Abierto seis días", "Lunes a sábado, 8 AM – 5 PM"),
     ] if es else [
-        ("star", "%s out of 5" % SITE["rating"], "%s Google reviews" % SITE["review_count"]),
+        star_en,
         ("shield", "Diagnosis first", "We test before we replace parts"),
         ("truck", "Auto · Diesel · Fleet", "One shop for every vehicle you run"),
         ("clock", "Open six days", "Mon–Sat, 8:00 AM – 5:00 PM"),
@@ -1438,6 +1489,13 @@ def review_cards():
 
 
 def rating_line(light=False):
+    """The hero's rating pill, or nothing at all until there is a real rating.
+
+    An empty pill reading "out of 5" is worse than no pill, and inventing a
+    number to fill it is worse than either.
+    """
+    if not HAS_RATING:
+        return ""
     cls = "rating-text" if light else "rating-text"
     return ('<div class="rating">%s<span class="%s"><strong>%s out of 5</strong> from %s Google '
             'reviews · Rated on Yelp and Nextdoor too</span></div>'
@@ -1540,7 +1598,7 @@ def build_home():
         <table class="compare">
           <caption class="sr-only">Comparison of Phil's Auto and Fleet Repair with typical dealership service</caption>
           <thead>
-            <tr><th scope="col">What matters</th><th scope="col">Phil's Auto &amp; Fleet</th><th scope="col">Typical dealership</th></tr>
+            <tr><th scope="col">What matters</th><th scope="col">{esc(SITE["short"])}</th><th scope="col">Typical dealership</th></tr>
           </thead>
           <tbody>
             <tr><th scope="row">Who explains the repair</th><td class="yes">The shop working on it</td><td>A service advisor</td></tr>
@@ -1616,7 +1674,7 @@ def build_home():
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Reputation</span>
-      <h2>Rated {SITE["rating"]} out of 5 across {SITE["review_count"]} Google reviews</h2>
+      <h2>{f'Rated {SITE["rating"]} out of 5 across {SITE["review_count"]} Google reviews' if HAS_RATING else 'What customers say'}</h2>
       <p>Customers in Lodi consistently mention the same three things — and none of them are
       about price alone.</p>
     </div>
@@ -1850,7 +1908,7 @@ def build_about():
             <tr><th scope="row">Location</th><td>{esc(FULL_ADDRESS)}</td></tr>
             <tr><th scope="row">Phone</th><td><a href="tel:{SITE["phone_link"]}" data-loc="about">{SITE["phone_display"]}</a></td></tr>
             <tr><th scope="row">Hours</th><td>Mon–Sat, 8 AM – 5 PM</td></tr>
-            <tr><th scope="row">Rating</th><td>{SITE["rating"]} / 5 ({SITE["review_count"]} Google reviews)</td></tr>
+            {f'<tr><th scope="row">Rating</th><td>{SITE["rating"]} / 5 ({SITE["review_count"]} Google reviews)</td></tr>' if HAS_RATING else ""}
             <tr><th scope="row">Vehicles</th><td>Domestic, import, diesel, fleet</td></tr>
             <tr><th scope="row">Business type</th><td>Locally owned small business</td></tr>
           </tbody>
@@ -1898,8 +1956,7 @@ def build_reviews():
   <div class="wrap">
     {crumbs_html(trail)}
     <h1>Reviews of Phil's Auto and Fleet Repair</h1>
-    <p>Rated {SITE["rating"]} out of 5 across {SITE["review_count"]} Google reviews, with more on
-    Yelp and Nextdoor. Here's what customers in Lodi keep saying.</p>
+    <p>{f'Rated {SITE["rating"]} out of 5 across {SITE["review_count"]} Google reviews, with more on Yelp and Nextdoor. ' if HAS_RATING else ""}Here's what customers in {SITE["city"]} keep saying.</p>
     <div class="btn-row">
       <a class="btn btn-accent" href="{MAPS_LISTING}" rel="noopener">Read reviews on Google</a>
       <a class="btn btn-ghost" href="{YELP_URL}" rel="noopener">Read reviews on Yelp</a>
@@ -2752,9 +2809,15 @@ def clean():
 
 def localize_files():
     """render() localizes HTML as it writes. The deploy artifacts are written
-    as multi-line literals elsewhere, so they get the same pass here."""
+    as multi-line literals elsewhere, so they get the same pass here.
+
+    llms.txt was missing from this list, which meant every client's
+    answer-engine index carried the reference shop's phone number and town.
+    Nothing here is generated per page, so when a new artifact is added it
+    has to be added here too — --lint is what catches the omission.
+    """
     for rel in ("site.webmanifest", "_redirects", "_headers", ".htaccess",
-                "robots.txt", "sitemap.xml", "404.html"):
+                "robots.txt", "sitemap.xml", "404.html", "llms.txt"):
         fp = os.path.join(OUT, rel)
         if not os.path.exists(fp):
             continue
@@ -2820,7 +2883,19 @@ def lint(root=None):
     needles += [n for n in ref.get("areas", [])[1:]]
     needles += list((ref.get("region_swaps") or {}).keys())
     needles += ["Central Valley", "San Joaquin", "Highway 99", "Highway 12"]
-    needles = sorted({n for n in needles if n and len(n) > 3}, key=len, reverse=True)
+
+    # The same name reaches the output in several shapes: "and" written as
+    # "&", an apostrophe as &#39;, an ampersand as &amp;. Probing only the
+    # config spelling let a hardcoded "Phil's Auto &amp; Fleet Repair" in the
+    # page header go unreported on every client build.
+    variants = set()
+    for n in needles:
+        variants.add(n)
+        variants.add(esc(n))
+        if " and " in n:
+            amp = n.replace(" and ", " & ")
+            variants.update({amp, esc(amp)})
+    needles = sorted({n for n in variants if n and len(n) > 3}, key=len, reverse=True)
 
     def own(cfg):
         """Everything this client legitimately calls itself — a reference town

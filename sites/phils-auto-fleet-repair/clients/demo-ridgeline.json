@@ -1,0 +1,93 @@
+{
+  "name": "Ridgeline Auto & Fleet",
+  "short": "Ridgeline Auto & Fleet",
+  "base_url": "https://ridgeline-demo.example",
+  "phone_display": "(555) 010-4820",
+  "phone_link": "+15550104820",
+  "email": "service@ridgeline-demo.example",
+  "street": "418 Sample Street",
+  "city": "Stockton",
+  "region": "CA",
+  "region_long": "CA",
+  "zip": "95204",
+  "lat": "37.9577",
+  "lng": "-121.2908",
+  "hours_human": "Monday – Saturday, 8:00 AM – 5:00 PM",
+  "hours_rows": [
+    [
+      "Monday",
+      "8:00 AM – 5:00 PM"
+    ],
+    [
+      "Tuesday",
+      "8:00 AM – 5:00 PM"
+    ],
+    [
+      "Wednesday",
+      "8:00 AM – 5:00 PM"
+    ],
+    [
+      "Thursday",
+      "8:00 AM – 5:00 PM"
+    ],
+    [
+      "Friday",
+      "8:00 AM – 5:00 PM"
+    ],
+    [
+      "Saturday",
+      "8:00 AM – 5:00 PM"
+    ],
+    [
+      "Sunday",
+      "Closed"
+    ]
+  ],
+  "hours_schema": [
+    {
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+      ],
+      "opens": "08:00",
+      "closes": "17:00"
+    }
+  ],
+  "rating": "",
+  "review_count": "",
+  "areas": [
+    "Stockton",
+    "Lodi",
+    "Manteca",
+    "Lathrop",
+    "Tracy",
+    "Galt"
+  ],
+  "founded_note": "a locally owned shop serving Stockton drivers",
+  "logo": "",
+  "logo_dark_bg": "",
+  "logo_lockup": "badge",
+  "custom_domain": "",
+  "favicon": "",
+  "title_suffixes": [
+    " | Ridgeline Auto & Fleet",
+    " | Ridgeline Auto & Fleet"
+  ],
+  "profiles": [],
+  "yelp_url": "",
+  "reviews": [],
+  "review_themes": [],
+  "area_notes": {},
+  "demo": true,
+  "region_swaps": {
+    "Highway 99": "Interstate 5",
+    "Highway 12": "Highway 4",
+    "San Joaquin County": "the Central Valley",
+    "San Joaquin": "the valley",
+    "Central Valley": "Northern California"
+  }
+}

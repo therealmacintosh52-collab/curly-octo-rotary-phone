@@ -574,6 +574,16 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   .sticker{top:-14px;right:8px;width:76px;height:76px;font-size:.8rem}
 }
 
+/* ---------------- Sample-build banner ----------------
+   Only rendered when the client config sets "demo": true. Deliberately
+   loud: a demo that reads as a real business's site is a problem, not a
+   sales asset. */
+.demo-bar{
+  background:#1d1400;color:#ffd98a;font-size:.88rem;font-weight:700;line-height:1.45;
+  padding:11px 22px;text-align:center;border-bottom:1px solid #4a3a10;
+}
+.demo-bar strong{color:#ffc14d;font-weight:900}
+
 /* ---------------- Lightbox ----------------
    Built by site.js when a .masonry wall is present. With no JS the images
    stay in place and fully usable, so nothing is lost. */
@@ -600,15 +610,64 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
    that is left here is the opt-in hook for hand-written markup and the
    stagger, which only ever makes an already-revealed element arrive later.
    Nothing in this file hides anything. */
-.reveal [data-rv].rv-in{transition-delay:.04s}
-.reveal .grid>*:nth-child(2).rv-in,.reveal .steps>*:nth-child(2).rv-in{transition-delay:.07s}
-.reveal .grid>*:nth-child(3).rv-in,.reveal .steps>*:nth-child(3).rv-in{transition-delay:.14s}
-.reveal .grid>*:nth-child(4).rv-in{transition-delay:.21s}
+/* Stagger. Only ever makes an already-revealed element arrive later, so a
+   missing rule costs rhythm, never visibility. */
+.reveal .grid>*:nth-child(2).rv-in,.reveal .steps>*:nth-child(2).rv-in,
+.reveal .mas-item:nth-child(3n+2).rv-in{transition-delay:.06s}
+.reveal .grid>*:nth-child(3).rv-in,.reveal .steps>*:nth-child(3).rv-in,
+.reveal .mas-item:nth-child(3n).rv-in{transition-delay:.12s}
+.reveal .grid>*:nth-child(4).rv-in{transition-delay:.18s}
+.reveal .grid>*:nth-child(5).rv-in{transition-delay:.24s}
+.reveal .grid>*:nth-child(6).rv-in{transition-delay:.30s}
+/* Table rows ripple in rather than arriving as one slab. */
+.reveal .compare tbody tr{transform:translateY(12px)}
+.reveal .compare tbody tr:nth-child(2).rv-in{transition-delay:.04s}
+.reveal .compare tbody tr:nth-child(3).rv-in{transition-delay:.08s}
+.reveal .compare tbody tr:nth-child(4).rv-in{transition-delay:.12s}
+.reveal .compare tbody tr:nth-child(5).rv-in{transition-delay:.16s}
+.reveal .compare tbody tr:nth-child(n+6).rv-in{transition-delay:.2s}
+/* Two-column sections come in from their own side. */
+.reveal .split>*:nth-child(1){transform:translate(-20px,14px)}
+.reveal .split>*:nth-child(2){transform:translate(20px,14px)}
+
+/* ---------------- Scroll-driven decoration ----------------
+   Everything below is ornament only: where scroll-driven animations are not
+   supported none of it runs, and nothing depends on it being there. No JS
+   and no extra markup — the progress bar rides on body::before. */
+@supports (animation-timeline:scroll()){
+  body::before{
+    content:"";position:fixed;top:0;left:0;right:0;height:3px;z-index:200;
+    background:var(--grad-accent);transform:scaleX(0);transform-origin:0 50%;
+    animation:sc-progress linear both;animation-timeline:scroll(root block);
+  }
+  @keyframes sc-progress{to{transform:scaleX(1)}}
+  /* The hero spotlights drift, so the background is not a still image. */
+  .hero::before,.page-head::before{
+    animation:sc-drift linear both;animation-timeline:scroll(root block);
+    animation-range:0 90vh;
+  }
+  @keyframes sc-drift{to{transform:translate3d(0,9%,0) scale(1.07)}}
+}
+
+/* The header tightens once you are past the hero. */
+.site-header{transition:padding .2s var(--ease),box-shadow .2s ease}
+.site-header.shrunk{box-shadow:0 6px 24px rgba(10,10,31,.12)}
+.site-header.shrunk .header-inner{padding-top:7px;padding-bottom:7px}
+.site-header.shrunk .brand-mark,.site-header.shrunk .brand-logo,
+.site-header.shrunk .brand-badge{transform:scale(.88);transition:transform .2s var(--ease)}
+.site-header.shrunk .brand-sub{display:none}
+
+/* The mobile call bar arrives once the hero's buttons are gone. */
+.callbar{transform:translateY(102%);transition:transform .28s var(--ease)}
+.callbar.up{transform:none}
 
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  /* The head script does not apply the hidden state under reduced motion,
-     so there is nothing to undo here beyond the stagger. */
+  /* The head script does not apply the hidden state under reduced motion, so
+     there is nothing to undo there. These two are set in plain CSS, though,
+     so they have to be put back by hand. */
+  body::before{display:none}
+  .callbar{transform:none}
 }
 @media print{
   .site-header,.callbar,.topbar,.cta-band,.site-footer,.hero::before,.hero::after{display:none}

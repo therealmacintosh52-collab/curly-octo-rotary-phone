@@ -52,6 +52,70 @@
     });
   }
 
+  /* --- Numbers count up when they arrive -----------------------------
+     The final value is already in the HTML, so with no JS, under reduced
+     motion, or if anything here throws, the real number is what shows. Only
+     a value that starts with a digit (optionally after a currency symbol)
+     is touched, which leaves "Locally owned", "A11y" and "ES" alone. */
+  function countUp(el) {
+    var m = /^([$£€]?)(\d[\d,]*(?:\.\d+)?)([\s\S]*)$/.exec(el.textContent.trim());
+    if (!m) return;
+    var pre = m[1], raw = m[2], post = m[3];
+    var dec = (raw.split(".")[1] || "").length;
+    var grouped = raw.indexOf(",") > -1;
+    var target = parseFloat(raw.replace(/,/g, ""));
+    if (!isFinite(target) || target <= 0) return;
+
+    function paint(v) {
+      var t = dec ? v.toFixed(dec) : String(Math.round(v));
+      if (grouped) t = t.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      el.textContent = pre + t + post;
+    }
+    var t0 = null, dur = 850;
+    function frame(ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur);
+      paint(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) { requestAnimationFrame(frame); }
+      else { el.textContent = pre + raw + post; }   /* restore exactly */
+    }
+    requestAnimationFrame(frame);
+  }
+
+  if (document.documentElement.classList.contains("reveal") &&
+      "requestAnimationFrame" in window) {
+    var nums = document.querySelectorAll(".stat b,.inc b,.statband-inner b");
+    if (nums.length) {
+      var nio = new IntersectionObserver(function (es) {
+        for (var i2 = 0; i2 < es.length; i2++) {
+          if (es[i2].isIntersecting) { countUp(es[i2].target); nio.unobserve(es[i2].target); }
+        }
+      }, { threshold: 0.6 });
+      for (var q = 0; q < nums.length; q++) { nio.observe(nums[q]); }
+    }
+  }
+
+  /* --- Header tightens, call bar arrives -----------------------------
+     Both are cosmetic. The call bar starts off-screen only in CSS that is
+     reverted under reduced motion, so the number is always reachable. */
+  var hdr = document.querySelector(".site-header");
+  var bar = document.querySelector(".callbar");
+  if (hdr || bar) {
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        var y = window.pageYOffset || document.documentElement.scrollTop;
+        if (hdr) { hdr.classList.toggle("shrunk", y > 60); }
+        if (bar) { bar.classList.toggle("up", y > 260); }
+        ticking = false;
+      });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  }
+
   /* --- Gallery lightbox ---------------------------------------------
      Opens a .masonry figure full size. Nothing is required in the markup
      beyond the figure itself, and with no JS the images stay perfectly
