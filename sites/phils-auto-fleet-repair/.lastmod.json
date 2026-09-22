@@ -1,0 +1,102 @@
+{
+ "/": {
+  "date": "2026-09-22",
+  "hash": "4a3b62058a6d7601"
+ },
+ "/about/": {
+  "date": "2026-09-22",
+  "hash": "95aec63ee4727458"
+ },
+ "/advice/": {
+  "date": "2026-09-22",
+  "hash": "4588d438c8b6565f"
+ },
+ "/advice/central-valley-heat/": {
+  "date": "2026-09-22",
+  "hash": "eed0d45098fdeecb"
+ },
+ "/advice/check-engine-light/": {
+  "date": "2026-09-22",
+  "hash": "190288d39373f664"
+ },
+ "/advice/diesel-warning-lights/": {
+  "date": "2026-09-22",
+  "hash": "de717bf264432814"
+ },
+ "/advice/second-opinion/": {
+  "date": "2026-09-22",
+  "hash": "6ffa6022d9dc8421"
+ },
+ "/contact/": {
+  "date": "2026-09-22",
+  "hash": "d0029d73eccd6abb"
+ },
+ "/es/": {
+  "date": "2026-09-22",
+  "hash": "0cda5b81213988f8"
+ },
+ "/privacy/": {
+  "date": "2026-09-22",
+  "hash": "4cec8cc27dfc5529"
+ },
+ "/reviews/": {
+  "date": "2026-09-22",
+  "hash": "e096035a0240a46e"
+ },
+ "/service-areas/": {
+  "date": "2026-09-22",
+  "hash": "8f052c99050ffd93"
+ },
+ "/services/": {
+  "date": "2026-09-22",
+  "hash": "5abdff3fe9caac6e"
+ },
+ "/services/ac-heating-repair/": {
+  "date": "2026-09-22",
+  "hash": "3083f7003b3d661c"
+ },
+ "/services/auto-repair/": {
+  "date": "2026-09-22",
+  "hash": "f5580c4ab7cd198e"
+ },
+ "/services/brake-repair/": {
+  "date": "2026-09-22",
+  "hash": "0283045e83ad3308"
+ },
+ "/services/car-diagnostics/": {
+  "date": "2026-09-22",
+  "hash": "d1b98be2058d51ba"
+ },
+ "/services/diesel-repair/": {
+  "date": "2026-09-22",
+  "hash": "8d84ea54066802bb"
+ },
+ "/services/electrical-repair/": {
+  "date": "2026-09-22",
+  "hash": "ec4ab90d8cf7ba4e"
+ },
+ "/services/engine-repair/": {
+  "date": "2026-09-22",
+  "hash": "0102da451ffc0a6f"
+ },
+ "/services/fleet-services/": {
+  "date": "2026-09-22",
+  "hash": "2d0d1211b015c463"
+ },
+ "/services/oil-change-maintenance/": {
+  "date": "2026-09-22",
+  "hash": "c3e7f9766ea7f2cb"
+ },
+ "/services/suspension-steering/": {
+  "date": "2026-09-22",
+  "hash": "784bfdcc4d3f80af"
+ },
+ "/services/tire-repair/": {
+  "date": "2026-09-22",
+  "hash": "51e4d76b4c9a9ae4"
+ },
+ "/services/transmission-repair/": {
+  "date": "2026-09-22",
+  "hash": "17a9bf28b27011e8"
+ }
+}

@@ -1,0 +1,106 @@
+# Build and audit every site in sites/.
+#
+# The audit is the point: it is a merge gate, so a site cannot regress below the
+# bar in sites/_standard/GEO-AEO-STANDARD.md without the job going red.
+#
+# GitHub Pages can only host one site per repo, so Pages deployment stays
+# Phil's-only and remains a STAGING url -- Pages cannot serve _redirects or
+# _headers. Production for each site goes through its own netlify.toml.
+name: Build sites
+
+on:
+  push:
+    branches: [main, claude/beautiful-bardeen-4ys7oy, claude/affectionate-brown-h3wfam]
+    paths: ['sites/**', '.github/workflows/build-sites.yml']
+  pull_request:
+    paths: ['sites/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        site: [phils-auto-fleet-repair, starks-hot-chicken]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build ${{ matrix.site }}
+        working-directory: sites/${{ matrix.site }}
+        run: python3 build.py
+
+      - name: GEO/AEO audit ${{ matrix.site }}
+        working-directory: sites/${{ matrix.site }}
+        run: python3 ../_engine/audit.py public
+
+      - name: Sanity assertions
+        working-directory: sites/${{ matrix.site }}
+        run: |
+          test -f public/index.html
+          test -f public/sitemap.xml
+          test -f public/robots.txt
+          test -f public/llms.txt
+          pages=$(find public -name index.html | wc -l)
+          echo "built $pages pages"
+          test "$pages" -ge 20
+
+      - name: Assert content is readable without JavaScript
+        working-directory: sites/${{ matrix.site }}
+        run: |
+          python3 - <<'PY'
+          import re, sys, os, html
+          # The property this whole build exists to guarantee: strip every
+          # <script> and the page must still carry its substance.
+          worst = None
+          for dp, _d, fs in os.walk('public'):
+              for f in fs:
+                  if f != 'index.html':
+                      continue
+                  raw = open(os.path.join(dp, f), encoding='utf-8').read()
+                  if 'noindex' in raw:
+                      continue
+                  nojs = re.sub(r'<script.*?</script>', '', raw, flags=re.S)
+                  text = html.unescape(re.sub(r'<[^>]+>', ' ', nojs))
+                  text = re.sub(r'\s+', ' ', text).strip()
+                  if worst is None or len(text) < worst[1]:
+                      worst = (os.path.join(dp, f), len(text))
+          print('thinnest no-JS page: %s (%d chars)' % worst)
+          if worst[1] < 600:
+              sys.exit('a page carries almost no content without JavaScript')
+          PY
+
+  # GitHub Pages hosts ONE site per repo. Phil's keeps the staging slot it
+  # already had. Note Pages cannot serve _redirects or _headers, so this is a
+  # preview target only -- production runs through netlify.toml.
+  deploy-staging:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build with relative links
+        working-directory: sites/phils-auto-fleet-repair
+        run: python3 build.py --relative
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sites/phils-auto-fleet-repair/public
+      - id: deployment
+        uses: actions/deploy-pages@v4

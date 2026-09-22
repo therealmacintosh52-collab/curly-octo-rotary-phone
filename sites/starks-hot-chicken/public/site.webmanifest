@@ -1,0 +1,23 @@
+{
+  "name": "Stark's Hot Chicken",
+  "short_name": "Stark's",
+  "description": "Nashville-inspired hot chicken in Koreatown, Los Angeles. Fresh chicken fried crispy to order, dunked in one of six heat levels and finished with house-made sauces. Pickup and delivery on DoorDash and Uber Eats.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0D",
+  "theme_color": "#0B0B0D",
+  "icons": [
+    {
+      "src": "/assets/img/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

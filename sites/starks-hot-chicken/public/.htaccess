@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://starks-hot-chicken.com/$1 [R=301,L]
+
+Redirect 301 /index.html /
+Redirect 301 /menu.html /menu/
+Redirect 301 /heat /heat-levels/
+Redirect 301 /location /koreatown/
+Redirect 301 /visit /koreatown/
+Redirect 301 /gallery /
+Redirect 301 /featured /menu/
+
+ErrorDocument 404 /404.html

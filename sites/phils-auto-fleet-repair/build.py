@@ -2155,15 +2155,27 @@ GUIDES = [
 ]
 
 
+# Fixed per-guide publication dates. datePublished must NOT move on every
+# build -- a date that changes daily tells a crawler the article is brand new
+# every time it looks, which is a worse signal than none. Bump "updated" by
+# hand when a guide's content actually changes.
+GUIDE_DATES = {
+    "check-engine-light":    {"published": "2026-09-01", "updated": "2026-09-01"},
+    "second-opinion":        {"published": "2026-09-01", "updated": "2026-09-01"},
+    "central-valley-heat":   {"published": "2026-09-01", "updated": "2026-09-01"},
+    "diesel-warning-lights": {"published": "2026-09-01", "updated": "2026-09-01"},
+}
+
+
 def guide_schema(g, path):
+    d = GUIDE_DATES.get(g["slug"], {"published": "2026-09-01", "updated": "2026-09-01"})
     return ('{"@context":"https://schema.org","@type":"Article","headline":%s,'
             '"description":%s,"inLanguage":"en-US",'
             '"datePublished":"%s","dateModified":"%s",'
             '"author":{"@id":"%s/#business"},"publisher":{"@id":"%s/#business"},'
             '"mainEntityOfPage":{"@type":"WebPage","@id":"%s%s"}}'
-            % (jstr(g["title"]), jstr(g["meta"]), date.today().isoformat(),
-               date.today().isoformat(), SITE["base_url"], SITE["base_url"],
-               SITE["base_url"], path))
+            % (jstr(g["title"]), jstr(g["meta"]), d["published"], d["updated"],
+               SITE["base_url"], SITE["base_url"], SITE["base_url"], path))
 
 
 def build_guide(g):
@@ -2493,21 +2505,78 @@ def build_spanish():
 
 
 def build_sitemap():
-    today = date.today().isoformat()
-    urls = "".join(
-        "\n  <url><loc>%s%s</loc><lastmod>%s</lastmod><changefreq>%s</changefreq>"
-        "<priority>%s</priority></url>" % (SITE["base_url"], p, today, cf, pr)
-        for p, pr, cf in PAGES
-    )
-    xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
-           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">%s\n</urlset>\n' % urls)
-    with open(os.path.join(OUT, "sitemap.xml"), "w", encoding="utf-8") as fh:
-        fh.write(xml)
+    """Delegates to the shared engine so lastmod is honest.
 
+    A static generator rewrites every page on every build, so neither
+    date.today() nor the file mtime says anything true about when a page
+    changed. The engine hashes each rendered page and keeps the previous date
+    when the bytes are identical, tracked in .lastmod.json beside this file.
+    """
+    sys.path.insert(0, os.path.join(ROOT, ".."))
+    from _engine.sitemap import build_sitemap as engine_sitemap
+
+    class _Cfg(object):
+        base_url = SITE["base_url"]
+
+    pages = [{"path": p, "priority": pr, "changefreq": cf, "lastmod": None}
+             for p, pr, cf in PAGES]
+    engine_sitemap(_Cfg(), pages, OUT, manifest_dir=ROOT)
+
+    # Named AI crawlers, explicitly allowed. They obey robots.txt, and a
+    # default-deny rule upstream is a common silent reason a site is never
+    # cited by an assistant.
+    bots = ("GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-User",
+            "Claude-SearchBot", "PerplexityBot", "Perplexity-User",
+            "Google-Extended", "Applebot-Extended", "CCBot", "Bingbot",
+            "Amazonbot", "meta-externalagent")
     robots = ("User-agent: *\nAllow: /\n\n"
-              "Sitemap: %s/sitemap.xml\n" % SITE["base_url"])
+              + "".join("User-agent: %s\nAllow: /\n\n" % b for b in bots)
+              + "Sitemap: %s/sitemap.xml\n" % SITE["base_url"])
     with open(os.path.join(OUT, "robots.txt"), "w", encoding="utf-8") as fh:
         fh.write(robots)
+
+
+def build_llms():
+    """llms.txt + llms-full.txt from the same PAGES registry as the sitemap.
+
+    Framing, so nobody over-invests: Google has said llms.txt is not used for
+    AI Overviews, and no major model provider has committed to reading it in
+    production. Its real current value is developer tooling. It costs one build
+    step, so we ship it as a cheap hedge -- not as a ranking factor.
+    """
+    lines = ["# %s" % SITE["name"], "",
+             "> Honest auto, diesel and fleet repair in %s, %s."
+             % (SITE["city"], SITE["region_long"]),
+             "", "## Key facts", ""]
+    for label, value in [
+            ("Address", FULL_ADDRESS),
+            ("Phone", SITE["phone_display"]),
+            ("Hours", SITE["hours_human"]),
+            ("Rating", "%s from %s Google reviews" % (SITE["rating"], SITE["review_count"])),
+            ("Service area", ", ".join(SITE["areas"])),
+            ("Specialties", "Auto repair, diesel service, fleet maintenance")]:
+        lines.append("- **%s:** %s" % (label, value))
+    lines += ["", "## Pages", ""]
+    for p, _pr, _cf in sorted(PAGES):
+        lines.append("- %s%s" % (SITE["base_url"], p))
+    lines.append("")
+    with open(os.path.join(OUT, "llms.txt"), "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines))
+
+    full = ["# %s -- full reference" % SITE["name"], "",
+            SITE["promise"], "", "## Services", ""]
+    for sv in SERVICES:
+        full.append("### %s" % sv["nav"])
+        full.append(sv["blurb"])
+        full.append("Page: %s/services/%s/" % (SITE["base_url"], sv["slug"]))
+        full.append("")
+        for q, a in sv.get("faqs", []):
+            full += ["**%s**" % q, a, ""]
+    full += ["## Frequently asked questions", ""]
+    for q, a in HOME_FAQS:
+        full += ["**%s**" % q, a, ""]
+    with open(os.path.join(OUT, "llms-full.txt"), "w", encoding="utf-8") as fh:
+        fh.write("\n".join(full))
 
 
 def clean():
@@ -2541,6 +2610,7 @@ def main():
     build_thanks()
     build_404()
     build_sitemap()
+    build_llms()
     build_deploy_files()
     print("Built %d pages into %s" % (len(PAGES) + 2, OUT))
     for p, _, _ in PAGES:

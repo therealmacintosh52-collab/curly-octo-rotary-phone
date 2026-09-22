@@ -1,0 +1,7 @@
+[build]
+  base = "sites/starks-hot-chicken"
+  command = "python3 build.py && python3 ../_engine/audit.py public"
+  publish = "public"
+
+[build.environment]
+  PYTHON_VERSION = "3.12"
