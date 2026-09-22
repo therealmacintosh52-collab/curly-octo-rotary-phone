@@ -21,6 +21,25 @@
     });
   }
 
+  /* --- Motion control ------------------------------------------------
+     Wired first, because it has to work on exactly the machines where the
+     rest of this file does nothing. An OS-level "reduce motion" setting is
+     honoured by default; this only offers the choice to override it. */
+  var docEl = document.documentElement;
+  var mtBtn = document.getElementById("motionToggle");
+  var mtLabel = document.getElementById("motionLabel");
+  if (mtBtn) {
+    var on = docEl.getAttribute("data-motion") === "full" ||
+      (!docEl.classList.contains("quiet") && docEl.getAttribute("data-motion") !== "off");
+    if (mtLabel) { mtLabel.textContent = on ? "Turn off animations" : "Turn on animations"; }
+    mtBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    mtBtn.addEventListener("click", function () {
+      var next = docEl.getAttribute("data-motion") === "full" ? "off" : "full";
+      try { localStorage.setItem("motion", next); } catch (e) {}
+      location.reload();   /* the hidden state is written pre-paint */
+    });
+  }
+
   /* --- Reveal on scroll ---------------------------------------------
      The page's head script (REVEAL_BOOT in build.py) owns the selector
      list and hands it over as window.__rv, so the hidden state written into
@@ -28,28 +47,51 @@
      by the first callback. A pass on load catches anything the observer
      missed, because a section left at opacity 0 is far worse than a
      section that simply did not animate. */
-  if (window.__rv && document.documentElement.classList.contains("reveal")) {
+  if (window.__rv && docEl.classList.contains("reveal")) {
     var sel = window.__rv.join(",");
-    var io = new IntersectionObserver(function (entries) {
-      for (var n = 0; n < entries.length; n++) {
-        if (entries[n].isIntersecting) {
-          entries[n].target.classList.add("rv-in");
-          io.unobserve(entries[n].target);
+    var targets = Array.prototype.slice.call(document.querySelectorAll(sel));
+
+    /* Reveals anything whose top has crossed the trigger line, then drops it
+       from the list, so the work shrinks to nothing as the page is read and
+       this is cheap enough to run on every scroll event unthrottled.
+
+       Only `top` is checked, deliberately. An element that scrolled clear of
+       the viewport between two samples has crossed the line too; also
+       requiring `bottom > 0` stranded whole sections whenever someone
+       flicked quickly, pressed End, or landed on a #hash. */
+    function sweep() {
+      var vh = window.innerHeight || docEl.clientHeight;
+      for (var i = targets.length - 1; i >= 0; i--) {
+        if (targets[i].getBoundingClientRect().top < vh * 0.92) {
+          targets[i].classList.add("rv-in");
+          targets.splice(i, 1);
         }
       }
-    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
-    var rv = document.querySelectorAll(sel);
-    for (var r = 0; r < rv.length; r++) { io.observe(rv[r]); }
-    window.addEventListener("load", function () {
-      setTimeout(function () {
-        var left = document.querySelectorAll(sel);
-        for (var k = 0; k < left.length; k++) {
-          if (left[k].classList.contains("rv-in")) continue;
-          var box = left[k].getBoundingClientRect();
-          if (box.top < window.innerHeight && box.bottom > 0) { left[k].classList.add("rv-in"); }
+      return targets.length;
+    }
+
+    /* Three independent triggers, because each fails in a different place
+       and a section left at opacity 0 is unacceptable: the observer, which
+       is the efficient path; raw scroll events, untied to
+       requestAnimationFrame; and a guard that polls until everything is
+       revealed and then stops itself. */
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (entries) {
+        for (var n = 0; n < entries.length; n++) {
+          if (entries[n].isIntersecting) {
+            entries[n].target.classList.add("rv-in");
+            io.unobserve(entries[n].target);
+          }
         }
-      }, 400);
-    });
+      }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
+      targets.slice().forEach(function (e) { io.observe(e); });
+    }
+    window.addEventListener("scroll", sweep, { passive: true });
+    window.addEventListener("resize", sweep, { passive: true });
+    window.addEventListener("load", sweep);
+    var guard = setInterval(function () { if (!sweep()) { clearInterval(guard); } }, 350);
+    setTimeout(function () { clearInterval(guard); }, 20000);
+    sweep();
   }
 
   /* --- Numbers count up when they arrive -----------------------------
@@ -82,8 +124,7 @@
     requestAnimationFrame(frame);
   }
 
-  if (document.documentElement.classList.contains("reveal") &&
-      "requestAnimationFrame" in window) {
+  if (docEl.classList.contains("reveal") && "requestAnimationFrame" in window) {
     var nums = document.querySelectorAll(".stat b,.inc b,.statband-inner b");
     if (nums.length) {
       var nio = new IntersectionObserver(function (es) {

@@ -151,28 +151,36 @@ empty section is worse than a missing one.
 
 ## Step 3 — the motion
 
-The page must come alive as I scroll. All of it native. **No GSAP, no
+The page must visibly come alive as I scroll. All of it native. **No GSAP, no
 ScrollTrigger, no Lenis, no AOS, no framer-motion** — that is 100KB+ of
 JavaScript on a page whose whole pitch is that it loads fast.
 
-**The reveal bootstrap.** Inline in `<head>`, before anything paints:
+### The reveal bootstrap
+
+Inline in `<head>`, before anything paints:
 
 ```html
 <script>
 (function(d,w){try{
+  var el=d.documentElement, pref=null;
+  try{pref=localStorage.getItem('motion')}catch(e){}
+  var q=/[?&]motion=(full|off)/.exec(w.location.search||'');
+  if(q)pref=q[1];
+  if(pref)el.setAttribute('data-motion',pref);
+  var quiet=!!(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if((quiet&&pref!=='full')||pref==='off'){el.className+=' quiet';return;}
   if(!('IntersectionObserver' in w))return;
-  if(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var sel=['.sec-head','.card','.plan','.term','.review','.inc>div','.split>*',
            '.table-scroll','.compare tbody tr','.faq details','.masonry .item',
-           '.statband-inner','.fig','.promo-inner','[data-rv]'];
-  var e='cubic-bezier(.2,.8,.3,1)';
+           '.statband-inner','.fig','[data-rv]'];
+  var e='cubic-bezier(.22,1.2,.36,1)';
   var st=d.createElement('style');
   st.textContent=sel.map(function(x){return '.reveal '+x}).join(',')
-    +'{opacity:0;transform:translateY(26px) scale(.985)}'
+    +'{opacity:0;transform:translateY(56px) scale(.94)}'
     +'.reveal .rv-in{opacity:1;transform:none;'
-    +'transition:opacity .62s '+e+',transform .62s '+e+'}';
+    +'transition:opacity .52s ease-out,transform .72s '+e+'}';
   d.head.appendChild(st);
-  d.documentElement.className+=' reveal';
+  el.className+=' reveal';
   w.__rv=sel;
 }catch(err){}})(document,window);
 </script>
@@ -183,22 +191,72 @@ Why it is built this way, and do not restructure it:
 - The hidden state is written **by the same code that can undo it**. If
   IntersectionObserver is missing, or the visitor asked for reduced motion, or
   the script is blocked, nothing is ever hidden. A section stuck at
-  `opacity:0` is a catastrophic failure; a section that does not animate is
-  nothing at all.
-- **One selector list**, handed to the observer as `window.__rv`, so the CSS
-  and the JavaScript cannot drift apart and orphan an element.
+  `opacity:0` is catastrophic; a section that does not animate is nothing.
+- **One selector list**, handed on as `window.__rv`, so the CSS and the
+  JavaScript cannot drift apart and orphan an element.
 - It runs in `<head>` so content never flashes in and back out.
-- Do **not** use `animation-timeline:view()` for this. It resolves to zero
+- Do **not** use `animation-timeline:view()` for reveals. It resolves to zero
   progress in real cases and leaves whole sections invisible.
 
-Then at the end of `<body>`:
+### Three independent triggers, not one
 
-- Observe `window.__rv.join(',')`, add `rv-in`, `unobserve` each one.
-- **Belt and braces:** on `load`, after ~400ms, force `rv-in` onto anything
-  matching the list that is on screen and still missing it.
-- **Stagger** — `transition-delay` of 60ms per grid child up to 6, 40ms per
-  table row. Two-column sections come in from their own side:
-  `translate(-20px,14px)` and `translate(20px,14px)`.
+At the end of `<body>`. Each of the three fails in a different situation, so
+all three ship:
+
+```js
+var targets=[].slice.call(document.querySelectorAll(window.__rv.join(',')));
+function sweep(){
+  var vh=innerHeight||document.documentElement.clientHeight;
+  for(var i=targets.length-1;i>=0;i--){
+    if(targets[i].getBoundingClientRect().top<vh*0.92){
+      targets[i].classList.add('rv-in');
+      targets.splice(i,1);            // list shrinks to nothing
+    }
+  }
+  return targets.length;
+}
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){
+      e.target.classList.add('rv-in');io.unobserve(e.target)}});
+  },{rootMargin:'0px 0px -8% 0px',threshold:.05});
+  targets.slice().forEach(function(e){io.observe(e)});
+}
+addEventListener('scroll',sweep,{passive:true});
+addEventListener('resize',sweep,{passive:true});
+addEventListener('load',sweep);
+var guard=setInterval(function(){if(!sweep())clearInterval(guard)},350);
+setTimeout(function(){clearInterval(guard)},20000);
+sweep();
+```
+
+- **The observer** is the efficient path, but it depends on intersections
+  being computed against the top-level viewport, which does not hold in every
+  embedding.
+- **Raw scroll events**, deliberately *not* wrapped in
+  `requestAnimationFrame`. Because `sweep()` removes each element as it
+  reveals it, the work shrinks to nothing and needs no throttling — and a
+  stuck `ticking` flag can never freeze the page's reveals.
+- **A polling guard** that stops itself the moment everything is revealed,
+  covering embeddings where neither of the first two ever fires.
+
+`sweep()` checks **only `top`**, never `bottom > 0`. An element that scrolled
+clear of the viewport between two samples has crossed the line too. Requiring
+`bottom > 0` looks correct and silently strands whole sections on a fast
+flick, an End keypress, or a load straight onto a `#hash`.
+
+### Make it obvious
+
+- **Travel 56px, scale from `.94`**, springy easing
+  `cubic-bezier(.22,1.2,.36,1)` over ~.72s with a shorter opacity fade.
+- **A ~1.4deg rotate** on cards and tiles, unwinding to zero.
+- **Stagger ~90ms** per grid child up to 8; table rows ~55ms apart so a
+  comparison table ripples instead of arriving as a slab.
+- **Two-column sections** come in from their own side:
+  `translate(-44px,18px) scale(.96)` and `translate(44px,18px) scale(.96)`.
+- **Section headings** sweep up from behind their own edge — wrap the `h2` in
+  `overflow:hidden` and animate it from `translateY(104%)`. Same treatment as
+  the hero `h1`, which reveals line by line on load, staggered 90ms.
 - **Count-up numbers.** Animate any element whose text starts with a digit
   (optionally after a currency symbol) from 0 to its value over ~850ms, ease
   `1-(1-p)³`, preserving decimals, thousands separators and any suffix, then
@@ -206,14 +264,12 @@ Then at the end of `<body>`:
   so no-JS and reduced-motion both show it. The leading-digit rule is what
   stops it mangling "ES" and "A11y".
 - **Header shrink** past 60px; **floating CTA** and **call bar** slide in past
-  ~300px. One `scroll` listener, `{passive:true}`, guarded by a
-  `requestAnimationFrame` tick.
-- **Hero H1** reveals line by line on load: wrap each line in a
-  `overflow:hidden` block and animate the inner span from
-  `translateY(106%)`, staggered 90ms.
+  ~300px. These may sit in a `requestAnimationFrame` tick — they are cosmetic.
 
-**Scroll-driven ornament**, inside `@supports (animation-timeline:scroll())`
-so it simply does not run where unsupported:
+### Scroll-driven ornament
+
+Inside `@supports (animation-timeline:scroll())`, so it simply does not run
+where unsupported:
 
 ```css
 body::before{content:"";position:fixed;top:0;left:0;right:0;height:3px;z-index:200;
@@ -228,17 +284,37 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:3px;z-index:2
 A reading-progress bar with no JS and no extra markup, and hero spotlights
 that drift so the background is not a still image.
 
-**Reduced motion.** One global kill switch — and then put back by hand
-anything that starts off-screen in plain CSS, or the CTA never appears:
+### Reduced motion, and a way to override it
+
+Honour `prefers-reduced-motion` by default — but **scope it**, or the
+`!important` rules win over any control you offer:
 
 ```css
 @media (prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  body::before{display:none}
-  .fab,.callbar{transform:none;opacity:1;pointer-events:auto}
-  .hero h1 .line>span{transform:none}
+  :root:not([data-motion="full"]) *{
+    animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  :root:not([data-motion="full"]) body::before{display:none}
+  :root:not([data-motion="full"]) .fab,
+  :root:not([data-motion="full"]) .callbar{transform:none;opacity:1;pointer-events:auto}
 }
 ```
+
+Anything that starts off-screen in plain CSS must be put back by hand here, or
+the CTA never appears.
+
+Then add a small control, hidden unless the page would otherwise sit
+completely still:
+
+```css
+.motion-toggle{display:none;position:fixed;left:16px;bottom:16px;z-index:210}
+:root.quiet .motion-toggle,:root[data-motion] .motion-toggle{display:inline-flex}
+```
+
+It writes `motion=full` or `motion=off` to `localStorage` in a `try/catch` and
+reloads, because the hidden state is written before paint. Wire it **before**
+any early `return`, so it works on exactly the machines where nothing else
+does. Windows ships with animation effects switched off on plenty of
+machines, and without this the page is inert there with no way out.
 
 ## Step 4 — the parts that are not decoration
 
@@ -304,6 +380,16 @@ scroll, buttons full-width on phones.
    hand-edit the JSON.
 7. If any text is templated, check that no literal from the example business
    survives into the output — a name, a town, a phone number, a highway.
+8. Do not gate reveals behind a `requestAnimationFrame` "ticking" flag. If a
+   frame is never delivered the flag stays set and every later scroll event is
+   dropped, freezing the page mid-way down with sections still hidden.
+9. Verify the motion by **actually scrolling**. Loading the page in a very tall
+   window and checking that nothing is left at `opacity:0` proves the opposite
+   of what it looks like: everything is on screen at once, so everything
+   reveals instantly and nothing ever animates. Scroll in steps and assert the
+   revealed count *rises*, and remember `scroll-behavior:smooth` makes
+   programmatic scrolling animate — set it to `auto` first or the page will
+   look like it never moved.
 
 ## Deliver
 

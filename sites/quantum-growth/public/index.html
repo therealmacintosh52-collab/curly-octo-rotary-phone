@@ -469,24 +469,31 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
    here, so one list drives both the CSS and the observer. Nothing in this
    block hides anything — the stagger only ever makes an already-revealed
    element arrive slightly later. */
+.reveal .plan,.reveal .term,.reveal .ccard,.reveal .inc>div,.reveal .prom>div{
+  transform:translateY(56px) scale(.94) rotate(1.4deg)}
 .reveal .plan:nth-child(2).rv-in,.reveal .term:nth-child(2).rv-in,
 .reveal .ccard:nth-child(2).rv-in,.reveal .inc>div:nth-child(2).rv-in,
-.reveal .prom>div:nth-child(2).rv-in{transition-delay:.06s}
+.reveal .prom>div:nth-child(2).rv-in{transition-delay:.09s}
 .reveal .plan:nth-child(3).rv-in,.reveal .term:nth-child(3).rv-in,
 .reveal .ccard:nth-child(3).rv-in,.reveal .inc>div:nth-child(3).rv-in,
-.reveal .prom>div:nth-child(3).rv-in{transition-delay:.12s}
+.reveal .prom>div:nth-child(3).rv-in{transition-delay:.18s}
 .reveal .plan:nth-child(4).rv-in,.reveal .inc>div:nth-child(4).rv-in,
-.reveal .prom>div:nth-child(4).rv-in{transition-delay:.18s}
-.reveal .inc>div:nth-child(5).rv-in{transition-delay:.24s}
-.reveal .inc>div:nth-child(6).rv-in{transition-delay:.30s}
-.reveal .faq details:nth-child(even).rv-in{transition-delay:.05s}
+.reveal .prom>div:nth-child(4).rv-in{transition-delay:.27s}
+.reveal .inc>div:nth-child(5).rv-in{transition-delay:.36s}
+.reveal .inc>div:nth-child(6).rv-in{transition-delay:.45s}
+.reveal .faq details:nth-child(even).rv-in{transition-delay:.07s}
 /* Table rows ripple rather than arriving as one slab. */
-.reveal .compare tbody tr{transform:translateY(12px)}
-.reveal .compare tbody tr:nth-child(2).rv-in{transition-delay:.04s}
-.reveal .compare tbody tr:nth-child(3).rv-in{transition-delay:.08s}
-.reveal .compare tbody tr:nth-child(4).rv-in{transition-delay:.12s}
-.reveal .compare tbody tr:nth-child(5).rv-in{transition-delay:.16s}
-.reveal .compare tbody tr:nth-child(n+6).rv-in{transition-delay:.2s}
+.reveal .compare tbody tr{transform:translateY(22px) scale(1)}
+.reveal .compare tbody tr:nth-child(2).rv-in{transition-delay:.055s}
+.reveal .compare tbody tr:nth-child(3).rv-in{transition-delay:.11s}
+.reveal .compare tbody tr:nth-child(4).rv-in{transition-delay:.165s}
+.reveal .compare tbody tr:nth-child(5).rv-in{transition-delay:.22s}
+.reveal .compare tbody tr:nth-child(6).rv-in{transition-delay:.275s}
+.reveal .compare tbody tr:nth-child(7).rv-in{transition-delay:.33s}
+.reveal .compare tbody tr:nth-child(n+8).rv-in{transition-delay:.385s}
+/* Section headings sweep up from behind their own edge, like the hero. */
+.reveal .sec-head h2{overflow:hidden;padding-bottom:.06em}
+.reveal .sec-head.rv-in h2{animation:lineUp .8s cubic-bezier(.16,1,.3,1) both}
 
 /* ---------- scroll-driven decoration ----------
    Ornament only. Where scroll-driven animations are unsupported none of it
@@ -516,16 +523,35 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .callbar.up{transform:none}
 
 :focus-visible{outline:3px solid var(--fire);outline-offset:3px;border-radius:6px}
+/* Reduced motion is honoured unless the visitor explicitly asked for the
+   full version, hence the :not() — otherwise the !important rules here would
+   win over anything the toggle could set. */
 @media (prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  /* The head bootstrap never applies the hidden state under reduced motion,
-     so there is nothing to undo there. These three are plain CSS, though, so
-     they have to be put back by hand or the CTA never appears. */
-  body::before{display:none}
-  .hero h1 .line>span{transform:none}
-  .fab{transform:none;opacity:1;pointer-events:auto}
-  .callbar{transform:none}
+  :root:not([data-motion="full"]) *{
+    animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  :root:not([data-motion="full"]) body::before{display:none}
+  :root:not([data-motion="full"]) .hero h1 .line>span{transform:none}
+  :root:not([data-motion="full"]) .fab{transform:none;opacity:1;pointer-events:auto}
+  :root:not([data-motion="full"]) .callbar{transform:none}
 }
+/* Same again for someone who switched the motion off from the control. */
+:root[data-motion="off"] *{animation:none!important;transition:none!important}
+:root[data-motion="off"] body::before{display:none}
+:root[data-motion="off"] .fab{transform:none;opacity:1;pointer-events:auto}
+:root[data-motion="off"] .callbar{transform:none}
+
+/* ---------- motion control ----------
+   Hidden for everyone whose browser is already animating. It only appears
+   when the page would otherwise sit completely still, which is what happens
+   on a machine with OS animation effects turned off. */
+.motion-toggle{display:none;position:fixed;left:16px;bottom:16px;z-index:210;
+  align-items:center;gap:8px;background:var(--void);color:var(--on-void);
+  border:1px solid var(--rule-void);border-radius:var(--r-pill);
+  padding:10px 16px;font-family:var(--body);font-weight:800;font-size:.82rem;
+  cursor:pointer;box-shadow:var(--shadow)}
+.motion-toggle:hover{border-color:var(--accent)}
+:root.quiet .motion-toggle,:root[data-motion] .motion-toggle{display:inline-flex}
+@media(max-width:880px){.motion-toggle{bottom:auto;top:12px;left:12px;padding:8px 13px;font-size:.74rem}}
 
 /* ---------- responsive ---------- */
 @media(max-width:1040px){
@@ -581,19 +607,33 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
    leave a section stuck at opacity 0. It does not run at all without
    IntersectionObserver or when the visitor has asked for reduced motion. */
 (function(d,w){try{
+  var el=d.documentElement, pref=null;
+  try{pref=localStorage.getItem('motion')}catch(e){}
+  var q=/[?&]motion=(full|off)/.exec(w.location.search||'');
+  if(q)pref=q[1];
+  if(pref)el.setAttribute('data-motion',pref);
+
+  /* An OS-level "reduce motion" setting is honoured unless the visitor has
+     explicitly asked for the full version. Windows ships with animation
+     effects off on plenty of machines, and that makes this page completely
+     inert, so when that is the case a small control is offered instead of
+     silently overriding the preference. */
+  var quiet=!!(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if(quiet&&pref!=='full'){el.className+=' quiet';return;}
+  if(pref==='off'){el.className+=' quiet';return;}
   if(!('IntersectionObserver' in w))return;
-  if(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+
   var sel=['.sec-head','.plan','.basic','.term','.ccard','.inc>div','.prom>div',
            '.bill','.founder','.faq details','.table-scroll','.compare tbody tr',
            '.fig','.statband-inner','.rv'];
-  var e='cubic-bezier(.2,.8,.3,1)';
+  var e='cubic-bezier(.22,1.2,.36,1)';
   var st=d.createElement('style');
   st.textContent=sel.map(function(x){return '.reveal '+x}).join(',')
-    +'{opacity:0;transform:translateY(26px) scale(.985)}'
+    +'{opacity:0;transform:translateY(56px) scale(.94)}'
     +'.reveal .rv-in{opacity:1;transform:none;'
-    +'transition:opacity .62s '+e+',transform .62s '+e+'}';
+    +'transition:opacity .52s ease-out,transform .72s '+e+'}';
   d.head.appendChild(st);
-  d.documentElement.className+=' reveal';
+  el.className+=' reveal';
   w.__rv=sel;
 }catch(err){}})(document,window);
 </script>
@@ -1177,6 +1217,10 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   </div>
 </footer>
 
+<button class="motion-toggle" type="button" id="motionToggle" aria-pressed="false">
+  <span id="motionLabel">Turn on animations</span>
+</button>
+
 <a class="fab" href="#top"><svg class="ico"><use href="#i-arrow"/></svg> Free visibility check</a>
 
 <div class="callbar">
@@ -1191,6 +1235,26 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
     var o=n.classList.toggle('open');t.setAttribute('aria-expanded',o?'true':'false');
   });
   var y=document.querySelector('[data-year]'); if(y)y.textContent=new Date().getFullYear();
+
+  /* ---- Motion control ----
+     Wired before anything can bail out, so it is usable precisely on the
+     machines where the rest of this script does nothing. */
+  var mt=document.getElementById('motionToggle'),ml=document.getElementById('motionLabel'),
+      docEl=document.documentElement;
+  function labelMotion(){
+    var on=docEl.getAttribute('data-motion')==='full'||
+      (!docEl.classList.contains('quiet')&&docEl.getAttribute('data-motion')!=='off');
+    if(ml)ml.textContent=on?'Turn off animations':'Turn on animations';
+    if(mt)mt.setAttribute('aria-pressed',on?'true':'false');
+  }
+  if(mt){
+    labelMotion();
+    mt.addEventListener('click',function(){
+      var next=docEl.getAttribute('data-motion')==='full'?'off':'full';
+      try{localStorage.setItem('motion',next)}catch(e){}
+      location.reload();   /* the hidden state is written pre-paint, so reload */
+    });
+  }
 
   /* ---- Header, floating CTA and call bar react to scroll ----
      All cosmetic. The hidden start positions live in CSS that reduced motion
@@ -1210,19 +1274,58 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
     });
   }
   addEventListener('scroll',onScroll,{passive:true});
+  addEventListener('resize',onScroll,{passive:true});
   onScroll();
 
   /* ---- Reveal on scroll ----
      window.__rv is the one selector list, set by the head bootstrap. Its
-     presence also means IntersectionObserver exists and the visitor has not
-     asked for reduced motion. */
-  var root=document.documentElement;
-  if(!window.__rv||!root.classList.contains('reveal'))return;
-  var sel=window.__rv.join(',');
-  var io=new IntersectionObserver(function(es){
-    es.forEach(function(e){ if(e.isIntersecting){e.target.classList.add('rv-in');io.unobserve(e.target)} });
-  },{rootMargin:'0px 0px -8% 0px',threshold:.05});
-  [].forEach.call(document.querySelectorAll(sel),function(e){io.observe(e)});
+     presence also means the hidden state was applied and can be undone.
+
+     Two independent mechanisms reveal, on purpose. IntersectionObserver is
+     the efficient one, but it depends on the browser computing intersections
+     against the top-level viewport, which does not hold in every embedding.
+     sweep() needs nothing but a scroll position, so wherever the header
+     shrink works the reveals work too. Whichever fires first wins; the class
+     is idempotent. */
+  if(!window.__rv||!docEl.classList.contains('reveal'))return;
+  var sel=window.__rv.join(','), targets=[].slice.call(document.querySelectorAll(sel));
+
+  /* Reveals anything whose top has crossed the trigger line, and drops it
+     from the list, so the work shrinks to nothing as the page is read and
+     this is cheap enough to run on every scroll event with no throttling.
+
+     Checking only `top` is deliberate: an element that scrolled clear of the
+     viewport between two samples has passed the line too. An earlier version
+     also required `bottom > 0`, which stranded whole sections whenever
+     someone flicked quickly, hit End, or landed on a #hash. */
+  function sweep(){
+    var vh=innerHeight||docEl.clientHeight;
+    for(var i=targets.length-1;i>=0;i--){
+      if(targets[i].getBoundingClientRect().top<vh*0.92){
+        targets[i].classList.add('rv-in');
+        targets.splice(i,1);
+      }
+    }
+    return targets.length;
+  }
+
+  /* Three independent triggers, because each one fails in a different
+     situation and a section left at opacity 0 is unacceptable:
+       - the observer, which is the efficient path when intersections are
+         computed against the top-level viewport;
+       - scroll events, unthrottled and untied to requestAnimationFrame;
+       - a polling guard that stops itself once everything is revealed, which
+         covers embeddings where neither of the first two ever fires. */
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){e.target.classList.add('rv-in');io.unobserve(e.target)} });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.05});
+    targets.slice().forEach(function(e){io.observe(e)});
+  }
+  addEventListener('scroll',sweep,{passive:true});
+  var guard=setInterval(function(){ if(!sweep())clearInterval(guard); },350);
+  setTimeout(function(){clearInterval(guard)},20000);
+  sweep();
 
   /* ---- Numbers count up as they arrive ----
      The real value is already in the HTML, so no JS, reduced motion, or a
@@ -1256,15 +1359,10 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   }
 
   /* ---- Belt and braces ----
-     If anything is still hidden shortly after load, show it. A section stuck
-     at opacity 0 is far worse than a section that did not animate. */
-  addEventListener('load',function(){setTimeout(function(){
-    [].forEach.call(document.querySelectorAll(sel),function(e){
-      if(e.classList.contains('rv-in'))return;
-      var r=e.getBoundingClientRect();
-      if(r.top<innerHeight&&r.bottom>0)e.classList.add('rv-in');
-    });
-  },400)});
+     Sweep again after load and once more a beat later, in case neither the
+     observer nor a scroll event has happened yet. A section stuck at
+     opacity 0 is far worse than one that did not animate. */
+  addEventListener('load',function(){sweep()});
 })();
 </script>
 </body>

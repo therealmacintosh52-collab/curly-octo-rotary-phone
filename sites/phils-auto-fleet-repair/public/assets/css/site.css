@@ -612,23 +612,48 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
    Nothing in this file hides anything. */
 /* Stagger. Only ever makes an already-revealed element arrive later, so a
    missing rule costs rhythm, never visibility. */
+.reveal .grid>*,.reveal .steps>*,.reveal .mas-item,.reveal .review{
+  transform:translateY(56px) scale(.94) rotate(1.4deg)}
 .reveal .grid>*:nth-child(2).rv-in,.reveal .steps>*:nth-child(2).rv-in,
-.reveal .mas-item:nth-child(3n+2).rv-in{transition-delay:.06s}
+.reveal .mas-item:nth-child(3n+2).rv-in{transition-delay:.09s}
 .reveal .grid>*:nth-child(3).rv-in,.reveal .steps>*:nth-child(3).rv-in,
-.reveal .mas-item:nth-child(3n).rv-in{transition-delay:.12s}
-.reveal .grid>*:nth-child(4).rv-in{transition-delay:.18s}
-.reveal .grid>*:nth-child(5).rv-in{transition-delay:.24s}
-.reveal .grid>*:nth-child(6).rv-in{transition-delay:.30s}
+.reveal .mas-item:nth-child(3n).rv-in{transition-delay:.18s}
+.reveal .grid>*:nth-child(4).rv-in{transition-delay:.27s}
+.reveal .grid>*:nth-child(5).rv-in{transition-delay:.36s}
+.reveal .grid>*:nth-child(6).rv-in{transition-delay:.45s}
+.reveal .grid>*:nth-child(7).rv-in{transition-delay:.54s}
+.reveal .grid>*:nth-child(8).rv-in{transition-delay:.63s}
 /* Table rows ripple in rather than arriving as one slab. */
-.reveal .compare tbody tr{transform:translateY(12px)}
-.reveal .compare tbody tr:nth-child(2).rv-in{transition-delay:.04s}
-.reveal .compare tbody tr:nth-child(3).rv-in{transition-delay:.08s}
-.reveal .compare tbody tr:nth-child(4).rv-in{transition-delay:.12s}
-.reveal .compare tbody tr:nth-child(5).rv-in{transition-delay:.16s}
-.reveal .compare tbody tr:nth-child(n+6).rv-in{transition-delay:.2s}
+.reveal .compare tbody tr{transform:translateY(22px)}
+.reveal .compare tbody tr:nth-child(2).rv-in{transition-delay:.055s}
+.reveal .compare tbody tr:nth-child(3).rv-in{transition-delay:.11s}
+.reveal .compare tbody tr:nth-child(4).rv-in{transition-delay:.165s}
+.reveal .compare tbody tr:nth-child(5).rv-in{transition-delay:.22s}
+.reveal .compare tbody tr:nth-child(6).rv-in{transition-delay:.275s}
+.reveal .compare tbody tr:nth-child(n+7).rv-in{transition-delay:.33s}
 /* Two-column sections come in from their own side. */
-.reveal .split>*:nth-child(1){transform:translate(-20px,14px)}
-.reveal .split>*:nth-child(2){transform:translate(20px,14px)}
+.reveal .split>*:nth-child(1){transform:translate(-44px,18px) scale(.96)}
+.reveal .split>*:nth-child(2){transform:translate(44px,18px) scale(.96)}
+/* Section headings sweep up from behind their own edge. */
+.reveal .sec-head h2{overflow:hidden;padding-bottom:.06em}
+.reveal .sec-head.rv-in h2{animation:rvLineUp .8s cubic-bezier(.16,1,.3,1) both}
+@keyframes rvLineUp{from{transform:translateY(104%)}to{transform:translateY(0)}}
+
+/* ---------------- Motion control ----------------
+   Hidden for everyone whose browser is already animating. */
+.motion-toggle{display:none;position:fixed;left:16px;bottom:16px;z-index:210;
+  align-items:center;gap:8px;background:var(--ink);color:#fff;
+  border:1px solid var(--line-dark);border-radius:999px;padding:10px 16px;
+  font-family:var(--font);font-weight:800;font-size:.82rem;cursor:pointer;
+  box-shadow:var(--shadow)}
+.motion-toggle:hover{border-color:var(--accent-lt)}
+:root.quiet .motion-toggle,:root[data-motion] .motion-toggle{display:inline-flex}
+@media(max-width:880px){
+  .motion-toggle{bottom:auto;top:10px;left:10px;padding:8px 13px;font-size:.72rem}
+}
+:root[data-motion="off"] *{animation:none!important;transition:none!important}
+:root[data-motion="off"] body::before{display:none}
+:root[data-motion="off"] .callbar{transform:none}
 
 /* ---------------- Scroll-driven decoration ----------------
    Everything below is ornament only: where scroll-driven animations are not
@@ -661,13 +686,17 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
 .callbar{transform:translateY(102%);transition:transform .28s var(--ease)}
 .callbar.up{transform:none}
 
+/* Reduced motion is honoured unless the visitor explicitly asked for the full
+   version through the control, hence the :not() — these rules are !important
+   and would otherwise win over anything the toggle could set. */
 @media (prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  :root:not([data-motion="full"]) *{
+    animation:none!important;transition:none!important;scroll-behavior:auto!important}
   /* The head script does not apply the hidden state under reduced motion, so
      there is nothing to undo there. These two are set in plain CSS, though,
      so they have to be put back by hand. */
-  body::before{display:none}
-  .callbar{transform:none}
+  :root:not([data-motion="full"]) body::before{display:none}
+  :root:not([data-motion="full"]) .callbar{transform:none}
 }
 @media print{
   .site-header,.callbar,.topbar,.cta-band,.site-footer,.hero::before,.hero::after{display:none}

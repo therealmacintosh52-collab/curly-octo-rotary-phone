@@ -1134,23 +1134,38 @@ def footer_html(es=False):
 # worse than a section that simply does not animate.
 REVEAL_BOOT = """<script>
 (function(d,w){try{
+  var el=d.documentElement, pref=null;
+  try{pref=localStorage.getItem('motion')}catch(e){}
+  var q=/[?&]motion=(full|off)/.exec(w.location.search||'');
+  if(q)pref=q[1];
+  if(pref)el.setAttribute('data-motion',pref);
+  var quiet=!!(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if((quiet&&pref!=='full')||pref==='off'){el.className+=' quiet';return;}
   if(!('IntersectionObserver' in w))return;
-  if(w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var sel=['.sec-head','.grid>*','.steps>*','.split>*','.statband-inner','.review',
            '.panel','.cta-band','.table-scroll','.faq','.masonry','.mas-item',
            '.photo','.quote-card','.checklist','.tag-row','.listed .wrap',
            '.hours','.compare tbody tr','[data-rv]'];
-  var e='cubic-bezier(.2,.8,.3,1)';
+  var e='cubic-bezier(.22,1.2,.36,1)';
   var st=d.createElement('style');
   st.textContent=sel.map(function(x){return '.reveal '+x}).join(',')
-    +'{opacity:0;transform:translateY(26px) scale(.985)}'
+    +'{opacity:0;transform:translateY(56px) scale(.94)}'
     +'.reveal .rv-in{opacity:1;transform:none;'
-    +'transition:opacity .62s '+e+',transform .62s '+e+'}';
+    +'transition:opacity .52s ease-out,transform .72s '+e+'}';
   d.head.appendChild(st);
-  d.documentElement.className+=' reveal';
+  el.className+=' reveal';
   w.__rv=sel;
 }catch(err){}})(document,window);
-</script>"""
+</script>
+<noscript><style>.reveal [data-rv]{opacity:1!important}</style></noscript>"""
+
+
+# Offered only when the page would otherwise sit completely still, which is
+# what an OS-level "reduce motion" setting does. Overriding that preference
+# silently would be wrong; offering the choice is not.
+MOTION_TOGGLE = ('<button class="motion-toggle" type="button" id="motionToggle" '
+                 'aria-pressed="false"><span id="motionLabel">Turn on animations'
+                 '</span></button>')
 
 
 def demo_bar():
@@ -1241,7 +1256,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-%(demobar)s%(header)s
+%(demobar)s%(motion)s%(header)s
 <main id="main">
 %(body)s
 </main>
@@ -1256,7 +1271,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
        "favicon_type": "image/svg+xml" if (SITE.get("favicon") or ".svg").endswith(".svg") else "image/png",
        "lat": SITE["lat"], "lng": SITE["lng"], "schema": schema_html,
        "theme": theme_css(), "reveal": REVEAL_BOOT,
-       "demobar": demo_bar(),
+       "demobar": demo_bar(), "motion": MOTION_TOGGLE,
        # A sample build must never be indexed as though it were the real
        # business, whatever domain it happens to be sitting on.
        "demometa": ('<meta name="robots" content="noindex,nofollow">\n'
