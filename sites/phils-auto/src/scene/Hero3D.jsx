@@ -167,10 +167,20 @@ function ProceduralEnvironment() {
       vertexShader: "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
       fragmentShader: `varying vec3 vP;
         void main(){
-          float h = normalize(vP).y * 0.5 + 0.5;
-          vec3 c = mix(vec3(0.02,0.02,0.06), vec3(0.42,0.44,0.62), pow(h, 1.4));
-          c += vec3(0.85,0.88,1.0) * smoothstep(0.72, 1.0, h) * 3.2;   // key, overhead
-          c += vec3(0.30,0.26,0.75) * smoothstep(0.42, 0.0, h) * 1.1;   // indigo bounce
+          vec3 d = normalize(vP);
+          float h = d.y * 0.5 + 0.5;
+          vec3 c = mix(vec3(0.04,0.04,0.10), vec3(0.62,0.65,0.86), pow(h, 1.2));
+          c += vec3(0.34,0.30,0.85) * smoothstep(0.42, 0.0, h) * 1.6;   // indigo bounce
+
+          /* Softbox strips. Without a bright shape to reflect, a metal
+             surface has nothing to be shiny with and reads as grey plastic —
+             this is the studio, not the lighting. */
+          float bar1 = smoothstep(0.42, 0.0, abs(d.z - 0.45)) * smoothstep(0.35, 0.95, h);
+          float bar2 = smoothstep(0.34, 0.0, abs(d.x + 0.55)) * smoothstep(0.2, 0.9, h);
+          float bar3 = smoothstep(0.30, 0.0, abs(d.x - 0.7))  * smoothstep(0.1, 0.8, h);
+          c += vec3(1.00, 0.99, 0.96) * bar1 * 12.0;
+          c += vec3(0.82, 0.86, 1.00) * bar2 * 7.0;
+          c += vec3(0.66, 0.62, 1.00) * bar3 * 5.0;
           gl_FragColor = vec4(c, 1.0);
         }`,
     });
@@ -202,7 +212,7 @@ function CameraRig({ progress, coilTarget }) {
     const p = progress.current;
     const cam = state.camera;
     const wide = state.size.width / state.size.height > 1.15;
-    const homeX = wide ? 2.05 : 0;
+    const homeX = wide ? 3.05 : 0;
     const homeY = wide ? 0 : -0.9;
 
     const back = THREE.MathUtils.smoothstep(p, 0.05, 0.55);   // beat 2
@@ -213,17 +223,17 @@ function CameraRig({ progress, coilTarget }) {
     // front of the coil, offset so the copy on the left keeps its room.
     const holdZ = THREE.MathUtils.lerp(7.4, 8.6, back);
     want.set(
-      THREE.MathUtils.lerp(homeX * 0.1, coilTarget.current.x + (wide ? 1.15 : 0), push),
+      THREE.MathUtils.lerp(0, coilTarget.current.x + (wide ? 1.15 : 0), push),
       THREE.MathUtils.lerp(0.4 + homeY * 0.2, coilTarget.current.y + 0.35, push),
-      THREE.MathUtils.lerp(holdZ, coilTarget.current.z + 3.1, push)
+      THREE.MathUtils.lerp(holdZ, coilTarget.current.z + 3.9, push)
     );
     cam.position.lerp(want, 0.12);
 
     // What it is looking at.
     look.lerp(
       want.set(
-        THREE.MathUtils.lerp(homeX, coilTarget.current.x, push),
-        THREE.MathUtils.lerp(homeY + 0.1, coilTarget.current.y, push),
+        THREE.MathUtils.lerp(homeX * 0.42, coilTarget.current.x, push),
+        THREE.MathUtils.lerp(homeY * 0.5 + 0.15, coilTarget.current.y, push),
         THREE.MathUtils.lerp(0, coilTarget.current.z, push)
       ),
       0.12
@@ -307,7 +317,11 @@ export default function Hero3D({ tier = 3 }) {
       camera={{ position: [0, 0.4, 7.4], fov: 38 }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.45;
+        gl.toneMappingExposure = 1.5;
+        if (tier >= 3) {
+          gl.shadowMap.enabled = true;
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        }
         document.documentElement.setAttribute("data-canvas", "live");
       }}
     >
@@ -318,14 +332,28 @@ export default function Hero3D({ tier = 3 }) {
 
       {/* Studio key, indigo fill, and a hard rim so the block separates from
           the backdrop instead of dissolving into it. */}
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[5, 7, 6]} intensity={4.2} color="#eef1ff" />
-      <directionalLight position={[-6, 2, -4]} intensity={2.4} color="#6a5bff" />
-      <directionalLight position={[-2, 4, -6]} intensity={3.0} color="#aab4ff" />
-      <pointLight position={[2.5, -1.5, 4]} intensity={26} distance={16} color="#8b7dff" />
+      {/* The environment above does most of the work; these shape it. */}
+      <ambientLight intensity={0.28} />
+      <directionalLight
+        position={[5, 7, 6]}
+        intensity={4.6}
+        color="#eef1ff"
+        castShadow={tier >= 3}
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-near={1}
+        shadow-camera-far={22}
+        shadow-camera-left={-6}
+        shadow-camera-right={6}
+        shadow-camera-top={6}
+        shadow-camera-bottom={-6}
+        shadow-bias={-0.0012}
+        shadow-normalBias={0.02}
+      />
+      <directionalLight position={[-6, 2, -4]} intensity={2.6} color="#6a5bff" />
+      <directionalLight position={[-2, 4, -6]} intensity={3.4} color="#dfe4ff" />
 
       <CameraRig progress={progress} coilTarget={coilTarget} />
-      <Engine progress={progress} tier={tier} coilTarget={coilTarget} />
+      <Engine progress={progress} coilTarget={coilTarget} />
       <CoilGlow progress={progress} />
 
       <Motes count={moteCount} />
