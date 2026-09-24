@@ -1,0 +1,35 @@
+---
+import { SITE } from "../lib/site";
+---
+<div class="sticky-cta" id="sticky-cta" aria-hidden="false">
+  <a class="btn btn-primary grow" href={`tel:${SITE.phoneLink}`}>Call {SITE.phone}</a>
+  <a class="btn btn-ghost" href="/contact/">Quote</a>
+</div>
+
+<style>
+  .sticky-cta {
+    position: fixed; inset: auto 0 0 0; z-index: 70;
+    display: none; gap: 0.6rem; padding: 0.7rem 0.9rem calc(0.7rem + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--color-ink) 92%, transparent);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--color-line);
+    translate: 0 110%;
+    transition: translate 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .sticky-cta.is-on { translate: 0 0; }
+  .sticky-cta .btn { padding: 0.9rem 1rem; font-size: 0.95rem; }
+  .sticky-cta .grow { flex: 1; justify-content: center; }
+  @media (max-width: 900px) { .sticky-cta { display: flex; } }
+</style>
+
+<script>
+  /* Appears once the hero is behind you — never over the first CTA. */
+  const bar = document.getElementById("sticky-cta");
+  const hero = document.querySelector("[data-hero]");
+  if (bar && hero && "IntersectionObserver" in window) {
+    new IntersectionObserver(
+      ([e]) => bar.classList.toggle("is-on", !e.isIntersecting),
+      { threshold: 0 }
+    ).observe(hero);
+  } else bar?.classList.add("is-on");
+</script>

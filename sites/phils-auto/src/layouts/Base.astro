@@ -1,0 +1,138 @@
+---
+import "../styles/global.css";
+import { SITE, FULL_ADDRESS } from "../lib/site";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import StickyCta from "../components/StickyCta.astro";
+
+export interface Props {
+  title: string;
+  description: string;
+  path: string;            // e.g. "/services/brake-repair/"
+  noindex?: boolean;
+  breadcrumbs?: { name: string; path: string }[];
+  schema?: unknown[];
+  ogImage?: string;
+}
+
+const {
+  title, description, path, noindex = false,
+  breadcrumbs = [], schema = [], ogImage = "/og/default.png",
+} = Astro.props;
+
+const canonical = new URL(path, SITE.url).href;
+const og = new URL(ogImage, SITE.url).href;
+
+const localBusiness = {
+  "@type": "AutoRepair",
+  "@id": `${SITE.url}/#business`,
+  name: SITE.name,
+  url: SITE.url,
+  telephone: SITE.phone,
+  email: SITE.email,
+  image: og,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: SITE.street,
+    addressLocality: SITE.city,
+    addressRegion: SITE.region,
+    postalCode: SITE.zip,
+    addressCountry: SITE.country,
+  },
+  geo: { "@type": "GeoCoordinates", latitude: SITE.lat, longitude: SITE.lng },
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      opens: "08:00",
+      closes: "17:00",
+    },
+  ],
+  areaServed: SITE.areas.map((a) => ({ "@type": "City", name: `${a}, CA` })),
+  priceRange: "$$",
+};
+
+const website = {
+  "@type": "WebSite",
+  "@id": `${SITE.url}/#website`,
+  url: SITE.url,
+  name: SITE.name,
+  publisher: { "@id": `${SITE.url}/#business` },
+};
+
+const crumbs =
+  breadcrumbs.length > 0
+    ? [{
+        "@type": "BreadcrumbList",
+        itemListElement: breadcrumbs.map((b, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: b.name,
+          item: new URL(b.path, SITE.url).href,
+        })),
+      }]
+    : [];
+
+const graph = { "@context": "https://schema.org", "@graph": [localBusiness, website, ...crumbs, ...schema] };
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={og} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={og} />
+
+    <meta name="geo.region" content="US-CA" />
+    <meta name="geo.placename" content={`${SITE.city}, ${SITE.regionLong}`} />
+    <meta name="geo.position" content={`${SITE.lat};${SITE.lng}`} />
+    <meta name="theme-color" content="#07071a" />
+
+    <link rel="alternate" hreflang="en" href={canonical} />
+    <link rel="alternate" hreflang="es" href={new URL("/es/", SITE.url).href} />
+    <link rel="alternate" hreflang="x-default" href={canonical} />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    {/* The H1 is the LCP candidate; its font must not hold it up. */}
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/archivo-latin-wght-normal.woff2"
+      crossorigin
+    />
+
+    <script type="application/ld+json" set:html={JSON.stringify(graph)} />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Header />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <StickyCta />
+    <div id="cursor" aria-hidden="true"><span></span></div>
+
+    <script>
+      import "../lib/ui.ts";
+    </script>
+  </body>
+</html>

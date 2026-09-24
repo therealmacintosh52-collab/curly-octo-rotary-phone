@@ -1,0 +1,210 @@
+@import "tailwindcss";
+/* Self-hosted, one file, subset to the Latin range the site needs (Spanish
+   included). Declared here rather than imported from the package so the
+   preload in <head> and the @font-face point at the same URL. */
+@font-face {
+  font-family: "Archivo Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/fonts/archivo-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ------------------------------------------------------------------ *
+ * Tokens. The indigo is sampled from the shop's own logo; the amber is
+ * the colour of a dashboard warning light and appears in exactly two
+ * places on the whole site — the failed coil in the hero, and the
+ * review stars. Its scarcity is what makes the hero land.
+ * ------------------------------------------------------------------ */
+@theme {
+  --color-ink: #07071a;
+  --color-surface: #101028;
+  --color-line: #242455;
+  --color-brand: #3b2ce8;
+  --color-brand-bright: #6a5bff;
+  --color-brand-deep: #2418cc;
+  --color-signal: #f5a623;
+  --color-text: #e8edf6;
+  --color-muted: #94a4bd;
+  --color-concrete: #f4f4f2;
+
+  --font-display: "Archivo Variable", "Archivo", system-ui, -apple-system, sans-serif;
+  --font-sans: "Archivo Variable", "Archivo", system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+  --shell: min(1200px, 100% - 2.5rem);
+}
+
+* { box-sizing: border-box; }
+
+html {
+  /* Lenis drives the scroll; native smooth would fight it. */
+  scroll-behavior: auto;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  font-synthesis-weight: none;
+  overflow-x: hidden;
+}
+
+/* A grotesque with a width axis: the hero can go tight and heavy without
+   shipping a second font file. */
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 96;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  margin: 0;
+  text-wrap: balance;
+}
+
+h1 { font-weight: 800; font-size: clamp(2.5rem, 7vw, 5.2rem); }
+h2 { font-weight: 700; font-size: clamp(1.9rem, 4.2vw, 3.1rem); }
+h3 { font-weight: 700; font-size: clamp(1.15rem, 2vw, 1.45rem); letter-spacing: -0.02em; }
+
+p { margin: 0 0 1.1em; max-width: 68ch; }
+
+/* Phone numbers and hours must not shimmy as they change. */
+.tnum, time, .phone { font-variant-numeric: tabular-nums; }
+
+a { color: inherit; }
+
+.shell { width: var(--shell); margin-inline: auto; }
+
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8b7dff;   /* 6.1:1 on --ink; --brand-bright fails at this size */
+}
+
+/* --- focus: never removed, only restyled. The custom cursor draws
+   beside this, never instead of it. --- */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-signal);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -4rem;
+  z-index: 100;
+  background: var(--color-signal);
+  color: #1a1200;
+  font-weight: 800;
+  padding: 0.7rem 1.1rem;
+  border-radius: 0 0 10px 10px;
+  transition: top 0.18s;
+}
+.skip-link:focus { top: 0; }
+
+/* --- buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+  font-size: 1rem;
+  padding: 1rem 1.6rem;
+  border-radius: 12px;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  will-change: transform;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-brand-deep), var(--color-brand-bright));
+  color: #fff;
+  box-shadow: 0 14px 34px rgb(59 44 232 / 0.34);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+/* --- split-text reveal. The parent carries aria-label, so a screen
+   reader reads one sentence rather than 47 letters. --- */
+.split span {
+  display: inline-block;
+  translate: 0 0.9em;
+  opacity: 0;
+}
+.split.is-in span {
+  translate: 0 0;
+  opacity: 1;
+  transition: translate 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s;
+  transition-delay: calc(var(--i, 0) * 22ms);
+}
+
+/* --- scroll reveal --- */
+[data-reveal] {
+  opacity: 0;
+  translate: 0 22px;
+  clip-path: inset(0 0 12% 0);
+}
+[data-reveal].is-in {
+  opacity: 1;
+  translate: 0 0;
+  clip-path: inset(0 0 0 0);
+  transition: opacity 0.7s, translate 0.7s cubic-bezier(0.22, 1, 0.36, 1), clip-path 0.8s;
+}
+
+/* --- custom cursor: decorative, never interactive --- */
+#cursor {
+  position: fixed;
+  top: 0; left: 0;
+  width: 18px; height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 999px;
+  background: #fff;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  z-index: 90;
+  transition: width 0.22s, height 0.22s, margin 0.22s;
+}
+#cursor[data-big] { width: 66px; height: 66px; margin: -33px 0 0 -33px; }
+#cursor span {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #000;
+  opacity: 0; transition: opacity 0.2s;
+}
+#cursor[data-label] span { opacity: 1; }
+@media (hover: none), (pointer: coarse) { #cursor { display: none; } }
+
+/* --- marquee --- */
+.marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee ul {
+  display: flex; gap: 3rem; margin: 0; padding: 0; list-style: none;
+  width: max-content; animation: slide 34s linear infinite;
+}
+@keyframes slide { to { transform: translateX(-50%); } }
+
+/* --- reduced motion: no scrub, no cursor, no drift --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  [data-reveal], .split span { opacity: 1; translate: none; clip-path: none; }
+  #cursor { display: none; }
+  .marquee ul { animation: none; }
+}

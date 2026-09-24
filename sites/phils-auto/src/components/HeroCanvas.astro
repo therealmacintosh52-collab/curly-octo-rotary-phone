@@ -1,0 +1,79 @@
+---
+/**
+ * The hero stage: a poster that paints immediately, and the gate that
+ * decides whether this device ever downloads a renderer.
+ */
+---
+<img
+  class="scene-poster"
+  src="/img/hero-poster.webp"
+  alt=""
+  aria-hidden="true"
+  width="1600"
+  height="900"
+  fetchpriority="low"
+  decoding="async"
+/>
+<div id="hero-canvas" aria-hidden="true"></div>
+
+<script>
+  /* Vanilla, tiny, and the only thing standing between a visitor and 240KB
+     of renderer. Nothing below runs before the page has finished painting. */
+  const host = document.getElementById("hero-canvas");
+
+  /* Debug hook: ?scene=force runs the scene regardless of tier. Used by the
+     poster and screenshot scripts, which have to see it on a machine whose
+     only GPU is software. Never reached by a normal visit. */
+  const forced = new URLSearchParams(location.search).get("scene") === "force";
+
+  const decide = async () => {
+    if (forced) {
+      const { mount } = await import("../scene/mount.jsx");
+      if (host) mount(host, 3);
+      console.info("[hero] forced — full scene");
+      return;
+    }
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      console.info("[hero] reduced motion — poster only, no WebGL");
+      return;
+    }
+    if ((navigator as any).connection?.saveData) {
+      console.info("[hero] Save-Data — poster only, no WebGL");
+      return;
+    }
+    /* A context probe first: detect-gpu cannot help if WebGL is off entirely. */
+    const probe = document.createElement("canvas").getContext("webgl2")
+      || document.createElement("canvas").getContext("webgl");
+    if (!probe) {
+      console.info("[hero] no WebGL context — poster only");
+      return;
+    }
+
+    let tier = 0;
+    try {
+      const { getGPUTier } = await import("detect-gpu");
+      const gpu = await getGPUTier({ failIfMajorPerformanceCaveat: false });
+      tier = gpu.tier ?? 0;
+      console.info(
+        `[hero] GPU tier ${tier}${gpu.isMobile ? " (mobile)" : ""} — ${gpu.gpu ?? "unknown"} — ${
+          tier >= 2 ? "full scene" : "poster only"
+        }`
+      );
+    } catch {
+      console.info("[hero] GPU detection failed — poster only");
+      return;
+    }
+    if (tier < 2 || !host) return;
+
+    const { mount } = await import("../scene/mount.jsx");
+    mount(host, tier);
+  };
+
+  const start = () =>
+    "requestIdleCallback" in window
+      ? (window as any).requestIdleCallback(decide, { timeout: 2200 })
+      : setTimeout(decide, 420);
+
+  if (document.readyState === "complete") start();
+  else addEventListener("load", start, { once: true });
+</script>

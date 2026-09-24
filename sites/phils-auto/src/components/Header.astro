@@ -1,0 +1,55 @@
+---
+import { SITE } from "../lib/site";
+---
+<header class="site-header">
+  <div class="shell flex items-center gap-4 py-4">
+    <a href="/" class="brand">
+      <img src="/img/logo.png" alt="" width="40" height="40" decoding="async" />
+      <span>
+        <strong>{SITE.short}</strong>
+        <small>Lodi, California</small>
+      </span>
+      <span class="vh">— home</span>
+    </a>
+
+    <nav class="primary-nav ml-auto" aria-label="Primary">
+      <a href="/services/">Services</a>
+      <a href="/services/diesel-repair/">Diesel</a>
+      <a href="/services/fleet-services/">Fleet</a>
+      <a href="/reviews/">Reviews</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+
+    <a class="header-call phone" href={`tel:${SITE.phoneLink}`} data-cursor="Call">
+      <small>Call the shop</small>
+      <strong>{SITE.phone}</strong>
+    </a>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky; top: 0; z-index: 60;
+    background: color-mix(in srgb, var(--color-ink) 82%, transparent);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .vh {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  .brand { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
+  .brand img { border-radius: 8px; background: #fff; padding: 3px; }
+  .brand strong { display: block; font-weight: 800; letter-spacing: -0.02em; font-size: 1rem; }
+  .brand small { display: block; font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-muted); }
+  .primary-nav { display: flex; gap: 1.5rem; font-weight: 600; font-size: 0.95rem; }
+  .primary-nav a { text-decoration: none; color: var(--color-muted); }
+  .primary-nav a:hover { color: var(--color-text); }
+  .header-call { text-decoration: none; text-align: right; }
+  .header-call small { display: block; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--color-muted); }
+  .header-call strong { font-weight: 800; font-size: 1.05rem; }
+  @media (max-width: 900px) {
+    .primary-nav { display: none; }
+    .header-call { margin-left: auto; }
+  }
+</style>

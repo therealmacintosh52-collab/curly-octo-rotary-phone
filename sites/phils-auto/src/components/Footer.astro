@@ -1,0 +1,69 @@
+---
+import { SITE, FULL_ADDRESS } from "../lib/site";
+import { SERVICES } from "../lib/site";
+---
+<footer class="site-footer">
+  <div class="shell">
+    <div class="foot-grid">
+      <div>
+        <p class="eyebrow">Phil's Auto and Fleet Repair</p>
+        <p class="addr">
+          <a href={SITE.mapsDirections} rel="noopener">{FULL_ADDRESS}</a>
+        </p>
+        <p class="phone big"><a href={`tel:${SITE.phoneLink}`}>{SITE.phone}</a></p>
+        <p><a href={`mailto:${SITE.email}`}>{SITE.email}</a></p>
+      </div>
+
+      <div>
+        <h2 class="foot-h">Hours</h2>
+        <table class="hours tnum">
+          <tbody>
+            {SITE.hoursRows.map(([day, span]) => (
+              <tr><th scope="row">{day}</th><td>{span}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h2 class="foot-h">Repairs</h2>
+        <ul class="foot-links">
+          {SERVICES.slice(0, 6).map((s) => (
+            <li><a href={`/services/${s.slug}/`}>{s.nav}</a></li>
+          ))}
+          <li><a href="/services/">All services</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="foot-h">The shop</h2>
+        <ul class="foot-links">
+          <li><a href="/about/">About Phil's</a></li>
+          <li><a href="/reviews/">Reviews</a></li>
+          <li><a href="/service-areas/">Service areas</a></li>
+          <li><a href="/advice/">Advice</a></li>
+          <li><a href="/contact/">Contact</a></li>
+          <li><a href="/es/" hreflang="es" lang="es">En español</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="fine">
+      © {new Date().getFullYear()} {SITE.name}. Locally owned in Lodi, California.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer { border-top: 1px solid var(--color-line); padding: 4rem 0 7rem; background: #05050f; }
+  .foot-grid { display: grid; gap: 2.5rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .foot-h { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-muted); font-weight: 800; margin: 0 0 0.9rem; }
+  .addr a, .foot-links a, .site-footer a { color: var(--color-muted); text-decoration: none; }
+  .site-footer a:hover { color: var(--color-text); }
+  .phone.big { font-size: 1.5rem; font-weight: 800; margin: 0.3rem 0; }
+  .phone.big a { color: var(--color-text); }
+  .hours { border-collapse: collapse; font-size: 0.88rem; color: var(--color-muted); }
+  .hours th { text-align: left; font-weight: 500; padding-right: 1rem; }
+  .foot-links { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; font-size: 0.92rem; }
+  .fine { margin-top: 3rem; font-size: 0.8rem; color: #8590a6; }
+</style>
