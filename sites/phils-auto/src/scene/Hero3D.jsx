@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import Engine, { FAILED_COIL } from "./Engine.jsx";
+import Post from "./Post.jsx";
 
 /* ------------------------------------------------------------------ *
  * Layer 1 (far): a domain-warped noise plane. Near-black indigo, very
@@ -40,10 +41,10 @@ void main(){
   vec2 q = vec2(fbm(uv * 1.6 + t), fbm(uv * 1.6 + vec2(3.2, 1.7) - t));
   float f = fbm(uv * 2.1 + q * 1.4);
 
-  vec3 deep  = vec3(0.031, 0.031, 0.110);
-  vec3 lift  = vec3(0.145, 0.120, 0.560);
-  vec3 col = mix(deep, lift, smoothstep(-0.35, 0.70, f));
-  col *= 1.0 - 0.42 * dot(uv, uv);              // fall off at the edges
+  vec3 deep  = vec3(0.022, 0.022, 0.075);
+  vec3 lift  = vec3(0.075, 0.062, 0.300);
+  vec3 col = mix(deep, lift, smoothstep(-0.30, 0.72, f));
+  col *= 1.0 - 0.55 * dot(uv, uv);              // fall off at the edges
   gl_FragColor = vec4(col, 1.0);
 }`;
 
@@ -185,7 +186,7 @@ function ProceduralEnvironment() {
         }`,
     });
     env.add(new THREE.Mesh(geo, mat));
-    const target = pmrem.fromScene(env, 0.04);
+    const target = pmrem.fromScene(env, 0.018);
     scene.environment = target.texture;
     return () => {
       target.dispose();
@@ -316,7 +317,7 @@ export default function Hero3D({ tier = 3 }) {
       gl={{ antialias: tier >= 3, powerPreference: "high-performance", alpha: false }}
       camera={{ position: [0, 0.4, 7.4], fov: 38 }}
       onCreated={({ gl }) => {
-        gl.toneMapping = THREE.ACESFilmicToneMapping;
+        gl.toneMapping = tier >= 3 ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 1.5;
         if (tier >= 3) {
           gl.shadowMap.enabled = true;
@@ -352,6 +353,7 @@ export default function Hero3D({ tier = 3 }) {
       <directionalLight position={[-6, 2, -4]} intensity={2.6} color="#6a5bff" />
       <directionalLight position={[-2, 4, -6]} intensity={3.4} color="#dfe4ff" />
 
+      <Post enabled={tier >= 3} />
       <CameraRig progress={progress} coilTarget={coilTarget} />
       <Engine progress={progress} coilTarget={coilTarget} />
       <CoilGlow progress={progress} />

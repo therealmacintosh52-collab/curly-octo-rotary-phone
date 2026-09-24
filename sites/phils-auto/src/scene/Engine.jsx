@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { roundedBox, lathe, tube, boltRow, ribs, mergeAll, castRoughness } from "./parts.js";
+import { roundedBox, lathe, tube, boltRow, ribs, mergeAll, castRoughness, castNormal, grime } from "./parts.js";
 
 /**
  * A procedural inline-six.
@@ -92,6 +92,7 @@ function buildParts() {
         boltRow(7, [-1.4, 0.16, -0.38], [1.4, 0.16, -0.38]),
       ]),
     pos: [0, 0.8, 0],
+    paint: true,
     mat: { color: "#2f3550", metalness: 0.55, roughness: 0.35 },
     out: [0, 1.25, -0.15],
   });
@@ -109,6 +110,7 @@ function buildParts() {
           new THREE.CylinderGeometry(0.055, 0.075, 0.16, 14).translate(0, -0.26, 0),
         ]),
       pos: [x, 1.16, 0],
+      paint: true,
       mat: { color: "#262c40", metalness: 0.35, roughness: 0.58 },
       out:
         i === FAILED_COIL
@@ -124,6 +126,8 @@ function buildParts() {
           new THREE.CylinderGeometry(0.072, 0.072, 0.07, 6).translate(0, 0.19, 0),
         ]),
       pos: [x, 0.78, 0],
+      smooth: true,
+      clean: true,
       mat: MACHINED,
       out: i === FAILED_COIL ? [0.1, -0.1, 1.55] : [x * 0.22, 0.72, -0.1],
     });
@@ -141,6 +145,7 @@ function buildParts() {
         boltRow(3, [-0.9, 0.2, 0.2], [0.9, 0.2, 0.2], 0.03),
       ]),
     pos: [0, 0.4, 1.02],
+    smooth: true,
     mat: { color: "#8d95ab", metalness: 0.84, roughness: 0.32 },
     out: [0, 0.28, 1.15],
   });
@@ -198,6 +203,8 @@ function buildParts() {
     key: "crank",
     geometry: () => new THREE.CylinderGeometry(0.11, 0.11, 0.6, 20).rotateZ(Math.PI / 2),
     pos: [1.82, -0.35, 0],
+    smooth: true,
+    clean: true,
     mat: MACHINED,
     out: [1.0, 0.05, 0],
   });
@@ -263,16 +270,31 @@ export default function Engine({ progress, coilTarget }) {
 
   const built = useMemo(() => {
     const rough = castRoughness();
-    return buildParts().map((p) => ({
-      ...p,
-      geo: p.geometry(),
-      material: new THREE.MeshStandardMaterial({
-        ...p.mat,
-        roughnessMap: p.mat.metalness > 0.4 ? rough : null,
-        envMapIntensity: 1.6,
-        userData: { base: new THREE.Color(p.mat.color) },
-      }),
-    }));
+    const normal = castNormal();
+    const dirt = grime();
+    return buildParts().map((p) => {
+      const metal = p.mat.metalness > 0.4;
+      // Painted and machined faces get a clearcoat; raw castings do not.
+      const material = p.paint
+        ? new THREE.MeshPhysicalMaterial({
+            ...p.mat,
+            clearcoat: 0.85,
+            clearcoatRoughness: 0.22,
+            normalMap: normal,
+            normalScale: new THREE.Vector2(0.1, 0.1),
+            roughnessMap: rough,
+          })
+        : new THREE.MeshStandardMaterial({
+            ...p.mat,
+            roughnessMap: metal ? rough : null,
+            normalMap: normal,
+            normalScale: new THREE.Vector2(p.smooth ? 0.12 : 0.34, p.smooth ? 0.12 : 0.34),
+            map: p.clean ? null : dirt,
+          });
+      material.envMapIntensity = 1.6;
+      material.userData = { base: new THREE.Color(p.mat.color) };
+      return { ...p, geo: p.geometry(), material };
+    });
   }, []);
 
   const tmp = useMemo(() => new THREE.Color(), []);
@@ -334,6 +356,7 @@ export default function Engine({ progress, coilTarget }) {
       } else {
         tmp.copy(spec.material.userData.base).lerp(steel, isolate * 0.85);
         mat.color.copy(tmp);
+        if (mat.map) mat.map.repeat.setScalar(2);
         mat.emissiveIntensity = 0;
         mat.roughness = THREE.MathUtils.lerp(spec.mat.roughness, 0.88, isolate);
         mat.metalness = THREE.MathUtils.lerp(spec.mat.metalness, 0.28, isolate);

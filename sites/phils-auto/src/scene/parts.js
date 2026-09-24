@@ -99,6 +99,131 @@ export function mergeAll(geometries) {
   return out;
 }
 
+/* ------------------------------------------------------------------ *
+ * Generated surface maps.
+ *
+ * These are the difference between "a 3D shape" and "a thing made of
+ * metal", and their absence is the single biggest reason code-built
+ * geometry looks synthetic. A real asset pipeline ships authored albedo,
+ * normal, roughness and AO maps at 2K each; there is no artist and no
+ * download budget here, so the height field is generated and the normal
+ * map derived from it with a Sobel pass at load time.
+ * ------------------------------------------------------------------ */
+
+/** Shared value-noise height field: casting grain + machining lines. */
+function heightField(size, opts) {
+  const { lines = 0, lineFreq = 90, grain = 1 } = opts ?? {};
+  const rand = (x, y, s) => {
+    const n = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453;
+    return n - Math.floor(n);
+  };
+  const smooth = (x, y, freq, seed) => {
+    const fx = (x / size) * freq, fy = (y / size) * freq;
+    const ix = Math.floor(fx), iy = Math.floor(fy);
+    const tx = fx - ix, ty = fy - iy;
+    const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+    const a = rand(ix, iy, seed), b = rand(ix + 1, iy, seed);
+    const c = rand(ix, iy + 1, seed), d = rand(ix + 1, iy + 1, seed);
+    const top = a + (b - a) * sx;
+    return top + ((c + (d - c) * sx) - top) * sy;
+  };
+
+  const h = new Float32Array(size * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let v =
+        smooth(x, y, 96, 1) * 0.3 +
+        smooth(x, y, 26, 2) * 0.42 +
+        smooth(x, y, 7, 3) * 0.28;
+      v *= grain;
+      // Fine concentric machining marks, the giveaway that a face was cut.
+      if (lines) v += Math.sin((x / size) * lineFreq * Math.PI * 2) * 0.5 * lines;
+      h[y * size + x] = v;
+    }
+  }
+  return h;
+}
+
+function toTexture(canvas, repeat) {
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeat, repeat);
+  tex.anisotropy = 4;
+  return tex;
+}
+
+/**
+ * Normal map, derived from the height field with a Sobel operator.
+ *
+ * Without this every face between two chamfers is geometrically perfect and
+ * reflects the environment as one clean sheet, which is exactly what reads as
+ * "computer graphics" rather than "cast aluminium".
+ */
+let normalTexture = null;
+export function castNormal() {
+  if (normalTexture) return normalTexture;
+  const size = 256, strength = 2.6;
+  const h = heightField(size, { lines: 0.06, lineFreq: 60 });
+  const at = (x, y) => h[((y + size) % size) * size + ((x + size) % size)];
+
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  const img = ctx.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx =
+        (at(x - 1, y - 1) + 2 * at(x - 1, y) + at(x - 1, y + 1)) -
+        (at(x + 1, y - 1) + 2 * at(x + 1, y) + at(x + 1, y + 1));
+      const dy =
+        (at(x - 1, y - 1) + 2 * at(x, y - 1) + at(x + 1, y - 1)) -
+        (at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1));
+      let nx = dx * strength, ny = dy * strength, nz = 1;
+      const len = Math.hypot(nx, ny, nz);
+      nx /= len; ny /= len; nz /= len;
+      const i = (y * size + x) * 4;
+      img.data[i] = (nx * 0.5 + 0.5) * 255;
+      img.data[i + 1] = (ny * 0.5 + 0.5) * 255;
+      img.data[i + 2] = (nz * 0.5 + 0.5) * 255;
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  normalTexture = toTexture(c, 9);
+  return normalTexture;
+}
+
+/**
+ * Grime: oil film, heat staining and worn paint, as a multiply over the base
+ * colour. A spotless casting is a render; a shop engine has a history.
+ */
+let grimeTexture = null;
+export function grime() {
+  if (grimeTexture) return grimeTexture;
+  const size = 256;
+  const h = heightField(size, { grain: 1 });
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  const img = ctx.createImageData(size, size);
+  for (let i = 0; i < size * size; i++) {
+    const v = h[i];
+    // Blotchy darkening, weighted to the low end so most of the surface is
+    // clean and the dirt reads as deposits rather than as a dirty texture.
+    const dark = Math.pow(Math.max(0, 1 - v * 1.25), 2.2);
+    const g = Math.round(255 * (1 - dark * 0.55));
+    const j = i * 4;
+    img.data[j] = g;
+    img.data[j + 1] = Math.round(g * 0.985);
+    img.data[j + 2] = Math.round(g * 0.95);   // deposits go warm, not grey
+    img.data[j + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  grimeTexture = toTexture(c, 2);
+  grimeTexture.colorSpace = THREE.SRGBColorSpace;
+  return grimeTexture;
+}
+
 /**
  * Cast-surface roughness, generated rather than downloaded.
  *
