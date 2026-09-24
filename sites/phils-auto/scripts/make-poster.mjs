@@ -28,7 +28,7 @@ const dataUrl = await page.evaluate(async () => {
   const canvas = document.querySelector("#hero-canvas canvas");
   // Force one more render so the buffer is guaranteed fresh before the read.
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  return canvas.toDataURL("image/webp", 0.82);
+  return canvas.toDataURL("image/webp", 0.6);
 });
 
 if (!dataUrl.startsWith("data:image/webp")) {

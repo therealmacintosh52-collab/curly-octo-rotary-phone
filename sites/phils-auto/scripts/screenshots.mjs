@@ -66,7 +66,22 @@ for (const vp of VIEWPORTS) {
       const span = stage.offsetHeight - innerHeight;
       scrollTo({ top: top + (span * p) / 100, behavior: "instant" });
     }, pct);
-    await page.waitForTimeout(2200); // software renderer needs the time
+    // Wait for the shader's eased progress to actually reach the target
+    // rather than sleeping and hoping — on a software renderer the move can
+    // take many seconds to settle.
+    await page
+      .waitForFunction(
+        (want) => {
+          const v = parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue("--scene-eased")
+          );
+          return Number.isFinite(v) && Math.abs(v - want) < 0.02;
+        },
+        pct / 100,
+        { timeout: 45000 }
+      )
+      .catch(() => console.log(`  (warning: ${pct}% never settled; frame may be mid-move)`));
+    await page.waitForTimeout(400);
     const file = `${OUT}hero-${vp.name}-${String(pct).padStart(3, "0")}.png`;
     await page.screenshot({ path: file });
     const progress = await page.evaluate(() =>
