@@ -68,7 +68,7 @@
         fd.forEach(function (v, k) {
           if (k.charAt(0) !== "_" && String(v).trim()) { lines.push(k + ": " + v); }
         });
-        var mail = form.dataset.mailto || "service@philsautofleet.com";
+        var mail = form.dataset.mailto || "phil@philsautoandfleet.com";
         window.location.href =
           "mailto:" + mail +
           "?subject=" + encodeURIComponent("Website quote request") +

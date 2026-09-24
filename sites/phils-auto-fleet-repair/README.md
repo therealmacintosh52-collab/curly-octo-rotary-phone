@@ -4,8 +4,15 @@ A fast, conversion-focused, SEO-ready static site for **Phil's Auto and Fleet Re
 103 E Elm St, Lodi, CA 95240 · (209) 647-4953.
 
 No frameworks, no build toolchain, no runtime dependencies. One Python script generates
-25 indexable pages plus `sitemap.xml`, `robots.txt`, a web app manifest and the redirect
+28 pages plus `sitemap.xml`, `robots.txt`, a web app manifest and the redirect
 rules into `public/`, which you can drop on any host.
+
+**Canonical domain: `philsautoandfleet.com`** (the one the Google Business Profile links for
+appointments). `philsautofleet.com` and `philsautoandfleetrepair.com` are older hosts; the generated
+`_redirects` and `.htaccess` send both to the canonical one, path preserved, once they are pointed
+at the same host.
+
+The strategy, design system, conversion copy, audit and launch material live in `docs/`.
 
 ---
 
@@ -30,8 +37,8 @@ so opening the HTML files directly with `file://` will not load CSS.
 | Page | URL | Job it does |
 |---|---|---|
 | Home | `/` | Ranks for "auto repair Lodi", converts on call + form |
-| Services index | `/services/` | Hub linking the ten service pages |
-| 12 service pages | `/services/<slug>/` | One page per money keyword (see below) |
+| Services index | `/services/` | Hub linking the service pages, plus every service the Google profile lists, grouped |
+| 13 service pages | `/services/<slug>/` | One page per money keyword (see below) |
 | About | `/about/` | Trust, differentiation from dealerships |
 | Reviews | `/reviews/` | Social proof, funnels new reviews to Google |
 | Service areas | `/service-areas/` | Captures nearby-city searches |
@@ -42,8 +49,19 @@ so opening the HTML files directly with `file://` will not load CSS.
 | Thank you / 404 | `/thank-you/`, `/404.html` | Post-submit and error handling (noindex) |
 
 Service pages: auto repair · check engine & diagnostics · brakes · engine repair ·
-transmission · diesel repair · fleet services · oil change & maintenance · tires ·
-electrical & batteries · AC & heating · suspension & steering.
+transmission · differentials · diesel repair · fleet services · oil change & maintenance ·
+tires & wheels · electrical & batteries · AC & heating · suspension & steering.
+
+### The Google profile catalog
+
+`CATALOG` in `build.py` mirrors the "Products" list on the shop's Google Business Profile,
+deduplicated and mapped to the page that covers each item. It renders three ways: grouped under
+"Everything we do" on `/services/`, as a "Listed on our Google profile as" row on each service page
+(so page text matches what people search), and as an `OfferCatalog` schema block on `/services/`.
+`CATALOG_PRICES` holds the prices the shop publishes (today: A/C diagnosis, $89). `CATALOG_NEEDS`
+flags items the profile lists but the shop hasn't given terms for; those render as a visible
+`[NEEDS: …]` marker so they cannot ship unnoticed. When the shop adds a service on Google, add it here
+and rebuild.
 
 ## Conversion features
 
@@ -92,15 +110,19 @@ and re-run it.
 
 - [ ] **Hours** — the site says Mon–Sat 8:00 AM–5:00 PM, closed Sunday (`SITE["hours_rows"]`
       and `SITE["hours_schema"]`). Yelp and Google should match exactly.
-- [ ] **Email** — set to `phil@philsautofleet.com`. The domain was inferred from the shop's
-      website; confirm it is right before launch, since a wrong address loses leads silently.
+- [ ] **Email** — set to `phil@philsautoandfleet.com`. The domain is the one on the Google profile,
+      but the mailbox itself is unconfirmed. Confirm it exists before launch, since a wrong address
+      loses leads silently.
+- [ ] **`[NEEDS: …]` markers** — `grep -rn "NEEDS" public/` lists every fact the site is waiting on
+      (free tire rotation terms, the Duramax offer, tire brands, whether the $89 diagnosis is credited).
+      Fill each one in `build.py` or delete the line; none should be live.
 - [ ] **Warranty wording** — `SITE["warranty_text"]` is deliberately non-specific. If the shop
       offers a defined warranty (e.g. 24 months/24,000 miles), say so — it converts.
 - [ ] **Map coordinates** — `SITE["lat"]` / `SITE["lng"]` are approximate for the address.
       Copy the exact pin from Google Maps.
 - [ ] **Yelp URL** — `YELP_URL` is the expected slug; paste the real one.
-- [ ] **Rating and review count** — update `SITE["rating"]` / `SITE["review_count"]` at launch
-      and every few months.
+- [ ] **Rating and review count** — update `SITE["rating"]` / `SITE["review_count"]` and the
+      CARFAX pair (`carfax_rating` / `carfax_count`) at launch and every few months.
 - [ ] **Form endpoint** — set `FORM_ENDPOINT` (see below), or the form falls back to email.
 - [ ] **Certifications** — nothing about ASE, years in business, or technician credentials is
       claimed anywhere, because none of it was verified. Add it if it's true; it's strong
@@ -176,7 +198,7 @@ for browser chrome, so rendering at 717 and trimming to 630 is what produces a f
 ## The quote form
 
 The form is already connected, with no account to create. It posts to **FormSubmit**, which
-forwards submissions to `phil@philsautofleet.com`.
+forwards submissions to `phil@philsautoandfleet.com`.
 
 **One step, once:** the first time the form is submitted, FormSubmit emails that address a
 confirmation link. Click it, and every submission afterwards arrives directly — name, phone,
@@ -218,7 +240,7 @@ Free, fast, HTTPS included, and — the reason to prefer them — they honour `p
 
 1. Run `python3 build.py`, then drag the `public` folder onto https://app.netlify.com/drop
 2. You get a working URL immediately, like `random-name-123.netlify.app`. Check the site over.
-3. Site settings → Domain management → Add a custom domain → `philsautofleet.com`
+3. Site settings → Domain management → Add a custom domain → `philsautoandfleet.com`
 4. Netlify shows the exact DNS records to create. Use the values it displays — typically an
    `A` record for the bare domain pointing at Netlify's load balancer, and a `CNAME` for `www`
    pointing at your `.netlify.app` address.
@@ -250,18 +272,21 @@ on the custom domain, set `SITE["custom_domain"]` in `build.py` so a `CNAME` fil
 In this order:
 
 1. **Verify the redirects.** With the new site live, check a few old URLs actually land on the new
-   pages: `curl -I https://philsautofleet.com/diesel-repair` should return `301` and a `location:`
+   pages: `curl -I https://philsautoandfleet.com/diesel-repair` should return `301` and a `location:`
    header pointing at `/services/diesel-repair/`. Every old URL that 404s is ranking thrown away.
-2. **Point the second domain at the primary one.** `philsautoandfleetrepair.com` should 301 to
-   `philsautofleet.com`, not serve its own copy of the site.
-3. **Google Search Console** — add `philsautofleet.com` as a property, verify it, submit
-   `https://philsautofleet.com/sitemap.xml`. Watch the Pages report for a week; it will tell you
+2. **Point the older domains at the primary one.** `philsautofleet.com` and
+   `philsautoandfleetrepair.com` should 301 to `philsautoandfleet.com`, not serve their own copies.
+   On Netlify, add both as domain aliases and the generated `_redirects` handles it; on Apache the
+   generated `.htaccess` does.
+3. **Google Search Console** — add `philsautoandfleet.com` as a property, verify it, submit
+   `https://philsautoandfleet.com/sitemap.xml`. Add the two older domains as properties too and use
+   the Change of Address tool from each. Watch the Pages report for a week; it will tell you
    which old URLs are 404ing so you can add redirects for the ones this map missed.
 4. **Google Business Profile** — update the website link to the new URL, and add the service pages
    as GBP "Services". The profile drives more calls than the site does; treat it as part of launch.
 5. **Bing Webmaster Tools** — import from Search Console, two clicks, some of your customers use it.
 6. **Test the form for real.** Submit it once from a phone and confirm the message arrives at
-   phil@philsautofleet.com. A silent form is worse than no form.
+   phil@philsautoandfleet.com. A silent form is worse than no form.
 7. **Call the shop from the site on a phone.** Tap the button, make sure it dials (209) 647-4953.
 
 Keep the old site's files for a month. Rolling back is then a matter of restoring a folder or

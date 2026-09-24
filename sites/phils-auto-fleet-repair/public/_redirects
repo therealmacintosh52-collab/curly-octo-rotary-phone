@@ -18,6 +18,12 @@
 /fleet-services            /services/fleet-services/              301!
 /ac-repair                 /services/ac-heating-repair/           301!
 /electrical                /services/electrical-repair/           301!
+/services/vehicle-inspection /services/car-diagnostics/             301!
+/services/car-maintenance  /services/oil-change-maintenance/      301!
+/services/auto-electrical-repair /services/electrical-repair/           301!
+/areas-of-service/lodi-auto-service /service-areas/                        301!
+/areas-of-service          /service-areas/                        301!
+/gallery                   /about/                                301!
 /about-us                  /about/                                301!
 /contact-us                /contact/                              301!
 /reviews                   /reviews/                              301!
@@ -42,7 +48,20 @@
 /fleet-services/           /services/fleet-services/              301!
 /ac-repair/                /services/ac-heating-repair/           301!
 /electrical/               /services/electrical-repair/           301!
+/services/vehicle-inspection/ /services/car-diagnostics/             301!
+/services/car-maintenance/ /services/oil-change-maintenance/      301!
+/services/auto-electrical-repair/ /services/electrical-repair/           301!
+/areas-of-service/lodi-auto-service/ /service-areas/                        301!
+/areas-of-service/         /service-areas/                        301!
+/gallery/                  /about/                                301!
 /about-us/                 /about/                                301!
 /contact-us/               /contact/                              301!
 /reviews/                  /reviews/                              301!
 /testimonials/             /reviews/                              301!
+
+# Older hostnames -> the canonical one (add each domain to the site first)
+https://www.philsautoandfleet.com/*                              https://philsautoandfleet.com/:splat 301!
+https://philsautofleet.com/*                                     https://philsautoandfleet.com/:splat 301!
+https://www.philsautofleet.com/*                                 https://philsautoandfleet.com/:splat 301!
+https://philsautoandfleetrepair.com/*                            https://philsautoandfleet.com/:splat 301!
+https://www.philsautoandfleetrepair.com/*                        https://philsautoandfleet.com/:splat 301!

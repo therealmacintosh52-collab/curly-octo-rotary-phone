@@ -13,19 +13,18 @@
   (any Chrome/Chromium binary works; keep the size at exactly 1200x630)
 -->
 <style>
+  @font-face{font-family:"Barlow Condensed";font-weight:700;src:url(../public/assets/fonts/BarlowCondensed-Bold-latin.woff2) format("woff2")}
   *{box-sizing:border-box;margin:0}
   html,body{width:1200px;height:630px;overflow:hidden}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     color:#fff;padding:64px 72px;position:relative;
     background:
-      radial-gradient(700px 420px at 86% 2%,rgba(91,77,255,.46),transparent 62%),
-      linear-gradient(158deg,#0a0a1f 0%,#1c1b52 52%,#0b0b26 100%);
+      #141b3a;
   }
   body::after{
     content:"";position:absolute;inset:0;opacity:.11;
-    background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),
-                     linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);
+    background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.5) 0 2px,transparent 2px 28px);
     background-size:58px 58px;
     -webkit-mask-image:linear-gradient(118deg,#000 10%,transparent 70%);
   }
@@ -34,16 +33,16 @@
   .disc{width:96px;height:96px;border-radius:50%;background:#fff;display:grid;place-items:center;
         box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .disc img{width:80px;height:80px;object-fit:contain;display:block}
-  .name{font-size:31px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
-  .sub{font-size:17px;letter-spacing:.19em;text-transform:uppercase;color:#a6a7c4;font-weight:700;margin-top:5px}
-  h1{font-size:63px;font-weight:900;letter-spacing:-.035em;line-height:1.04;margin:52px 0 0;max-width:19ch}
-  h1 em{font-style:normal;color:#a99bff}
-  .tag{font-size:25px;color:#c9c9e4;margin-top:22px}
+  .name{font-family:"Barlow Condensed",Impact,sans-serif;font-size:40px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;line-height:1}
+  .sub{font-size:17px;letter-spacing:.19em;text-transform:uppercase;color:#b9bed6;font-weight:700;margin-top:5px}
+  h1{font-family:"Barlow Condensed",Impact,sans-serif;font-size:84px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;line-height:.98;margin:44px 0 0;max-width:15ch}
+  h1 em{font-style:normal;color:#c4b596}
+  .tag{font-size:25px;color:#c9cde0;margin-top:22px}
   .foot{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
-  .phone{font-size:38px;font-weight:900;color:#a99bff;letter-spacing:-.02em}
-  .meta{font-size:20px;color:#a6a7c4;margin-top:8px}
+  .phone{font-family:"Barlow Condensed",Impact,sans-serif;font-size:48px;font-weight:700;color:#c4b596;letter-spacing:.01em}
+  .meta{font-size:20px;color:#b9bed6;margin-top:8px}
   .stars{color:#f5a623;font-size:23px;letter-spacing:3px}
-  .rating{font-size:19px;color:#c9c9e4;margin-top:6px;text-align:right}
+  .rating{font-size:19px;color:#c9cde0;margin-top:6px;text-align:right}
   .rating b{color:#fff}
 </style>
 </head>
@@ -61,7 +60,7 @@
     <div class="foot">
       <div>
         <div class="phone">(209) 647-4953</div>
-        <div class="meta">103 E Elm St, Lodi, CA 95240 &middot; Mon–Sat 8 AM – 5 PM<br>phil@philsautofleet.com</div>
+        <div class="meta">103 E Elm St, Lodi, CA 95240 &middot; Mon–Sat 8 AM – 5 PM<br>phil@philsautoandfleet.com</div>
       </div>
       <div>
         <div class="stars">★★★★★</div>

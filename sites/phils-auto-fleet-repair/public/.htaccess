@@ -4,11 +4,15 @@
 
 RewriteEngine On
 
-# One canonical hostname: https://philsautofleet.com
+# One canonical hostname: https://philsautoandfleet.com
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
-RewriteCond %{HTTP_HOST} ^www\.philsautofleet\.com [NC]
-RewriteRule ^(.*)$ https://philsautofleet.com/$1 [R=301,L]
+RewriteCond %{HTTP_HOST} ^www\.philsautoandfleet\.com$ [NC]
+RewriteRule ^(.*)$ https://philsautoandfleet.com/$1 [R=301,L]
+RewriteCond %{HTTP_HOST} ^(www\.)?philsautofleet\.com$ [NC]
+RewriteRule ^(.*)$ https://philsautoandfleet.com/$1 [R=301,L]
+RewriteCond %{HTTP_HOST} ^(www\.)?philsautoandfleetrepair\.com$ [NC]
+RewriteRule ^(.*)$ https://philsautoandfleet.com/$1 [R=301,L]
 
 # Old page URLs -> new equivalents
 Redirect 301 /auto-repair /services/auto-repair/
@@ -29,6 +33,12 @@ Redirect 301 /fleet /services/fleet-services/
 Redirect 301 /fleet-services /services/fleet-services/
 Redirect 301 /ac-repair /services/ac-heating-repair/
 Redirect 301 /electrical /services/electrical-repair/
+Redirect 301 /services/vehicle-inspection /services/car-diagnostics/
+Redirect 301 /services/car-maintenance /services/oil-change-maintenance/
+Redirect 301 /services/auto-electrical-repair /services/electrical-repair/
+Redirect 301 /areas-of-service/lodi-auto-service /service-areas/
+Redirect 301 /areas-of-service /service-areas/
+Redirect 301 /gallery /about/
 Redirect 301 /about-us /about/
 Redirect 301 /contact-us /contact/
 Redirect 301 /reviews /reviews/
@@ -45,4 +55,5 @@ ErrorDocument 404 /404.html
   ExpiresByType application/javascript "access plus 1 week"
   ExpiresByType image/png "access plus 1 month"
   ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>

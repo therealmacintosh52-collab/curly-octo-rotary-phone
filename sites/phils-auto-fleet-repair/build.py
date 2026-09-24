@@ -37,10 +37,17 @@ if "--out" in sys.argv:                      # build somewhere other than ./publ
 SITE = {
     "name": "Phil's Auto and Fleet Repair",
     "short": "Phil's Auto & Fleet",
-    "base_url": "https://philsautofleet.com",
+    # philsautoandfleet.com is the domain the shop's Google Business Profile
+    # links for appointments. philsautofleet.com and philsautoandfleetrepair.com
+    # are the older hosts and must 301 here (see build_deploy_files).
+    "base_url": "https://philsautoandfleet.com",
+    "host": "philsautoandfleet.com",
+    "legacy_hosts": ["philsautofleet.com", "philsautoandfleetrepair.com"],
     "phone_display": "(209) 647-4953",
     "phone_link": "+12096474953",
-    "email": "phil@philsautofleet.com",
+    # [NEEDS: confirm this mailbox exists. The quote form delivers here via
+    # FormSubmit; a wrong address loses every lead silently.]
+    "email": "phil@philsautoandfleet.com",
     "street": "103 E Elm St",
     "city": "Lodi",
     "region": "CA",
@@ -62,9 +69,15 @@ SITE = {
         {"days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
          "opens": "08:00", "closes": "17:00"},
     ],
+    # Google Business Profile, read 2026-09-24. Update every few months.
     "rating": "4.4",
     "review_count": "83",
-    "areas": ["Lodi", "Stockton", "Galt", "Acampo", "Woodbridge", "Lockeford",
+    # "Reviews from the web" on the same profile.
+    "carfax_rating": "4.6",
+    "carfax_count": "26",
+    "carfax_url": "https://www.carfax.com/Phils-Auto-and-Fleet-Repair-Lodi-CA_bs101148341",
+    # The profile description names Lodi, Stockton, French Camp and Galt.
+    "areas": ["Lodi", "Stockton", "French Camp", "Galt", "Acampo", "Woodbridge", "Lockeford",
               "Victor", "Thornton", "Clements", "Elk Grove"],
     "founded_note": "a locally owned shop serving Lodi drivers and fleets",
     # --- Logo -------------------------------------------------------------
@@ -144,6 +157,7 @@ ICONS = {
     "dollar": '<path d="M12 2v20"/><path d="M17 6.5c0-2-2.2-3-5-3s-5 1-5 3.2S9 10 12 10.5s5 1.3 5 3.4-2.2 3.4-5 3.4-5-1.2-5-3.1"/>',
     "map": '<path d="M9 4 3 6.5v14L9 18l6 2.5 6-2.5v-14L15 6.5z"/><path d="M9 4v14M15 6.5v14"/>',
     "snow": '<path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9"/><path d="M9.5 4.8 12 6.6l2.5-1.8M9.5 19.2 12 17.4l2.5 1.8"/>',
+    "axle": '<path d="M2 12h5M17 12h5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 7.5v9M7.5 12h9"/><path d="M4 9v6M20 9v6"/>',
     "spring": '<path d="M7.5 4h9l-9 4h9l-9 4h9l-9 4h9"/><path d="M6 20h12"/>',
     "camera": '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.6"/>',
     "user": '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
@@ -214,6 +228,8 @@ SERVICES = [
             "Electrical faults, batteries, alternators and starters",
             "Heating and air conditioning service",
             "Scheduled maintenance that keeps your factory intervals on track",
+            "Vintage and classic vehicle repair",
+            "Auto parts sales — the same parts we install",
         ],
         "signs": [
             "A warning light you've been driving with for weeks",
@@ -307,6 +323,7 @@ SERVICES = [
             "Brake fluid exchange and moisture testing",
             "ABS warning light diagnosis and wheel-speed sensor testing",
             "Parking brake adjustment and repair",
+            "Performance brake upgrades — pads, rotors and fluid for towing or spirited driving",
             "Fleet and light-truck brake service",
         ],
         "signs": [
@@ -349,12 +366,14 @@ SERVICES = [
         "includes": [
             "Misfire, rough-idle and low-power diagnosis",
             "Compression and cylinder leak-down testing",
-            "Timing belt and timing chain service",
-            "Head gasket and cooling-system repair",
-            "Oil leak diagnosis and gasket or seal replacement",
+            "Timing belt and timing chain replacement",
+            "Head gasket replacement and cooling-system repair",
+            "Oil leak diagnosis — oil pan gasket, valve cover, rear main and front seals",
+            "Spark plugs, coils and ignition service",
             "Overheating diagnosis — water pumps, thermostats, radiators, fans",
             "Belts, hoses, tensioners and pulleys",
             "Engine replacement when it's the right economic call",
+            "Vintage and old-school engine work — carbureted and pre-OBD vehicles",
         ],
         "signs": [
             "Ticking, knocking or tapping that changes with engine speed",
@@ -400,6 +419,7 @@ SERVICES = [
             "Clutch service for manual transmissions",
             "Axle, CV joint and driveline repair",
             "Transmission cooler and leak repair",
+            "Front and rear differential diagnosis, rebuild and replacement (see Differentials)",
             "Fleet truck and van driveline service",
         ],
         "signs": [
@@ -424,6 +444,59 @@ SERVICES = [
         ],
     },
     {
+        "slug": "differential-repair",
+        "nav": "Differentials",
+        "icon": "axle",
+        "title": "Differential Repair & Rebuild in Lodi, CA",
+        "h1": "Differential Repair and Rebuild in Lodi, CA",
+        "meta": ("Front and rear differential diagnosis, rebuild and replacement in Lodi, CA for "
+                 "trucks, 4x4s, cars and fleet vehicles. Call (209) 647-4953."),
+        "blurb": "Front and rear differential diagnosis, rebuilds and replacement for trucks, 4x4s and cars.",
+        "intro": [
+            "A differential rarely fails all at once. It starts as a whine that changes with speed, a "
+            "clunk when you shift into gear or turn out of a driveway, or a slow leak at the pinion "
+            "seal that nobody notices until the gear oil is gone. Caught early, it's a bearing, a seal "
+            "or a fluid service. Ignored, it's a rebuild.",
+            "We diagnose which one you have before quoting: fluid condition, backlash, bearing noise "
+            "under load, and a road test that separates differential noise from a wheel bearing or a "
+            "tire. Then we tell you whether a rebuild, a replacement unit or a fluid service is the "
+            "right money to spend on this vehicle."
+        ],
+        "includes": [
+            "Differential diagnosis — whine, howl, clunk and leak isolation",
+            "Rear differential rebuild — bearings, seals, ring and pinion setup",
+            "Front differential repair on 4x4 pickups and SUVs",
+            "Complete differential replacement when a rebuild isn't the right call",
+            "Pinion seal, axle seal and cover gasket leak repair",
+            "Gear oil service, limited-slip additive and fill-level correction",
+            "Axle shaft, wheel bearing and driveshaft work found during the inspection",
+            "Work-truck and fleet rear axles under load",
+        ],
+        "signs": [
+            "A whine or howl that rises and falls with road speed, not engine speed",
+            "A clunk when shifting into Drive or Reverse, or when you turn from a stop",
+            "Gear oil on the inside of a wheel, under the rear of the vehicle or at the driveshaft",
+            "Vibration at highway speed that tires and balancing didn't fix",
+            "A 4x4 that binds, grinds or refuses to engage",
+            "Fluid that's black, burnt-smelling or full of metal on the fill plug",
+        ],
+        "faqs": [
+            ("Is the noise the differential or a wheel bearing?",
+             "They sound alike from the driver's seat. Differential noise usually changes when you "
+             "accelerate versus coast; bearing noise usually changes when you swerve left or right. "
+             "We road-test and check both before we quote either one."),
+            ("Rebuild or replace?",
+             "It depends on what's damaged and what the vehicle is worth. A bearing-and-seal rebuild "
+             "on a sound housing is often the best value. If the ring and pinion are chewed up, a "
+             "replacement unit can cost less than the parts and setup time. We'll show you the parts "
+             "and give you both numbers."),
+            ("Can I keep driving it?",
+             "A leak or a light whine can usually wait a short time. A clunk, a grind or metal in the "
+             "fluid can't — a differential that locks up at speed is a safety problem, not a repair "
+             "bill. Call us and we'll tell you honestly which one you have."),
+        ],
+    },
+    {
         "slug": "diesel-repair",
         "nav": "Diesel Repair",
         "icon": "truck",
@@ -444,10 +517,21 @@ SERVICES = [
             "Fuel system service — injectors, lift pumps, filters and fuel contamination",
             "Hard-start, no-start and glow plug system diagnosis",
             "Turbocharger and boost-leak diagnosis",
-            "Emissions system faults — DPF, EGR and related warning lights",
+            "Emissions system faults — DPF, EGR cleaning and related warning lights",
+            "Diesel head gasket replacement",
+            "Water pump and timing cover replacement",
             "Cooling system, belts and hoses for heavy-duty use",
+            "Diesel A/C diagnosis and repair",
+            "Diesel suspension and electrical repair for loaded trucks",
             "Preventive maintenance intervals for work trucks",
             "Brakes, suspension and driveline for loaded vehicles",
+        ],
+        "callouts": [
+            ("2011–2016 Chevy / GMC Duramax 6.6 (LML)",
+             "Own an LML Duramax?",
+             "We work on these trucks regularly. [NEEDS: what the shop's Duramax offer is — a "
+             "specific inspection, a CP4 fuel-pump service, an emissions repair, or pricing.] "
+             "Call the shop and ask about it by name."),
         ],
         "signs": [
             "Hard starting, long crank or white smoke on startup",
@@ -490,7 +574,7 @@ SERVICES = [
             "Scheduled preventive maintenance (PM) programs by mileage or hours",
             "Fleet oil changes, filters and fluid services",
             "Brake, tire, suspension and steering service for loaded vehicles",
-            "Diesel and gas engine diagnosis and repair",
+            "Diesel and gas engine diagnosis, repair and replacement",
             "Pre-trip and safety inspection support",
             "Electrical, charging and battery service across the fleet",
             "Per-vehicle service history so you can plan replacement",
@@ -533,13 +617,22 @@ SERVICES = [
         ],
         "includes": [
             "Conventional, synthetic blend and full synthetic oil changes",
-            "Oil filter, cabin and engine air filter replacement",
+            "Oil filter, cabin and engine air filter replacement (cabin filter available part-only)",
+            "Spark plug replacement at the factory interval",
+            "Windshield wiper blade replacement",
             "Fluid level and condition checks — coolant, brake, transmission, power steering",
             "Tire pressure and tread depth check",
             "Battery and charging system check",
             "Belt, hose and visible leak inspection",
             "Brake inspection while the wheels are accessible",
             "Factory-scheduled maintenance at 30k / 60k / 90k intervals",
+            "Full vehicle inspection with a written list of what's urgent and what can wait",
+        ],
+        "callouts": [
+            ("Free tire rotation",
+             "Free tire rotation and vehicle inspection",
+             "Ask for it when you book. [NEEDS: the qualifying service and any limits — e.g. with any "
+             "oil change, one per visit.]"),
         ],
         "signs": [
             "Oil life monitor or maintenance-required light is on",
@@ -562,28 +655,40 @@ SERVICES = [
     },
     {
         "slug": "tire-repair",
-        "nav": "Tires",
+        "nav": "Tires & Wheels",
         "icon": "tire",
-        "title": "Tire Repair, Rotation & Service in Lodi, CA",
-        "h1": "Tire Repair and Service in Lodi, CA",
-        "meta": ("Tire repair, rotation, balancing and TPMS service in Lodi, CA. Safe, honest, "
-                 "affordable tire care for cars and work trucks. Call (209) 647-4953."),
-        "blurb": "Flat repair, rotation, balancing and TPMS — for daily drivers and work trucks.",
+        "title": "New Tires, Tire Repair & Wheels in Lodi, CA",
+        "h1": "New Tires, Tire Repair and Wheels in Lodi, CA",
+        "meta": ("Brand-new tires including run-flats, flat repair, rotation, balancing, TPMS and rim "
+                 "replacement in Lodi, CA. Cars, trucks and fleets. Call (209) 647-4953."),
+        "blurb": "Brand-new tires and run-flats, flat repair, rotation, balancing, TPMS and rim replacement.",
         "intro": [
-            "Tires are the only part of your car that touches the road, and they're the part most "
-            "often ignored until something goes wrong. We'll tell you honestly whether a tire can be "
-            "safely repaired or whether it needs replacing — the answer depends on where the damage is.",
-            "We also handle the things that make tires last: correct pressures, rotation on schedule, "
-            "balancing, and catching the suspension or alignment problems that chew tires up early."
+            "We sell brand-new tires, including run-flats, and we replace bent or cracked rims — so the "
+            "shop that diagnoses your vibration is the same shop that fixes it. No sending you across "
+            "town with a note.",
+            "When a tire can be saved, we say so. Punctures in the tread can usually be repaired properly; "
+            "sidewall and shoulder damage can't, no matter who tells you otherwise. We'll show you "
+            "which one you have, and we handle the things that make tires last: correct pressures, "
+            "rotation on schedule, balancing, and catching the suspension or alignment problems that "
+            "chew tires up early."
         ],
         "includes": [
+            "Brand-new tires for cars, SUVs, pickups and work trucks [NEEDS: brands stocked or ordered]",
+            "Run-flat tire replacement",
+            "Rim and wheel replacement for bent, cracked or corroded wheels",
             "Flat repair and puncture assessment",
-            "Tire rotation and balancing",
+            "Tire rotation and balancing — free rotation with service [NEEDS: qualifying service]",
             "TPMS (tire pressure sensor) diagnosis and service",
             "Tread depth and wear-pattern inspection",
             "Wear diagnosis — identifying the alignment or suspension cause",
             "Light truck and fleet tire service",
             "Valve stems, pressure setting and load-appropriate inflation",
+        ],
+        "callouts": [
+            ("Free tire rotation",
+             "Free tire rotation and vehicle inspection",
+             "Ask for it when you book. [NEEDS: the qualifying service and any limits — e.g. with any "
+             "oil change, one per visit.]"),
         ],
         "signs": [
             "A tire that keeps going low or a TPMS light that won't stay off",
@@ -594,6 +699,10 @@ SERVICES = [
             "Tread that's low, cracked or older than you can remember",
         ],
         "faqs": [
+            ("Do you sell new tires, or only repair them?",
+             "Both. We sell brand-new tires, including run-flat tires, and replace rims. Tell us the "
+             "vehicle and how you drive it and we'll quote a set that fits the use, not the most "
+             "expensive one on the rack. [NEEDS: brands stocked, typical lead time for ordered sizes]"),
             ("Can my tire be repaired instead of replaced?",
              "It depends on where the damage is. Punctures in the tread area can usually be repaired "
              "properly; sidewall or shoulder damage cannot be repaired safely, no matter who tells "
@@ -623,7 +732,8 @@ SERVICES = [
             "paying for the one component that actually failed."
         ],
         "includes": [
-            "Battery, starter and alternator testing and replacement",
+            "Battery replacement — tested first, replaced only if it's actually the battery",
+            "Starter and alternator testing and replacement",
             "No-start and intermittent-start diagnosis",
             "Parasitic draw testing for batteries that die overnight",
             "Charging system and voltage drop testing",
@@ -664,7 +774,7 @@ SERVICES = [
             "We test the system, find where it's losing charge, and tell you what the actual repair costs. Same approach in winter when the heat stops working — a heater problem is usually a cooling-system problem wearing a disguise.",
         ],
         'includes': [
-            'AC performance testing and system diagnosis',
+            'A/C diagnosis — $89, and you get the findings in writing before any repair',
             'Refrigerant leak detection and repair',
             'Compressor, condenser and evaporator service',
             'Evacuate and recharge to manufacturer specification',
@@ -685,7 +795,7 @@ SERVICES = [
             ("Can't you just top up the refrigerant?",
              "We can, but if the system is low it's leaking, and you'll be back. We'd rather find the leak and tell you what it costs to fix properly."),
             ('How much does AC repair cost?',
-             'It ranges from an inexpensive seal or hose to a compressor replacement. The diagnosis tells us which, and you get the number before we start.'),
+             'A/C diagnosis is $89. The repair ranges from an inexpensive seal or hose to a compressor replacement; the diagnosis tells us which, and you get the number before we start. [NEEDS: is the $89 credited toward the repair?]'),
             ("My heater isn't working. Is that the same system?",
              'Related. Heat comes from engine coolant, so a heater complaint often points at a thermostat, coolant level or heater core issue — all things we test for.'),
         ],
@@ -731,6 +841,109 @@ SERVICES = [
 ]
 
 SERVICE_BY_SLUG = {s["slug"]: s for s in SERVICES}
+
+# --------------------------------------------------------------------------
+# The shop's Google Business Profile "Products" list, deduplicated and mapped
+# to the page that covers it. Wording stays close to the profile because it is
+# what people type into Google; capitalization is normalized once. This list
+# renders on /services/ (grouped), on each service page (as a tag row) and as
+# an OfferCatalog schema block on /services/. Priced items carry their price.
+# Anything the profile lists but the shop hasn't explained is marked [NEEDS].
+# --------------------------------------------------------------------------
+CATALOG = [
+    ("engine-repair", [
+        "Engine repair", "Auto engine repair", "Engine diagnostic", "Head gasket replacement",
+        "Oil pan gasket replacement", "Timing chain replacement", "Timing belt replacement",
+        "Engine replacement", "Overheating diagnosis", "Coolant leak diagnosis",
+        "Oil leak diagnosis", "Vintage / old-school vehicle engine repair",
+    ]),
+    ("tire-repair", [
+        "We sell brand new tires", "Brand new tire replacement", "Brand new run-flat tires",
+        "Tire repair", "Tires and wheels", "Rim replacement", "Tire shop",
+        "Free tire rotation (see details)",
+    ]),
+    ("differential-repair", [
+        "Differential diagnosis", "Front differential repair", "Rear differential rebuild",
+        "Differential rebuild", "Differential replacement",
+    ]),
+    ("transmission-repair", [
+        "Transmission diagnostic", "Transmission repair", "Transmission rebuild",
+        "Transmission maintenance", "Driveline and suspension maintenance",
+    ]),
+    ("diesel-repair", [
+        "Diesel truck repair & maintenance", "Diesel repair", "Diesel engine diagnosis",
+        "Diesel engine repair", "Diesel fuel repair", "Diesel EGR cleaning",
+        "Diesel head gasket replacement", "Diesel water pump & timing cover replacement",
+        "Diesel suspension repair", "Diesel electrical repair", "Diesel A/C diagnostic",
+        "Diesel maintenance", "2011–2016 Chevy Duramax 6.6",
+    ]),
+    ("car-diagnostics", [
+        "Vehicle diagnosis", "Auto diagnostic", "Engine diagnostic", "Charging system diagnostic",
+        "Full vehicle inspection",
+    ]),
+    ("auto-repair", [
+        "Auto repair", "Auto parts", "Vintage / old-school repair", "Vehicle maintenance",
+    ]),
+    ("fleet-services", [
+        "Fleet services and repair", "Fleet repair and maintenance", "Fleet engine repair",
+        "Fleet engine replacement",
+    ]),
+    ("oil-change-maintenance", [
+        "Engine oil change", "Oil change", "Vehicle maintenance", "Spark plug replacement",
+        "Cabin air filter replacement (part only, no labor)", "Windshield wiper replacement",
+        "Full vehicle inspection", "Free tire rotation & vehicle inspection",
+    ]),
+    ("brake-repair", [
+        "Brake services", "Brake repair", "Brake replacement", "Performance brake replacement",
+    ]),
+    ("suspension-steering", [
+        "Auto suspension repair", "Suspension diagnosis", "Driveline and suspension maintenance",
+    ]),
+    ("ac-heating-repair", [
+        "Auto A/C repair", "A/C services", "A/C recharge", "A/C diagnosis",
+    ]),
+    ("electrical-repair", [
+        "Auto electrical repair", "Auto electrical diagnostic", "Battery replacement",
+        "Charging system diagnostic",
+    ]),
+]
+
+# Prices the shop publishes on its Google profile. Everything else is quoted
+# after diagnosis, and the site says so.
+CATALOG_PRICES = {
+    "A/C diagnosis": "89.00",
+}
+
+# Items the profile lists that the shop hasn't given the site terms for.
+CATALOG_NEEDS = {
+    "Free tire rotation (see details)": "qualifying service and limits",
+    "Free tire rotation & vehicle inspection": "qualifying service and limits",
+    "2011–2016 Chevy Duramax 6.6": "what the offer is",
+}
+
+
+def catalog_items(slug):
+    """Deduplicated items for one page, in profile order."""
+    seen, out = set(), []
+    for page, items in CATALOG:
+        if page != slug:
+            continue
+        for item in items:
+            key = " ".join(item.lower().split())
+            if key not in seen:
+                seen.add(key)
+                out.append(item)
+    return out
+
+
+def catalog_label(item):
+    label = esc(item)
+    if item in CATALOG_PRICES:
+        label += ' <b class="price">$%s</b>' % CATALOG_PRICES[item].rstrip("0").rstrip(".")
+    if item in CATALOG_NEEDS:
+        label += ' <span class="needs">[NEEDS: %s]</span>' % esc(CATALOG_NEEDS[item])
+    return label
+
 
 
 # --------------------------------------------------------------------------
@@ -851,9 +1064,9 @@ def brand(on_dark=False):
       <img class="brand-badge%s" src="%s" alt="" width="46" height="46">
       <span class="brand-text">
         <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
-        <span class="brand-sub">Lodi, California</span>
+        <span class="brand-sub">%s · Lodi, CA</span>
       </span>
-    </a>""" % (" brand-badge--chip" if chip else "", src)
+    </a>""" % (" brand-badge--chip" if chip else "", src, SITE["phone_display"])
     return """<a class="brand" href="/">
       <span class="brand-mark" aria-hidden="true">PA</span>
       <span class="brand-text">
@@ -1004,7 +1217,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <title>%(title)s</title>
 <meta name="description" content="%(desc)s">
 <link rel="canonical" href="%(canonical)s">
-%(robots)s<meta name="theme-color" content="#0a0a1f">
+%(robots)s<meta name="theme-color" content="#1f2b5c">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="%(name)s">
 <meta property="og:title" content="%(title)s">
@@ -1025,6 +1238,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <link rel="icon" href="%(favicon)s" type="%(favicon_type)s">
 <link rel="apple-touch-icon" href="%(favicon)s">
 <link rel="manifest" href="/site.webmanifest">
+<link rel="preload" href="/assets/fonts/BarlowCondensed-Bold-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">%(alts)s%(schema)s
 </head>
 <body>
@@ -1106,7 +1320,7 @@ def quote_form(form_id="quote", heading="Get a free quote", sub=None, service_de
   </div>
   <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
   <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
-  <input type="hidden" name="_subject" value="Quote request from philsautofleet.com">
+  <input type="hidden" name="_subject" value="Quote request from %(host)s">
   <input type="hidden" name="_template" value="table">
   <input type="hidden" name="_captcha" value="false">
   <button class="btn btn-accent" type="submit" style="width:100%%">Request my quote</button>
@@ -1115,7 +1329,7 @@ def quote_form(form_id="quote", heading="Get a free quote", sub=None, service_de
     <a href="tel:%(tel)s" data-loc="form-note">Call %(phone)s</a>.</p>
 </form>""" % {"id": form_id, "action": FORM_ENDPOINT, "email": SITE["email"], "heading": esc(heading),
               "sub": esc(sub), "opts": "".join(opts), "tel": SITE["phone_link"],
-              "phone": SITE["phone_display"]}
+              "phone": SITE["phone_display"], "host": SITE["host"]}
 
 
 def cta_band(heading="Ready to get a straight answer about your vehicle?",
@@ -1141,12 +1355,14 @@ def stat_band(es=False):
     """Overlapping card that lifts the four strongest trust signals out of the
     hero and into the eye-line of someone deciding whether to call."""
     stats = [
-        ("star", "%s de 5" % SITE["rating"], "%s reseñas de Google" % SITE["review_count"]),
+        ("star", "%s de 5" % SITE["rating"],
+         "%s reseñas de Google · %s en CARFAX" % (SITE["review_count"], SITE["carfax_rating"])),
         ("shield", "Primero el diagnóstico", "Probamos antes de cambiar piezas"),
         ("truck", "Autos · Diésel · Flotas", "Un taller para todo lo que maneja"),
         ("clock", "Abierto seis días", "Lunes a sábado, 8 AM – 5 PM"),
     ] if es else [
-        ("star", "%s out of 5" % SITE["rating"], "%s Google reviews" % SITE["review_count"]),
+        ("star", "%s out of 5" % SITE["rating"],
+         "%s Google reviews · %s on CARFAX" % (SITE["review_count"], SITE["carfax_rating"])),
         ("shield", "Diagnosis first", "We test before we replace parts"),
         ("truck", "Auto · Diesel · Fleet", "One shop for every vehicle you run"),
         ("clock", "Open six days", "Mon–Sat, 8:00 AM – 5:00 PM"),
@@ -1167,10 +1383,9 @@ def listed_on():
 
 
 def angle_divider(fill="#ffffff"):
-    """Slanted transition out of a dark block into the section below."""
-    return ('<div class="angle-bottom" aria-hidden="true">'
-            '<svg viewBox="0 0 1440 80" preserveAspectRatio="none">'
-            '<path d="M0 80 1440 0v80z" fill="%s"/></svg></div>' % fill)
+    """Retired. The sign-panel system is rectilinear; dark blocks end on a
+    hard edge. Kept so the call sites stay put."""
+    return ""
 
 
 def photo_slot(caption, badge="Inside the shop"):
@@ -1202,15 +1417,69 @@ def service_cards(slugs=None, limit=None):
     items = [SERVICE_BY_SLUG[s] for s in slugs] if slugs else SERVICES
     if limit:
         items = items[:limit]
-    return "".join(
-        """<a class="card" href="/services/%s/">
-  <span class="card-ico">%s</span>
-  <h3>%s</h3>
-  <p>%s</p>
-  <span class="more">Learn more %s</span>
-</a>""" % (s["slug"], icon(s["icon"]), esc(s["nav"]), esc(s["blurb"]), icon("arrow"))
-        for s in items
-    )
+    # A posted services board, not an icon card grid: numbered, ruled rows.
+    rows = "".join(
+        """<li><a class="svc-row" href="/services/%s/">
+  %s
+  <span class="svc-body"><span class="svc-name">%s</span><span class="svc-blurb">%s</span></span>
+  <span class="svc-go">%s</span>
+</a></li>""" % (s["slug"], icon(s["icon"]), esc(s["nav"]), esc(s["blurb"]), icon("arrow"))
+        for s in items)
+    return '<ol class="svc-board">%s</ol>' % rows
+
+
+def catalog_section():
+    """Every profile item, grouped under the page that covers it. Rendered as
+    a work-order list: numbered groups, ruled rows."""
+    groups = []
+    for n, s in enumerate(SERVICES, 1):
+        items = catalog_items(s["slug"])
+        if not items:
+            continue
+        rows = "".join("<li>%s</li>" % catalog_label(i) for i in items)
+        groups.append(
+            '<section class="ro-group" id="all-%s" aria-labelledby="all-%s-h">'
+            '<h3 id="all-%s-h"><span class="ro-num">%02d</span>'
+            '<a href="/services/%s/">%s</a></h3><ul class="ro-items">%s</ul></section>'
+            % (s["slug"], s["slug"], s["slug"], n, s["slug"], esc(s["nav"]), rows))
+    return '<div class="ro-groups">%s</div>' % "".join(groups)
+
+
+def catalog_tags(slug):
+    items = catalog_items(slug)
+    if not items:
+        return ""
+    tags = "".join('<li>%s</li>' % catalog_label(i) for i in items)
+    return ('<div class="listed-as"><h2>Listed on our Google profile as</h2>'
+            '<ul class="tag-row">%s</ul></div>' % tags)
+
+
+def catalog_schema():
+    """OfferCatalog for /services/ only, so every other page's JSON-LD stays
+    small. Priced items carry their price; the rest are quoted after diagnosis."""
+    offers = []
+    for s in SERVICES:
+        for item in catalog_items(s["slug"]):
+            name = item.split(" [")[0]
+            price = CATALOG_PRICES.get(item)
+            offer = ('{"@type":"Offer","itemOffered":{"@type":"Service","name":%s,"url":"%s/services/%s/",'
+                     '"provider":{"@id":"%s/#business"}}'
+                     % (jstr(name), SITE["base_url"], s["slug"], SITE["base_url"]))
+            if price:
+                offer += ',"price":"%s","priceCurrency":"USD"' % price
+            offers.append(offer + "}")
+    return ('{"@context":"https://schema.org","@type":"OfferCatalog",'
+            '"@id":"%s/services/#catalog","name":"Services at %s",'
+            '"url":"%s/services/","itemListElement":[%s]}'
+            % (SITE["base_url"], SITE["name"], SITE["base_url"], ",".join(offers)))
+
+
+def callouts_html(s):
+    out = []
+    for eyebrow, heading, body in s.get("callouts", []):
+        out.append('<aside class="callout"><span class="eyebrow">%s</span><h3>%s</h3><p>%s</p></aside>'
+                   % (esc(eyebrow), esc(heading), esc(body)))
+    return "".join(out)
 
 
 # Verified, attributed customer feedback only. Add new entries here as the
@@ -1232,6 +1501,13 @@ REVIEWS = [
     {"quote": "GREAT SERVICE! Above and beyond expectations!! Completed service on schedule!! "
               "I will be bringing my cars here from now on!",
      "name": "Verified customer", "source": "MapQuest", "url": ""},
+    # The three snippets Google shows on the Business Profile (read 2026-09-24).
+    {"quote": "Did great service and reasonable price for 60k service on my jeep wrangler.",
+     "name": "Eric G.", "source": "Google", "url": ""},
+    {"quote": "I would and will gladly refer this place for a job well done and a fair price.",
+     "name": "Anthony P.", "source": "Google", "url": ""},
+    {"quote": "Quick diagnostic quick repair and good prices.",
+     "name": "Alan F.", "source": "Google", "url": ""},
 ]
 
 REVIEW_THEMES = [
@@ -1257,10 +1533,9 @@ def review_cards():
 
 
 def rating_line(light=False):
-    cls = "rating-text" if light else "rating-text"
-    return ('<div class="rating">%s<span class="%s"><strong>%s out of 5</strong> from %s Google '
-            'reviews · Rated on Yelp and Nextdoor too</span></div>'
-            % (stars(), cls, SITE["rating"], SITE["review_count"]))
+    return ('<div class="rating">%s<span class="rating-text"><strong>%s out of 5</strong> from %s '
+            'Google reviews · <strong>%s out of 5</strong> on CARFAX</span></div>'
+            % (stars(), SITE["rating"], SITE["review_count"], SITE["carfax_rating"]))
 
 
 # --------------------------------------------------------------------------
@@ -1330,7 +1605,7 @@ def build_home():
       <p>One shop for your car, your truck and your whole fleet — with the same diagnosis-first
       approach on every one of them.</p>
     </div>
-    <div class="grid g3">{service_cards()}</div>
+    {service_cards()}
     <p class="center" style="margin-top:30px"><a class="btn btn-outline" href="/services/">See all services {icon("arrow")}</a></p>
   </div>
 </section>
@@ -1455,7 +1730,7 @@ def build_home():
         <span class="eyebrow">Find us</span>
         <h2>Downtown Lodi, minutes from Highway 99</h2>
         <p>We're at <strong>{esc(FULL_ADDRESS)}</strong>. Drivers come to us from across San Joaquin
-        County — Stockton, Galt, Acampo, Woodbridge, Lockeford and Victor included.</p>
+        County — Stockton, French Camp, Galt, Acampo, Woodbridge, Lockeford and Victor included.</p>
         <table class="hours">
           <caption class="sr-only">Business hours</caption>
           <tbody>
@@ -1469,7 +1744,6 @@ def build_home():
       </div>
       <div>
         <iframe class="map-frame" src="{MAPS_EMBED}" title="Map showing Phil's Auto and Fleet Repair at {esc(FULL_ADDRESS)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-    <p class="map-note"><a href="{MAPS_LISTING}" rel="noopener">Open {esc(FULL_ADDRESS)} in Google Maps {icon("arrow")}</a></p>
         <p class="map-note"><a href="{MAPS_LISTING}" rel="noopener">Open {esc(FULL_ADDRESS)} in Google Maps {icon("arrow")}</a></p>
       </div>
     </div>
@@ -1537,6 +1811,8 @@ def build_service(s):
         {intro_html}
         <h2>What this service covers</h2>
         <ul class="checklist">{includes}</ul>
+        {callouts_html(s)}
+        {catalog_tags(s["slug"])}
         <h2 style="margin-top:1.8em">Signs it's time to call us</h2>
         <ul>{signs}</ul>
         <p>If any of these sound like your vehicle, call <a href="tel:{SITE["phone_link"]}"
@@ -1600,15 +1876,24 @@ def build_services_index():
 
 <section>
   <div class="wrap">
-    <div class="grid g3">{service_cards()}</div>
+    {service_cards()}
   </div>
 </section>
 
-<section class="bg-alt">
+<section class="bg-alt" id="everything">
+  <div class="wrap">
+    <div class="sec-head"><span class="eyebrow">The full list</span>
+      <h2>Everything we do, as listed on our Google profile</h2>
+      <p>Every service the shop lists on Google, grouped under the page that explains it. Prices
+      shown are the ones we publish; everything else is quoted after diagnosis, before any work.</p></div>
+    {catalog_section()}
+  </div>
+</section>
+
+<section>
   <div class="wrap narrow">
     <h2>Don't see what you need?</h2>
-    <p>This list covers the work that comes through the shop most often, but it isn't everything we
-    do. If your vehicle has a problem that isn't on this page — or you don't know what to call it —
+    <p>If your vehicle has a problem that isn't on this page — or you don't know what to call it —
     describe it to us and we'll tell you honestly whether it's work we can take on.</p>
     <p>We service domestic and import cars, trucks, SUVs and vans, diesel pickups and work trucks,
     and mixed commercial fleets.</p>
@@ -1623,7 +1908,7 @@ def build_services_index():
            "Complete list of services at Phil's Auto and Fleet Repair in Lodi, CA — repair, "
            "diagnostics, brakes, diesel, fleet maintenance and more. (209) 647-4953.",
            body,
-           schemas=[business_schema(), breadcrumb_schema(trail)],
+           schemas=[business_schema(), catalog_schema(), breadcrumb_schema(trail)],
            active="/services/")
     PAGES.append(("/services/", "0.9", "monthly"))
 
@@ -1716,10 +2001,12 @@ def build_reviews():
   <div class="wrap">
     {crumbs_html(trail)}
     <h1>Reviews of Phil's Auto and Fleet Repair</h1>
-    <p>Rated {SITE["rating"]} out of 5 across {SITE["review_count"]} Google reviews, with more on
-    Yelp and Nextdoor. Here's what customers in Lodi keep saying.</p>
+    <p>Rated {SITE["rating"]} out of 5 across {SITE["review_count"]} Google reviews and
+    {SITE["carfax_rating"]} out of 5 across {SITE["carfax_count"]} on CARFAX, with more on Yelp
+    and Nextdoor. Here's what customers in Lodi keep saying.</p>
     <div class="btn-row">
       <a class="btn btn-accent" href="{MAPS_LISTING}" rel="noopener">Read reviews on Google</a>
+      <a class="btn btn-ghost" href="{SITE["carfax_url"]}" rel="noopener">Read reviews on CARFAX</a>
       <a class="btn btn-ghost" href="{YELP_URL}" rel="noopener">Read reviews on Yelp</a>
     </div>
   </div>
@@ -1959,8 +2246,8 @@ def build_404():
   <a class="btn btn-ghost" href="/services/">Browse services</a></div></div></div>
 <section><div class="wrap">
   <div class="sec-head"><h2>Popular pages</h2></div>
-  <div class="grid g3">{service_cards(["auto-repair", "car-diagnostics", "diesel-repair",
-                                        "fleet-services", "brake-repair", "oil-change-maintenance"])}</div>
+  {service_cards(["auto-repair", "car-diagnostics", "diesel-repair",
+                                        "fleet-services", "brake-repair", "oil-change-maintenance"])}
   {angle_divider()}
 </div></section>"""
     render("/404/", seo_title("Page Not Found"),
@@ -2276,6 +2563,13 @@ OLD_URL_MAP = [
     ("/fleet-services", "/services/fleet-services/"),
     ("/ac-repair", "/services/ac-heating-repair/"),
     ("/electrical", "/services/electrical-repair/"),
+    # Paths the search index still shows for the old philsautofleet.com site
+    ("/services/vehicle-inspection", "/services/car-diagnostics/"),
+    ("/services/car-maintenance", "/services/oil-change-maintenance/"),
+    ("/services/auto-electrical-repair", "/services/electrical-repair/"),
+    ("/areas-of-service/lodi-auto-service", "/service-areas/"),
+    ("/areas-of-service", "/service-areas/"),
+    ("/gallery", "/about/"),
     ("/about-us", "/about/"),
     ("/contact-us", "/contact/"),
     ("/reviews", "/reviews/"),
@@ -2296,7 +2590,7 @@ def build_deploy_files():
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0a0a1f",
+  "theme_color": "#1f2b5c",
   "icons": [
     { "src": "%s", "sizes": "80x80", "type": "image/png", "purpose": "any" }
   ]
@@ -2311,6 +2605,11 @@ def build_deploy_files():
     lines += ["",
               "# Trailing-slash variants",
               ] + ["%-26s %-38s 301!" % (old + "/", new) for old, new in OLD_URL_MAP]
+    lines += ["",
+              "# Older hostnames -> the canonical one (add each domain to the site first)",
+              ] + ["https://%-56s %s/:splat 301!" % (h + "/*", SITE["base_url"])
+                   for h in ["www." + SITE["host"]] + SITE["legacy_hosts"]
+                   for h in (h, "www." + h) if not h.startswith("www.www.")]
     with open(os.path.join(OUT, "_redirects"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines) + "\n")
 
@@ -2325,11 +2624,21 @@ def build_deploy_files():
 /assets/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
+# The display font never changes without a rename
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 """)
 
-    # Apache / cPanel hosts
+    # Apache / cPanel hosts. Every other hostname the shop has used (www, the
+    # two older domains) lands on the canonical one, path preserved.
+    host_rules = "\n".join(
+        "RewriteCond %%{HTTP_HOST} ^(www\\.)?%s$ [NC]\nRewriteRule ^(.*)$ %s/$1 [R=301,L]"
+        % (h.replace(".", "\\."), SITE["base_url"])
+        for h in ["www." + SITE["host"]] + SITE["legacy_hosts"]
+    ).replace("^(www\\.)?www\\.", "^www\\.")
     rules = "\n".join("Redirect 301 %s %s" % (old, new) for old, new in OLD_URL_MAP)
     with open(os.path.join(OUT, ".htaccess"), "w", encoding="utf-8") as fh:
         fh.write("""# Phil's Auto and Fleet Repair — Apache configuration
@@ -2338,11 +2647,10 @@ def build_deploy_files():
 
 RewriteEngine On
 
-# One canonical hostname: https://philsautofleet.com
+# One canonical hostname: %s
 RewriteCond %%{HTTPS} off
 RewriteRule ^(.*)$ https://%%{HTTP_HOST}/$1 [R=301,L]
-RewriteCond %%{HTTP_HOST} ^www\\.philsautofleet\\.com [NC]
-RewriteRule ^(.*)$ https://philsautofleet.com/$1 [R=301,L]
+%s
 
 # Old page URLs -> new equivalents
 %s
@@ -2358,8 +2666,9 @@ ErrorDocument 404 /404.html
   ExpiresByType application/javascript "access plus 1 week"
   ExpiresByType image/png "access plus 1 month"
   ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>
-""" % rules)
+""" % (SITE["base_url"], host_rules, rules))
 
 
 # --------------------------------------------------------------------------
@@ -2375,7 +2684,8 @@ def build_spanish():
         ("gears", "Transmisión", "Diagnóstico y reparación, automática y manual."),
         ("truck", "Diésel y flotas", "Camionetas de trabajo y flotas comerciales."),
         ("drop", "Cambio de aceite", "Servicio programado con inspección de verdad."),
-        ("tire", "Llantas", "Reparación de ponchaduras, rotación y balanceo."),
+        ("tire", "Llantas nuevas y rines", "Vendemos llantas nuevas y run-flat; reparación, rotación y balanceo."),
+        ("axle", "Diferenciales", "Diagnóstico, reconstrucción y reemplazo, delantero y trasero."),
         ("bolt", "Eléctrico y baterías", "No arranca, alternador, marcha y corrientes parásitas."),
     ]
     cards = "".join(
@@ -2419,7 +2729,7 @@ def build_spanish():
             <textarea id="es-mensaje" name="message" placeholder="Ruidos, luces del tablero, cuándo empezó, y qué le dijeron en otro taller."></textarea></div>
           <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
           <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
-          <input type="hidden" name="_subject" value="Cotización desde philsautofleet.com">
+          <input type="hidden" name="_subject" value="Cotización desde {SITE["host"]}">
           <input type="hidden" name="_template" value="table">
           <input type="hidden" name="_captcha" value="false">
           <button class="btn btn-accent" type="submit" style="width:100%">Enviar solicitud</button>
