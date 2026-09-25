@@ -82,6 +82,19 @@
     /* The autoplay policy checks the property, not just the attribute. */
     video.muted = true;
     video.defaultMuted = true;
+    /* v2: the source is held back until the page has loaded so the clip does
+       not compete with the poster image for bandwidth on slow connections. */
+    var pending = video.querySelector("source[data-src]");
+    if (pending) {
+      var attach = function () {
+        pending.setAttribute("src", pending.getAttribute("data-src"));
+        pending.removeAttribute("data-src");
+        video.load();
+        tryPlay();
+      };
+      if (document.readyState === "complete") attach();
+      else window.addEventListener("load", attach, { once: true });
+    }
     function tryPlay() {
       if (hero.classList.contains("is-playing")) return;
       var attempt = video.play();

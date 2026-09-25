@@ -6,7 +6,7 @@ export const extraGuides = [
     slug: 'fleet-maintenance-schedule',
     nav: 'A fleet maintenance schedule that actually gets followed',
     title: 'Fleet Maintenance Schedule for Work Trucks, Lodi CA',
-    meta: 'A preventive maintenance schedule for work trucks and vans that fits real routes, from a Lodi fleet shop. What to check, how often, and what downtime costs.',
+    meta: 'A preventive maintenance schedule for work trucks and vans that fits real routes, from a Lodi fleet shop. What to check, how often, what downtime costs.',
     blurb: 'What to check, how often, and how to keep the schedule from dying in a glovebox.',
     icon: 'truck',
     sections: [

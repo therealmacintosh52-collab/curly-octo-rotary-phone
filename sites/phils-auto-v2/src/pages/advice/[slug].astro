@@ -22,7 +22,7 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').repla
   <section>
     <div class="wrap narrow">
       <nav class="panel" aria-label="On this page" style="margin-bottom:2em">
-        <h3 style="margin-bottom:.5em">On this page</h3>
+        <p style="margin-bottom:.5em;font-family:var(--font-display);font-weight:700;font-size:1.22rem">On this page</p>
         <ol style="margin:0">{toc.map((h: string) => <li><a href={`#${slugify(h)}`}>{h}</a></li>)}</ol>
       </nav>
       {g.sections.map(([heading, kind, items]: [string, string, string[]]) => (

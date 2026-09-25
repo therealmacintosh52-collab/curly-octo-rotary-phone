@@ -1,30 +1,18 @@
-/* Home hero, WebGL layer.
-   The DOM <video> of the shop is the hero. This island puts that same
+/* Home hero, WebGL layer. Loaded on demand by scripts/hero-story.ts only
+   on desktops with GPU tier 2+, after load and idle time.
+   The DOM <video> of the shop is the hero. This scene puts that same
    video (decoded once, used as a texture) inside a space with depth,
-   adds dust and light in front of it, and drives the scroll story:
-   three procedural parts cross the scene as the text beats swap.
-
-   Mount rules, in order:
-   - waits for the load event + idle time, so the poster and H1 paint first
-   - phones (< 881px) never get WebGL: the DOM layout is the hero there
-   - detect-gpu tier 0–1: no WebGL, poster + video only (logged)
-   - tier 2: scene without post-processing, fewer dust points
-   - tier 3: everything
-   - prefers-reduced-motion: no scroll story, idle drift only          */
-import { useEffect, useMemo, useRef, useState } from 'react';
+   adds dust and light in front of it, and animates three procedural
+   parts across the scene as the scroll story (driven from hero-story.ts
+   through lib/story.ts) advances. Tier 2 gets fewer dust points; tier 3
+   gets everything. */
+import { useEffect, useMemo, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, Lightformer } from '@react-three/drei';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
-
-type Props = { heroId: string; videoId: string };
-
-/** Shared, mutable story state: scroll progress 0–1 and normalised mouse. */
-const story = { p: 0, mx: 0, my: 0 };
+import { story } from '../../lib/story';
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const smooth = (t: number) => { const c = Math.min(1, Math.max(0, t)); return c * c * (3 - 2 * c); };
@@ -175,6 +163,18 @@ function Part({ window: [a, b], children, y = 0, scale = 1, spin = 1 }: { window
   return <group ref={ref} visible={false}>{children}</group>;
 }
 
+/* ---------------- studio reflections, generated on the GPU (no download) ------ */
+function Studio() {
+  const { gl, scene } = useThree();
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = env;
+    return () => { scene.environment = null; env.dispose(); pmrem.dispose(); };
+  }, [gl, scene]);
+  return null;
+}
+
 /* ---------------- the video surface + scene ---------------------------------- */
 function Scene({ video, tier, reduce, onFirstFrame }: { video: HTMLVideoElement; tier: number; reduce: boolean; onFirstFrame: () => void }) {
   const { viewport } = useThree();
@@ -228,111 +228,50 @@ function Scene({ video, tier, reduce, onFirstFrame }: { video: HTMLVideoElement;
         <Part window={[0.66, 0.96]} scale={0.9} spin={1.6}><Bolts /></Part>
         <Dust count={tier >= 3 ? 160 : 60} z={[2.2, 3.6]} spread={[16, 10]} size={0.16} rate={1.8} speed={0.05} />
       </group>
-      {/* studio-style environment built from light panels: nothing to download */}
-      <Environment resolution={256} frames={1}>
-        <Lightformer intensity={5} position={[0, 4, -3]} scale={[9, 2, 1]} form="rect" />
-        <Lightformer intensity={2.5} color="#8b7dff" position={[-6, 0, -2]} scale={[1, 7, 1]} form="rect" />
-        <Lightformer intensity={3.5} position={[6, 1, 1]} scale={[2, 5, 1]} form="rect" />
-        <Lightformer intensity={1.2} position={[0, -5, 0]} scale={[10, 1, 1]} form="rect" />
-      </Environment>
+      <Studio />
       <spotLight position={[3.5, 5, 4]} intensity={60} angle={0.5} penumbra={0.9} color="#ffffff" />
       <pointLight position={[-4, -2, 3]} intensity={8} color="#8b7dff" />
     </>
   );
 }
 
-/* ---------------- island ---------------------------------------------------- */
-export default function HeroScene({ heroId, videoId }: Props) {
-  const [tier, setTier] = useState<number | null>(null);
-  const [ready, setReady] = useState(false);
-  const [active, setActive] = useState(true);
-  const reduce = useMemo(() => matchMedia('(prefers-reduced-motion: reduce)').matches, []);
-  const desktop = useMemo(() => matchMedia('(min-width: 881px)').matches, []);
+/* ---------------- mount ------------------------------------------------------ */
+type Opts = { video: HTMLVideoElement; tier: number; reduce: boolean; onReady: () => void };
 
-  // 1. scroll story + beats (DOM only, no WebGL needed) + mouse + visibility
-  useEffect(() => {
-    const hero = document.getElementById(heroId);
-    if (!hero) return;
-    if (!desktop || reduce) { hero.classList.add('no-story'); return; }
-    hero.classList.add('has-story');
-    const beats = Array.from(hero.querySelectorAll<HTMLElement>('[data-beat]'));
-    const dots = Array.from(hero.querySelectorAll<HTMLElement>('.v2-progress i'));
-    let current = -1;
-    const setBeat = (b: number) => {
-      if (b === current) return;
-      current = b;
-      beats.forEach((el) => el.classList.toggle('is-active', Number(el.dataset.beat) === b));
-      dots.forEach((d, i) => d.classList.toggle('is-on', i <= b));
-    };
-    setBeat(0);
-    const st = ScrollTrigger.create({
-      trigger: hero, start: 'top top', end: 'bottom bottom', scrub: true,
-      onUpdate: (self) => { story.p = self.progress; setBeat(Math.min(3, Math.floor(self.progress * 4 + 0.0001))); },
-    });
-    const onMove = (e: PointerEvent) => { story.mx = (e.clientX / innerWidth) * 2 - 1; story.my = (e.clientY / innerHeight) * 2 - 1; };
-    window.addEventListener('pointermove', onMove, { passive: true });
-    let inView = true;
-    const io = new IntersectionObserver(([en]) => { inView = en.isIntersecting; setActive(inView && !document.hidden); });
-    io.observe(hero);
-    const onVis = () => setActive(inView && !document.hidden);
-    document.addEventListener('visibilitychange', onVis);
-    return () => { st.kill(); window.removeEventListener('pointermove', onMove); io.disconnect(); document.removeEventListener('visibilitychange', onVis); };
-  }, []);
-
-  // 2. decide the tier after the page has painted
-  useEffect(() => {
-    if (!desktop) { console.info('[hero] phone layout: WebGL skipped by design'); setTier(0); return; }
-    let cancelled = false;
-    // ?gpu=0..3 forces a tier (testing, screenshots, and for the owner to compare)
-    const forced = new URLSearchParams(location.search).get('gpu');
-    const start = async () => {
-      try {
-        if (forced !== null) {
-          console.info(`[hero] GPU tier forced to ${forced} via ?gpu=`);
-          if (!cancelled) setTier(Number(forced));
-          return;
-        }
-        const { getGPUTier } = await import('detect-gpu');
-        const g = await getGPUTier();
-        console.info(`[hero] GPU tier ${g.tier}${g.gpu ? ` (${g.gpu})` : ''} → ${g.tier >= 2 ? 'WebGL scene' : 'poster + video only'}`);
-        if (!cancelled) setTier(g.tier);
-      } catch (err) {
-        console.info('[hero] GPU detection failed, using poster + video only', err);
-        if (!cancelled) setTier(0);
-      }
-    };
-    const idle = (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 250));
-    if (document.readyState === 'complete') idle(start);
-    else window.addEventListener('load', () => idle(start), { once: true });
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    if (ready) document.getElementById(heroId)?.classList.add('has-webgl');
-  }, [ready]);
-
-  if (tier === null || tier < 2) return null;
-  const video = document.getElementById(videoId) as HTMLVideoElement | null;
-  if (!video) return null;
-
+function App({ video, tier, reduce, active, onReady }: Opts & { active: boolean }) {
   return (
-    <div className={'v2-canvas' + (ready ? ' is-ready' : '')} aria-hidden="true">
-      <Canvas
-        dpr={[1, 1.5]}
-        frameloop={active ? 'always' : 'never'}
-        camera={{ fov: 40, position: [0, 0, 6], near: 0.1, far: 40 }}
-        gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
-        onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.setClearColor('#0a0a1f'); }}
-      >
-        <Scene video={video} tier={tier} reduce={reduce} onFirstFrame={() => setReady(true)} />
-        {tier >= 2 && (
-          <EffectComposer multisampling={0}>
-            <Bloom luminanceThreshold={0.9} intensity={0.35} mipmapBlur />
-            <Vignette darkness={0.28} offset={0.32} />
-            <Noise opacity={0.04} />
-          </EffectComposer>
-        )}
-      </Canvas>
-    </div>
+    <Canvas
+      dpr={[1, 1.5]}
+      frameloop={active ? 'always' : 'never'}
+      camera={{ fov: 40, position: [0, 0, 6], near: 0.1, far: 40 }}
+      gl={{ antialias: true, powerPreference: 'high-performance', alpha: false }}
+      onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.setClearColor('#0a0a1f'); }}
+    >
+      <Scene video={video} tier={tier} reduce={reduce} onFirstFrame={onReady} />
+      {tier >= 2 && (
+        <EffectComposer multisampling={0}>
+          <Bloom luminanceThreshold={0.9} intensity={0.35} mipmapBlur />
+          <Vignette darkness={0.28} offset={0.32} />
+          <Noise opacity={0.04} />
+        </EffectComposer>
+      )}
+    </Canvas>
   );
+}
+
+/** Mounts the scene into the hero stage. Returns a handle to pause/resume the render loop. */
+export function mountScene(stage: HTMLElement, opts: Opts) {
+  const host = document.createElement('div');
+  host.className = 'v2-canvas';
+  host.setAttribute('aria-hidden', 'true');
+  stage.insertBefore(host, stage.querySelector('.video-hero__content'));
+  const root = createRoot(host);
+  let active = true;
+  let ready = false;
+  const render = () => root.render(<App {...opts} active={active} onReady={() => { if (ready) return; ready = true; host.classList.add('is-ready'); opts.onReady(); }} />);
+  render();
+  return {
+    setActive(on: boolean) { if (on !== active) { active = on; render(); } },
+    unmount() { root.unmount(); host.remove(); },
+  };
 }

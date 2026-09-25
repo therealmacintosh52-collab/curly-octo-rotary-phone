@@ -1,8 +1,14 @@
 ---
 import Icon from '../Icon.astro';
-import HeroScene from './HeroScene';
 import { site, mapsDirections } from '../../lib/seo';
 ---
+<!-- Decide the story layout before first paint so the hero never resizes
+     after it has rendered (that resize was a measurable layout shift). -->
+<script is:inline>
+  if (matchMedia('(min-width: 881px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.write('<style>#hero.v2-hero{height:320vh}#hero .v2-stage{position:sticky;top:0;height:100vh;height:100svh}</style>');
+  }
+</script>
 <section class="video-hero v2-hero" id="hero" data-video-hero>
   <div class="v2-stage">
     <picture class="v2-poster" aria-hidden="true">
@@ -10,13 +16,13 @@ import { site, mapsDirections } from '../../lib/seo';
       <source type="image/webp" srcset="/assets/img/shop-bay-poster.webp">
       <img src="/assets/img/shop-bay-poster.jpg" width="1280" height="720" alt="" fetchpriority="high" decoding="async">
     </picture>
-    <video class="video-hero__media" id="hero-video" autoplay muted loop playsinline preload="auto"
+    <!-- The source is attached by legacy.js once the page has loaded, so the
+         2 MB clip never competes with the poster (the LCP element) for bandwidth. -->
+    <video class="video-hero__media" id="hero-video" autoplay muted loop playsinline preload="none"
            disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1"
            data-poster="/assets/img/shop-bay-poster.jpg">
-      <source src="/assets/video/shop-bay.mp4" type="video/mp4">
+      <source data-src="/assets/video/shop-bay.mp4" type="video/mp4">
     </video>
-
-    <HeroScene client:only="react" heroId="hero" videoId="hero-video" />
 
     <div class="wrap video-hero__content">
       <span class="video-hero__hint" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Tap anywhere to play the video</span>
@@ -73,6 +79,8 @@ import { site, mapsDirections } from '../../lib/seo';
     <div class="v2-progress" aria-hidden="true"><i class="is-on"></i><i></i><i></i><i></i></div>
   </div>
 </section>
+
+<script src="../../scripts/hero-story.ts"></script>
 
 <style>
   .v2-lede { color: #d6e2ec; font-size: 1.12rem; max-width: 46ch; margin: 0 0 22px; }

@@ -18,11 +18,11 @@ const year = new Date().getFullYear();
         dealership, for drivers and businesses that need the truth about their vehicles.</p>
       </div>
       <div>
-        <h4>Services</h4>
+        <h3 class="footer-h">Services</h3>
         <ul>{services.map((s: any) => <li><a href={`/services/${s.slug}/`}>{s.nav}</a></li>)}</ul>
       </div>
       <div>
-        <h4>Shop</h4>
+        <h3 class="footer-h">Shop</h3>
         <ul>
           <li><a href="/">Home</a></li>
           <li><a href="/services/">All Services</a></li>
@@ -35,7 +35,7 @@ const year = new Date().getFullYear();
         </ul>
       </div>
       <div>
-        <h4>Visit or Call</h4>
+        <h3 class="footer-h">Visit or Call</h3>
         <ul>
           <li><a href={mapsDirections} rel="noopener">{site.street}<br>{site.city}, {site.region} {site.zip}</a></li>
           <li><a href={`tel:${site.phone_link}`} data-loc="footer">{site.phone_display}</a></li>

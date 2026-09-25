@@ -10,7 +10,8 @@ export default defineConfig({
   site: 'https://philsautofleet.com',
   output: 'static',
   trailingSlash: 'always',
-  build: { format: 'directory', inlineStylesheets: 'auto', assets: 'static' },
+  // one stylesheet, inlined: saves a render-blocking round trip on mobile
+  build: { format: 'directory', inlineStylesheets: 'always', assets: 'static' },
   integrations: [
     react(),
     sitemap({

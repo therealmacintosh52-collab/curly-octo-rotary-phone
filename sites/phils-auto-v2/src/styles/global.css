@@ -3,9 +3,24 @@
    legacy.css so every ported section renders identically; v2 adds the
    type pair, the hero stage, the scroll-story beats, cursor and marquee. */
 @import "tailwindcss";
-@import "@fontsource-variable/inter";
-@import "@fontsource-variable/space-grotesk";
 @import "./legacy.css";
+
+/* Self-hosted variable fonts, Latin and Latin-1 subsets only (English + Spanish).
+   font-display: optional means the first visit on a slow connection paints
+   with the metric-matched fallback and never shifts; every visit after that
+   has the fonts cached. */
+@font-face { font-family: "Inter Variable"; font-style: normal; font-weight: 100 900; font-display: optional;
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Inter Variable"; font-style: normal; font-weight: 100 900; font-display: optional;
+  src: url("/fonts/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Space Grotesk Variable"; font-style: normal; font-weight: 300 700; font-display: optional;
+  src: url("/fonts/space-grotesk-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Space Grotesk Variable"; font-style: normal; font-weight: 300 700; font-display: optional;
+  src: url("/fonts/space-grotesk-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 
 :root {
   --font: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -19,7 +34,25 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 .lenis.lenis-stopped { overflow: hidden; }
 
+/* Metric-matched fallbacks so the swap to the web fonts does not shift layout. */
+@font-face {
+  font-family: "Inter Fallback"; src: local("Arial");
+  size-adjust: 107.12%; ascent-override: 90.49%; descent-override: 22.56%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Space Grotesk Fallback"; src: local("Arial");
+  size-adjust: 101.5%; ascent-override: 96.8%; descent-override: 28.7%; line-gap-override: 0%;
+}
+:root {
+  --font: "Inter Variable", "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Space Grotesk Variable", "Space Grotesk Fallback", "Inter Variable", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
 body { font-family: var(--font); }
+/* in-copy links must not rely on colour alone */
+p a, li a, .fine a, .footer-bottom a, .crumbs a { text-decoration: underline; text-underline-offset: 3px; }
+.site-footer li a, .nav a, .callbar a, .btn { text-decoration: none; }
+.site-footer .footer-h { font-size: .78rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; color: #fff; margin: 0 0 14px; }
 h1, h2, h3, h4, .btn, .eyebrow, .brand-name, .stat b, .nav a, .header-phone strong {
   font-family: var(--font-display);
 }
@@ -43,6 +76,8 @@ h2 { letter-spacing: -.03em; }
 .v2-canvas canvas { display: block; width: 100% !important; height: 100% !important; }
 .has-webgl .video-hero__media { opacity: 0; }
 .v2-stage .video-hero__content { position: relative; z-index: 3; min-height: 62vh; }
+/* the tap-to-play cue floats over the video instead of pushing content down */
+.v2-stage .video-hero__hint { position: absolute; z-index: 4; left: 22px; bottom: 64px; margin: 0; }
 
 /* Scroll-story beats: panels that swap as the pinned stage scrubs. */
 .v2-beat { display: none; }
@@ -89,8 +124,9 @@ html.has-cursor .cursor { opacity: 1; }
 html.has-cursor a, html.has-cursor button { cursor: none; }
 html.has-cursor input, html.has-cursor textarea, html.has-cursor select { cursor: auto; }
 
-/* Split-text words */
-[data-split] .w { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .08em; margin-bottom: -.08em; }
+/* Split-text words: inline-block on the baseline with a clip-path mask, so
+   wrapping the words changes no geometry (no layout shift when it runs). */
+[data-split] .w { display: inline-block; clip-path: inset(-0.1em 0 -0.18em 0); }
 [data-split] .wi { display: inline-block; will-change: transform; }
 /* the gradient on <em> is clipped to text; inline-block word spans need their own copy */
 .video-hero h1 em .wi { background: linear-gradient(100deg, #a99bff, #6a5bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -108,6 +144,7 @@ html.has-cursor input, html.has-cursor textarea, html.has-cursor select { cursor
   .v2-poster { height: min(80vw, 60vh); height: min(80vw, 60svh); inset: auto; top: 0; left: 0; right: 0; }
   .v2-stage .video-hero__media { position: relative; inset: auto; height: min(80vw, 60vh); height: min(80vw, 60svh); }
   .v2-stage .video-hero__content { min-height: 0; }
+  .v2-stage .video-hero__hint { bottom: auto; top: calc(min(80vw, 60vh) - 56px); top: calc(min(80vw, 60svh) - 56px); }
   .v2-beat, .v2-progress { display: none !important; }
   .v2-beat[data-beat="0"] { display: block !important; }
 }
