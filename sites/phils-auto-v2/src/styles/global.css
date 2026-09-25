@@ -1,8 +1,10 @@
 /* Phil's Auto & Fleet Repair v2 — design system.
-   Tailwind for layout utilities; the v1 component styles are kept as
-   legacy.css so every ported section renders identically; v2 adds the
-   type pair, the hero stage, the scroll-story beats, cursor and marquee. */
-@import "tailwindcss";
+   Plain CSS on purpose: Tailwind 4's generated prelude (@layer, @property,
+   color-mix) was dropped wholesale by the WebKit build in the iOS preview
+   viewer, leaving the page unstyled, and no utility classes were in use.
+   The v1 component styles are kept as legacy.css so every ported section
+   renders identically; v2 adds the type pair, the hero stage, the
+   scroll-story beats, cursor and marquee. */
 @import "./legacy.css";
 
 /* Self-hosted variable fonts, Latin and Latin-1 subsets only (English + Spanish).

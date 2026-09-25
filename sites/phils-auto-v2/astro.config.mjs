@@ -2,7 +2,6 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
-import tailwindcss from '@tailwindcss/vite';
 
 // Static export. Every page is real HTML at build time; React is only
 // hydrated for the islands that need it (the home hero and one image effect).
@@ -19,7 +18,6 @@ export default defineConfig({
     }),
   ],
   vite: {
-    plugins: [tailwindcss()],
     build: {
       // keep three.js in its own chunk so the bundle report shows it clearly
       rollupOptions: { output: { manualChunks: { three: ['three'] } } },

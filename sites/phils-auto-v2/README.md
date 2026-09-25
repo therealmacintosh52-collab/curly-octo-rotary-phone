@@ -15,6 +15,10 @@ untouched and still deployable.
 - Brand feel: dark, cinematic, industrial. Indigo from the logo is the one saturated colour.
 - Stack: Astro + React islands (not Next.js) so inner pages ship no React. Fonts: Space Grotesk
   (display) and Inter (text), self-hosted Latin subsets.
+- No Tailwind. It was in the brief, but the site uses a hand-written stylesheet (`legacy.css` +
+  `global.css`) and no utility classes, and Tailwind 4's generated prelude (`@layer`, `@property`,
+  `color-mix`) was dropped wholesale by the WebKit build inside the iOS preview viewer, leaving
+  pages unstyled there. Plain CSS renders everywhere.
 - Deploy target: Netlify. The quote form posts to the existing FormSubmit endpoint (already
   confirmed for the shop's inbox in v1) with two honeypot fields; Netlify Forms would need the
   site to be on Netlify first.
