@@ -325,7 +325,8 @@ public/                   generated site — deploy this
   sitemap.xml, robots.txt, 404.html
   assets/css/site.css     design system
   assets/js/site.js       nav, form handling, tracking hooks
-  assets/img/             logo, favicon fallback, social share image, shop illustration, video poster
+  assets/img/             logo, favicon fallback, social share image, shop illustration, video poster,
+                          shop-lift.jpg (homepage fleet photo; replace with the full-size original)
   assets/video/           the homepage loop (replace shop-bay.mp4 + the poster to change it)
   _redirects, .htaccess   301s from the old site's URLs (verify before launch)
   _headers                caching and security headers

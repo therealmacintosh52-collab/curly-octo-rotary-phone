@@ -1180,17 +1180,18 @@ def angle_divider(fill="#ffffff"):
             '<path d="M0 80 1440 0v80z" fill="%s"/></svg></div>' % fill)
 
 
-def photo_slot(caption, badge="Inside the shop"):
-    """Styled image frame. Ships with a hand-drawn SVG so the page looks
-    finished on day one — swap the <img> src for a real photo of the shop."""
-    return """<!-- Replace the illustration below with a real photo:
-     <img src="/assets/img/shop-front.jpg" alt="..." width="1200" height="900"> -->
-<figure class="photo">
+def photo_slot(caption, badge="Inside the shop", src=None, alt=None, size=(720, 460)):
+    """Styled image frame. Pass `src` and `alt` for a real photo (drop the
+    file in public/assets/img/); without them it ships with the hand-drawn
+    SVG so the page looks finished on day one."""
+    if not src:
+        src = "/assets/img/shop-scene.svg"
+        alt = "Illustration of a pickup truck raised on a lift inside a service bay"
+    return """<figure class="photo">
   <span class="photo-badge">%s%s</span>
-  <img src="/assets/img/shop-scene.svg" width="720" height="460"
-       alt="Illustration of a pickup truck raised on a lift inside a service bay">
+  <img src="%s" width="%d" height="%d" loading="lazy" alt="%s">
   <figcaption>%s</figcaption>
-</figure>""" % (icon("camera"), esc(badge), esc(caption))
+</figure>""" % (icon("camera"), esc(badge), src, size[0], size[1], esc(alt), esc(caption))
 
 
 def faq_block(faqs, heading="Frequently asked questions", intro=None):
@@ -1449,7 +1450,9 @@ def build_home():
         </div>
       </div>
       <div>
-        {photo_slot("Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.", "In the bay")}
+        {photo_slot("Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.", "In the bay",
+                    src="/assets/img/shop-lift.jpg", size=(197, 197),
+                    alt="A pickup truck raised on the lift inside Phil's service bay, with another vehicle on the next lift")}
       </div>
     </div>
   </div>
