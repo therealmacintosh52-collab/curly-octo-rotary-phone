@@ -1,0 +1,72 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { localBusiness, breadcrumbs } from '../lib/seo';
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const trail: [string, string][] = [['Home', '/'], ['Service Areas', '/service-areas/']];
+const NOTES: Record<string, string> = {
+  'Sacramento': 'Our home city. Midtown, East Sac, Natomas, Pocket and South Sac all come up Fulton or across Business 80.',
+  'Arden-Arcade': 'The shop\'s own neighbourhood — Fulton Avenue, between Business 80 and Highway 50.',
+  'Carmichael': 'Minutes east along Fair Oaks Boulevard; a regular short trip for tint and coatings.',
+  'Rancho Cordova': 'Down Highway 50 — commuters who spend the drive home in the sun and want the glass cooler.',
+  'Elk Grove': 'South on 99; new cars from the auto mall come here for tint, PPF and ceramic before the first road trip.',
+  'Citrus Heights': 'North-east via Auburn Boulevard or I-80; wraps and dent work as often as tint.',
+  'Roseville': 'Up I-80 — worth the drive for a ceramic film held up to the glass before you buy it.',
+  'Folsom': 'East on 50; lake-road dust and hard water are what bring Folsom cars in for correction and coating.',
+  'West Sacramento': 'Across the river on I-80 or Business 80, ten minutes on a good day.',
+  'Davis': 'Further west, but fleets and commuters make the trip for wraps and fleet lettering.',
+};
+---
+<Base
+  title="Window Tinting Near Carmichael, Elk Grove & Roseville"
+  description="Cali Tints serves Sacramento, Arden-Arcade, Carmichael, Rancho Cordova, Elk Grove, Citrus Heights, Roseville, Folsom and Davis. Call (916) 701-2005."
+  path="/service-areas/" active="/service-areas/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="Areas we serve around Sacramento, California"
+    lede="One shop on Fulton Avenue, central to the whole region — most of these cities are inside twenty minutes.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="areas-head">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href="/contact/#quote">Request a quote</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Cities we see drivers from</h2>
+        <p class="lede">The shop is at {FULL}, in Arden-Arcade between Business 80 and Highway 50 — central enough that customers come from every direction.</p></div>
+      <div class="grid g3" data-stagger>
+        {S.areas.map((a) => (
+          <div class="card">
+            <span class="card-ico"><Icon name="pin" /></span>
+            <h3>{a}, CA</h3>
+            <p style="margin-bottom:0">{NOTES[a] ?? `Window tinting, wraps and coatings for drivers in ${a}.`}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap narrow">
+      <h2>Worth the drive for a clean install</h2>
+      <p>Film and vinyl are only as good as the bay they go on in. A mobile tinter in your driveway is working in wind and dust, and dust under film is a bubble you look at for years. Our bay is closed, the glass is cleaned before the film is cut, and the car comes back with the trim on properly. That is worth twenty minutes on the freeway.</p>
+      <p>If you are further out than the list above, call anyway. Wraps, PPF and coatings are booked by the day, and a longer drive is not a problem when the car is with us for one.</p>
+      <div class="btn-row">
+        <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="areas-body">
+          <Icon name="phone" /><span>Call {S.phone_display}</span>
+        </a>
+        <a class="btn btn-outline" href="/services/">See all services</a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>

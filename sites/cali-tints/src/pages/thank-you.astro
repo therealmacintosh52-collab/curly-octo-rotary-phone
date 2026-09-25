@@ -1,0 +1,30 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import Icon from '../components/Icon.astro';
+const S = data.site;
+---
+<Base title="Thank You | Cali Tints"
+  description="Your request has been sent to Cali Tints in Sacramento, CA. We will call you back during shop hours with a price and a day."
+  path="/thank-you/" noindex={true}>
+  <PageHead trail={[['Home', '/'], ['Thank you', '/thank-you/']]}
+    h1="Thanks — we've got your request"
+    lede={`We will get back to you as soon as we can during shop hours (${S.hours_short}).`}>
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="thanks">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href="/">Back to home</a>
+    </div>
+  </PageHead>
+  <section><div class="wrap narrow">
+    <h2>What happens next</h2>
+    <ol>
+      <li>We read your request and check the vehicle against the film, wrap or coating you asked about.</li>
+      <li>We call you back with a price on your car and any questions — shade, colour, which panels.</li>
+      <li>We book a day, and tell you how long the car will be with us.</li>
+    </ol>
+    <p>If it is time-sensitive — a fix-it ticket with a deadline, a lease return this week — do not wait on the callback. Call <a href={`tel:${S.phone_link}`}>{S.phone_display}</a>.</p>
+  </div></section>
+</Base>

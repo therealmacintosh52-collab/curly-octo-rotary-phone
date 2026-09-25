@@ -1,0 +1,23 @@
+---
+import data from '../data/site.json';
+import Icon from './Icon.astro';
+const S = data.site;
+const stats: [string, string, string][] = [
+  ['star',  `${S.rating} out of 5`,           `${S.review_count} Google reviews`],
+  ['film',  'Legal front-window tint',        '70% VLT ceramic and carbon film, no fix-it tickets'],
+  ['wrap',  'Tint, wrap, PPF and coating',    `${data.services.length} services under one roof`],
+  ['clock', 'Open six days',                  S.hours_short],
+];
+---
+<div class="statband">
+  <div class="wrap">
+    <div class="statband-inner">
+      {stats.map(([ic, t, sub]) => (
+        <div class="stat">
+          <span class="stat-ico"><Icon name={ic} /></span>
+          <div><b>{t}</b><span>{sub}</span></div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>

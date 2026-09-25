@@ -1,0 +1,50 @@
+---
+import data from '../data/site.json';
+import Icon from './Icon.astro';
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+export interface Props { active?: string; over?: boolean }
+const { active, over = false } = Astro.props;
+---
+<div class:list={[over && 'chrome-over']}>
+<div class="topbar">
+  <div class="wrap">
+    <span><Icon name="pin" /> {FULL}</span>
+    <span class="dot" aria-hidden="true">•</span>
+    <span><Icon name="clock" /> {S.hours_short}</span>
+    <span class="dot" aria-hidden="true">•</span>
+    <a href={`tel:${S.phone_link}`} data-loc="topbar">{S.phone_display}</a>
+  </div>
+</div>
+
+<header class:list={['site-header', over && 'site-header--over']}>
+  <div class="wrap header-inner">
+    <!-- The logo is a round badge, so the name is spelled out beside it. -->
+    <a class="brand" href="/">
+      <img class="brand-badge" src={S.logo} alt="" width="256" height="256" />
+      <span class="brand-text">
+        <span class="brand-name">{S.name}</span>
+        <span class="brand-sub">Sacramento, California</span>
+      </span>
+    </a>
+
+    <nav class="nav" id="primary-nav" aria-label="Main">
+      {data.nav.map(([label, url]) => (
+        <a href={url} aria-current={active === url ? 'page' : undefined}>{label}</a>
+      ))}
+    </nav>
+
+    <div class="header-cta">
+      <a class="header-phone" href={`tel:${S.phone_link}`} data-loc="header">
+        <span>Call the shop</span><strong>{S.phone_display}</strong>
+      </a>
+      <a class="btn btn-accent btn-sm" href="/contact/#quote">Get a Quote</a>
+    </div>
+
+    <button class="nav-toggle" type="button" aria-expanded="false"
+            aria-controls="primary-nav" aria-label="Open menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true" set:html={(data.icons as Record<string,string>).menu} />
+    </button>
+  </div>
+</header>
+</div>

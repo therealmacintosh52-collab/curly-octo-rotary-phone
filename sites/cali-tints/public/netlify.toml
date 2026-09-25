@@ -1,0 +1,12 @@
+# Netlify: set the base directory to this folder in the UI, or deploy from the
+# repo root with the base below.
+[build]
+  base    = "sites/cali-tints"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# _headers and _redirects in public/ are copied into dist/ and picked up
+# automatically; they are the source of truth rather than this file.

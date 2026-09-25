@@ -1,0 +1,79 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { localBusiness, breadcrumbs } from '../lib/seo';
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const trail: [string, string][] = [['Home', '/'], ['About', '/about/']];
+---
+<Base
+  title="About Cali Tints — Sacramento Tint & Wrap Shop"
+  description="Cali Tints is a window tint, wrap, PPF and ceramic coating shop at 2400 Fulton Ave in Sacramento, CA. Rated 4.9 on Google. Call (916) 701-2005."
+  path="/about/" active="/about/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="About Cali Tints"
+    lede="A tint and wrap shop on Fulton Avenue in Sacramento, doing one kind of work carefully: film, vinyl and coatings on cars people care about." />
+
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <h2>The shop on Fulton Avenue</h2>
+          <p>Cali Tints is at {FULL}, in the Arden-Arcade part of Sacramento between Business 80 and Highway 50. The work is window tinting, vinyl wraps, paint protection film, ceramic coating, detailing and paint correction, with customization, dent removal, upholstery and inspections alongside — everything that touches the glass, the paint and the inside of the car.</p>
+          <p>Customers rate the shop {S.rating} out of 5 across {S.review_count} Google reviews. The reviews mention the people and the atmosphere as often as the work, which is the way we would want it.</p>
+
+          <h2 style="margin-top:1.6em">How we work</h2>
+          <ul class="checklist">
+            <li><Icon name="check" /><span><strong>Price on your car first.</strong> Year, make, model, and what you want — you get a number before any glass or panel is touched.</span></li>
+            <li><Icon name="check" /><span><strong>Choose on the glass, not the brochure.</strong> Ceramic or carbon, the shade held up to the window, so you know what you are buying.</span></li>
+            <li><Icon name="check" /><span><strong>Legal where it matters.</strong> Front windows at California's 70% limit, smoked lights at a shade that stays visible. We will tell you where the line is.</span></li>
+            <li><Icon name="check" /><span><strong>Clean bay, trim off, trim back on.</strong> Handles, badges and lights come off so edges tuck. Nothing is forced under a seal.</span></li>
+            <li><Icon name="check" /><span><strong>Aftercare in writing.</strong> When the windows can go down, how to wash a wrap, what voids a warranty — on one page at pickup.</span></li>
+          </ul>
+
+          <h2 style="margin-top:1.6em">What we are not</h2>
+          <p>We are not a body shop and not an engine-and-transmission garage. We do inspections and the light mechanical work that comes with them, and when a job needs a paint booth or a full mechanic we say so and point you to one. The shop is better at what it does because it does not try to do everything.</p>
+        </div>
+
+        <div class="panel panel-accent">
+          <h3>The shop at a glance</h3>
+          <table class="hours">
+            <caption class="sr-only">Key facts about Cali Tints</caption>
+            <tbody>
+              <tr><th scope="row">Location</th><td>{FULL}</td></tr>
+              <tr><th scope="row">Phone</th><td><a href={`tel:${S.phone_link}`} data-loc="about">{S.phone_display}</a></td></tr>
+              <tr><th scope="row">Hours</th><td>{S.hours_short}</td></tr>
+              <tr><th scope="row">Work</th><td>Tint, wraps, PPF, ceramic coating, detailing, paint correction, customization, dents, upholstery, inspections</td></tr>
+              <tr><th scope="row">Vehicles</th><td>Cars, trucks, SUVs, vans, motorcycles, fleets</td></tr>
+              <tr><th scope="row">Front-window tint</th><td>70% VLT, the California limit</td></tr>
+              <tr><th scope="row">Rating</th><td>{S.rating} / 5 ({S.review_count} Google reviews)</td></tr>
+            </tbody>
+          </table>
+          <p style="margin:22px 0 0">
+            <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="about-panel" style="width:100%">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head center"><span class="eyebrow">Who we serve</span><h2>Daily drivers, new cars, and work vehicles</h2></div>
+      <div class="grid g3" data-stagger>
+        <div class="card"><span class="card-ico"><Icon name="sun" /></span><h3>Daily drivers in valley heat</h3><p style="margin-bottom:0">Ceramic film on the windows and a coating on the paint — the two upgrades you feel every afternoon from May to October.</p></div>
+        <div class="card"><span class="card-ico"><Icon name="shield" /></span><h3>New cars worth keeping</h3><p style="margin-bottom:0">PPF on the front end before the first freeway trip, ceramic over the whole car, tint to finish it. The car stays new-looking for years.</p></div>
+        <div class="card"><span class="card-ico"><Icon name="truck" /></span><h3>Business vehicles and fleets</h3><p style="margin-bottom:0">Wrapped vans, lettered trucks and matched fleets — laid out to the real panels so the phone number is never cut by a door seam.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand heading="Come see the film on the glass."
+    text="We are on Fulton Avenue, open Monday through Saturday. Call ahead and we will make room for you." />
+</Base>

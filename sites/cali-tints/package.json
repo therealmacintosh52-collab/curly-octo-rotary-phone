@@ -1,0 +1,38 @@
+{
+  "name": "cali-tints",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "og": "node scripts/og-images.mjs",
+    "posters": "node scripts/posters.mjs",
+    "video": "node scripts/encode-video.mjs",
+    "indexnow": "node scripts/indexnow.mjs",
+    "rel": "node scripts/preview-relative.mjs",
+    "audit": "node scripts/audit.mjs",
+    "contrast": "node scripts/hero-contrast.mjs",
+    "lh": "node scripts/lh.mjs",
+    "shots": "node scripts/shots.mjs",
+    "overflow": "node scripts/overflow.mjs",
+    "hero-check": "node scripts/hero-check.mjs"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^5.0.0",
+    "gsap": "^3.12.5",
+    "lenis": "^1.1.18"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0",
+    "lighthouse": "^13.5.0",
+    "playwright-core": "^1.49.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.33.5"
+  }
+}

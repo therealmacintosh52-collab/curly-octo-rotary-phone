@@ -1,0 +1,283 @@
+/* Cali Tints — fonts, video hero, motion.
+   legacy.css holds the tokens and components this builds on. */
+
+/* ------------------------------------------------------------------ fonts
+   Self-hosted Latin woff2 subsets (public/fonts), never a runtime CDN.
+   font-display:optional means the fallback is used if the font is not ready
+   within ~100ms, so a slow font can never shift the layout — CLS stays 0.
+   The metric-adjusted fallbacks make that swap invisible. */
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/space-grotesk-latin-700-normal.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: optional;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/space-grotesk-latin-500-normal.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: optional;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-latin-400-normal.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: optional;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-latin-600-normal.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: optional;
+}
+/* Metric fallbacks: Arial retuned to match each face's box, so the pre-swap
+   frame occupies the same space as the post-swap frame. */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  ascent-override: 90%; descent-override: 22.43%; line-gap-override: 0%;
+  size-adjust: 107.12%;
+}
+@font-face {
+  font-family: 'Space Grotesk Fallback';
+  src: local('Arial');
+  ascent-override: 95.5%; descent-override: 26.5%; line-gap-override: 0%;
+  size-adjust: 102.4%;
+}
+
+/* ------------------------------------------------------------- video hero */
+.hero-v {
+  position: relative;
+  /* .hero-v is a <section>, and the global section rule adds ~94px of vertical
+     padding at desktop width — which would show up as dead space above the
+     clip. The hero sets its own rhythm. */
+  padding: 0;
+  background: var(--grad-dark);
+  overflow: hidden;
+  isolation: isolate;
+}
+/* The clip is a band, not a backdrop: it occupies its own strip of the page at
+   every width, with the copy on solid ground beneath it. Nothing is ever laid
+   over the picture, so there is no tint to tune and no frame — bright or dark —
+   that can make the copy hard to read. */
+.hero-v__media {
+  position: relative; z-index: 0; width: 100%;
+  /* The clip's own 16:9, so `cover` has nothing to crop and the WHOLE frame is
+     on screen at every width. A shorter band looked better against the fold but
+     cut the top and bottom off the shot — including the logo animation, which is
+     the point of the opening. Nothing is worth cutting that. */
+  aspect-ratio: 16 / 9;
+  height: auto;
+}
+/* The poster is a real <img> so it is the LCP element and can be preloaded.
+   The video fades in over it once it can actually play. */
+.hero-v__poster,
+.hero-v__video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: var(--hero-focus, 50% 50%);
+  display: block;
+}
+.hero-v__video { opacity: 0; transition: opacity .6s ease; }
+.hero-v.is-playing .hero-v__video { opacity: 1; }
+
+/* No scrim at all. Four rounds of gradient tuning kept running into the same
+   wall: any overlay dark enough to carry text is also dark enough to read as a
+   tint on the shot. Stacking the copy under the clip removes the conflict
+   rather than balancing it, so this element now paints nothing. It is kept in
+   the markup so a future overlay layout has its hook back. */
+.hero-v__scrim { display: none; }
+.hero-v__inner {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column;
+  /* the stat band overlaps the hero by up to 62px, so the bottom padding has
+     to clear it as well as the meta row */
+  padding: clamp(28px, 2.8vw, 44px) 0 clamp(74px, 7vw, 108px);
+  color: #fff;
+}
+/* .wrap centres itself with `margin: 0 auto`. As a flex item that auto margin
+   is a cross-axis margin, which makes the box shrink to fit its own text — so
+   the hero copy centred on the longest line instead of lining up with the logo
+   and the stat band. An explicit width puts it back on the page grid. */
+.hero-v__inner .wrap { width: 100%; }
+
+/* ---- desktop ---- */
+@media (min-width: 941px) {
+  /* The clip takes the top of the screen, so the headline, the rating and the
+     call button all have to clear the fold in what is left. */
+  .hero-v h1 { font-size: clamp(2.1rem, 1rem + 2.5vw, 3.1rem); max-width: 20ch; }
+  .hero-v__promise { max-width: 46ch; font-size: 1.08rem; margin-bottom: .9em; }
+  .hero-v__ctas { flex-wrap: nowrap; gap: 13px; margin-bottom: 0; }
+  .hero-v__ctas .btn { white-space: nowrap; }
+
+  /* Stacked, the copy leaves the right 40% of the panel empty and the three
+     trust lines run as a thin strip under the buttons where they read as fine
+     print. Putting them in that empty column fills the panel and gives them the
+     weight they are worth — and taking a row out of the left column is what
+     buys the call button its clearance on a 720px laptop. */
+  .hero-v__inner .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1.28fr) minmax(0, .72fr);
+    grid-template-areas:
+      'eyebrow meta'
+      'h1      meta'
+      'promise meta'
+      'rating  meta'
+      'ctas    meta';
+    column-gap: clamp(30px, 4vw, 68px);
+    align-items: start;
+  }
+  .hero-v .eyebrow { grid-area: eyebrow; }
+  .hero-v h1 { grid-area: h1; }
+  .hero-v__promise { grid-area: promise; }
+  /* a grid item stretches by default; the chip should hug its own text */
+  .hero-v .rating { grid-area: rating; justify-self: start; }
+  .hero-v__ctas { grid-area: ctas; justify-self: start; }
+  .hero-v__meta {
+    grid-area: meta; align-self: center;
+    display: flex; flex-direction: column; gap: 0;
+    border-left: 2px solid rgba(255,255,255,.16);
+    padding-left: clamp(18px, 2vw, 28px);
+    font-size: .95rem;
+  }
+  .hero-v__meta > * { padding: 9px 0; }
+  .hero-v__meta > * + * { border-top: 1px solid rgba(255,255,255,.1); }
+}
+
+/* Laptops: same width as a desktop, ~130px less height. Without this the call
+   button lands under the fold on 1280x720 and 1366x768. */
+@media (min-width: 941px) and (max-height: 840px) {
+  .hero-v__inner { padding-top: 22px; }
+  .hero-v h1 { font-size: clamp(1.95rem, 1rem + 1.9vw, 2.65rem); }
+  .hero-v__promise { font-size: 1rem; margin-bottom: .75em; }
+  .hero-v .rating { margin-bottom: 16px; }
+  .hero-v__ctas { margin-bottom: 16px; }
+}
+
+.hero-v h1 { color: #fff; max-width: 16ch; margin-bottom: .28em; text-wrap: balance; }
+/* These two were forced to white while the copy sat on the moving frame —
+   small tinted text over a photograph is what drove the scrim dark. On a solid
+   panel they can go back to the site's normal dark-section treatment, which is
+   what every other dark section uses. */
+.hero-v h1 em {
+  font-style: normal;
+  background: linear-gradient(100deg, #b4f28a, #80d850);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-v__promise {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, .9rem + .5vw, 1.24rem);
+  font-weight: 500; color: #fff; margin: 0 0 1.1em;
+  letter-spacing: -.01em; max-width: 44ch;
+}
+.hero-v__ctas { display: flex; flex-wrap: wrap; gap: 13px; margin-bottom: 22px; }
+.hero-v__meta {
+  display: flex; flex-wrap: wrap; gap: 10px 26px;
+  font-size: .93rem; color: #fff;
+}
+.hero-v__meta .icon { color: var(--accent-lt); vertical-align: -3px; margin-right: 6px; }
+
+/* Tap-to-play cue — shown only when autoplay is actually refused
+   (iPhone Low Power Mode is the common case). */
+.hero-v__tap {
+  position: absolute; z-index: 3; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: none; align-items: center; gap: 9px;
+  background: rgba(11,15,11,.78); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.26); color: #fff;
+  border-radius: 999px; padding: 10px 18px;
+  font-family: var(--font-display); font-weight: 500; font-size: .88rem;
+  cursor: pointer;
+}
+.hero-v.needs-tap .hero-v__tap { display: inline-flex; }
+
+/* The top bar and the nav overlay the hero as one stack. Positioning only the
+   <header> put it on top of the top bar and the two collided. */
+.chrome-over { position: absolute; top: 0; left: 0; right: 0; z-index: 40; }
+/* Opaque enough that the address and phone stay legible over ANY frame of the
+   clip, not just a dark one. A translucent band looked fine over the
+   placeholder and would have failed over a bright frame. */
+.chrome-over .topbar { background: rgba(6,9,6,.88); backdrop-filter: blur(8px); }
+.site-header--over {
+  position: static;
+  background: linear-gradient(to bottom, rgba(6,9,6,.62), rgba(6,9,6,0));
+  backdrop-filter: none; border-bottom: 0;
+}
+.site-header--over .nav a { color: #e8efe6; }
+.site-header--over .nav a[aria-current='page'] { color: #fff; }
+.site-header--over .header-phone { color: #fff; }
+.site-header--over .header-phone span { color: #c9d3c5; }
+.site-header--over .nav-toggle { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.3); }
+.site-header--over .nav-toggle svg { stroke: #fff; }
+.site-header--over .brand-logo--chip { background: #fff; }
+@media (max-width: 940px) {
+  /* The open mobile panel needs an opaque ground, whatever is behind it. */
+  .site-header--over .nav { background: #fff; }
+  .site-header--over .nav a { color: #1d261d; }
+}
+
+@media (max-width: 940px) {
+  /* Until a real clip exists the poster is a flat texture, so a full band is
+     dead space above the headline on the most valuable screen there is.
+     Collapsing it lifts the H1 and the call button. Flipping hasVideo back to
+     true in index.astro restores the full frame automatically. */
+  .hero-v--noclip .hero-v__media { aspect-ratio: auto; height: min(38vw, 26svh); }
+  .hero-v__inner { padding-top: 26px; padding-bottom: 62px; }
+  .hero-v h1 { max-width: none; }
+}
+
+/* ----------------------------------------------------------- scroll story */
+.story { position: relative; }
+.story__track { position: relative; }
+.story__beat { min-height: 92vh; display: flex; align-items: center; }
+.story__beat p { max-width: 54ch; }
+
+/* --------------------------------------------------------------- motion
+   Reveals start visible and are only hidden once JS has confirmed it will
+   animate them. A page with JS disabled, or a crawler, sees everything. */
+.js-reveal { will-change: transform, opacity; }
+html.has-motion .js-reveal { opacity: 0; transform: translateY(18px); }
+
+@media (prefers-reduced-motion: reduce) {
+  html.has-motion .js-reveal { opacity: 1 !important; transform: none !important; }
+  .hero-v__video { transition: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* ------------------------------------------------------- At a glance block */
+.glance {
+  background: var(--paper-2); border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius); padding: 24px 26px; margin: 0 0 30px;
+}
+.glance h2 {
+  font-size: .78rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent-dk); margin-bottom: 1em;
+}
+.glance dl { display: grid; grid-template-columns: max-content 1fr; gap: 9px 20px; margin: 0; }
+.glance dt { font-weight: 600; color: var(--text); font-size: .93rem; }
+.glance dd { margin: 0; color: var(--slate); font-size: .95rem; }
+@media (max-width: 560px) {
+  .glance dl { grid-template-columns: 1fr; gap: 3px; }
+  .glance dd { margin-bottom: 9px; }
+}
+
+/* ------------------------------------------------------- Short answer block */
+.short-answer {
+  background: var(--accent-soft); border: 1px solid #cfe9c2;
+  border-radius: var(--radius); padding: 22px 26px; margin: 0 0 32px;
+}
+.short-answer h2 {
+  font-size: .78rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent-dk); margin-bottom: .7em;
+}
+.short-answer p { margin: 0; font-size: 1.06rem; color: var(--text); max-width: 62ch; }
+
+/* on-this-page */
+.toc { border-left: 3px solid var(--line); padding: 2px 0 2px 18px; margin: 0 0 34px; }
+.toc h2 { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--slate); margin-bottom: .8em; }
+.toc ol { margin: 0; padding-left: 1.1em; }
+.toc li { margin-bottom: .35em; }
+.toc a { color: var(--brand-dk); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }

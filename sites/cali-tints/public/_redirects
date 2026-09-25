@@ -1,0 +1,15 @@
+# Old site URLs -> new pages. Keeps the rankings the current site has earned.
+#
+# The existing site at calitintsca.com could not be crawled from the build
+# environment, so its page list is unknown and old_url_map in
+# src/data/site.json is empty. BEFORE LAUNCH: export the indexed URLs from
+# Search Console (Indexing -> Pages) or crawl the live site, add each old path
+# here with its new target, and mirror them in old_url_map. A 301 passes
+# ranking on; a 404 throws it away.
+#
+# Format:  /old-path    /new-path/    301!
+# Example: /services    /services/    301!
+
+/index.html                    /                                        301!
+/home                          /                                        301!
+/home/                         /                                        301!

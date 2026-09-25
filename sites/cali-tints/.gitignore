@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dist-preview/
+.astro/
+preview.html
+qa/

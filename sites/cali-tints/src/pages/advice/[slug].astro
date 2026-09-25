@@ -1,0 +1,84 @@
+---
+import data from '../../data/site.json';
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import { localBusiness, article, breadcrumbs, seoTitle } from '../../lib/seo';
+
+export function getStaticPaths() {
+  return data.guides.map((g) => ({ params: { slug: g.slug }, props: { g } }));
+}
+
+const { g } = Astro.props;
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const path = `/advice/${g.slug}/`;
+const trail: [string, string][] = [['Home', '/'], ['Advice', '/advice/'], [g.nav, path]];
+const iso = new Date().toISOString().slice(0, 10);
+const others = data.guides.filter((x) => x.slug !== g.slug);
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const sections = g.sections as [string, string, string[]][];
+---
+<Base
+  title={seoTitle(g.title)}
+  description={g.meta}
+  path={path}
+  active="/advice/"
+  schemas={[localBusiness(), article(g, path, iso), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1={g.nav} lede={g.blurb} />
+
+  <section>
+    <div class="wrap narrow">
+      <!-- The takeaway goes first. Somebody who reads one block should already
+           have the answer; the reasoning is for whoever wants it. -->
+      <div class="short-answer">
+        <h2>Short answer</h2>
+        <p>{g.takeaway}</p>
+      </div>
+
+      <nav class="toc" aria-label="On this page">
+        <h2>On this page</h2>
+        <ol>{sections.map(([h]) => <li><a href={`#${slug(h)}`}>{h}</a></li>)}</ol>
+      </nav>
+
+      {sections.map(([heading, kind, items]) => (
+        <>
+          <h2 id={slug(heading)}>{heading}</h2>
+          {kind === 'ul'
+            ? <ul>{items.map((x) => <li set:html={x} />)}</ul>
+            : items.map((x) => <p set:html={x} />)}
+        </>
+      ))}
+
+      <div class="panel panel-accent" style="margin-top:2em">
+        <h3>The short version</h3>
+        <p style="margin-bottom:1.2em">{g.takeaway}</p>
+        <div class="btn-row">
+          <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="guide">
+            <Icon name="phone" /><span>Call {S.phone_display}</span>
+          </a>
+          <a class="btn btn-ghost" href="/contact/#quote">Ask us about it</a>
+        </div>
+      </div>
+
+      <p style="margin-top:2em;color:var(--slate);font-size:.9rem">
+        Written by the team at {S.name}, {FULL}. General guidance, not a substitute for having
+        your own vehicle looked at — and not legal advice; the California Vehicle Code is the
+        authority on tint limits.
+      </p>
+
+      <h2 style="margin-top:1.6em">More advice</h2>
+      <div class="tag-row">
+        {others.map((o) => <a class="tag" href={`/advice/${o.slug}/`}>{o.nav}</a>)}
+        <a class="tag" href="/advice/">All guides</a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand
+    heading="Rather just ask someone?"
+    text="Call the shop and describe the car and what you are after. We will tell you which service fits and what it costs on your vehicle." />
+</Base>

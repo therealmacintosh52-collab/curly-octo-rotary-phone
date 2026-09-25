@@ -1,0 +1,79 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import QuoteForm from '../components/QuoteForm.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { localBusiness, breadcrumbs } from '../lib/seo';
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const trail: [string, string][] = [['Home', '/'], ['Contact', '/contact/']];
+---
+<Base
+  title="Contact & Directions — Cali Tints, Sacramento"
+  description="Call (916) 701-2005 or visit Cali Tints at 2400 Fulton Ave, Suite F, Sacramento, CA 95825. Open Mon–Fri 10 AM to 6 PM, Saturday 10 AM to 4 PM."
+  path="/contact/" active="/contact/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="Contact Cali Tints"
+    lede="Call the shop, send a quote request, or stop by — we are on Fulton Avenue in Arden-Arcade, open Monday through Saturday.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="contact-head">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href={data.maps_directions} rel="noopener" data-loc="contact-head">Get directions</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <h2>Shop information</h2>
+          <p><strong>{S.name}</strong><br />{S.street}<br />{S.city}, {S.region_long} {S.zip}</p>
+          <p><strong>Phone:</strong> <a href={`tel:${S.phone_link}`} data-loc="contact-body">{S.phone_display}</a></p>
+
+          <h3>Hours</h3>
+          <table class="hours"><caption class="sr-only">Business hours</caption><tbody>
+            {S.hours_rows.map(([d, h]) => (
+              <tr><th scope="row">{d}</th><td class={h === 'Closed' ? 'closed' : undefined}>{h}</td></tr>
+            ))}
+          </tbody></table>
+
+          <h3 style="margin-top:1.6em">Getting here</h3>
+          <p>Fulton Avenue runs north from Business 80 (the Capital City Freeway) through Arden-Arcade. We are in Suite F at 2400 Fulton, on the same stretch as the auto dealers and body shops. From Highway 50 take Howe Avenue north, then Fulton. Parking is in front of the suite; if you are dropping the car for the day, we will sort out a ride or a wait.</p>
+
+          <h3 style="margin-top:1.4em">Before you call, it helps to have</h3>
+          <ul>
+            <li>Year, make and model of the vehicle</li>
+            <li>What you want done — tint, wrap, film, coating, or "not sure"</li>
+            <li>Whether there is old tint or a wrap on the car now</li>
+            <li>A shade, colour or finish you have in mind, if any</li>
+          </ul>
+          <div class="btn-row">
+            <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="contact-mid">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+          </div>
+        </div>
+        <div><div id="quote"><QuoteForm id="contact-quote" heading="Request a quote" /></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head"><h2>Find the shop</h2></div>
+      <iframe class="map-frame" src={data.maps_embed} loading="lazy"
+        title={`Map showing Cali Tints at ${FULL}`}
+        referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <p class="map-note">
+        <a href={data.maps_directions} rel="noopener" data-loc="contact-map">Get driving directions to {FULL} <Icon name="arrow" /></a>
+      </p>
+    </div>
+  </section>
+
+  <CtaBand heading="Not sure what the car needs? That's fine."
+    text="Describe the problem — heat, looks, chips, a dent — and we will tell you which service fixes it and what it costs on your vehicle." />
+</Base>

@@ -1,0 +1,1134 @@
+{
+  "site": {
+    "name": "Cali Tints",
+    "short": "Cali Tints",
+    "base_url": "https://calitintsca.com",
+    "phone_display": "(916) 701-2005",
+    "phone_link": "+19167012005",
+    "email": "REPLACE-ME@example.com",
+    "street": "2400 Fulton Ave, Suite F",
+    "city": "Sacramento",
+    "region": "CA",
+    "region_long": "California",
+    "zip": "95825",
+    "lat": "38.5995",
+    "lng": "-121.4014",
+    "neighborhood": "Arden-Arcade",
+    "hours_human": "Monday – Friday, 10:00 AM – 6:00 PM · Saturday, 10:00 AM – 4:00 PM",
+    "hours_short": "Mon–Fri 10–6 · Sat 10–4",
+    "hours_rows": [
+      [
+        "Monday",
+        "10:00 AM – 6:00 PM"
+      ],
+      [
+        "Tuesday",
+        "10:00 AM – 6:00 PM"
+      ],
+      [
+        "Wednesday",
+        "10:00 AM – 6:00 PM"
+      ],
+      [
+        "Thursday",
+        "10:00 AM – 6:00 PM"
+      ],
+      [
+        "Friday",
+        "10:00 AM – 6:00 PM"
+      ],
+      [
+        "Saturday",
+        "10:00 AM – 4:00 PM"
+      ],
+      [
+        "Sunday",
+        "Closed"
+      ]
+    ],
+    "hours_schema": [
+      {
+        "days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "opens": "10:00",
+        "closes": "18:00"
+      },
+      {
+        "days": [
+          "Saturday"
+        ],
+        "opens": "10:00",
+        "closes": "16:00"
+      }
+    ],
+    "rating": "4.9",
+    "review_count": "48",
+    "rating_source": "Google",
+    "rating_checked": "2026-09-25",
+    "areas": [
+      "Sacramento",
+      "Arden-Arcade",
+      "Carmichael",
+      "Rancho Cordova",
+      "Elk Grove",
+      "Citrus Heights",
+      "Roseville",
+      "Folsom",
+      "West Sacramento",
+      "Davis"
+    ],
+    "founded_note": "a Sacramento tint and wrap shop on Fulton Avenue in Arden-Arcade",
+    "warranty_text": "Ask about the warranty on the film or wrap you choose before we start — the terms depend on the product, and you should have them in writing.",
+    "promise": "Film, wrap or coating priced on your vehicle before we touch it. Installed clean, cured right, no bubbles.",
+    "logo": "/assets/img/logo.png",
+    "favicon": "/assets/img/favicon.svg",
+    "pillars": [
+      {
+        "icon": "film",
+        "title": "Tints",
+        "text": "Ceramic and carbon window film cut to your glass and installed to California's front-window limit. Heat and UV rejection you can feel on the first hot afternoon.",
+        "href": "/services/window-tinting/"
+      },
+      {
+        "icon": "wrap",
+        "title": "Wraps & PPF",
+        "text": "A wrap is a second skin for the factory paint — colour change, gloss, matte or carbon — and paint protection film is the clear version of it. Business vehicles become moving signage.",
+        "href": "/services/vinyl-wraps/"
+      },
+      {
+        "icon": "sparkle",
+        "title": "Detail & Ceramic Coats",
+        "text": "Paint correction takes the swirls out; a ceramic coating locks the result in against UV, bird droppings, tree sap and Sacramento dust.",
+        "href": "/services/ceramic-coating/"
+      }
+    ]
+  },
+  "nav": [
+    [
+      "Services",
+      "/services/"
+    ],
+    [
+      "Tinting",
+      "/services/window-tinting/"
+    ],
+    [
+      "Wraps",
+      "/services/vinyl-wraps/"
+    ],
+    [
+      "Reviews",
+      "/reviews/"
+    ],
+    [
+      "Advice",
+      "/advice/"
+    ],
+    [
+      "Contact",
+      "/contact/"
+    ]
+  ],
+  "services": [
+    {
+      "slug": "window-tinting",
+      "nav": "Window Tinting",
+      "icon": "film",
+      "title": "Ceramic Window Tinting in Sacramento, CA",
+      "h1": "Ceramic window tinting in Sacramento, CA",
+      "meta": "Ceramic and carbon window tint in Sacramento, CA, installed to California's legal limit. Cars, trucks, SUVs and fleets. Call (916) 701-2005 for a quote.",
+      "blurb": "Ceramic and carbon film, cut to your glass, legal on the front windows and as dark as you like behind them.",
+      "intro": [
+        "Sacramento summers put a car's interior over 130°F in a parking lot. Window film is the one upgrade that changes how the car feels every single day: less heat through the glass, less glare, near-total UV blocking for your skin and your dashboard, and privacy for whatever is on the back seat.",
+        "We cut film to your vehicle's glass, install it in a clean bay so dust does not end up under it, and set the shade to what California allows on each window — 70% or lighter on the front sides, anything you like on the rear. You get the price on your vehicle before any glass is touched."
+      ],
+      "includes": [
+        "Ceramic and carbon film options, explained by what they actually do, not by brand slogans",
+        "Front side windows at the California legal limit (70% VLT with the glass)",
+        "Rear sides and back glass to the shade you choose",
+        "Windshield strip along the top, above the AS-1 line",
+        "Cars, trucks, SUVs, vans and motorcycle windscreens",
+        "Old film stripped and adhesive removed before new film goes on",
+        "Clean-room style install: glass cleaned, film heat-shrunk to the curve, edges trimmed",
+        "Cure guidance so you know when the windows can go down"
+      ],
+      "signs": [
+        "The steering wheel is too hot to hold after an hour in the lot",
+        "The kids squint or sleep badly on the back seat in afternoon sun",
+        "You can see everything in the car from the outside",
+        "The dashboard or leather is fading and cracking",
+        "The car came with dyed film that has gone purple or bubbled",
+        "You want the car to look finished, not fresh off the dealer lot"
+      ],
+      "faqs": [
+        [
+          "How dark can I legally tint in California?",
+          "Front side windows must let at least 70% of light through with the film on, and the windshield can only carry a strip above the AS-1 line. Rear side windows and the back glass can be any darkness, as long as the car has two side mirrors. We install to those limits so you are not pulled over for it. Call (916) 701-2005 if you have a medical exemption letter — that changes what is allowed up front."
+        ],
+        [
+          "Ceramic or carbon — what is the difference?",
+          "Both block UV and cut glare. Ceramic film rejects noticeably more infrared heat at the same shade, so a lighter, legal ceramic tint can keep the car cooler than a dark carbon one. Carbon costs less and does not fade. We will show you both on the glass and price each on your vehicle."
+        ],
+        [
+          "How long does tinting take, and when can I roll the windows down?",
+          "Most cars are done the same day. Leave the windows up for three to five days after the install while the film cures — you may see a light haze or small water pockets in that time, and they clear as it dries."
+        ],
+        [
+          "Do you tint front windshields?",
+          "Only the strip above the AS-1 line, which is what California allows. A full clear ceramic windshield film for heat rejection is a separate conversation — ask us and we will tell you what is legal for your vehicle."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, a window tint and wrap shop on Fulton Avenue in Sacramento's Arden-Arcade area",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs, vans, motorcycles and business fleets",
+        "pricing": "Quoted on your vehicle and the film you choose, before any work starts",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    },
+    {
+      "slug": "tint-removal-repair",
+      "nav": "Tint Removal & Repair",
+      "icon": "scrape",
+      "title": "Tint Removal & Repair in Sacramento, CA",
+      "h1": "Window tint removal and repair in Sacramento",
+      "meta": "Bubbled, purple or peeling tint removed cleanly and replaced in Sacramento, CA. Adhesive stripped, defroster lines protected. Call (916) 701-2005.",
+      "blurb": "Old, purple or bubbling film stripped without wrecking the defroster lines, then replaced with film that will not do it again.",
+      "intro": [
+        "Cheap dyed film turns purple and bubbles because the dye breaks down in UV and the adhesive lets go. Scraping it off yourself usually takes the rear-window defroster lines with it. We steam the film off, dissolve the adhesive, and leave the glass clean.",
+        "Most removals are paired with a new install the same day, but if you just need the old film gone — for a sale, a fix-it ticket or a lease return — we do that on its own too."
+      ],
+      "includes": [
+        "Steam removal of old film from every window, including the rear glass",
+        "Adhesive dissolved and cleaned off, not scraped",
+        "Rear defroster and antenna lines protected",
+        "Single-window replacement for a scratched or damaged panel",
+        "Fix-it ticket corrections — film brought to the legal shade on the front windows",
+        "Lease-return and resale removals",
+        "Replacement with ceramic or carbon film the same day",
+        "Inspection of the glass for chips and scratches before new film goes on"
+      ],
+      "signs": [
+        "The rear window has gone purple or looks bubbled from the outside",
+        "Film is peeling at an edge or lifting at the corners",
+        "A police officer gave you a correctable-violation ticket for the front windows",
+        "One window was replaced and now does not match the rest",
+        "You are returning a lease that was tinted after delivery",
+        "The previous owner's tint is scratched or gouged from the inside"
+      ],
+      "faqs": [
+        [
+          "Will removing the tint damage my rear defroster?",
+          "Not if it is done with steam and the right solvent. The grid lines are on the inside of the glass, right under the film, and a razor blade is what kills them. We do not use one there."
+        ],
+        [
+          "Can you fix one bubbled window instead of redoing the whole car?",
+          "Yes. We match the shade as closely as the original film allows and tell you honestly when a single panel will not match well enough and the pair should be done together."
+        ],
+        [
+          "I got a fix-it ticket. What do I need?",
+          "The front side windows have to read 70% or lighter. We remove the film on those two windows, or replace it with legal ceramic, and you get a receipt to show at sign-off. Call (916) 701-2005 and we can usually do it the same day."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, window tint removal and replacement in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs and vans, any film, any age",
+        "pricing": "Quoted by the number of windows and what is on them, before we start",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    },
+    {
+      "slug": "vinyl-wraps",
+      "nav": "Vinyl Wraps",
+      "icon": "wrap",
+      "title": "Vinyl Car Wraps in Sacramento, CA",
+      "h1": "Vinyl car wraps in Sacramento, CA",
+      "meta": "Full and partial vinyl wraps in Sacramento, CA — colour change, gloss, satin, matte and carbon fibre. Cars, trucks, SUVs, motorcycles. Call (916) 701-2005.",
+      "blurb": "Colour change or protection — gloss, satin, matte and carbon fibre, full car or just the roof, hood and mirrors.",
+      "intro": [
+        "A wrap is a cast vinyl film laid over the factory paint. It changes the colour without a respray, it protects the paint underneath from chips and scratches, and it comes off cleanly when you sell the car or want a new look. Gloss, satin, matte, colour-flip and carbon-fibre textures are all on the table.",
+        "We disassemble what needs to come off — handles, badges, lights — so edges tuck instead of sitting on the surface, and we work in a closed bay so the finish is not full of dust. You choose the colour on real swatches, and the price is set on your vehicle before a panel is touched."
+      ],
+      "includes": [
+        "Full colour-change wraps in gloss, satin, matte and textured finishes",
+        "Partial wraps: roof, hood, mirrors, trim, chrome delete, racing stripes",
+        "Carbon-fibre texture wraps for hoods, roofs, spoilers and interior trim",
+        "Cars, trucks, SUVs, motorcycles and commercial vehicles",
+        "Badges, handles and lights removed so edges tuck, then refitted",
+        "Paint inspected and corrected where needed so the vinyl lays flat",
+        "Post-heated edges and recesses so the film stays put in valley heat",
+        "Aftercare instructions — how to wash it and what voids it"
+      ],
+      "signs": [
+        "You want a different colour without losing the factory paint value",
+        "The car is leased and has to go back in its original colour",
+        "A hood or roof is sun-faded and a respray costs more than a wrap",
+        "You want a chrome delete or a satin roof to finish the look",
+        "You want stone-chip protection on a daily driver that also looks different",
+        "A previous wrap is lifting, cracking or was applied over dirt"
+      ],
+      "faqs": [
+        [
+          "How long does a vinyl wrap last?",
+          "A quality cast vinyl, installed properly and garaged or covered some of the time, typically holds up for years in the Sacramento climate; a car that lives outside in the sun will see the top surfaces go first. We will tell you which finishes wear best before you choose."
+        ],
+        [
+          "Does a wrap damage the paint underneath?",
+          "No — on sound factory paint it protects it. Resprayed or already peeling paint is the exception: the vinyl can lift it on removal, which is why we inspect the paint first and tell you if a panel is a risk."
+        ],
+        [
+          "Can you wrap just part of the car?",
+          "Yes. Roofs, hoods, mirrors, stripes, chrome delete and interior trim are the most common. Partial wraps are priced per panel."
+        ],
+        [
+          "Do I have to tell the DMV?",
+          "In California, if the whole vehicle changes colour you are expected to update the colour on the registration. It is a form, not a fee. We will remind you at pickup."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, vinyl wrap installers in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs, motorcycles, vans and commercial vehicles",
+        "pricing": "Quoted per vehicle and finish on real swatches, before any panel is touched",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    },
+    {
+      "slug": "commercial-wraps",
+      "nav": "Commercial & Fleet Wraps",
+      "icon": "truck",
+      "title": "Commercial Vehicle Wraps, Sacramento",
+      "h1": "Commercial vehicle and fleet wraps in Sacramento",
+      "meta": "Business vehicle wraps, partial wraps, banners and stickers in Sacramento, CA. Vans, trucks, trailers and buses turned into moving signage. Call (916) 701-2005.",
+      "blurb": "Turn the work van, box truck, trailer or bus into a billboard that drives past your customers every day.",
+      "intro": [
+        "A wrapped work vehicle is advertising you already pay to park. A van in Sacramento traffic is seen thousands of times a day, and a wrap costs once. We wrap vans, pickups, box trucks, trailers and buses — full coverage or a partial wrap with your logo, phone and services on the panels people actually read.",
+        "Bring your logo files and we will lay out the design to the vehicle's real panels, so the phone number is not cut in half by a door seam. Fleets get matched colours across every unit and the same install on each one."
+      ],
+      "includes": [
+        "Full and partial commercial wraps on vans, pickups, box trucks and buses",
+        "Trailer wraps, including enclosed and food trailers",
+        "Logo, phone and service panels laid out to the vehicle's actual body lines",
+        "Cut vinyl lettering and stickers for doors, tailgates and rear glass",
+        "Perforated window film so rear glass carries the message and still sees out",
+        "Fleet colour matching across multiple units",
+        "Removal and rewrap when the branding or the vehicle changes",
+        "Banners and signage to match the vehicles"
+      ],
+      "signs": [
+        "Your work vehicles are plain white and nobody knows who you are",
+        "You are adding a second or third vehicle and want them to match",
+        "The old lettering is faded, peeling or shows a number you no longer use",
+        "A food trailer or mobile business needs to look like a brand, not a box",
+        "You pay for ads that disappear and want one that does not",
+        "A lease is ending and the wrap has to come off cleanly"
+      ],
+      "faqs": [
+        [
+          "Do I need finished artwork?",
+          "It helps. Send us your logo as a vector file if you have one (AI, EPS, SVG or PDF); if not, send whatever you have and we will tell you what is usable. Call (916) 701-2005 to talk through it before you order anything."
+        ],
+        [
+          "How long is the vehicle off the road?",
+          "A partial wrap is usually a day. A full wrap on a van or box truck is longer. We will give you a firm time once we have seen the vehicle, so you can plan routes around it."
+        ],
+        [
+          "Can you wrap several vehicles the same?",
+          "Yes. Fleet jobs are laid out once and printed per vehicle, so every unit matches and a new one added later still fits the set."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, commercial and fleet vehicle wraps in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Vans, pickups, box trucks, trailers, buses and small fleets",
+        "pricing": "Quoted per vehicle from your artwork and the coverage you want",
+        "booking": "Call (916) 701-2005 or send the quote form with your logo"
+      }
+    },
+    {
+      "slug": "paint-protection-film",
+      "nav": "Paint Protection Film (PPF)",
+      "icon": "shield",
+      "title": "Paint Protection Film in Sacramento, CA",
+      "h1": "Paint protection film (PPF) in Sacramento",
+      "meta": "Clear paint protection film in Sacramento, CA — front bumper, hood, mirrors or full front. Self-healing film against rock chips. Call (916) 701-2005.",
+      "blurb": "Clear, self-healing urethane film on the front end, so rock chips land on the film instead of the paint.",
+      "intro": [
+        "Highway 50, I-80 and Highway 99 throw gravel at the front of every car that drives them. Paint protection film — PPF, or clear bra — is a thick, optically clear urethane film applied over the paint on the parts that take the hits: the front bumper, the hood, the fenders, mirrors and the rocker panels. Light scratches in the film self-heal with heat.",
+        "The film is cut to your vehicle's exact panels, so edges are wrapped where possible and nearly invisible where not. We install on new cars straight from the dealer and on cars whose paint we have corrected first — the film protects whatever finish is under it."
+      ],
+      "includes": [
+        "Partial front: bumper, partial hood and fenders, mirrors",
+        "Full front: full hood, full fenders, bumper, mirrors, headlights",
+        "Rocker panels, door edges, door cups, luggage strip and A-pillars",
+        "Full-body coverage for new cars that will be kept",
+        "Gloss or matte film, including matte PPF over matte paint",
+        "Pattern-cut to the vehicle, edges wrapped where the panel allows",
+        "Paint corrected before the film goes on if the car is not new",
+        "Ceramic coating over the film to keep it easy to wash"
+      ],
+      "signs": [
+        "You just bought a new car and want the front to still look new in three years",
+        "The hood and bumper are already peppered with chips from the freeway",
+        "You drive Highway 50 or I-80 every day behind trucks",
+        "The car has a dark or matte paint that shows every mark",
+        "You want protection you cannot see, rather than a wrap that changes the look",
+        "Headlights are yellowing or pitting from road grit"
+      ],
+      "faqs": [
+        [
+          "PPF or ceramic coating — which one do I need?",
+          "They do different jobs. PPF is physical protection against chips and scratches. A ceramic coating is chemical protection against UV, water spots and contamination, and it makes washing easier — it does not stop a rock. Many customers do PPF on the front and coat the whole car."
+        ],
+        [
+          "Can you see the film?",
+          "On a clean install, only if you know where to look for an edge. The film is optically clear and the modern ones do not yellow the way early clear bras did."
+        ],
+        [
+          "How long does PPF last?",
+          "Years, and the better films carry a manufacturer warranty against yellowing and cracking. We will show you the warranty on the film we recommend for your car; call (916) 701-2005 and ask."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, paint protection film installers in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "New and near-new cars, trucks and SUVs; any paint, gloss or matte",
+        "pricing": "Quoted by coverage — partial front, full front or full body — on your vehicle",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    },
+    {
+      "slug": "ceramic-coating",
+      "nav": "Ceramic Coating",
+      "icon": "drop",
+      "title": "Ceramic Coating in Sacramento, CA",
+      "h1": "Ceramic coating in Sacramento, CA",
+      "meta": "Professional ceramic coating in Sacramento, CA. Paint corrected, then coated against UV, water spots, bird droppings and sap. Call (916) 701-2005.",
+      "blurb": "A hard, glossy layer bonded to corrected paint — sheds water, resists UV and sap, and makes every wash faster.",
+      "intro": [
+        "A ceramic coating is a liquid that cures into a thin, hard, glass-like layer on top of your paint. It does not chip-proof the car — that is what film is for — but it does keep the sun, bird droppings, tree sap, hard water and road grime off the paint itself, and it makes the car easier to wash and slower to get dirty.",
+        "The coating only looks as good as the paint under it, so every coating here starts with a wash, decontamination and the level of paint correction the car needs. Then it is applied panel by panel and left to cure. You get care instructions and a straight answer on how long the coating you chose should hold."
+      ],
+      "includes": [
+        "Wash, iron and tar removal, and clay decontamination",
+        "Paint correction to the level the paint needs — light polish to multi-stage",
+        "Coating applied panel by panel and levelled by hand",
+        "Wheels, calipers, glass and trim coated on request",
+        "Coating over paint protection film or a vinyl wrap",
+        "Interior fabric and leather protection on request",
+        "Maintenance wash guidance so the coating is not undone by a car wash",
+        "Cure time explained: what to avoid for the first week"
+      ],
+      "signs": [
+        "You park under trees or near the river and the paint is always spotted",
+        "Water spots from sprinklers or a hard-water wash are etched in",
+        "Dark paint looks swirled and dull under the sun",
+        "You want a wash to take ten minutes instead of an hour",
+        "The car is new and you want to keep it that way",
+        "A wrap or PPF was just installed and you want it easier to keep clean"
+      ],
+      "faqs": [
+        [
+          "How long does a ceramic coating last?",
+          "It depends on the product and how the car lives. A professional coating typically holds for years on a garaged car with proper washing; a car that lives outside and goes through automatic car washes sees less. We will tell you the real expectation for the coating we put on."
+        ],
+        [
+          "Does a ceramic coating stop rock chips?",
+          "No. It is a few microns thick — it resists chemicals, UV and light marring, not stones. Paint protection film does that job; the two are often combined."
+        ],
+        [
+          "Do I need paint correction first?",
+          "Almost always, unless the car is brand new and flawless. The coating locks in whatever is under it, including swirl marks. Call (916) 701-2005 and we will look at the paint and tell you what level it needs."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, ceramic coating and paint correction in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs and motorcycles, any colour, new or corrected",
+        "pricing": "Quoted on the vehicle's size, the paint's condition and the coating chosen",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    },
+    {
+      "slug": "detailing",
+      "nav": "Auto Detailing",
+      "icon": "sparkle",
+      "title": "Auto Detailing in Sacramento, CA",
+      "h1": "Auto detailing in Sacramento, CA",
+      "meta": "Interior and exterior auto detailing in Sacramento, CA — deep clean, decontamination, polish and protection. Cars, trucks, SUVs. Call (916) 701-2005 to book.",
+      "blurb": "Interior and exterior detail — the car cleaned properly, inside the vents and under the seats, then protected.",
+      "intro": [
+        "A detail is not a car wash. It is the car cleaned the way it was when it left the factory: carpets extracted, seats shampooed or leather cleaned and conditioned, every vent and seam brushed out, the glass streak-free from the inside, and the paint washed, decontaminated and protected.",
+        "We detail daily drivers, cars going up for sale, lease returns and anything that has had a bad month. Tell us what the car needs and we will price the interior, the exterior or both."
+      ],
+      "includes": [
+        "Interior: vacuum, carpet and seat extraction, leather clean and condition",
+        "Vents, seams, cupholders and door pockets brushed and cleaned",
+        "Interior glass, screens and trim cleaned without greasy dressings",
+        "Exterior: hand wash, iron and tar removal, clay decontamination",
+        "Wheels, tyres and wheel wells cleaned and dressed",
+        "Machine polish to remove light swirls and bring back gloss",
+        "Sealant or wax, or a ceramic coating as an upgrade",
+        "Pre-sale and lease-return details"
+      ],
+      "signs": [
+        "The interior smells of something you cannot find",
+        "A child seat came out and left what child seats leave",
+        "The car is going up for sale and photos matter",
+        "Pollen, tree sap or river-road dust has bonded to the paint",
+        "The lease ends soon and you want to avoid a cleaning charge",
+        "The car is new to you and you want it to feel like yours"
+      ],
+      "faqs": [
+        [
+          "How long does a full detail take?",
+          "Plan on most of a day for interior and exterior together. A heavily used interior can take longer, and we would rather tell you that up front than rush it."
+        ],
+        [
+          "Can you get pet hair and smells out?",
+          "Usually. Pet hair takes time rather than magic, and most smells come out with extraction and an ozone or enzyme treatment. Smoke that has soaked into headliners is the hardest case — we will be honest about what is achievable."
+        ],
+        [
+          "Do you offer a maintenance plan?",
+          "Ask. Regular customers often book a lighter interior and exterior refresh between full details. Call (916) 701-2005 and we will work out a sensible interval for how the car is used."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, auto detailing in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs, vans and motorcycles",
+        "pricing": "Quoted on the vehicle's size and condition — interior, exterior or both",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    },
+    {
+      "slug": "paint-correction",
+      "nav": "Paint Correction",
+      "icon": "polish",
+      "title": "Paint Correction in Sacramento, CA",
+      "h1": "Paint correction in Sacramento, CA",
+      "meta": "Machine paint correction in Sacramento, CA — swirl marks, water spots, oxidation and light scratches polished out, then protected. Call (916) 701-2005.",
+      "blurb": "Swirls, water spots, oxidation and light scratches machine-polished out of the clear coat — the step before any coating.",
+      "intro": [
+        "Most paint that looks dull is not worn out. It is covered in thousands of tiny scratches from car washes and drying towels that scatter light. Paint correction uses a machine polisher and a sequence of compounds and pads to level the clear coat until the surface is flat enough to reflect properly again.",
+        "We measure the paint before we start, so we know how much clear coat there is to work with, and we correct only as far as the paint safely allows. Then it gets sealed, waxed or ceramic coated so the result lasts."
+      ],
+      "includes": [
+        "Paint thickness measured before any compound touches it",
+        "Single-stage polish for light swirls and gloss enhancement",
+        "Multi-stage compound and polish for deeper swirls and scratches",
+        "Water-spot and etching removal",
+        "Oxidation removed from faded single-stage and clear-coat paint",
+        "Wet sanding of isolated defects where the paint allows",
+        "Headlight restoration",
+        "Sealant, wax or ceramic coating to protect the corrected finish"
+      ],
+      "signs": [
+        "Black or dark paint shows a spider web of swirls in the sun",
+        "Sprinkler or hard-water spots will not wash off",
+        "The roof and hood are chalky or faded",
+        "A scratch catches your fingernail slightly but has not reached the primer",
+        "The car is going to be ceramic coated and needs to be right first",
+        "Headlights are yellow and cloudy"
+      ],
+      "faqs": [
+        [
+          "Will paint correction remove every scratch?",
+          "Anything in the clear coat, usually yes. Anything through to the colour or primer — a scratch that clearly catches your fingernail — needs paint, not polish, and we will tell you which is which before we start."
+        ],
+        [
+          "How many times can paint be corrected?",
+          "A limited number, because each correction removes a little clear coat. That is why we measure first and correct to the minimum that gets the result, and why a coating afterwards matters: it stops you needing to do it again soon."
+        ],
+        [
+          "How long does it take?",
+          "A gloss-enhancement polish is a day. A multi-stage correction on a neglected dark car can be two or three. Call (916) 701-2005 and describe the paint; we can usually give you a range on the phone and a firm price once we have seen it."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, machine paint correction in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs and motorcycles, any age of paint",
+        "pricing": "Quoted after we see and measure the paint — one, two or three stages",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    },
+    {
+      "slug": "customization",
+      "nav": "Customization & Electronics",
+      "icon": "bolt",
+      "title": "Car Customization & Electronics, Sacramento",
+      "h1": "Car customization and auto electronics in Sacramento",
+      "meta": "Smoked lights, chrome delete, custom accents and auto electronics installed in Sacramento, CA — cameras, dash cams, lighting and audio. Call (916) 701-2005.",
+      "blurb": "Smoked lights, chrome delete, custom accents, and clean electronics installs — dash cams, cameras, lighting and audio.",
+      "intro": [
+        "This is the page for everything that makes the car yours. Smoked or tinted headlight and taillight film, chrome delete on grilles and trim, accent wraps on interior panels, custom stripes and decals — and the electronics that should be installed by someone who takes the trim off properly rather than pushing wires into gaps.",
+        "Tell us what you are picturing and we will tell you what is legal, what will last, and what it costs on your car. Lighting and electronics are wired so nothing rattles, nothing drains the battery, and the trim goes back on without a mark."
+      ],
+      "includes": [
+        "Smoked and tinted headlight, taillight and fog-light film, in legal shades",
+        "Chrome delete: grille, window trim, badges and mirror caps",
+        "Interior accent wraps and colour-matched trim",
+        "Custom stripes, decals and accent graphics",
+        "Dash cam and backup camera installs, hard-wired and hidden",
+        "Ambient and accent lighting, LED upgrades",
+        "Audio installs: head units, speakers, amplifiers and subwoofers",
+        "Accessories fitted — spoilers, splitters, mud flaps and more"
+      ],
+      "signs": [
+        "You want the taillights darker but not so dark they are illegal",
+        "Chrome trim is the one thing stopping the car looking finished",
+        "The dash cam is on the windshield with a cable dangling to the lighter socket",
+        "The factory stereo is fine but the speakers are not",
+        "You want interior trim in carbon, brushed metal or a colour",
+        "A previous accessory install rattles or has a wire hanging under the dash"
+      ],
+      "faqs": [
+        [
+          "Is smoking my taillights legal in California?",
+          "Only to a point. California requires taillights to be visible from a distance and red, and headlights white or amber; a heavy smoke film can fail that and get you a fix-it ticket. We install light smoke shades that keep the lamps clearly visible and will tell you where the line is."
+        ],
+        [
+          "Can you hard-wire a dash cam so it records while parked?",
+          "Yes, with a hard-wire kit and a fuse tap on a circuit that suits the camera, plus a cut-off so it never flattens your battery. The cable runs behind the headliner and pillar trim, so nothing shows."
+        ],
+        [
+          "Do you install parts I bought myself?",
+          "Usually, as long as they fit the vehicle and are legal. Call (916) 701-2005 with the part and the car and we will say yes or no on the phone."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, vehicle customization and electronics installs in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs and motorcycles",
+        "pricing": "Quoted per job on your vehicle and the parts chosen",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    },
+    {
+      "slug": "dent-removal",
+      "nav": "Dent Removal",
+      "icon": "hammer",
+      "title": "Dent Removal in Sacramento, CA",
+      "h1": "Dent removal in Sacramento, CA",
+      "meta": "Paintless dent removal in Sacramento, CA for door dings, hail and parking-lot dents where the paint is unbroken. Same-day on most. Call (916) 701-2005.",
+      "blurb": "Door dings, hail and parking-lot dents worked out from behind the panel — no filler, no paint, factory finish kept.",
+      "intro": [
+        "If the paint is not cracked, most dents do not need a body shop. Paintless dent removal (PDR) works the metal back into shape from behind the panel with specialised tools, so the factory paint stays untouched and there is no filler, no repaint and no colour mismatch.",
+        "It suits door dings, shopping-cart dents, hail damage and small creases. We will look at the dent and tell you honestly whether PDR will make it disappear, make it much better, or whether it needs a body shop — and we will not take the job if it is the last one."
+      ],
+      "includes": [
+        "Door dings and parking-lot dents",
+        "Hail damage across roofs, hoods and trunks",
+        "Small creases and bodyline dents where the paint is intact",
+        "Aluminium panels where access allows",
+        "Dents removed before a wrap or PPF goes on so the film lays flat",
+        "Glue-pull repair where there is no access behind the panel",
+        "Assessment of whether a dent is a PDR job or a body-shop job",
+        "Same-day turnaround on most small dents"
+      ],
+      "signs": [
+        "A door ding appeared in a parking lot and the paint is unbroken",
+        "Hail left the roof and hood covered in small dimples",
+        "A body shop quoted a repaint for a dent the size of a coin",
+        "You are about to wrap or coat the car and want the panels straight first",
+        "A lease return has dents that will be charged for",
+        "A crease is bothering you but the paint is not cracked"
+      ],
+      "faqs": [
+        [
+          "Can every dent be fixed without paint?",
+          "No. PDR needs intact paint and some access to the back of the panel, and very sharp creases or dents on a panel edge may not fully disappear. We will tell you before we start which outcome to expect."
+        ],
+        [
+          "How long does it take?",
+          "A single door ding is usually under an hour. Hail damage across a whole car is a bigger job and is quoted after we count the dents. Call (916) 701-2005 and send a photo if you can."
+        ],
+        [
+          "Will insurance cover hail damage repair?",
+          "Comprehensive coverage usually does, and PDR is the method insurers prefer for hail because it keeps the factory paint. We can work from an insurer's estimate."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, paintless dent removal in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs and vans with intact paint",
+        "pricing": "Quoted per dent after we see it — a photo gets you a range on the phone",
+        "booking": "Call (916) 701-2005 or send the quote form with a photo"
+      }
+    },
+    {
+      "slug": "upholstery",
+      "nav": "Upholstery",
+      "icon": "seat",
+      "title": "Auto Upholstery in Sacramento, CA",
+      "h1": "Auto upholstery in Sacramento, CA",
+      "meta": "Auto upholstery in Sacramento, CA — seat repairs, custom leather and fabric, headliners, door panels and steering wheels. Call (916) 701-2005 for a quote.",
+      "blurb": "Seat repairs, custom leather and fabric, sagging headliners, door panels and steering wheels done properly.",
+      "intro": [
+        "Sun and heat are hard on a Sacramento interior. Headliners sag when the foam behind them breaks down, leather bolsters split where you slide in and out, and cloth seats wear through at the same spot on every car. Upholstery work fixes the panel that failed instead of replacing the seat.",
+        "We repair and re-cover seats in matched leather, vinyl or fabric, replace headliners, re-cover door panels and armrests, and re-wrap steering wheels. If you want a full custom interior — colour, stitching, perforation — bring the idea and we will price it on your car."
+      ],
+      "includes": [
+        "Driver's bolster and seat-panel repairs in matched material",
+        "Full seat re-covers in leather, vinyl or fabric",
+        "Sagging headliner replacement",
+        "Door panel and armrest re-covers",
+        "Steering wheel re-wraps in leather or alcantara-style material",
+        "Custom stitching, perforation and two-tone interiors",
+        "Seat foam repairs where the base has collapsed",
+        "Convertible and classic-car interior work by quote"
+      ],
+      "signs": [
+        "The headliner is drooping onto your head",
+        "The driver's bolster has split or the stitching is opening",
+        "A seat has a burn, a tear or a stain that will not come out",
+        "The steering wheel leather is shiny, cracked or peeling",
+        "You want a factory-look interior in a colour the factory did not offer",
+        "The car is a keeper and the interior is the part letting it down"
+      ],
+      "faqs": [
+        [
+          "Can you repair just one panel of the seat?",
+          "Usually, yes. The bolster or the base panel is replaced in matched material and the rest of the seat stays original. On older leather we will tell you honestly how close the match will be."
+        ],
+        [
+          "How long does a headliner take?",
+          "Typically a day, because the old board has to be stripped, the foam removed and the new material bonded and cured. Call (916) 701-2005 and we can usually give you a price for your model on the phone."
+        ],
+        [
+          "Do you do full custom interiors?",
+          "Yes, by quote. Bring reference photos, we will show you material samples, and the price is set on your vehicle before any seat comes out."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, auto upholstery repair and custom interiors in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs, vans and classics",
+        "pricing": "Quoted per panel or per seat on your vehicle and the material chosen",
+        "booking": "Call (916) 701-2005 or send the quote form with a photo"
+      }
+    },
+    {
+      "slug": "inspections-mechanic",
+      "nav": "Inspections & Mechanical",
+      "icon": "wrench",
+      "title": "Vehicle Inspections & Mechanic, Sacramento",
+      "h1": "Vehicle inspections and mechanical work in Sacramento",
+      "meta": "Pre-purchase inspections, general checks and light mechanical work at our Sacramento, CA shop — brakes, batteries, fluids, filters. Call (916) 701-2005.",
+      "blurb": "Pre-purchase and general inspections, plus the mechanical jobs that come with them — brakes, batteries, fluids and filters.",
+      "intro": [
+        "Because so much of what we do involves taking a car apart and putting it back together properly, customers ask us to look at the rest of it too. We do pre-purchase inspections on used cars, general condition checks, and the light mechanical work that follows: brakes, batteries, filters, fluids, bulbs and wipers.",
+        "What we do not do is pretend to be a full engine-and-transmission shop. If an inspection turns up something that needs one, we will say so and tell you what to ask them."
+      ],
+      "includes": [
+        "Pre-purchase inspection with a written summary before you buy",
+        "General condition inspection: brakes, tyres, suspension, fluids, lights",
+        "Brake pad and rotor replacement",
+        "Battery testing and replacement",
+        "Engine air and cabin filters, wiper blades, bulbs",
+        "Oil and fluid top-ups and changes by quote",
+        "Tyre pressure, rotation and tread checks",
+        "Referral for engine, transmission or emissions work we do not take on"
+      ],
+      "signs": [
+        "You are buying a used car and want someone on your side to look at it",
+        "The brakes squeal, grind or the pedal feels different",
+        "The car struggles to start on cold mornings",
+        "A warning light for tyre pressure or a bulb keeps coming back",
+        "It has been a while and nobody has looked underneath",
+        "You are having the car wrapped or coated and want the basics checked while it is in"
+      ],
+      "faqs": [
+        [
+          "What does a pre-purchase inspection cover?",
+          "Body and paint (including signs of previous repair), tyres, brakes, suspension, fluids, lights, electronics, a road test and a scan for stored codes. You get a written summary and a straight answer on whether we would buy it. Call (916) 701-2005 to book one before you hand over money."
+        ],
+        [
+          "Do you do smog checks?",
+          "No. Smog testing needs a licensed station. We will point you to one nearby."
+        ],
+        [
+          "Can you do the brakes while the car is in for tint?",
+          "Often, yes — it is the most common combination. Tell us when you book and we will quote both."
+        ]
+      ],
+      "glance": {
+        "who": "Cali Tints, vehicle inspections and light mechanical work in Sacramento, CA",
+        "where": "2400 Fulton Ave, Suite F, Sacramento, CA 95825",
+        "hours": "Monday to Friday 10:00 AM to 6:00 PM, Saturday 10:00 AM to 4:00 PM, closed Sunday",
+        "vehicles": "Cars, trucks, SUVs and vans",
+        "pricing": "Inspections at a set price per vehicle; repairs quoted before any work starts",
+        "booking": "Call (916) 701-2005 or send the quote form on this page"
+      }
+    }
+  ],
+  "guides": [
+    {
+      "slug": "california-window-tint-law",
+      "nav": "California window tint law, explained",
+      "title": "California Window Tint Law: What Is Legal",
+      "meta": "What California allows on each window: 70% on the front sides, a strip on the windshield, any shade behind the driver. Plus the medical exemption and mirrors.",
+      "blurb": "The numbers for each window, what an officer actually checks, and how the medical exemption works.",
+      "icon": "film",
+      "takeaway": "In California the front side windows must pass at least 70% of light with the film on, the windshield can only carry a strip above the AS-1 line, and the rear side and back windows can be any shade as long as the car has two side mirrors. Red, amber and blue film is not allowed anywhere.",
+      "sections": [
+        [
+          "The rule, window by window",
+          "ul",
+          [
+            "<strong>Windshield:</strong> film only on the strip above the AS-1 line (roughly the top 4 inches). No film below it.",
+            "<strong>Front side windows:</strong> the glass and the film together must let at least <strong>70%</strong> of visible light through. Factory glass already blocks a little, so the film has to be light.",
+            "<strong>Rear side windows and back glass:</strong> any darkness. If the back window is tinted, the vehicle must have side mirrors on both sides.",
+            "<strong>Colour and reflectivity:</strong> red, amber and blue film is prohibited, and the film cannot be more reflective than ordinary window glass."
+          ]
+        ],
+        [
+          "What VLT means and why 70% is lighter than it sounds",
+          "p",
+          [
+            "VLT is visible light transmission — the share of light that gets through. A 70% film lets 70% through and blocks 30%. That reads like a modest tint, and on the front windows it is: the car will not look blacked-out from outside. The point of a legal front-window film is not privacy, it is heat and UV.",
+            "This is where ceramic film earns its price. Because ceramic rejects infrared heat independently of how dark it is, a 70% ceramic film on the front windows can keep the cabin noticeably cooler than a darker dyed film would — while staying legal."
+          ]
+        ],
+        [
+          "How enforcement actually works",
+          "p",
+          [
+            "Front-window tint is a correctable violation — a fix-it ticket. An officer with a tint meter puts it on the front side window and reads the number; under 70% is a violation. You then have to bring the window into compliance and get the ticket signed off.",
+            "The fix is either removing the film from the two front windows or replacing it with legal film. We do both, usually the same day, and give you a receipt for the sign-off. The cost of a ticket plus removal is almost always more than doing it legally the first time."
+          ]
+        ],
+        [
+          "The medical exemption",
+          "p",
+          [
+            "California allows darker front-window film for drivers with a medical condition that requires it — light sensitivity, certain skin conditions and similar — with a signed letter from a licensed physician, optometrist or dermatologist that you keep in the car. The letter has to state the condition and the level of protection needed.",
+            "Bring the letter to the shop and we will install to what it allows. Without it, we install to 70% on the front, because a shop that tints your front windows darker than that is setting you up for a ticket."
+          ]
+        ],
+        [
+          "What a legal install looks like from the outside",
+          "p",
+          [
+            "Light front windows, dark rear — the look most new luxury cars ship with from the factory, which is exactly why it reads as finished rather than modified. If you want the whole car darker, the honest answer is that the front two windows are the ones the law cares about, and everything behind the B-pillar is yours to choose."
+          ]
+        ]
+      ]
+    },
+    {
+      "slug": "ceramic-vs-carbon-vs-dyed-tint",
+      "nav": "Ceramic vs carbon vs dyed tint",
+      "title": "Ceramic vs Carbon vs Dyed Window Tint",
+      "meta": "The three kinds of window film compared on heat rejection, fading, signal interference and cost, so you can pick the right one for a Sacramento summer.",
+      "blurb": "The three films look the same on day one. Here is how they differ on heat, fading and cost over the years after that.",
+      "icon": "sun",
+      "takeaway": "Dyed film is the cheapest and fades to purple; carbon does not fade and blocks a good share of heat; ceramic blocks the most infrared heat at any shade and is the one to buy if the car lives in Sacramento sun. All three block over 99% of UV.",
+      "sections": [
+        [
+          "Dyed film",
+          "p",
+          [
+            "A layer of dye in the film absorbs light. It is the cheapest option and it looks fine when new. The dye breaks down in UV, so over a few valley summers it shifts toward purple and the adhesive often lets go — that is where bubbled rear windows come from. It also blocks the least heat, because absorbing light is not the same as rejecting infrared."
+          ]
+        ],
+        [
+          "Carbon film",
+          "p",
+          [
+            "Carbon particles in the film instead of dye. It does not fade or turn purple, it has a matte, non-reflective look, and it rejects a meaningful share of infrared heat. It does not interfere with phone, GPS or radio signals, which the old metallic films did. For a car that wants a dark rear and a reasonable budget, carbon is the sensible middle."
+          ]
+        ],
+        [
+          "Ceramic film",
+          "p",
+          [
+            "Ceramic nano-particles reject infrared heat directly, which means the film can be light and still keep the cabin cool. That matters most on the front windows, where California limits you to 70% — a ceramic film at that shade does more for heat than a much darker carbon film would. It is the most expensive of the three and the one we recommend for any car that lives outside in Sacramento.",
+            "There are grades within ceramic, usually sold by their infrared rejection number. We will show you the difference on a heat lamp rather than ask you to trust a percentage on a brochure."
+          ]
+        ],
+        [
+          "Side by side",
+          "ul",
+          [
+            "<strong>UV blocking:</strong> all three block more than 99% of UV. This is not where they differ.",
+            "<strong>Heat rejection:</strong> ceramic is highest, carbon is good, dyed is lowest.",
+            "<strong>Fading:</strong> dyed fades and turns purple; carbon and ceramic do not.",
+            "<strong>Signal interference:</strong> none from any of the three; only old metallic films had that problem.",
+            "<strong>Cost:</strong> dyed is lowest, ceramic is highest, and the difference is small against the life of the car."
+          ]
+        ],
+        [
+          "What we suggest",
+          "p",
+          [
+            "If the car is parked outside every day and the budget allows, ceramic on every window. If the budget is tighter, ceramic on the front two windows where the shade is limited and carbon behind, where you can go dark anyway. We would not install dyed film on a car we expected to see again."
+          ]
+        ]
+      ]
+    },
+    {
+      "slug": "how-long-tint-wrap-ppf-last",
+      "nav": "How long tint, wraps and PPF last in Sacramento heat",
+      "title": "How Long Tint, Wraps and PPF Last in the Heat",
+      "meta": "Realistic life for window film, vinyl wraps and paint protection film in Sacramento's sun, what shortens it, and the two habits that make the difference.",
+      "blurb": "Every product has a brochure number and a real number. Here is the real one for a car that lives in the valley.",
+      "icon": "clock",
+      "takeaway": "In Sacramento sun, quality ceramic or carbon window film lasts the life of the car, a cast vinyl wrap holds well for years on a garaged car and less on one that lives outside, and paint protection film lasts years and usually carries a manufacturer warranty. Shade, washing habits and the install itself decide where in the range you land.",
+      "sections": [
+        [
+          "Window film",
+          "p",
+          [
+            "Carbon and ceramic film do not fade, so a properly installed film outlasts most people's ownership of the car. What ends a film's life is physical damage — a seat belt buckle scraping the rear glass, a dog's claws, a razor blade used to scrape an inspection sticker. Dyed film is the exception: expect it to purple and bubble within a few summers.",
+            "The first week matters. Leave the windows up for three to five days after the install so the film cures flat; rolling them down early is how edges get peeled."
+          ]
+        ],
+        [
+          "Vinyl wraps",
+          "p",
+          [
+            "A cast vinyl wrap holds its colour and adhesion for years, but the horizontal surfaces — roof, hood, trunk — take the sun and go first. A garaged or covered car keeps a wrap looking new far longer than one parked on the street. Gloss finishes hide wear best; matte and satin show marks and cannot be polished.",
+            "Hand washing, no wax on matte, no pressure washer on the edges, and a ceramic coating made for vinyl all push the wrap toward the top of the range. Automatic brush car washes push it toward the bottom."
+          ]
+        ],
+        [
+          "Paint protection film",
+          "p",
+          [
+            "Modern PPF is a urethane with a self-healing top coat, and the good films carry a manufacturer warranty against yellowing, cracking and delamination that runs for years. Rock chips land on the film and stay there; the paint underneath is untouched. What ages PPF is neglect — bird droppings and tree sap left to bake in — and the same automatic car washes that hurt wraps.",
+            "A ceramic coating over PPF is the cheapest insurance: it keeps contamination from bonding to the film and makes the car easy to wash."
+          ]
+        ],
+        [
+          "The two habits that decide everything",
+          "ul",
+          [
+            "<strong>Shade.</strong> A garage, a carport or even a sunshade in the windshield changes how fast every film and wrap ages. The sun does the damage; the product only resists it.",
+            "<strong>Washing.</strong> Hand wash or touchless only. A brush car wash puts swirls in paint, marks in matte vinyl and lifts the edge of film — it is the single most common reason a finish looks old early."
+          ]
+        ],
+        [
+          "What voids a warranty",
+          "p",
+          [
+            "Film and wrap manufacturers warrant the material, not the abuse. Pressure-washing an edge, using a razor on the glass, waxing a matte wrap, or letting sap sit for a month are all outside what any warranty covers. We give you a one-page care sheet at pickup for exactly that reason."
+          ]
+        ]
+      ]
+    },
+    {
+      "slug": "ceramic-coating-vs-ppf-vs-wax",
+      "nav": "Ceramic coating vs PPF vs wax",
+      "title": "Ceramic Coating vs PPF vs Wax: Which One?",
+      "meta": "Wax, ceramic coating and paint protection film protect against different things. What each one stops, what it does not, and which combination makes sense.",
+      "blurb": "They are sold as if they compete. They do not — each stops a different thing. Here is which one your car actually needs.",
+      "icon": "shield",
+      "takeaway": "Wax is a few weeks of shine. A ceramic coating is years of chemical and UV protection and easy washing, but it does not stop rock chips. Paint protection film is the only one that stops chips and scratches. The common right answer is PPF on the front, ceramic over the whole car.",
+      "sections": [
+        [
+          "Wax and sealants",
+          "p",
+          [
+            "Wax sits on top of the paint and gives gloss and water beading for a few weeks before it washes off. Synthetic sealants last a few months. Both are cheap, both are fine, and neither protects against anything much beyond light water spotting. If you enjoy waxing the car, keep doing it; if you want protection, it is not the answer."
+          ]
+        ],
+        [
+          "Ceramic coating",
+          "p",
+          [
+            "A ceramic coating cures into a hard, glass-like layer bonded to the clear coat. It resists UV, bird droppings, tree sap, hard-water etching and light marring, and it makes the car easier to wash and slower to get dirty. It lasts years rather than weeks. It is a few microns thick, so it does nothing against rock chips or a key.",
+            "It also locks in whatever is under it, which is why every coating starts with paint correction."
+          ]
+        ],
+        [
+          "Paint protection film",
+          "p",
+          [
+            "PPF is a thick, clear urethane film applied over the paint. It absorbs rock chips, resists scratches and self-heals light marks with heat. It is the only one of the three that provides physical protection. It costs the most, and it is usually applied to the areas that take the hits — bumper, hood, fenders, mirrors, rockers — rather than the whole car, though full-body PPF exists for cars that will be kept."
+          ]
+        ],
+        [
+          "Pick by the problem",
+          "ul",
+          [
+            "<strong>Rock chips on the front:</strong> PPF. Nothing else does this.",
+            "<strong>Water spots, sap, bird droppings, dull paint, slow washing:</strong> ceramic coating.",
+            "<strong>Swirl marks:</strong> paint correction first, then a coating to keep them from coming back.",
+            "<strong>Shine for a car show this weekend:</strong> wax.",
+            "<strong>A new car you plan to keep:</strong> PPF on the front, ceramic everywhere, including over the film."
+          ]
+        ],
+        [
+          "Can they be combined?",
+          "p",
+          [
+            "Yes, and the combination is the normal answer for a new car in Sacramento: film on the front end where the gravel hits, coating over every panel including the film, so the whole car sheds water and grime the same way. Call (916) 701-2005 and describe how the car is used and parked; that decides the right mix more than the budget does."
+          ]
+        ]
+      ]
+    },
+    {
+      "slug": "wrap-care",
+      "nav": "How to wash and care for a wrapped car",
+      "title": "How to Wash and Care for a Wrapped Car",
+      "meta": "Hand wash, no brush car washes, no wax on matte, no pressure washer on edges. The short list that keeps a vinyl wrap looking new and its warranty intact.",
+      "blurb": "A wrap is easy to keep — as long as you know the five things that ruin one. Here they are.",
+      "icon": "sparkle",
+      "takeaway": "Hand wash or touchless only, never a brush car wash. Keep the pressure washer a foot or more from the edges. Never wax or polish a matte or satin wrap. Get bird droppings, sap and fuel off the same day. Park in shade when you can. Do those five and a wrap lasts years.",
+      "sections": [
+        [
+          "Washing",
+          "ul",
+          [
+            "Hand wash with a pH-neutral car shampoo and a clean microfibre mitt, or use a touchless wash.",
+            "<strong>No brush or cloth automatic car washes.</strong> The brushes mark the vinyl and can lift an edge.",
+            "Pressure washer: fine on panels, but keep the nozzle at least 12 inches away and never aim it straight at an edge or seam.",
+            "Dry with a clean microfibre towel or a blower. Do not let it air dry in the sun — water spots etch vinyl too."
+          ]
+        ],
+        [
+          "Contamination",
+          "p",
+          [
+            "Bird droppings, tree sap, bug splatter and fuel spills should come off the same day. Soak with warm soapy water, lift gently, do not scrub. Left in the sun they etch into the vinyl and the mark becomes permanent. Isopropyl alcohol diluted with water is safe for stubborn spots; anything with solvents is not."
+          ]
+        ],
+        [
+          "Matte and satin finishes",
+          "p",
+          [
+            "Do not wax them, do not polish them, do not use quick detailers with gloss enhancers — all of it fills the matte texture and leaves shiny patches that cannot be removed. Use products labelled for matte finishes only. A ceramic coating formulated for matte vinyl is the one protection that works on these finishes."
+          ]
+        ],
+        [
+          "Gloss finishes",
+          "p",
+          [
+            "A gloss wrap can take a spray sealant or a ceramic coating made for vinyl, and both make it easier to keep clean. Avoid abrasive polishes; the vinyl is thinner than clear coat and a compound will burn through it."
+          ]
+        ],
+        [
+          "Parking and heat",
+          "p",
+          [
+            "Sun is what ages a wrap. Garage it, use a carport, or at least park with the roof and hood out of the afternoon sun. Do not use a fitted car cover on a fresh wrap for the first couple of weeks, and never a cover on a wrap that is dirty — the grit underneath acts like sandpaper."
+          ]
+        ],
+        [
+          "The first two weeks",
+          "p",
+          [
+            "The adhesive is still setting. No washing for the first week, no pressure washing for two, and if you see a small edge lifting in that time, bring it back rather than pressing it down — we can post-heat it in a minute. Call (916) 701-2005; a fresh lift is a quick fix, a lift that has been driven on for a month is a re-do."
+          ]
+        ]
+      ]
+    }
+  ],
+  "reviews": [
+    {
+      "quote": "Great people, great atmosphere, and quality customer service",
+      "name": "ham miklan",
+      "source": "Google",
+      "url": "https://www.google.com/maps/search/?api=1&query=Cali+Tints+2400+Fulton+Ave+Sacramento+CA+95825"
+    },
+    {
+      "quote": "I am a very happy customer and will bring all my cars here!!!",
+      "name": "Omid Omid",
+      "source": "Google",
+      "url": "https://www.google.com/maps/search/?api=1&query=Cali+Tints+2400+Fulton+Ave+Sacramento+CA+95825"
+    },
+    {
+      "quote": "Very good services and quality work, except picking your car at designated time.",
+      "name": "Matiullah Abid",
+      "source": "Google",
+      "url": "https://www.google.com/maps/search/?api=1&query=Cali+Tints+2400+Fulton+Ave+Sacramento+CA+95825"
+    }
+  ],
+  "home_faqs": [
+    [
+      "Where is Cali Tints located?",
+      "We are at 2400 Fulton Ave, Suite F, Sacramento, CA 95825, in the Arden-Arcade area between Business 80 and Highway 50. There is parking in front. Call (916) 701-2005 if you cannot find the suite."
+    ],
+    [
+      "What are your hours?",
+      "Monday through Friday, 10:00 AM to 6:00 PM, and Saturday 10:00 AM to 4:00 PM. Closed Sunday. Most tint jobs are same-day; wraps, coatings and PPF are booked for the days they need."
+    ],
+    [
+      "How much does window tinting cost?",
+      "It depends on the vehicle, how many windows, and whether you choose carbon or ceramic film, so we price it on your car rather than off a menu. Call (916) 701-2005 with the year, make and model and you will get a number on the phone; the price you are quoted is the price you pay."
+    ],
+    [
+      "What do you work on?",
+      "Cars, trucks, SUVs, vans, motorcycles and business fleets. Tinting, wraps, paint protection film, ceramic coating, detailing, paint correction, customization and electronics, dent removal, upholstery, inspections and light mechanical work — one shop, one bay."
+    ],
+    [
+      "Do I need an appointment?",
+      "For tint, call ahead and we will usually fit you in the same day or the next. Wraps, coatings and paint correction need a booked slot because they take the bay for a day or more. Send the quote form and we will call you back to set a time."
+    ],
+    [
+      "Is the work warrantied?",
+      "The film, wrap and coating products we install carry their manufacturers' warranties, and the terms depend on the product you choose. Ask before we start and you will get them in writing. Anything to do with the installation itself, bring it back and we will look at it."
+    ]
+  ],
+  "old_url_map": {},
+  "profiles": [
+    "https://www.google.com/maps/search/?api=1&query=Cali+Tints+2400+Fulton+Ave+Sacramento+CA+95825",
+    "https://www.yelp.com/biz/cali-tints-sacramento"
+  ],
+  "maps_listing": "https://www.google.com/maps/search/?api=1&query=Cali+Tints+2400+Fulton+Ave+Sacramento+CA+95825",
+  "maps_directions": "https://www.google.com/maps/dir/?api=1&destination=2400+Fulton+Ave+Suite+F%2C+Sacramento%2C+CA+95825",
+  "maps_embed": "https://maps.google.com/maps?q=2400%20Fulton%20Ave%20Suite%20F%2C%20Sacramento%2C%20CA%2095825&t=&z=15&ie=UTF8&iwloc=&output=embed",
+  "form_endpoint": "https://formsubmit.co/ajax/REPLACE-ME@example.com",
+  "icons": {
+    "phone": "<path d=\"M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.4 1.8.6 2.8.8a2 2 0 0 1 1.7 2z\"/>",
+    "pin": "<path d=\"M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/>",
+    "map": "<path d=\"M9 4 3 6.5v14L9 18l6 2.5 6-2.5v-14L15 6.5z\"/><path d=\"M9 4v14M15 6.5v14\"/>",
+    "clock": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/>",
+    "check": "<path d=\"M20 6 9 17l-5-5\"/>",
+    "check-circle": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M8.5 12.5 11 15l4.5-5\"/>",
+    "wrench": "<path d=\"M14.6 6.3a1 1 0 0 0 0 1.4l1.7 1.7a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z\"/>",
+    "gauge": "<path d=\"M12 21a9 9 0 1 1 9-9\"/><path d=\"m12 12 5-3\"/><circle cx=\"12\" cy=\"12\" r=\"1.5\"/>",
+    "bolt": "<path d=\"M13 2 4 14h7l-1 8 9-12h-7z\"/>",
+    "drop": "<path d=\"M12 3s6 6.4 6 10.5A6 6 0 0 1 6 13.5C6 9.4 12 3 12 3z\"/>",
+    "shield": "<path d=\"M12 3l8 3v6c0 5-3.4 8.3-8 9.6C7.4 20.3 4 17 4 12V6z\"/><path d=\"M9 12l2 2 4-4\"/>",
+    "film": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"M3 12h18M8 5v14M16 5v14\"/><path d=\"M3 8.5h2M3 15.5h2M19 8.5h2M19 15.5h2\"/>",
+    "sun": "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4\"/>",
+    "wrap": "<path d=\"M4 6h11a4 4 0 0 1 0 8H4\"/><path d=\"M4 6v12\"/><path d=\"M4 18h9\"/><path d=\"M15 14l5 4\"/><circle cx=\"4\" cy=\"6\" r=\"1.2\"/>",
+    "sparkle": "<path d=\"M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z\"/><path d=\"M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z\"/>",
+    "polish": "<circle cx=\"9\" cy=\"14\" r=\"6\"/><circle cx=\"9\" cy=\"14\" r=\"2\"/><path d=\"M13.5 9.5 20 3\"/><path d=\"M18 3h2v2\"/>",
+    "scrape": "<path d=\"M4 20l6-6\"/><path d=\"M9 15l6-6 4 4-6 6z\"/><path d=\"M14 8l3-3 3 3-3 3\"/>",
+    "hammer": "<path d=\"M14 4l6 6-2 2-6-6z\"/><path d=\"M12 6 4 14v2h2l8-8\"/><path d=\"M15 9l3 3\"/><path d=\"M4 20h8\"/>",
+    "seat": "<path d=\"M7 4h7a2 2 0 0 1 2 2v7H9a2 2 0 0 1-2-2z\"/><path d=\"M9 13l-1 5h10a2 2 0 0 0 2-2v-3\"/><path d=\"M6 20h12\"/>",
+    "car": "<path d=\"M5 13l1.5-4.5A2 2 0 0 1 8.4 7h7.2a2 2 0 0 1 1.9 1.5L19 13\"/><rect x=\"3\" y=\"13\" width=\"18\" height=\"5\" rx=\"1.5\"/><circle cx=\"7.5\" cy=\"18\" r=\"1.5\"/><circle cx=\"16.5\" cy=\"18\" r=\"1.5\"/>",
+    "truck": "<path d=\"M1 6h12v10H1z\"/><path d=\"M13 9h4l4 4v3h-8z\"/><circle cx=\"6\" cy=\"18.5\" r=\"1.8\"/><circle cx=\"17\" cy=\"18.5\" r=\"1.8\"/>",
+    "moto": "<circle cx=\"5.5\" cy=\"16\" r=\"3\"/><circle cx=\"18.5\" cy=\"16\" r=\"3\"/><path d=\"M5.5 16l3-6h4l3 6\"/><path d=\"M12.5 10l2-3h3\"/><path d=\"M8.5 10H6\"/>",
+    "star": "<path d=\"m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z\"/>",
+    "camera": "<path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.6\"/>",
+    "chat": "<path d=\"M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5A8 8 0 1 1 21 12z\"/>",
+    "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>",
+    "menu": "<path d=\"M4 7h16M4 12h16M4 17h16\"/>",
+    "user": "<circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 21a8 8 0 0 1 16 0\"/>",
+    "dollar": "<path d=\"M12 2v20\"/><path d=\"M17 6.5c0-2-2.2-3-5-3s-5 1-5 3.2S9 10 12 10.5s5 1.3 5 3.4-2.2 3.4-5 3.4-5-1.2-5-3.1\"/>",
+    "family": "<circle cx=\"9\" cy=\"7\" r=\"3\"/><circle cx=\"17\" cy=\"9\" r=\"2.2\"/><path d=\"M3 20a6 6 0 0 1 12 0\"/><path d=\"M15 20a4.5 4.5 0 0 1 6 -3.5\"/>",
+    "badge": "<circle cx=\"12\" cy=\"9\" r=\"6\"/><path d=\"M9 14.5 8 22l4-2 4 2-1-7.5\"/><path d=\"M10 9l1.5 1.5L14.5 7\"/>",
+    "palm": "<path d=\"M12 21V10\"/><path d=\"M12 10c-3-4-7-4-9-2 3 0 6 1 9 2z\"/><path d=\"M12 10c3-4 7-4 9-2-3 0-6 1-9 2z\"/><path d=\"M12 10C10 6 10 3 12 2c2 1 2 4 0 8z\"/><path d=\"M5 21h14\"/>"
+  }
+}

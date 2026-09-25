@@ -1,0 +1,231 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import VideoHero from '../components/VideoHero.astro';
+import StatBand from '../components/StatBand.astro';
+import QuoteForm from '../components/QuoteForm.astro';
+import ServiceCards from '../components/ServiceCards.astro';
+import Faq from '../components/Faq.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import Stars from '../components/Stars.astro';
+import { localBusiness, website, faqPage } from '../lib/seo';
+
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const faqs = data.home_faqs as [string, string][];
+---
+<Base
+  title="Window Tinting in Sacramento, CA | Cali Tints"
+  description="Ceramic window tint, vinyl wraps, PPF and ceramic coating in Sacramento, CA. Legal front-window film, priced on your vehicle. Call (916) 701-2005."
+  path="/"
+  active="/"
+  preloadImage={{ href: '/assets/img/hero-poster.avif', type: 'image/avif' }}
+  schemas={[localBusiness(), website(), faqPage(faqs)]}
+  alternates={[['en', '/'], ['x-default', '/']]}
+>
+  <!-- The badge sits top-centre of the clip; the band runs the full 16:9 so
+       focus only governs the poster if the ratio is ever changed. -->
+  <VideoHero hasVideo={true} focus="50% 30%" />
+
+  <StatBand />
+
+  <!-- On phones this lands directly under the hero, which is the point. -->
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <span class="eyebrow">Tell us the vehicle</span>
+          <h2>Get a price without a phone queue</h2>
+          <p>
+            Send the year, make and model and what you want done — tint, wrap, film, coating —
+            and we will come back with a price and a day. If you would rather talk, call: the
+            person who answers is the person who does the work.
+          </p>
+          <ul class="checklist">
+            <li><Icon name="check" /><span><strong>Priced on your car.</strong> Not a menu — the number depends on the glass, the panels and the film you pick.</span></li>
+            <li><Icon name="check" /><span><strong>Legal where it has to be.</strong> Front windows at California's 70% limit, so a tint never becomes a ticket.</span></li>
+            <li><Icon name="check" /><span><strong>Installed in a closed bay.</strong> Dust under film or vinyl is the difference between a job that lasts and one that bubbles.</span></li>
+          </ul>
+          <div class="btn-row" style="margin-top:26px">
+            <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="home-form">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+          </div>
+        </div>
+        <div id="quote"><QuoteForm id="home-quote" /></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">Three things we do</span>
+        <h2>Tints. Wraps &amp; PPF. Detail &amp; ceramic coats.</h2>
+        <p>
+          Everything else on the services list grows out of one of these three. Pick the one
+          that matches the problem — heat, looks, or protection — and start there.
+        </p>
+      </div>
+      <div class="grid g3" data-stagger>
+        {S.pillars.map((p) => (
+          <a class="card js-reveal" href={p.href}>
+            <span class="card-ico"><Icon name={p.icon} /></span>
+            <h3>{p.title}</h3>
+            <p>{p.text}</p>
+            <span class="more">Learn more <Icon name="arrow" /></span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">Every service</span>
+        <h2>One shop for the glass, the paint and the inside</h2>
+        <p>
+          Twelve services, one bay, one standard. Each page says what the job covers, the signs
+          it is time, and how the price is set.
+        </p>
+      </div>
+      <div class="grid g3" data-stagger><ServiceCards /></div>
+      <p class="center" style="margin-top:30px">
+        <a class="btn btn-outline" href="/services/">See all services <Icon name="arrow" /></a>
+      </p>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="split center-y">
+        <div class="js-reveal">
+          <span class="eyebrow">Why drivers pick us</span>
+          <h2>The dealer add-on isn't your only option</h2>
+          <p>
+            Dealerships sell tint and "paint protection" as a line on the finance sheet — a set
+            price, a film you did not choose, applied by whoever the dealer subcontracts that
+            week. A tint shop does one thing all day. You pick the film on the glass, you see
+            the shade before it goes on, and you get a number for your car, not a package.
+          </p>
+          <p>{S.promise} {S.warranty_text}</p>
+          <ul class="checklist">
+            <li><Icon name="check" /><span><strong>You choose the film on the glass</strong> — ceramic or carbon, held up to the sun, not a brochure.</span></li>
+            <li><Icon name="check" /><span><strong>Front windows stay legal</strong>, and we will tell you where the line is on smoked lights too.</span></li>
+            <li><Icon name="check" /><span><strong>The car comes back clean</strong> — trim off and back on properly, no adhesive on the seats, no dust in the film.</span></li>
+          </ul>
+          <div class="btn-row" style="margin-top:26px">
+            <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="why-us">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+            <a class="btn btn-outline" href="/about/">More about the shop</a>
+          </div>
+        </div>
+        <div class="js-reveal">
+          <div class="table-scroll">
+            <table class="compare">
+              <caption class="sr-only">How Cali Tints compares with a dealership add-on and a mobile tinter</caption>
+              <thead>
+                <tr><th scope="col">What matters</th><th scope="col">Cali Tints</th><th scope="col">Dealer add-on</th><th scope="col">Mobile tinter</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">Who chooses the film</th><td class="yes">You, on the glass</td><td>The finance office</td><td>Whatever is in the van</td></tr>
+                <tr><th scope="row">Where it is installed</th><td class="yes">Closed, clean bay</td><td>Wherever the sub works</td><td>Your driveway, in the wind</td></tr>
+                <tr><th scope="row">Front-window legality</th><td class="yes">70% VLT, every time</td><td>Usually</td><td>Ask, and hope</td></tr>
+                <tr><th scope="row">Price</th><td class="yes">Quoted on your car</td><td>Bundled into the loan</td><td>Cash, no receipt</td></tr>
+                <tr><th scope="row">Wraps, PPF, coating too</th><td class="yes">Same shop, same day</td><td>Separate vendors</td><td>Rarely</td></tr>
+                <tr><th scope="row">If something lifts</th><td class="yes">Bring it back</td><td>Find the sub</td><td>Find the van</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-dark">
+    <div class="wrap">
+      <div class="split center-y">
+        <div>
+          <span class="eyebrow">Reputation</span>
+          <h2>Rated {S.rating} out of 5 across {S.review_count} Google reviews</h2>
+          <p>
+            Read them where they were left. We link straight to the sources rather than asking
+            you to take our word for it — and we deliberately do not publish our own star rating
+            into Google's search results.
+          </p>
+          <div class="btn-row">
+            <a class="btn btn-accent" href={data.maps_listing} rel="noopener" data-loc="home-google">Read Google reviews</a>
+            <a class="btn btn-ghost" href="/reviews/">All review sources <Icon name="arrow" /></a>
+          </div>
+        </div>
+        <div>
+          {data.reviews.map((r) => (
+            <div class="review" style="margin-bottom:18px">
+              <Stars />
+              <blockquote>&ldquo;{r.quote}&rdquo;</blockquote>
+              <cite><strong>{r.name}</strong>via {r.source}</cite>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="listed">
+    <div class="wrap">
+      <span class="label">Listed &amp; reviewed on</span>
+      <a class="src" href={data.maps_listing} rel="noopener">Google</a>
+      <a class="src" href={data.profiles[1]} rel="noopener">Yelp</a>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">Where we work</span>
+        <h2>Sacramento first, then the rest of the region</h2>
+      </div>
+      <div class="tag-row" style="justify-content:center">
+        {S.areas.map((a) => <span class="tag">{a}, CA</span>)}
+        <a class="tag" href="/service-areas/">All areas <Icon name="arrow" /></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <span class="eyebrow">Find us</span>
+          <h2>Fulton Avenue, Arden-Arcade — between Business 80 and Highway 50</h2>
+          <p>We are at <strong>{FULL}</strong>. Parking is in front of the suite.</p>
+          <table class="hours">
+            <caption class="sr-only">Business hours</caption>
+            <tbody>
+              {S.hours_rows.map(([d, h]) => (
+                <tr><th scope="row">{d}</th><td class={h === 'Closed' ? 'closed' : undefined}>{h}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <div class="btn-row" style="margin-top:26px">
+            <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="map">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+            <a class="btn btn-outline" href={data.maps_directions} rel="noopener" data-loc="home-directions">Get directions</a>
+          </div>
+        </div>
+        <div>
+          <iframe class="map-frame" src={data.maps_embed} loading="lazy"
+            title={`Map showing Cali Tints at ${FULL}`}
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Faq faqs={faqs} />
+  <CtaBand />
+</Base>

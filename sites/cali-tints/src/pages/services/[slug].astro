@@ -1,0 +1,117 @@
+---
+import data from '../../data/site.json';
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import Glance from '../../components/Glance.astro';
+import QuoteForm from '../../components/QuoteForm.astro';
+import Faq from '../../components/Faq.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import Stars from '../../components/Stars.astro';
+import { localBusiness, serviceSchema, faqPage, breadcrumbs, seoTitle } from '../../lib/seo';
+
+export function getStaticPaths() {
+  return data.services.map((s) => ({ params: { slug: s.slug }, props: { s } }));
+}
+
+const { s } = Astro.props;
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const path = `/services/${s.slug}/`;
+const trail: [string, string][] = [['Home', '/'], ['Services', '/services/'], [s.nav, path]];
+const faqs = s.faqs as [string, string][];
+const related = data.services.filter((x) => x.slug !== s.slug).slice(0, 7);
+const sat = S.hours_rows.find(([d]) => d === 'Saturday')?.[1];
+---
+<Base
+  title={seoTitle(s.title)}
+  description={s.meta}
+  path={path}
+  active="/services/"
+  schemas={[localBusiness(), serviceSchema(s), breadcrumbs(trail), faqPage(faqs)]}
+>
+  <PageHead trail={trail} h1={s.h1} lede={s.blurb}>
+    <div class="rating rating--light" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)">
+      <Stars />
+      <span class="rating-text">
+        <strong>{S.rating} out of 5</strong> from {S.review_count}
+        <a href={data.maps_listing} rel="noopener" data-loc="service-rating">Google reviews</a>
+      </span>
+    </div>
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="service-head">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href="#quote">Get a quote</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <!-- Answer-first: everything an assistant needs to answer
+               "who does X in Sacramento" without reading further. -->
+          <Glance glance={s.glance} />
+
+          {s.intro.map((p) => <p>{p}</p>)}
+
+          <h2>What this service covers</h2>
+          <ul class="checklist">
+            {s.includes.map((i) => <li><Icon name="check" /><span>{i}</span></li>)}
+          </ul>
+
+          <h2 style="margin-top:1.8em">Signs it's time to call us</h2>
+          <ul>{s.signs.map((x) => <li>{x}</li>)}</ul>
+          <p>
+            If any of these sound like your vehicle, call
+            <a href={`tel:${S.phone_link}`} data-loc="service-body">{S.phone_display}</a>.
+            We will tell you what it takes, how long the car is in, and what it costs on your
+            vehicle — before you commit to anything.
+          </p>
+
+          <h2 style="margin-top:1.8em">Serving Sacramento and the surrounding cities</h2>
+          <p>
+            Cali Tints is at {FULL}, on Fulton Avenue in Arden-Arcade between Business 80 and
+            Highway 50. We handle {s.nav.toLowerCase()} for drivers across
+            {' ' + S.areas.slice(0, -1).join(', ')} and {S.areas[S.areas.length - 1]}.
+          </p>
+        </div>
+
+        <div>
+          <div id="quote">
+            <QuoteForm
+              id={`${s.slug}-quote`}
+              heading={`Get a quote for ${s.nav.toLowerCase()}`}
+              serviceDefault={s.slug} />
+          </div>
+          <div class="panel" style="margin-top:22px">
+            <h3>Shop details</h3>
+            <p style="margin-bottom:.6em"><strong>{S.name}</strong><br />{S.street}<br />{S.city}, {S.region} {S.zip}</p>
+            <p style="margin-bottom:.6em"><a href={`tel:${S.phone_link}`} data-loc="service-panel">{S.phone_display}</a></p>
+            <p style="margin-bottom:.6em">Monday – Friday, 10:00 AM – 6:00 PM<br />Saturday, {sat}<br />Closed Sunday</p>
+            <p style="margin-bottom:0">
+              <a href={data.maps_directions} rel="noopener" data-loc="service-panel-map">Get directions <Icon name="arrow" /></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Faq faqs={faqs} heading={`${s.nav} — questions we get asked`} />
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head"><span class="eyebrow">Also at our shop</span><h2>Other services</h2></div>
+      <div class="tag-row">
+        {related.map((r) => <a class="tag" href={`/services/${r.slug}/`}>{r.nav}</a>)}
+        <a class="tag" href="/services/">All services</a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand
+    heading={`Need ${s.nav.toLowerCase()} in Sacramento?`}
+    text="Call the shop and talk it through with someone who does this work every day." />
+</Base>

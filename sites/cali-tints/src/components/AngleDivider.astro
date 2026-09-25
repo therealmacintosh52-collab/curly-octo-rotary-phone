@@ -1,0 +1,7 @@
+---
+export interface Props { fill?: string }
+const { fill = '#ffffff' } = Astro.props;
+---
+<div class="angle-bottom" aria-hidden="true">
+  <svg viewBox="0 0 1440 80" preserveAspectRatio="none"><path d="M0 80 1440 0v80z" fill={fill} /></svg>
+</div>

@@ -1,0 +1,48 @@
+---
+import data from '../../data/site.json';
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import { localBusiness, breadcrumbs } from '../../lib/seo';
+const S = data.site;
+const trail: [string, string][] = [['Home', '/'], ['Advice', '/advice/']];
+---
+<Base
+  title="Tint, Wrap & Coating Advice — Cali Tints"
+  description="Plain-English guides from a Sacramento tint shop: California tint law, ceramic vs carbon film, how long wraps and PPF last in the heat, and wrap care."
+  path="/advice/" active="/advice/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="Straight answers about tint, wraps and coatings"
+    lede="The questions we get asked at the counter, written down — so you can decide what to do before you spend anything.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="advice-head">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href="/contact/#quote">Ask a question</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">Guides</span>
+        <h2>Read this before you spend anything</h2>
+        <p>Each one opens with the short answer, then the reasoning behind it.</p>
+      </div>
+      <div class="grid g2" data-stagger>
+        {data.guides.map((g) => (
+          <a class="card" href={`/advice/${g.slug}/`}>
+            <span class="card-ico"><Icon name={g.icon} /></span>
+            <h3>{g.nav}</h3>
+            <p>{g.blurb}</p>
+            <span class="more">Read it <Icon name="arrow" /></span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>

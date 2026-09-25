@@ -1,0 +1,83 @@
+---
+import data from '../data/site.json';
+import Icon from './Icon.astro';
+const S = data.site;
+const shopLinks: [string, string][] = [
+  ['Home', '/'], ['All Services', '/services/'], ['About the Shop', '/about/'],
+  ['Reviews', '/reviews/'], ['Service Areas', '/service-areas/'],
+  ['Contact & Directions', '/contact/'], ['Advice & Guides', '/advice/'],
+];
+---
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="/">
+          <img class="brand-badge" src={S.logo} alt="" width="256" height="256" loading="lazy" />
+          <span class="brand-text">
+            <span class="brand-name">{S.name}</span>
+            <span class="brand-sub">Sacramento, California</span>
+          </span>
+        </a>
+        <p>
+          Window tinting, vinyl wraps, paint protection film, ceramic coating and detailing
+          on Fulton Avenue in Sacramento. Cars, trucks, SUVs, motorcycles and business fleets.
+        </p>
+      </div>
+
+      <div>
+        <h2 class="footer-h">Services</h2>
+        <ul>
+          {data.services.map((s) => (
+            <li><a href={`/services/${s.slug}/`}>{s.nav}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="footer-h">Shop</h2>
+        <ul>
+          {shopLinks.map(([n, u]) => <li><a href={u}>{n}</a></li>)}
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="footer-h">Visit or Call</h2>
+        <ul>
+          <li>
+            <a href={data.maps_listing} rel="noopener" data-loc="footer-map">
+              {S.street}<br />{S.city}, {S.region} {S.zip}
+            </a>
+          </li>
+          <li><a href={`tel:${S.phone_link}`} data-loc="footer">{S.phone_display}</a></li>
+          {S.hours_rows.filter(([d]) => d === 'Monday' || d === 'Saturday' || d === 'Sunday').map(([d, h]) => (
+            <li>{d === 'Monday' ? 'Mon–Fri' : d}: {h}</li>
+          ))}
+        </ul>
+        <p style="margin-top:16px">
+          <a class="btn btn-accent btn-sm" href={`tel:${S.phone_link}`} data-loc="footer-btn">
+            <Icon name="phone" /><span>Call the shop</span>
+          </a>
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; <span data-year>2026</span> {S.name}. All rights reserved.</span>
+      <span>
+        <a href="/privacy/">Privacy</a> · <a href="/sitemap-index.xml">Sitemap</a> ·
+        Window tinting in Sacramento, CA
+      </span>
+    </div>
+  </div>
+</footer>
+
+<div class="callbar" aria-label="Quick actions">
+  <a class="primary" href={`tel:${S.phone_link}`} data-loc="callbar">
+    <Icon name="phone" /><span>Call</span>
+  </a>
+  <a href={data.maps_directions} rel="noopener" data-loc="callbar">
+    <Icon name="map" /><span>Directions</span>
+  </a>
+  <a href="/contact/#quote"><Icon name="chat" /><span>Get a Quote</span></a>
+</div>
