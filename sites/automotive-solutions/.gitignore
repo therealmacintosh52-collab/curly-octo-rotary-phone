@@ -1,3 +1,7 @@
 # Generated screenshots and scratch build output — regenerate with tools/shoot.py
 tools/shots/
 build/
+
+# Left behind when build.py is imported (tools, or the v2 data generator)
+__pycache__/
+*.pyc
