@@ -78,7 +78,7 @@ electrical & batteries · AC & heating · suspension & steering.
   and `hreflang` between the English and Spanish pages.
 - `Article` schema on the advice guides.
 - Fast by construction: the home page is ~10 KB gzipped and makes four local requests (stylesheet,
-  script, logo, illustration) plus the lazy-loaded map and the 1.3 MB homepage video, which
+  script, logo, illustration) plus the lazy-loaded map and the 1.5 MB homepage video, which
   streams in after the page has painted. No webfonts, no icon fonts, no CDN, no tracking pixels,
   no cookie banner to need.
 - Accessible: skip link, semantic landmarks, labelled form fields, visible focus states,
@@ -156,9 +156,9 @@ names and re-run the build; nothing else needs editing.
 - **Format:** H.264 MP4, no audio track (the video is muted anyway, so audio is wasted bytes),
   with the `moov` atom at the front (`ffmpeg -movflags +faststart`) so it starts before it has
   fully downloaded.
-- **Shape:** the current clip is portrait (368x816), which is right for phones but is stretched
-  and cropped to a horizontal slice on a desktop monitor. A landscape 16:9 clip at 1920x1080 will
-  look markedly better on desktop; keep it under about 4 MB and under ten seconds.
+- **Shape:** the current clip is landscape 16:9 at 1280x720, ten seconds, re-encoded to about
+  1.5 MB (`libx264 -crf 25`). A replacement should be 16:9 at 1280x720 or 1920x1080, under about
+  4 MB and under ten seconds. Phones crop the sides; keep the subject near the centre.
 - **Framing:** `object-fit: cover` crops to fill the screen, so keep the subject near the centre
   of the frame. `object-position` in `.video-hero__media` (`site.css`) nudges the crop.
 - **Behaviour** is in `assets/js/site.js` under "Full-screen video hero": the headline is
