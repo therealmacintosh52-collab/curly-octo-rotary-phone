@@ -215,6 +215,12 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
 .video-hero h1{color:#fff;max-width:18ch;margin-bottom:.35em;text-wrap:balance;text-shadow:0 2px 24px rgba(0,0,0,.35)}
 .video-hero h1 em{font-style:normal;background:linear-gradient(100deg,#a99bff,#6a5bff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .video-hero .btn-row{margin-top:26px}
+/* Shown only when the browser refused autoplay (Low Power Mode, data saver,
+   or a preview frame): the first tap anywhere retries playback. */
+.video-hero__hint{display:none;align-items:center;gap:8px;margin-bottom:18px;padding:8px 14px;border-radius:999px;
+  background:rgba(0,0,0,.45);color:#fff;font-size:.86rem;font-weight:800;letter-spacing:.02em;backdrop-filter:blur(6px)}
+.video-hero__hint .icon{width:16px;height:16px;fill:currentColor;stroke:none}
+.video-hero.is-blocked .video-hero__hint{display:inline-flex}
 
 /* Quote section that follows the video (the form used to sit in the hero) */
 .quote-section{scroll-margin-top:96px}

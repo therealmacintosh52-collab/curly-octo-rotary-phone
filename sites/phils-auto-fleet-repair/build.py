@@ -1312,6 +1312,7 @@ def build_home():
     <source src="/assets/video/shop-bay.mp4" type="video/mp4">
   </video>
   <div class="wrap video-hero__content">
+    <span class="video-hero__hint" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Tap anywhere to play the video</span>
     <span class="eyebrow">Locally owned · Lodi, California</span>
     <h1>Honest auto, diesel &amp; fleet repair in <em>Lodi, California</em></h1>
     <div class="btn-row">

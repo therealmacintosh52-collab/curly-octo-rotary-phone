@@ -50,6 +50,7 @@
     video.addEventListener("playing", function () {
       revealed = true;
       if (guard) { clearTimeout(guard); guard = null; }
+      hero.classList.remove("is-blocked");
       hero.classList.add("is-playing");
     });
 
@@ -66,6 +67,7 @@
       if (attempt && typeof attempt.catch === "function") {
         attempt.catch(function () {
           fallback();
+          hero.classList.add("is-blocked");
           document.addEventListener("pointerdown", retryOnTap);
         });
       }
