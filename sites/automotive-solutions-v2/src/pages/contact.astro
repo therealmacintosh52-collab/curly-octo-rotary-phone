@@ -1,0 +1,79 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import QuoteForm from '../components/QuoteForm.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { localBusiness, breadcrumbs } from '../lib/seo';
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const trail: [string, string][] = [['Home', '/'], ['Contact', '/contact/']];
+---
+<Base
+  title="Contact & Directions — Elk Grove, CA"
+  description="Call (916) 686-5277 or visit Automotive Solutions at 9253 Elk Grove Blvd, Elk Grove, CA 95624. Open Monday to Friday, 9 AM to 6 PM."
+  path="/contact/" active="/contact/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="Contact Automotive Solutions"
+    lede="Call the shop, send a quote request, or stop by — we are on Elk Grove Blvd in Old Town, open Monday through Friday.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="contact-head">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href={data.maps_directions} rel="noopener" data-loc="contact-head">Get directions</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <h2>Shop information</h2>
+          <p><strong>{S.name}</strong><br />{S.street}<br />{S.city}, {S.region_long} {S.zip}</p>
+          <p><strong>Phone:</strong> <a href={`tel:${S.phone_link}`} data-loc="contact-body">{S.phone_display}</a></p>
+
+          <h3>Hours</h3>
+          <table class="hours"><caption class="sr-only">Business hours</caption><tbody>
+            {S.hours_rows.map(([d, h]) => (
+              <tr><th scope="row">{d}</th><td class={h === 'Closed' ? 'closed' : undefined}>{h}</td></tr>
+            ))}
+          </tbody></table>
+
+          <h3 style="margin-top:1.6em">Getting here</h3>
+          <p>We are in Old Town Elk Grove on Elk Grove Boulevard, a few minutes east of Highway 99 and close to Elk Grove-Florin Road. If you are coming from Laguna, Vineyard or south Sacramento, allow a little extra time during the weekday afternoon rush.</p>
+
+          <h3 style="margin-top:1.4em">Before you call, it helps to have</h3>
+          <ul>
+            <li>Year, make and model of the vehicle</li>
+            <li>What it is doing, and roughly when it started</li>
+            <li>Any warning lights that are on</li>
+            <li>What another shop has already replaced or told you, if anything</li>
+          </ul>
+          <div class="btn-row">
+            <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="contact-mid">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+          </div>
+        </div>
+        <div><div id="quote"><QuoteForm id="contact-quote" heading="Request a quote" /></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head"><h2>Find the shop</h2></div>
+      <iframe class="map-frame" src={data.maps_embed} loading="lazy"
+        title={`Map showing Automotive Solutions at ${FULL}`}
+        referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <p class="map-note">
+        <a href={data.maps_directions} rel="noopener" data-loc="contact-map">Get driving directions to {FULL} <Icon name="arrow" /></a>
+      </p>
+    </div>
+  </section>
+
+  <CtaBand heading="Not sure what's wrong? That's fine."
+    text="Describe the symptom. We will tell you what it takes to find out for certain and what that costs." />
+</Base>

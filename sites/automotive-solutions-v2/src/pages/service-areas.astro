@@ -1,0 +1,72 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { localBusiness, breadcrumbs } from '../lib/seo';
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const trail: [string, string][] = [['Home', '/'], ['Service Areas', '/service-areas/']];
+const NOTES: Record<string, string> = {
+  'Elk Grove': 'Our home town — Old Town, Laguna, Sheldon and everywhere in between.',
+  'Laguna': 'Minutes west of the shop, and a regular short trip for our customers.',
+  'Sacramento': 'South Sacramento drivers come down Highway 99 rather than fight dealer pricing.',
+  'Wilton': 'East of town on Grant Line Road, rural miles and the wear that comes with them.',
+  'Galt': 'South on 99, close enough that a proper diagnosis is worth the drive.',
+  'Florin': 'Just north of Elk Grove, an easy run on Elk Grove-Florin Road.',
+  'Vineyard': 'Neighboring community to the north-east, a few minutes away.',
+  'Sheldon': 'On the east side of Elk Grove, familiar territory for the shop.',
+  'Franklin': 'South-west of town, including the rural stretches out toward the delta.',
+  'Rancho Cordova': 'Further north, but customers make the trip for second opinions.',
+};
+---
+<Base
+  title="Auto Repair Near Elk Grove & Laguna, CA"
+  description="Automotive Solutions serves Elk Grove, Laguna, south Sacramento, Wilton, Galt, Florin and Vineyard from 9253 Elk Grove Blvd. Call (916) 686-5277."
+  path="/service-areas/" active="/service-areas/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="Areas we serve around Elk Grove, California"
+    lede={`Based in Old Town Elk Grove, trusted across south Sacramento County since ${S.founded_year}.`}>
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="areas-head">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href="/contact/#quote">Request a quote</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Towns we see drivers from</h2>
+        <p class="lede">Our shop is at {FULL} — a few minutes east of Highway 99, close to Elk Grove-Florin Road. Customers regularly drive in from these communities.</p></div>
+      <div class="grid g3" data-stagger>
+        {S.areas.map((a) => (
+          <div class="card">
+            <span class="card-ico"><Icon name="pin" /></span>
+            <h3>{a}, CA</h3>
+            <p style="margin-bottom:0">{NOTES[a] ?? `Auto repair for drivers in ${a}.`}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap narrow">
+      <h2>Worth the drive for a real diagnosis</h2>
+      <p>Plenty of our customers pass closer shops to get here, usually after paying for a repair somewhere else that did not fix the problem. If that is where you are right now, bring the estimate and the paperwork — we will start from the symptom and test our way to the actual cause.</p>
+      <p>And because we are a NAPA AutoCare Center, the warranty on qualifying repairs is honored at member shops nationwide. That matters more than it sounds if you drive for work or spend time away from home.</p>
+      <div class="btn-row">
+        <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="areas-body">
+          <Icon name="phone" /><span>Call {S.phone_display}</span>
+        </a>
+        <a class="btn btn-outline" href="/services/">See all services</a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>

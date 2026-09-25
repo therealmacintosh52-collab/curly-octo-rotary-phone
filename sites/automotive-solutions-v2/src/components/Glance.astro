@@ -1,0 +1,16 @@
+---
+// Answer-first block. Written the way somebody asks an assistant the question,
+// so AI answer engines can lift it whole.
+export interface Props { glance: Record<string, string>; heading?: string }
+const { glance, heading = 'At a glance' } = Astro.props;
+const rows: [string, string][] = [
+  ['Who', glance.who], ['Where', glance.where], ['Hours', glance.hours],
+  ['Vehicles', glance.vehicles], ['Pricing', glance.pricing], ['Booking', glance.booking],
+];
+---
+<div class="glance">
+  <h2>{heading}</h2>
+  <dl>
+    {rows.map(([k, v]) => (<><dt>{k}</dt><dd>{v}</dd></>))}
+  </dl>
+</div>

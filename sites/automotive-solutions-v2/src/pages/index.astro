@@ -1,0 +1,232 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import VideoHero from '../components/VideoHero.astro';
+import StatBand from '../components/StatBand.astro';
+import QuoteForm from '../components/QuoteForm.astro';
+import ServiceCards from '../components/ServiceCards.astro';
+import Faq from '../components/Faq.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import Stars from '../components/Stars.astro';
+import { localBusiness, website, faqPage } from '../lib/seo';
+
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const faqs = data.home_faqs as [string, string][];
+---
+<Base
+  title="Auto Repair in Elk Grove, CA | Automotive Solutions"
+  description="Family owned auto repair in Elk Grove, CA since 2001. ASE certified technicians, NAPA AutoCare warranty, all makes and models. Call (916) 686-5277."
+  path="/"
+  active="/"
+  navOver={true}
+  preloadImage={{ href: '/assets/img/hero-poster.avif', type: 'image/avif' }}
+  schemas={[localBusiness(), website(), faqPage(faqs)]}
+  alternates={[['en', '/'], ['x-default', '/']]}
+>
+  <VideoHero hasVideo={false} focus="50% 50%" />
+
+  <StatBand />
+
+  <!-- On phones this lands directly under the hero, which is the point. -->
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <span class="eyebrow">Tell us what it's doing</span>
+          <h2>Get a quote without a phone queue</h2>
+          <p>
+            Describe the noise, the light or the symptom and we will come back to you with what
+            we think it is, what it takes to know for certain, and what that costs. If it is
+            urgent, call — someone who works on cars will pick up.
+          </p>
+          <ul class="checklist">
+            <li><Icon name="check" /><span><strong>Diagnosis first.</strong> A trouble code is a starting point, not an answer.</span></li>
+            <li><Icon name="check" /><span><strong>Price before work.</strong> Nothing is repaired until you approve it.</span></li>
+            <li><Icon name="check" /><span><strong>What can wait, stays waiting.</strong> We separate urgent from optional and let you choose.</span></li>
+          </ul>
+          <div class="btn-row" style="margin-top:26px">
+            <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="home-form">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+          </div>
+        </div>
+        <div id="quote"><QuoteForm id="home-quote" /></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">What we fix</span>
+        <h2>Complete auto services, under one roof</h2>
+        <p>
+          Engines, transmissions, brakes and air conditioning through to timing belts, wheel
+          balancing and an oil change — the same approach on every one of them.
+        </p>
+      </div>
+      <div class="grid g3" data-stagger><ServiceCards /></div>
+      <p class="center" style="margin-top:30px">
+        <a class="btn btn-outline" href="/services/">See all services <Icon name="arrow" /></a>
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="split center-y">
+        <div class="js-reveal">
+          <span class="eyebrow">Why drivers switch to us</span>
+          <h2>The auto mall isn't your only option</h2>
+          <p>
+            Elk Grove has one of the largest dealership clusters in the region, and a dealership
+            service department is built around volume and menu pricing. That works fine until
+            your problem does not fit the menu — and then you are paying for parts that were
+            replaced because they were on a list, not because they failed.
+          </p>
+          <p>{S.promise} {S.warranty_text}</p>
+          <ul class="checklist">
+            <li><Icon name="check" /><span><strong>You talk to the people who saw your vehicle</strong> — not a service writer relaying a summary.</span></li>
+            <li><Icon name="check" /><span><strong>We test before we replace</strong>, which is why a second opinion here often costs less than the first quote.</span></li>
+            <li><Icon name="check" /><span><strong>Your factory warranty stays intact.</strong> Federal law protects your right to use an independent shop.</span></li>
+          </ul>
+          <div class="btn-row" style="margin-top:26px">
+            <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="why-us">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+            <a class="btn btn-outline" href="/about/">More about the shop</a>
+          </div>
+        </div>
+        <div class="js-reveal">
+          <figure class="photo">
+            <span class="photo-badge"><Icon name="camera" />The shop</span>
+            <img src="/assets/img/bay-classic.jpg" width="402" height="250" loading="lazy"
+              alt="A classic sedan raised on a two-post lift with its hood open inside the service bay at Automotive Solutions in Elk Grove" />
+            <figcaption>The bay on Elk Grove Blvd. Same shop, same family, since {S.founded_year}.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">Side by side</span>
+        <h2>Us, the dealership, and the chain down the road</h2>
+        <p>The three places an Elk Grove driver usually chooses between.</p>
+      </div>
+      <div class="table-scroll">
+        <table class="compare">
+          <caption class="sr-only">How Automotive Solutions compares with a dealership service department and a national chain</caption>
+          <thead>
+            <tr><th scope="col">What matters</th><th scope="col">Automotive Solutions</th><th scope="col">Dealer service dept.</th><th scope="col">National chain</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Who explains the repair</th><td class="yes">The shop working on it</td><td>A service advisor</td><td>A counter clerk</td></tr>
+            <tr><th scope="row">Approach to an unclear fault</th><td class="yes">Diagnose, then quote</td><td>Replace by likelihood</td><td>Often referred out</td></tr>
+            <tr><th scope="row">Recommended extras</th><td class="yes">Only what we can show you</td><td>Menu-driven upsells</td><td>Package-driven upsells</td></tr>
+            <tr><th scope="row">Warranty on repairs</th><td class="yes">{S.warranty_months} months / {S.warranty_miles} miles, nationwide</td><td>Varies by dealer</td><td>Varies by location</td></tr>
+            <tr><th scope="row">Who you deal with next time</th><td class="yes">The same family</td><td>Whoever is on the rota</td><td>Whoever is on shift</td></tr>
+            <tr><th scope="row">Second opinions</th><td class="yes">Welcome — bring the estimate</td><td>Rarely offered</td><td>Rarely offered</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-dark">
+    <div class="wrap">
+      <div class="split center-y">
+        <div>
+          <span class="eyebrow">Reputation</span>
+          <h2>Rated {S.rating} out of 5 across {S.review_count} Google reviews</h2>
+          <p>
+            Read them where they were left. We link straight to the sources rather than asking
+            you to take our word for it — and we deliberately do not publish our own star rating
+            into Google's search results.
+          </p>
+          {data.reviews.map((r) => (
+            <div class="review" style="margin-bottom:18px">
+              <Stars />
+              <blockquote>&ldquo;{r.quote}&rdquo;</blockquote>
+              <cite><strong>{r.name}</strong>via {r.source}</cite>
+            </div>
+          ))}
+          <div class="btn-row">
+            <a class="btn btn-accent" href={data.maps_listing} rel="noopener" data-loc="home-google">Read Google reviews</a>
+            <a class="btn btn-ghost" href="/reviews/">All review sources <Icon name="arrow" /></a>
+          </div>
+        </div>
+        <div>
+          <figure class="photo">
+            <span class="photo-badge"><Icon name="camera" />In the bay</span>
+            <img src="/assets/img/bay-subaru.jpg" width="402" height="250" loading="lazy"
+              alt="A wagon raised on a lift with its hood up, under the bay lights at Automotive Solutions in Elk Grove" />
+            <figcaption>Every vehicle gets diagnosed before it gets quoted — that is the whole method.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="listed">
+    <div class="wrap">
+      <span class="label">Listed &amp; reviewed on</span>
+      <a class="src" href={data.maps_listing} rel="noopener">Google</a>
+      <a class="src" href={data.profiles[1]} rel="noopener">Yelp</a>
+      <a class="src" href={data.profiles[2]} rel="noopener">NAPA AutoCare</a>
+      <a class="src" href={data.profiles[3]} rel="noopener">BBB</a>
+      <a class="src" href={data.profiles[4]} rel="noopener">Nextdoor</a>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">Where we work</span>
+        <h2>Elk Grove first, then the rest of south Sacramento County</h2>
+      </div>
+      <div class="tag-row" style="justify-content:center">
+        {S.areas.map((a) => <span class="tag">{a}, CA</span>)}
+        <a class="tag" href="/service-areas/">All areas <Icon name="arrow" /></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <span class="eyebrow">Find us</span>
+          <h2>Old Town Elk Grove, just off Highway 99</h2>
+          <p>We are at <strong>{FULL}</strong>.</p>
+          <table class="hours">
+            <caption class="sr-only">Business hours</caption>
+            <tbody>
+              {S.hours_rows.map(([d, h]) => (
+                <tr><th scope="row">{d}</th><td class={h === 'Closed' ? 'closed' : undefined}>{h}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <div class="btn-row" style="margin-top:26px">
+            <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="map">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+            <a class="btn btn-outline" href={data.maps_directions} rel="noopener" data-loc="home-directions">Get directions</a>
+          </div>
+        </div>
+        <div>
+          <iframe class="map-frame" src={data.maps_embed} loading="lazy"
+            title={`Map showing Automotive Solutions at ${FULL}`}
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Faq faqs={faqs} />
+  <CtaBand />
+</Base>

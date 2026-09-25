@@ -1,0 +1,78 @@
+---
+import data from '../data/site.json';
+import { EMAIL_IS_PLACEHOLDER } from '../lib/seo';
+const S = data.site;
+
+export interface Props {
+  id?: string;
+  heading?: string;
+  sub?: string;
+  serviceDefault?: string;
+}
+const {
+  id = 'quote',
+  heading = 'Get a free quote',
+  sub = `Tell us what is going on and we will get back to you with next steps. Need an answer now? Call ${S.phone_display}.`,
+  serviceDefault,
+} = Astro.props;
+---
+<form class="quote-card" id={id} data-quote-form method="post"
+      action={data.form_endpoint} data-mailto={S.email}>
+  <h2>{heading}</h2>
+  <p class="sub">{sub}</p>
+
+  <div class="field">
+    <label for={`${id}-name`}>Your name</label>
+    <input id={`${id}-name`} name="name" type="text" autocomplete="name" required />
+  </div>
+  <div class="field">
+    <label for={`${id}-phone`}>Phone</label>
+    <input id={`${id}-phone`} name="phone" type="tel" autocomplete="tel" required />
+  </div>
+  <div class="field">
+    <label for={`${id}-vehicle`}>Vehicle (year, make, model)</label>
+    <input id={`${id}-vehicle`} name="vehicle" type="text" placeholder="2015 Honda Accord" />
+  </div>
+  <div class="field">
+    <label for={`${id}-service`}>Service needed</label>
+    <select id={`${id}-service`} name="service">
+      <option value="">What do you need?</option>
+      {data.services.map((s) => (
+        <option value={s.nav} selected={serviceDefault === s.slug}>{s.nav}</option>
+      ))}
+      <option value="Not sure - please diagnose">Not sure — please diagnose</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for={`${id}-when`}>When could you bring it in?</label>
+    <select id={`${id}-when`} name="when">
+      <option value="">Whenever you have room</option>
+      <option>Today if possible - it is not drivable</option>
+      <option>This week</option>
+      <option>Next week</option>
+      <option>Just want an estimate for now</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for={`${id}-message`}>What is it doing?</label>
+    <textarea id={`${id}-message`} name="message"
+      placeholder="Noises, warning lights, when it started, and anything another shop has already told you."></textarea>
+  </div>
+
+  <!-- Two honeypots: real people never fill these, most bots do. -->
+  <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" />
+  <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" />
+  <input type="hidden" name="_subject" value="Quote request from automotivesolutionsbysingle.com" />
+  <input type="hidden" name="_template" value="table" />
+  <input type="hidden" name="_captcha" value="false" />
+  <input type="hidden" name="_next" value={`${S.base_url}/thank-you/`} />
+
+  <button class="btn btn-accent" type="submit" style="width:100%">Request my quote</button>
+  <p class="form-status" role="status" aria-live="polite"></p>
+  <p class="form-note">
+    {EMAIL_IS_PLACEHOLDER
+      ? 'This form is not connected to an inbox yet — '
+      : 'No obligation. We will never sell your information. '}
+    <a href={`tel:${S.phone_link}`} data-loc="form-note">Call {S.phone_display}</a>.
+  </p>
+</form>

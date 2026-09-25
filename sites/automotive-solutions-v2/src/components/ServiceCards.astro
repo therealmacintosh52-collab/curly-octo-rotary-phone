@@ -1,0 +1,18 @@
+---
+import data from '../data/site.json';
+import Icon from './Icon.astro';
+export interface Props { slugs?: string[]; limit?: number }
+const { slugs, limit } = Astro.props;
+let items = slugs
+  ? slugs.map((sl) => data.services.find((s) => s.slug === sl)!).filter(Boolean)
+  : data.services;
+if (limit) items = items.slice(0, limit);
+---
+{items.map((s) => (
+  <a class="card js-reveal" href={`/services/${s.slug}/`}>
+    <span class="card-ico"><Icon name={s.icon} /></span>
+    <h3>{s.nav}</h3>
+    <p>{s.blurb}</p>
+    <span class="more">Learn more <Icon name="arrow" /></span>
+  </a>
+))}

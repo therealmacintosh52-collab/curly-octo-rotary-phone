@@ -1,0 +1,85 @@
+---
+import data from '../data/site.json';
+import Icon from './Icon.astro';
+import Stars from './Stars.astro';
+const S = data.site;
+
+export interface Props {
+  /** Where the sign / key subject sits in the frame, as object-position. */
+  focus?: string;
+  /** Set false until a real clip exists in public/assets/video/. */
+  hasVideo?: boolean;
+}
+const { focus = '50% 50%', hasVideo = false } = Astro.props;
+---
+<section class:list={['hero-v', !hasVideo && 'hero-v--noclip']} data-hero style={`--hero-focus:${focus}`}>
+  <div class="hero-v__media">
+    <!--
+      The poster is a plain <img>, not the video's poster attribute, so it is a
+      preloadable LCP element. AVIF and WebP are offered first; the JPEG is the
+      floor. The video fades in over the top once it can actually play.
+
+      TO SWAP IN THE REAL CLIP:
+        1. drop the mp4 at public/assets/video/shop.mp4
+        2. npm run video      (encodes to spec and cuts frame 1 to posters)
+        3. set hasVideo={true} on this component in src/pages/index.astro
+        4. set focus="…" to wherever the sign sits, e.g. "38% 50%"
+      No other code changes.
+    -->
+    <picture>
+      <source srcset="/assets/img/hero-poster.avif" type="image/avif" />
+      <source srcset="/assets/img/hero-poster.webp" type="image/webp" />
+      <img class="hero-v__poster" src="/assets/img/hero-poster.jpg"
+           width="1280" height="720" fetchpriority="high" decoding="async"
+           alt="The service bay at Automotive Solutions by Single in Elk Grove, California" />
+    </picture>
+
+    {hasVideo && (
+      <video class="hero-v__video" data-hero-video
+             muted playsinline loop preload="none"
+             width="1280" height="720"
+             aria-label="Silent looping clip of the service bay"></video>
+    )}
+  </div>
+
+  <div class="hero-v__scrim"></div>
+
+  {hasVideo && (
+    <button class="hero-v__tap" type="button" data-hero-tap>
+      <Icon name="arrow" /> Tap to play
+    </button>
+  )}
+
+  <div class="hero-v__inner">
+    <div class="wrap">
+      <span class="eyebrow">Family owned since {S.founded_year} · Elk Grove, California</span>
+      <h1>Honest auto repair in <em>Elk Grove, California</em></h1>
+      <p class="hero-v__promise">{S.promise}</p>
+
+      <div class="rating">
+        <Stars />
+        <span class="rating-text">
+          <strong>{S.rating} out of 5</strong> from {S.review_count}
+          <a href={data.maps_listing} rel="noopener" data-loc="hero-rating">Google reviews</a>
+        </span>
+      </div>
+
+      <!-- Three CTAs, all in the DOM, visible before anything else loads. -->
+      <div class="hero-v__ctas">
+        <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="hero">
+          <Icon name="phone" /><span>Call {S.phone_display}</span>
+        </a>
+        <a class="btn btn-ghost" href="/contact/#quote">Get a quote</a>
+        <a class="btn btn-ghost" href={data.maps_directions} rel="noopener" data-loc="hero-directions">
+          Directions
+        </a>
+      </div>
+
+      <div class="hero-v__meta">
+        <span><Icon name="clock" />{S.hours_short}</span>
+        <span><Icon name="badge" />ASE certified technicians</span>
+        <span><Icon name="shield" />NAPA AutoCare · {S.warranty_months} mo / {S.warranty_miles} mi</span>
+      </div>
+    </div>
+  </div>
+</section>

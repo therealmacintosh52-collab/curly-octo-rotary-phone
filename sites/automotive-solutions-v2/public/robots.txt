@@ -1,0 +1,44 @@
+# Automotive Solutions by Single
+#
+# AI answer engines are allowed on purpose. A local business wants to be the
+# source an assistant quotes when somebody asks who repairs cars in Elk Grove.
+# Blocking them removes you from those answers and gains nothing.
+
+User-agent: *
+Allow: /
+
+# --- AI crawlers and answer engines, explicitly allowed -------------------
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-User
+Allow: /
+User-agent: Claude-SearchBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Perplexity-User
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+User-agent: Bingbot
+Allow: /
+User-agent: DuckDuckBot
+Allow: /
+User-agent: Amazonbot
+Allow: /
+User-agent: meta-externalagent
+Allow: /
+User-agent: cohere-ai
+Allow: /
+
+Sitemap: https://www.automotivesolutionsbysingle.com/sitemap-index.xml

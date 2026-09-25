@@ -1,0 +1,57 @@
+---
+import data from '../../data/site.json';
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import StatBand from '../../components/StatBand.astro';
+import ServiceCards from '../../components/ServiceCards.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import { localBusiness, breadcrumbs } from '../../lib/seo';
+const S = data.site;
+const trail: [string, string][] = [['Home', '/'], ['Services', '/services/']];
+---
+<Base
+  title="Auto Repair Services in Elk Grove, CA"
+  description="Every service at Automotive Solutions in Elk Grove, CA — brakes, engines, transmissions, AC, diagnostics, timing belts and more. Call (916) 686-5277."
+  path="/services/" active="/services/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="Auto repair services in Elk Grove, CA"
+    lede="Complete auto services for domestic and import vehicles. Every job starts the same way: find out what is actually wrong, then quote the repair.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="services-head">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href="/contact/#quote">Request a quote</a>
+    </div>
+  </PageHead>
+
+  <StatBand />
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">The full list</span>
+        <h2>Twelve things we do, one page each</h2>
+        <p>Every page says what the service covers, the signs it is needed, and what to expect when you call.</p>
+      </div>
+      <div class="grid g3" data-stagger><ServiceCards /></div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap narrow">
+      <h2>Don't see what you need?</h2>
+      <p>This list covers the work that comes through the shop most often, but it is not everything we do. If your vehicle has a problem that is not on this page — or you do not know what to call it — describe it to us and we will tell you honestly whether it is work we can take on.</p>
+      <p>We provide expert repairs, service and maintenance on all makes and models of domestic and import cars, trucks, SUVs and vans.</p>
+      <div class="btn-row">
+        <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="services-body">
+          <Icon name="phone" /><span>Call {S.phone_display}</span>
+        </a>
+        <a class="btn btn-outline" href="/contact/">Contact the shop</a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>

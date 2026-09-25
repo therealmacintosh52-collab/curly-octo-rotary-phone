@@ -1,0 +1,15 @@
+---
+import AngleDivider from './AngleDivider.astro';
+import Crumbs from './Crumbs.astro';
+export interface Props { trail: [string, string][]; h1: string; lede?: string }
+const { trail, h1, lede } = Astro.props;
+---
+<div class="page-head">
+  <div class="wrap">
+    <Crumbs trail={trail} />
+    <h1>{h1}</h1>
+    {lede && <p>{lede}</p>}
+    <slot />
+  </div>
+  <AngleDivider />
+</div>

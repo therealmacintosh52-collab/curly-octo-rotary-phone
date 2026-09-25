@@ -1,0 +1,222 @@
+/* Automotive Solutions by Single — fonts, video hero, motion.
+   legacy.css holds the tokens and components this builds on. */
+
+/* ------------------------------------------------------------------ fonts
+   Self-hosted Latin woff2 subsets (public/fonts), never a runtime CDN.
+   font-display:optional means the fallback is used if the font is not ready
+   within ~100ms, so a slow font can never shift the layout — CLS stays 0.
+   The metric-adjusted fallbacks make that swap invisible. */
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/space-grotesk-latin-700-normal.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: optional;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/space-grotesk-latin-500-normal.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: optional;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-latin-400-normal.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: optional;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-latin-600-normal.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: optional;
+}
+/* Metric fallbacks: Arial retuned to match each face's box, so the pre-swap
+   frame occupies the same space as the post-swap frame. */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  ascent-override: 90%; descent-override: 22.43%; line-gap-override: 0%;
+  size-adjust: 107.12%;
+}
+@font-face {
+  font-family: 'Space Grotesk Fallback';
+  src: local('Arial');
+  ascent-override: 95.5%; descent-override: 26.5%; line-gap-override: 0%;
+  size-adjust: 102.4%;
+}
+
+/* ------------------------------------------------------------- video hero */
+.hero-v {
+  position: relative;
+  /* Desktop shows the whole 16:9 frame rather than cropping it. */
+  height: min(100svh, 56.25vw);
+  min-height: 560px;
+  background: var(--grad-dark);
+  overflow: hidden;
+  isolation: isolate;
+}
+.hero-v__media { position: absolute; inset: 0; z-index: 0; }
+/* The poster is a real <img> so it is the LCP element and can be preloaded.
+   The video fades in over it once it can actually play. */
+.hero-v__poster,
+.hero-v__video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: var(--hero-focus, 50% 50%);
+  display: block;
+}
+.hero-v__video { opacity: 0; transition: opacity .6s ease; }
+.hero-v.is-playing .hero-v__video { opacity: 1; }
+
+/* Legibility scrim. Two stops so white text clears 4.5:1 over either end of
+   the frame, and a bottom band so the gradient nav has something to sit on. */
+.hero-v__scrim {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(4,7,26,.86) 0%, rgba(4,7,26,.42) 34%, rgba(4,7,26,.30) 56%, rgba(4,7,26,.90) 100%),
+    linear-gradient(to right, rgba(4,7,26,.80) 0%, rgba(4,7,26,.30) 55%, rgba(4,7,26,0) 100%);
+}
+.hero-v__inner {
+  position: relative; z-index: 2;
+  height: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding-bottom: clamp(38px, 5vw, 76px);
+  color: #fff;
+}
+.hero-v h1 { color: #fff; max-width: 17ch; margin-bottom: .28em; text-wrap: balance; }
+.hero-v h1 em {
+  font-style: normal;
+  background: linear-gradient(100deg, #ffbe8f, #ff8a44);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-v__promise {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, .9rem + .5vw, 1.24rem);
+  font-weight: 500; color: #ffd9bd; margin: 0 0 1.1em;
+  letter-spacing: -.01em;
+}
+.hero-v__ctas { display: flex; flex-wrap: wrap; gap: 13px; margin-bottom: 22px; }
+.hero-v__meta {
+  display: flex; flex-wrap: wrap; gap: 10px 26px;
+  font-size: .93rem; color: #d3daf1;
+}
+.hero-v__meta .icon { color: var(--accent-lt); vertical-align: -3px; margin-right: 6px; }
+
+/* Tap-to-play cue — shown only when autoplay is actually refused
+   (iPhone Low Power Mode is the common case). */
+.hero-v__tap {
+  position: absolute; z-index: 3; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: none; align-items: center; gap: 9px;
+  background: rgba(6,10,46,.78); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.26); color: #fff;
+  border-radius: 999px; padding: 10px 18px;
+  font-family: var(--font-display); font-weight: 500; font-size: .88rem;
+  cursor: pointer;
+}
+.hero-v.needs-tap .hero-v__tap { display: inline-flex; }
+
+/* The top bar and the nav overlay the hero as one stack. Positioning only the
+   <header> put it on top of the top bar and the two collided. */
+.chrome-over { position: absolute; top: 0; left: 0; right: 0; z-index: 40; }
+/* Opaque enough that the address and phone stay legible over ANY frame of the
+   clip, not just a dark one. A translucent band looked fine over the
+   placeholder and would have failed over a bright frame. */
+.chrome-over .topbar { background: rgba(4,7,26,.88); backdrop-filter: blur(8px); }
+.site-header--over {
+  position: static;
+  background: linear-gradient(to bottom, rgba(4,7,26,.62), rgba(4,7,26,0));
+  backdrop-filter: none; border-bottom: 0;
+}
+.site-header--over .nav a { color: #e8ecfb; }
+.site-header--over .nav a[aria-current='page'] { color: #fff; }
+.site-header--over .header-phone { color: #fff; }
+.site-header--over .header-phone span { color: #c3cbe8; }
+.site-header--over .nav-toggle { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.3); }
+.site-header--over .nav-toggle svg { stroke: #fff; }
+.site-header--over .brand-logo--chip { background: #fff; }
+@media (max-width: 940px) {
+  /* The open mobile panel needs an opaque ground, whatever is behind it. */
+  .site-header--over .nav { background: #fff; }
+  .site-header--over .nav a { color: #2b3155; }
+}
+
+@media (max-width: 940px) {
+  .hero-v {
+    /* Phone band: tall enough to read the frame, short enough that the
+       headline and the call button are both above the fold. */
+    height: auto; min-height: 0;
+  }
+  .hero-v__media { position: relative; height: min(80vw, 60svh); }
+  .hero-v__scrim {
+    background: linear-gradient(to bottom, rgba(4,7,26,.72) 0%, rgba(4,7,26,.18) 40%, rgba(4,7,26,.55) 100%);
+    bottom: auto; height: min(80vw, 60svh);
+  }
+  /* Until a real clip exists the poster is a flat texture, so a full band is
+     dead space above the headline on the most valuable screen there is.
+     Collapsing it lifts the H1 and the call button. Flipping hasVideo back to
+     true in index.astro restores the full band automatically. */
+  .hero-v--noclip .hero-v__media { height: min(38vw, 26svh); }
+  .hero-v--noclip .hero-v__scrim { height: min(38vw, 26svh); }
+  .hero-v__inner {
+    padding-top: 26px; padding-bottom: 34px;
+    background: var(--grad-dark);
+  }
+  .hero-v h1 { max-width: none; }
+}
+
+/* ----------------------------------------------------------- scroll story */
+.story { position: relative; }
+.story__track { position: relative; }
+.story__beat { min-height: 92vh; display: flex; align-items: center; }
+.story__beat p { max-width: 54ch; }
+
+/* --------------------------------------------------------------- motion
+   Reveals start visible and are only hidden once JS has confirmed it will
+   animate them. A page with JS disabled, or a crawler, sees everything. */
+.js-reveal { will-change: transform, opacity; }
+html.has-motion .js-reveal { opacity: 0; transform: translateY(18px); }
+
+@media (prefers-reduced-motion: reduce) {
+  html.has-motion .js-reveal { opacity: 1 !important; transform: none !important; }
+  .hero-v__video { transition: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* ------------------------------------------------------- At a glance block */
+.glance {
+  background: var(--paper-2); border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius); padding: 24px 26px; margin: 0 0 30px;
+}
+.glance h2 {
+  font-size: .78rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent-dk); margin-bottom: 1em;
+}
+.glance dl { display: grid; grid-template-columns: max-content 1fr; gap: 9px 20px; margin: 0; }
+.glance dt { font-weight: 600; color: var(--text); font-size: .93rem; }
+.glance dd { margin: 0; color: var(--slate); font-size: .95rem; }
+@media (max-width: 560px) {
+  .glance dl { grid-template-columns: 1fr; gap: 3px; }
+  .glance dd { margin-bottom: 9px; }
+}
+
+/* ------------------------------------------------------- Short answer block */
+.short-answer {
+  background: var(--accent-soft); border: 1px solid #f6d5bd;
+  border-radius: var(--radius); padding: 22px 26px; margin: 0 0 32px;
+}
+.short-answer h2 {
+  font-size: .78rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent-dk); margin-bottom: .7em;
+}
+.short-answer p { margin: 0; font-size: 1.06rem; color: var(--text); max-width: 62ch; }
+
+/* on-this-page */
+.toc { border-left: 3px solid var(--line); padding: 2px 0 2px 18px; margin: 0 0 34px; }
+.toc h2 { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--slate); margin-bottom: .8em; }
+.toc ol { margin: 0; padding-left: 1.1em; }
+.toc li { margin-bottom: .35em; }
+.toc a { color: var(--brand-dk); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }

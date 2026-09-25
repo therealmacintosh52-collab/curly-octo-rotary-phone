@@ -1,0 +1,22 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { breadcrumbs } from '../lib/seo';
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const trail: [string, string][] = [['Home', '/'], ['Privacy', '/privacy/']];
+---
+<Base title="Privacy Policy | Automotive Solutions"
+  description="How Automotive Solutions in Elk Grove, CA collects and uses information submitted through this website. No tracking pixels, no data sold."
+  path="/privacy/" schemas={[breadcrumbs(trail)]}>
+  <PageHead trail={trail} h1="Privacy policy" lede="How we handle the information you send us through this website." />
+  <section><div class="wrap narrow">
+    <p><strong>What we collect.</strong> If you submit the quote form, we receive the name, phone number, vehicle details and description you provide. The site does not require an account and we do not ask for payment details online.</p>
+    <p><strong>How we use it.</strong> Only to respond to your request and to service your vehicle. We do not sell, rent or trade your information.</p>
+    <p><strong>Analytics.</strong> This site may use standard web analytics to understand how many people visit and which pages they use. That data is aggregated and is not used to identify you personally. No advertising or tracking pixels are loaded by this site as built.</p>
+    <p><strong>Third-party services.</strong> Quote requests are delivered to our inbox by FormSubmit, a form-forwarding service. The map on the contact page is embedded from Google Maps, and review links lead to Google, Yelp, Nextdoor and the Better Business Bureau — each applies its own privacy policy once you leave our site.</p>
+    <p><strong>Your choices.</strong> Ask us to delete the information you sent and we will — call <a href={`tel:${S.phone_link}`}>{S.phone_display}</a> or tell us next time you are in.</p>
+    <p><strong>Contact.</strong> {S.name}, {FULL}, <a href={`tel:${S.phone_link}`}>{S.phone_display}</a>.</p>
+  </div></section>
+</Base>

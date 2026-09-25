@@ -1,0 +1,93 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import Stars from '../components/Stars.astro';
+import { localBusiness, breadcrumbs } from '../lib/seo';
+const S = data.site;
+const trail: [string, string][] = [['Home', '/'], ['Reviews', '/reviews/']];
+const sources: [string, string, string][] = [
+  ['Google', data.maps_listing, `${S.rating} out of 5 from ${S.review_count} reviews`],
+  ['Yelp', data.profiles[1], 'Reviews from Elk Grove customers'],
+  ['NAPA AutoCare', data.profiles[2], "Our listing in NAPA's own shop directory"],
+  ['Better Business Bureau', data.profiles[3], 'BBB business profile and complaint history'],
+  ['Nextdoor', data.profiles[4], 'Recommendations from Elk Grove neighbors'],
+  ['SureCritic', data.profiles[5], 'Verified customer reviews'],
+  ['Customer Lobby', data.profiles[6], 'Customer reviews and ratings'],
+];
+---
+<Base
+  title="Reviews — Elk Grove Auto Repair"
+  description="Automotive Solutions in Elk Grove, CA is rated 4.5 out of 5 across 55 Google reviews. Read them on Google, Yelp, Nextdoor and the BBB."
+  path="/reviews/" active="/reviews/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="Reviews of Automotive Solutions"
+    lede={`Rated ${S.rating} out of 5 across ${S.review_count} Google reviews, with more on Yelp, Nextdoor and the BBB. Every source is linked below so you can read them yourself.`}>
+    <div class="btn-row">
+      <a class="btn btn-accent" href={data.maps_listing} rel="noopener" data-loc="reviews-head">Read reviews on Google</a>
+      <a class="btn btn-ghost" href={data.profiles[1]} rel="noopener">Read reviews on Yelp</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">In their own words</span>
+        <h2>What customers say</h2>
+        <p>Quoted exactly as written, with the platform it was left on. We do not write these and we do not edit them.</p>
+      </div>
+      <div class="grid g4" data-stagger>
+        {data.reviews.map((r) => (
+          <div class="review">
+            <Stars />
+            <blockquote>&ldquo;{r.quote}&rdquo;</blockquote>
+            <cite><strong>{r.name}</strong>via {r.source}</cite>
+          </div>
+        ))}
+        <div class="review review--theme"><span class="card-ico"><Icon name="family" /></span><h3>Family owned since {S.founded_year}</h3><p style="color:var(--slate);font-size:.96rem;margin-bottom:0">The same family business Elk Grove drivers have been coming to for more than two decades.</p></div>
+        <div class="review review--theme"><span class="card-ico"><Icon name="badge" /></span><h3>ASE certified technicians</h3><p style="color:var(--slate);font-size:.96rem;margin-bottom:0">Tested and certified by the National Institute for Automotive Service Excellence.</p></div>
+        <div class="review review--theme"><span class="card-ico"><Icon name="shield" /></span><h3>NAPA AutoCare warranty</h3><p style="color:var(--slate);font-size:.96rem;margin-bottom:0">Qualifying repairs carry {S.warranty_months} months / {S.warranty_miles} miles on parts and labor, honored nationwide.</p></div>
+      </div>
+      <p style="margin-top:24px;color:var(--slate);font-size:.92rem;max-width:68ch">
+        Only quotes we can point at appear above. The three cards beside them are statements
+        about the business, not customer reviews, and are styled differently so they cannot be
+        mistaken for one.
+      </p>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head"><span class="eyebrow">Where to look</span><h2>Read the reviews at the source</h2>
+        <p>We would rather point you at the originals than reprint the flattering parts.</p></div>
+      <div class="grid g3" data-stagger>
+        {sources.map(([n, u, d]) => (
+          <a class="card" href={u} rel="noopener">
+            <span class="card-ico"><Icon name="star" /></span>
+            <h3>{n}</h3><p>{d}</p>
+            <span class="more">Read them <Icon name="arrow" /></span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow">
+      <h2>Why we don't put a star rating in our page code</h2>
+      <p>Plenty of small business websites publish their own star rating as structured data so a rating shows up in Google's search results. Google's guidelines say not to: a business marking up its own reviews is self-serving, and sites that do it risk losing the rich result altogether.</p>
+      <p>So the rating on this site is stated in plain text and linked to the platform that calculated it. If you want to know what people think of this shop, the honest place to look is Google and Yelp, not our own HTML.</p>
+      <div class="btn-row">
+        <a class="btn btn-dark" href={`tel:${S.phone_link}`} data-loc="reviews-body">
+          <Icon name="phone" /><span>Call {S.phone_display}</span>
+        </a>
+        <a class="btn btn-outline" href={data.maps_listing} rel="noopener">Check the rating yourself <Icon name="arrow" /></a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>

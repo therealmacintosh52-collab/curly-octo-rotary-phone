@@ -1,0 +1,100 @@
+---
+import data from '../data/site.json';
+import { BASE, seoTitle } from '../lib/seo';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/legacy.css';
+import '../styles/global.css';
+
+const S = data.site;
+
+export interface Props {
+  title: string;
+  description: string;
+  path: string;
+  schemas?: unknown[];
+  noindex?: boolean;
+  lang?: string;
+  alternates?: [string, string][];
+  /** Preloaded as the LCP candidate. Only the home hero poster uses this. */
+  preloadImage?: { href: string; type?: string };
+  /** Home only: nav sits transparent over the video hero. */
+  navOver?: boolean;
+  active?: string;
+  ogImage?: string;
+}
+
+const {
+  title, description, path, schemas = [], noindex = false, lang = 'en',
+  alternates = [], preloadImage, navOver = false, active, ogImage,
+} = Astro.props;
+
+const canonical = `${BASE}${path}`;
+const finalTitle = title.length > 60 ? seoTitle(title) : title;
+// Per-page OG image. The path is derived deterministically so scripts/og-images.mjs
+// can generate exactly this filename after the build. `npm run og` writes them.
+const ogSlug = path === '/' ? 'home' : path.replace(/^\/|\/$/g, '').replace(/\//g, '-');
+const social = ogImage ?? `/assets/og/${ogSlug}.jpg`;
+---
+<!DOCTYPE html>
+<html lang={lang}>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{finalTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex,follow" />}
+<meta name="theme-color" content="#060a2e" />
+
+<!-- Two font files preloaded: the display face and the body regular. The other
+     two weights load normally; font-display:optional keeps them off the
+     critical path either way. -->
+<link rel="preload" href="/fonts/space-grotesk-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+{preloadImage && (
+  <link rel="preload" href={preloadImage.href} as="image" type={preloadImage.type} fetchpriority="high" />
+)}
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={S.name} />
+<meta property="og:title" content={finalTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={`${BASE}${social}`} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Automotive Solutions by Single — family owned auto repair in Elk Grove, California" />
+<meta property="og:locale" content={lang === 'es' ? 'es_US' : 'en_US'} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={finalTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={`${BASE}${social}`} />
+
+<meta name="geo.region" content="US-CA" />
+<meta name="geo.placename" content="Elk Grove, California" />
+<meta name="geo.position" content={`${S.lat};${S.lng}`} />
+<meta name="ICBM" content={`${S.lat}, ${S.lng}`} />
+
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/img/logo.png" />
+<link rel="manifest" href="/site.webmanifest" />
+{alternates.map(([code, url]) => (
+  <link rel="alternate" hreflang={code} href={`${BASE}${url}`} />
+))}
+{schemas.map((s) => (
+  <script type="application/ld+json" set:html={JSON.stringify(s)} />
+))}
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<Header active={active} over={navOver} />
+<main id="main">
+  <slot />
+</main>
+<Footer />
+<script>
+  import '../scripts/site';
+</script>
+</body>
+</html>

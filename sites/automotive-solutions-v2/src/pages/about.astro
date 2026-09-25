@@ -1,0 +1,91 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { localBusiness, breadcrumbs } from '../lib/seo';
+const S = data.site;
+const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
+const trail: [string, string][] = [['Home', '/'], ['About', '/about/']];
+---
+<Base
+  title="About Our Elk Grove Auto Repair Shop"
+  description="Automotive Solutions by Single is a family owned auto repair shop in Elk Grove, CA, serving drivers since 2001. ASE certified, NAPA AutoCare. (916) 686-5277."
+  path="/about/" active="/about/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="About Automotive Solutions by Single"
+    lede={`A family owned repair shop in Elk Grove, California, doing the same thing since ${S.founded_year}: telling people the truth about their vehicles.`} />
+
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <h2>Twenty-plus years on Elk Grove Boulevard</h2>
+          <p>Automotive Solutions by Single is a family owned and operated shop at {FULL}, serving Elk Grove drivers since {S.founded_year}. It is run by {S.owners}, and in more than two decades it has repaired thousands of vehicles for people who live and work in this town.</p>
+          <p>We provide expert repairs, service and maintenance on all makes and models of domestic and import vehicles. Our technicians are ASE certified, and we use up-to-date diagnostic equipment and quality parts on every job that comes through the bay.</p>
+
+          <h2 style="margin-top:1.6em">How we work</h2>
+          <ul class="checklist">
+            <li><Icon name="check" /><span><strong>Diagnose first.</strong> A trouble code is a starting point, not an answer. We test until we can point at the failure.</span></li>
+            <li><Icon name="check" /><span><strong>Explain it plainly.</strong> You should understand what failed and why before you spend money on it.</span></li>
+            <li><Icon name="check" /><span><strong>Quote before we start.</strong> Nothing gets repaired without your approval — including anything we find along the way.</span></li>
+            <li><Icon name="check" /><span><strong>Separate urgent from optional.</strong> We will tell you what can safely wait. That is not lost revenue; that is why people come back.</span></li>
+            <li><Icon name="check" /><span><strong>Back it in writing.</strong> Qualifying repairs carry the NAPA Peace of Mind Warranty — {S.warranty_months} months or {S.warranty_miles} miles, nationwide.</span></li>
+          </ul>
+
+          <h2 style="margin-top:1.6em">What being a NAPA AutoCare Center means</h2>
+          <p>NAPA AutoCare is a network of independent repair shops that agree to a common standard. Member shops employ ASE certified technicians, use quality parts, and honor each other's warranty work. In practice that means if something we repaired gives you trouble while you are out of town, another member shop can look after it under the same coverage.</p>
+          <p>It also means an independent business does not have to ask you to take its word for anything. You can look us up in NAPA's own directory, on the Better Business Bureau, and on Google and Yelp — all of them are linked from this site.</p>
+        </div>
+
+        <div class="panel panel-accent">
+          <h3>The shop at a glance</h3>
+          <table class="hours">
+            <caption class="sr-only">Key facts about Automotive Solutions</caption>
+            <tbody>
+              <tr><th scope="row">Location</th><td>{FULL}</td></tr>
+              <tr><th scope="row">Phone</th><td><a href={`tel:${S.phone_link}`} data-loc="about">{S.phone_display}</a></td></tr>
+              <tr><th scope="row">Hours</th><td>Mon–Fri, 9 AM – 6 PM</td></tr>
+              <tr><th scope="row">Serving Elk Grove since</th><td>{S.founded_year}</td></tr>
+              <tr><th scope="row">Ownership</th><td>Family owned and operated</td></tr>
+              <tr><th scope="row">Technicians</th><td>ASE certified</td></tr>
+              <tr><th scope="row">Network</th><td>NAPA AutoCare Center</td></tr>
+              <tr><th scope="row">Warranty</th><td>{S.warranty_months} mo / {S.warranty_miles} mi, nationwide</td></tr>
+              <tr><th scope="row">Vehicles</th><td>All makes and models</td></tr>
+              <tr><th scope="row">Rating</th><td>{S.rating} / 5 ({S.review_count} Google reviews)</td></tr>
+            </tbody>
+          </table>
+          <p style="margin:22px 0 0">
+            <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="about-panel" style="width:100%">
+              <Icon name="phone" /><span>Call {S.phone_display}</span>
+            </a>
+          </p>
+          <div style="margin-top:26px">
+            <figure class="photo">
+              <span class="photo-badge"><Icon name="camera" />Our shop</span>
+              <img src="/assets/img/bay-classic.jpg" width="402" height="250" loading="lazy"
+                alt="A classic sedan on the two-post lift inside the bay at Automotive Solutions in Elk Grove" />
+              <figcaption>{S.street} — where every vehicle gets diagnosed before it gets quoted.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head center"><span class="eyebrow">Who we serve</span><h2>Daily drivers, families and long-term keepers</h2></div>
+      <div class="grid g3" data-stagger>
+        <div class="card"><span class="card-ico"><Icon name="family" /></span><h3>Families and commuters</h3><p style="margin-bottom:0">Maintenance, repairs and honest advice on whether a car is worth keeping — for the vehicle that gets your family where it is going.</p></div>
+        <div class="card"><span class="card-ico"><Icon name="gauge" /></span><h3>Second opinions</h3><p style="margin-bottom:0">Bring the estimate. We start from the symptom and test our way to the cause rather than inheriting somebody else's assumption.</p></div>
+        <div class="card"><span class="card-ico"><Icon name="engine" /></span><h3>Big-ticket decisions</h3><p style="margin-bottom:0">Engine and transmission replacement, major overhaul — and a straight answer about whether the repair is worth it on your vehicle.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand heading="Come see how a straight answer feels."
+    text="We are on Elk Grove Blvd, open Monday through Friday. Call ahead and we will make room for you." />
+</Base>

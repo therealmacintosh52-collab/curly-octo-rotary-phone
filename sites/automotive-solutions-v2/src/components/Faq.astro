@@ -1,0 +1,21 @@
+---
+export interface Props { faqs: [string, string][]; heading?: string; intro?: string }
+const { faqs, heading = 'Frequently asked questions', intro } = Astro.props;
+---
+<section class="bg-alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Questions</span>
+      <h2>{heading}</h2>
+      {intro && <p>{intro}</p>}
+    </div>
+    <div class="faq">
+      {faqs.map(([q, a]) => (
+        <details>
+          <summary>{q}</summary>
+          <div class="answer"><p>{a}</p></div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>

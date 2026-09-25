@@ -1,0 +1,79 @@
+/** Lighthouse mobile on the four pages the blueprint names. Writes perf/lighthouse.md. */
+import { createServer } from 'node:http';
+import { readFileSync, existsSync, statSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import lighthouse from 'lighthouse';
+import { launch } from 'chrome-launcher';
+
+const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const DIST = path.join(ROOT, 'dist');
+const MIME = { '.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json',
+  '.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.avif':'image/avif',
+  '.woff2':'font/woff2','.xml':'application/xml','.txt':'text/plain','.webmanifest':'application/manifest+json' };
+
+const server = createServer((req, res) => {
+  const url = decodeURIComponent((req.url || '/').split('?')[0]);
+  let file = path.join(DIST, url);
+  if (url.endsWith('/')) file = path.join(file, 'index.html');
+  if (!existsSync(file) || statSync(file).isDirectory()) { res.writeHead(404); res.end(); return; }
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+  res.end(readFileSync(file));
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const BASE = `http://127.0.0.1:${server.address().port}`;
+
+const chrome = await launch({
+  chromePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+});
+
+const PAGES = [['Home','/'],['Service','/services/brake-repair/'],
+               ['Guide','/advice/check-engine-light/'],['Contact','/contact/']];
+const rows = [];
+for (const [label, p] of PAGES) {
+  const r = await lighthouse(BASE + p, {
+    port: chrome.port, output: 'json', logLevel: 'error',
+    screenEmulation: { mobile: true, width: 390, height: 844, deviceScaleFactor: 2, disabled: false },
+    formFactor: 'mobile',
+    onlyCategories: ['performance','accessibility','best-practices','seo'],
+  });
+  const c = r.lhr.categories, a = r.lhr.audits;
+  rows.push({
+    label, p,
+    perf: Math.round(c.performance.score*100), a11y: Math.round(c.accessibility.score*100),
+    bp: Math.round(c['best-practices'].score*100), seo: Math.round(c.seo.score*100),
+    lcp: a['largest-contentful-paint'].displayValue,
+    cls: a['cumulative-layout-shift'].displayValue,
+    tbt: a['total-blocking-time'].displayValue,
+  });
+  console.log(`${label.padEnd(8)} perf ${rows.at(-1).perf}  a11y ${rows.at(-1).a11y}  bp ${rows.at(-1).bp}  seo ${rows.at(-1).seo}  LCP ${rows.at(-1).lcp}  CLS ${rows.at(-1).cls}`);
+}
+await chrome.kill(); server.close();
+
+const md = `# Lighthouse — mobile
+
+Run with \`node scripts/lh.mjs\` against the built \`dist/\`, throttled mobile
+(390×844, 4× CPU slowdown, simulated slow 4G — Lighthouse defaults).
+
+Target from the blueprint: performance ≥ 90, accessibility / best-practices /
+SEO = 100, CLS = 0.
+
+| Page | URL | Perf | A11y | Best prac. | SEO | LCP | CLS | TBT |
+|---|---|---|---|---|---|---|---|---|
+${rows.map(r => `| ${r.label} | \`${r.p}\` | **${r.perf}** | **${r.a11y}** | **${r.bp}** | **${r.seo}** | ${r.lcp} | ${r.cls} | ${r.tbt} |`).join('\n')}
+
+Last run: ${new Date().toISOString().slice(0,10)}
+
+## Notes
+
+- The LCP is the hero poster (AVIF, ~9 KB), preloaded with \`fetchpriority="high"\`.
+- The video source is not attached until after \`load\`, so it never competes
+  with the LCP. With no clip present yet, no video is requested at all.
+- Fonts are self-hosted woff2 with \`font-display: optional\` and metric-matched
+  fallbacks, which is what holds CLS at 0.
+- GSAP and Lenis are dynamically imported after \`load\` and skipped entirely for
+  \`prefers-reduced-motion\`.
+`;
+writeFileSync(path.join(ROOT, 'perf/lighthouse.md'), md);
+console.log('\nwrote perf/lighthouse.md');

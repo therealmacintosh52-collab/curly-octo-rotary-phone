@@ -1,0 +1,28 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import ServiceCards from '../components/ServiceCards.astro';
+import Icon from '../components/Icon.astro';
+const S = data.site;
+---
+<Base title="Page Not Found | Automotive Solutions"
+  description="That page could not be found. Browse auto repair services in Elk Grove, CA, or call the shop at (916) 686-5277."
+  path="/404/" noindex={true}>
+  <PageHead trail={[['Home', '/'], ['Not found', '/404/']]}
+    h1="That page isn't here"
+    lede="The link may be old or mistyped. The shop is still exactly where it has always been.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="404">
+        <Icon name="phone" /><span>Call {S.phone_display}</span>
+      </a>
+      <a class="btn btn-ghost" href="/services/">Browse services</a>
+    </div>
+  </PageHead>
+  <section><div class="wrap">
+    <div class="sec-head"><h2>Popular pages</h2></div>
+    <div class="grid g3">
+      <ServiceCards slugs={['auto-repair','brake-repair','engine-repair','transmission-repair','ac-repair','car-diagnostics']} />
+    </div>
+  </div></section>
+</Base>
