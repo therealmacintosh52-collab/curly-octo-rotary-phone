@@ -21,6 +21,11 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').repla
   <PageHead trail={trail} title={g.nav} lede={g.blurb} />
   <section>
     <div class="wrap narrow">
+      <aside class="glance" aria-label="Short answer">
+        <span class="glance-label">Short answer</span>
+        <p>{g.takeaway}</p>
+        <p style="font-size:.9rem;color:var(--slate)">From {site.name}, {fullAddress}. Updated {modified}. Questions: <a href={`tel:${site.phone_link}`} data-loc="guide-answer">{site.phone_display}</a>.</p>
+      </aside>
       <nav class="panel" aria-label="On this page" style="margin-bottom:2em">
         <p style="margin-bottom:.5em;font-family:var(--font-display);font-weight:700;font-size:1.22rem">On this page</p>
         <ol style="margin:0">{toc.map((h: string) => <li><a href={`#${slugify(h)}`}>{h}</a></li>)}</ol>

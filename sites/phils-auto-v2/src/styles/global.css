@@ -139,6 +139,16 @@ html.has-cursor input, html.has-cursor textarea, html.has-cursor select { cursor
 .ripple canvas { opacity: 0; transition: opacity .3s; }
 .ripple.is-ready canvas { opacity: 1; }
 
+/* Answer blocks: the direct answer an assistant or a skimmer needs, first */
+.glance { border-left: 4px solid var(--accent, #5b4dff); background: rgba(91,77,255,.06); border-radius: 0 var(--radius) var(--radius) 0; padding: 18px 22px; margin: 0 0 1.8em; }
+.glance p { margin: 0 0 .6em; }
+.glance p:last-child { margin-bottom: 0; }
+.glance .glance-label { display: block; font-family: var(--font-display); font-weight: 700; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent, #5b4dff); margin-bottom: .45em; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: .35em 1.2em; margin: .8em 0 0; font-size: .95rem; }
+.facts dt { font-weight: 700; color: var(--ink, #0f1721); }
+.facts dd { margin: 0; }
+@media (max-width: 560px) { .facts { grid-template-columns: 1fr; gap: .15em 0; } .facts dd { margin-bottom: .5em; } }
+
 /* ---------------- Phone overrides for the stage ---------------- */
 @media (max-width: 880px) {
   .v2-hero, .v2-hero.has-story { height: auto; }

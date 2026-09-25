@@ -14,6 +14,9 @@ const path = `/services/${s.slug}/`;
 const trail: [string, string][] = [['Home', '/'], ['Services', '/services/'], [s.nav, path]];
 const related = services.filter((x: any) => x.slug !== s.slug).slice(0, 6);
 const areas = site.areas as string[];
+const hours = `${site.hours_human}, closed Sunday`;
+// The direct answer, first. Written the way people ask assistants the question.
+const answer = `${site.name} does ${s.nav.toLowerCase()} at ${fullAddress}, an independent shop minutes from Highway 99. We diagnose before we replace parts and give you a written quote before any work starts. ${hours}. Call ${site.phone_display} or send the quote form on this page.`;
 ---
 <Base title={seoTitle(s.title)} description={s.meta} path={path} active="/services/"
       schemas={[serviceSchema(s), breadcrumb(trail), faqPage(s.faqs)]}>
@@ -29,6 +32,17 @@ const areas = site.areas as string[];
     <div class="wrap">
       <div class="split">
         <div>
+          <aside class="glance" aria-label="At a glance">
+            <span class="glance-label">At a glance</span>
+            <p>{answer}</p>
+            <dl class="facts">
+              <dt>Where</dt><dd>{fullAddress} · <a href="/contact/">directions</a></dd>
+              <dt>Hours</dt><dd>{hours}</dd>
+              <dt>Vehicles</dt><dd>Cars, light trucks, diesel pickups and work trucks, commercial fleet vehicles</dd>
+              <dt>Cost</dt><dd>Quoted before work; no charge to talk it through on the phone</dd>
+              <dt>Book</dt><dd><a href={`tel:${site.phone_link}`} data-loc="service-glance">{site.phone_display}</a> or <a href="#quote">the quote form</a></dd>
+            </dl>
+          </aside>
           {s.intro.map((p: string) => <p>{p}</p>)}
           <h2>What this service covers</h2>
           <ul class="checklist" data-stagger>{s.includes.map((i: string) => <li><Icon name="check" /><span>{i}</span></li>)}</ul>

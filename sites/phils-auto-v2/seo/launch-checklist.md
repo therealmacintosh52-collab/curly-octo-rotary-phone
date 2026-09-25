@@ -31,7 +31,9 @@ Work through this in order on launch day. Everything here is outside the codebas
 - [ ] Add the property `https://philsautofleet.com/` (URL-prefix). Verify with the DNS record or by uploading the HTML file to `public/`.
 - [ ] Submit `https://philsautofleet.com/sitemap-index.xml`.
 - [ ] Request indexing for the home page, `/services/`, and the diesel and fleet pages.
-- [ ] Bing Webmaster Tools: import from Search Console, submit the same sitemap.
+- [ ] Bing Webmaster Tools: import from Search Console, submit the same sitemap. Bing is what ChatGPT search and Copilot read; the site is invisible to them until this is done.
+- [ ] Confirm `https://philsautofleet.com/d3949c9607ed1d5fc65705366ef0d7a9.txt` loads (the IndexNow key), then run `npm run indexnow` from `sites/phils-auto-v2` after every deploy. Confirm `https://philsautofleet.com/llms.txt` and `/robots.txt` load too.
+- [ ] Ask ChatGPT, Perplexity and Google "best diesel repair shop in Lodi CA" and note the answer. Repeat monthly (see `marketing/plan.md` §2).
 - [ ] Two weeks in: check the Pages report for old URLs still returning 404 and add redirects.
 
 ## 5. Analytics

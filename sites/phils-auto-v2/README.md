@@ -64,6 +64,10 @@ seo/keyword-map.md          one keyword family per URL, titles, metas, cannibali
 seo/launch-checklist.md     GBP, Search Console, analytics, citations
 design/concept.md           the 3D concept, scroll storyboard, colour and type system
 perf/lighthouse.md          real Lighthouse output and what the perf pass changed
+marketing/plan.md           positioning, AI answer-engine playbook, local SEO, reviews, content calendar, fleet outreach, ads, 30/60/90
+marketing/review-request-templates.md  SMS/email/invoice/counter-card copy and reply patterns; review-qr.svg to print
+public/llms.txt             plain-text summary of the business and every page for AI assistants
+public/<key>.txt            IndexNow key; `npm run indexnow` after each deploy pushes all URLs to Bing (what ChatGPT search reads)
 ```
 
 ## Add a page

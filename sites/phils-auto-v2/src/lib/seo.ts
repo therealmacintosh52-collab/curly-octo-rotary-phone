@@ -57,6 +57,17 @@ export function localBusiness() {
     })),
     areaServed: (site.areas as string[]).map((a) => ({ '@type': 'City', name: a })),
     sameAs: profiles ?? [],
+    description: `Independent auto, diesel and fleet repair shop in Lodi, CA. Diagnosis before parts, a written quote before any work, no upsells. Cars, light trucks, diesel pickups and commercial fleet vehicles.`,
+    slogan: 'Diagnosis first. Quote before work. No upsells.',
+    currenciesAccepted: 'USD',
+    knowsLanguage: ['en', 'es'],
+    knowsAbout: [
+      ...services.map((s: any) => s.nav),
+      'Check engine light diagnosis',
+      'Diesel emissions (DPF, EGR) faults',
+      'Preventive maintenance programs for commercial fleets',
+      'Second opinions on repair estimates',
+    ],
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
       name: 'Auto, diesel and fleet repair services',
@@ -117,6 +128,14 @@ export function serviceSchema(s: any) {
     url: `${BASE}/services/${s.slug}/`,
     provider: { '@id': `${BASE}/#business` },
     areaServed: (site.areas as string[]).map((a) => ({ '@type': 'City', name: a })),
+    availableChannel: {
+      '@type': 'ServiceChannel',
+      servicePhone: { '@type': 'ContactPoint', telephone: site.phone_link, contactType: 'customer service', availableLanguage: ['en', 'es'] },
+      serviceUrl: `${BASE}/contact/#quote`,
+    },
+    hoursAvailable: (site.hours_schema as any[]).map((h) => ({
+      '@type': 'OpeningHoursSpecification', dayOfWeek: h.days, opens: h.opens, closes: h.closes,
+    })),
   };
 }
 
