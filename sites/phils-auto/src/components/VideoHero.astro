@@ -33,14 +33,17 @@ const { src, fallbackImage, fallbackAlt } = Astro.props;
       autoplay
       disablepictureinpicture
       disableremoteplayback
-      preload="auto"
+      preload="metadata"
       tabindex="-1"
     >
       <source src={src} type="video/mp4" />
     </video>
 
-    {/* Only drawn if the video never runs. */}
-    <img class="hero-fallback" src={fallbackImage} alt={fallbackAlt} width="1284" height="1711" />
+    {/* Only fetched if the video never runs. Shipped with data-src rather
+        than src: as a plain <img> it is a full-viewport image that every
+        visitor downloads and that wins the LCP race against the copy, for a
+        picture most of them never see. */}
+    <img class="hero-fallback" data-src={fallbackImage} alt={fallbackAlt} width="1284" height="1711" />
   </div>
 
   {/* Readability scrim: sits behind the nav only, per the spec — the rest of
@@ -106,6 +109,7 @@ const { src, fallbackImage, fallbackAlt } = Astro.props;
   .hero.is-playing .hero-video { opacity: 1; }
 
   .hero-fallback { opacity: 0; transition: opacity 0.6s ease; }
+  .hero-fallback[data-src] { display: none; }
   .hero.is-fallback .hero-fallback { opacity: 1; }
   .hero.is-fallback .hero-video { display: none; }
 
@@ -204,7 +208,12 @@ const { src, fallbackImage, fallbackAlt } = Astro.props;
 
   if (hero) {
     const reveal = () => hero.classList.add("is-ready");
+    const fallbackImg = hero.querySelector<HTMLImageElement>(".hero-fallback");
     const useFallback = () => {
+      if (fallbackImg?.dataset.src) {
+        fallbackImg.src = fallbackImg.dataset.src;
+        delete fallbackImg.dataset.src;
+      }
       hero.classList.add("is-fallback");
       video?.removeAttribute("src");
       video?.load?.();

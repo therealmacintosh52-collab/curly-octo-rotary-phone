@@ -27,6 +27,11 @@ for (const path of urls) {
     formFactor: "mobile",
     screenEmulation: { mobile: true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: false },
     throttling: { rttMs: 150, throughputKbps: 1638.4, cpuSlowdownMultiplier: 4 },
+    /* A looping background video never lets the page go network-quiet, so the
+       default wait sits there until it times out. Cap it: the metrics are
+       already settled long before this. */
+    maxWaitForLoad: 25000,
+    maxWaitForFcp: 20000,
     onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
   });
   const c = lhr.categories;
