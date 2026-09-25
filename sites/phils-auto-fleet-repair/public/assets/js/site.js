@@ -2,6 +2,65 @@
 (function () {
   "use strict";
 
+  /* --- Motion -------------------------------------------------------
+     Everything here is progressive: without JS nothing is hidden, and the
+     stylesheet's reduced-motion block turns every animation off.  */
+  document.documentElement.classList.add("js");
+
+  /* Scroll reveals, staggered by position among revealed siblings. */
+  var targets = document.querySelectorAll("[data-reveal]");
+  if ("IntersectionObserver" in window && targets.length) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        en.target.classList.add("in");
+        io.unobserve(en.target);
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    Array.prototype.forEach.call(targets, function (el) {
+      var i = 0, sib = el.previousElementSibling;
+      while (sib && i < 12) { if (sib.hasAttribute("data-reveal")) i++; sib = sib.previousElementSibling; }
+      el.style.setProperty("--i", i);
+      io.observe(el);
+    });
+  } else {
+    Array.prototype.forEach.call(targets, function (el) { el.classList.add("in"); });
+  }
+
+  /* The bay door plays once per visit. */
+  var door = document.querySelector(".door");
+  if (door) {
+    var seen = false;
+    try { seen = sessionStorage.getItem("door") === "1"; sessionStorage.setItem("door", "1"); } catch (e) {}
+    if (seen) { door.parentNode.removeChild(door); }
+    else { door.addEventListener("animationend", function () { if (door.parentNode) door.parentNode.removeChild(door); }); }
+  }
+
+  /* The hero clip only plays where motion is welcome and data is not scarce. */
+  var vid = document.querySelector(".hero-video");
+  if (vid) {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var saveData = navigator.connection && navigator.connection.saveData;
+    if (reduce || saveData) { vid.removeAttribute("autoplay"); vid.pause(); }
+    else { var pl = vid.play(); if (pl && pl.catch) pl.catch(function () {}); }
+  }
+
+  /* Header compacts once the page has moved. */
+  var header = document.querySelector(".site-header");
+  if (header) {
+    var ticking = false;
+    var onScroll = function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        header.classList.toggle("scrolled", window.scrollY > 48);
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  }
+
   /* --- Mobile navigation --- */
   var toggle = document.querySelector(".nav-toggle");
   var nav = document.getElementById("primary-nav");

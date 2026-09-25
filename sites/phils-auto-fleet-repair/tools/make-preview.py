@@ -55,6 +55,9 @@ def main():
     js = read("assets", "js", "site.js")
     logo = data_uri("/assets/img/logo.png", "image/png")
     scene = data_uri("/assets/img/shop-scene.svg", "image/svg+xml")
+    poster = data_uri("/assets/img/hero-poster.jpg", "image/jpeg")
+    video = data_uri("/assets/video/shop-front.mp4", "video/mp4")
+    webm = data_uri("/assets/video/shop-front.webm", "video/webm")
 
     templates = []
     for path, filename in routes().items():
@@ -64,6 +67,9 @@ def main():
         body = body.replace('<script src="/assets/js/site.js" defer></script>', "")
         body = body.replace("/assets/img/logo.png", logo)
         body = body.replace("/assets/img/shop-scene.svg", scene)
+        body = body.replace("/assets/img/hero-poster.jpg", poster)
+        body = body.replace("/assets/video/shop-front.mp4", video)
+        body = body.replace("/assets/video/shop-front.webm", webm)
         body = re.sub(r'<iframe class="map-frame".*?</iframe>', MAP_PLACEHOLDER, body, flags=re.S)
         templates.append('<template data-route="%s">%s</template>' % (path, body))
 

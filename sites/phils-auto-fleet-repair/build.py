@@ -1200,6 +1200,57 @@ def footer_html(es=False):
              "privacy": t["privacy"], "tagline": t["tagline"]}
 
 
+REVEAL_BLOCKS = ("sec-head", "step", "review", "card", "ro-group", "cta-band", "statband-inner",
+                 "callout", "photo", "compare", "split", "listed-as", "panel", "table-scroll")
+
+
+def reveal_markup(body):
+    """Mark the blocks that rise into view as the page scrolls. The hero and
+    page head run their own entrance, so they are left alone. JS gates the
+    hidden start state, so without it (or with reduced motion) everything is
+    simply visible."""
+    body = re.sub(r'<(div|section|aside|figure|table) class="(%s)\b' % "|".join(REVEAL_BLOCKS),
+                  r'<\1 data-reveal class="\2', body)
+    body = body.replace('<li><a class="svc-row"', '<li data-reveal><a class="svc-row"')
+    body = body.replace('<details>', '<details data-reveal>')
+    return body
+
+
+def ticker():
+    """A running board of every service on the Google profile, the way a
+    shop's price board runs along the wall. Duplicated once for a seamless
+    loop; aria-hidden because /services/ carries the readable list."""
+    names = []
+    for s in SERVICES:
+        names += [i.split(" [")[0] for i in catalog_items(s["slug"])]
+    seen, items = set(), []
+    for n in names:
+        if n.lower() not in seen:
+            seen.add(n.lower()); items.append(n)
+    row = "".join('<span>%s</span><b aria-hidden="true">·</b>' % esc(n) for n in items)
+    return ('<div class="ticker" aria-hidden="true"><div class="ticker-track">%s%s</div></div>'
+            % (row, row))
+
+
+def door():
+    """The bay door: a corrugated oxblood panel that rolls up to reveal the
+    home page, once per visit. Pure CSS animation; JS only remembers that it
+    has played so it does not repeat on every return to the home page."""
+    return ('<div class="door" aria-hidden="true"><div class="door-sign">'
+            '<span class="door-name">Phil\'s Auto &amp; Fleet Repair</span>'
+            '<span class="door-phone">%s</span></div></div>' % SITE["phone_display"])
+
+
+def hero_video():
+    """The shop-front clip under the home hero. Muted, looped, inline on
+    phones, poster first so nothing shifts; the stylesheet hides it under
+    reduced motion and darkens it so the copy keeps its contrast."""
+    return ('<video class="hero-video" autoplay muted loop playsinline preload="metadata" '
+            'poster="/assets/img/hero-poster.jpg" aria-hidden="true" tabindex="-1">'
+            '<source src="/assets/video/shop-front.mp4" type="video/mp4">'
+            '<source src="/assets/video/shop-front.webm" type="video/webm"></video>')
+
+
 def render(path, title, description, body, schemas=None, active=None, noindex=False,
            lang="en", alternates=None):
     """Write one page. `path` is a URL path like '/services/brakes/' ('/' = home)."""
@@ -1209,6 +1260,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
     alt_links = "".join(
         '\n<link rel="alternate" hreflang="%s" href="%s%s">' % (code, SITE["base_url"], url)
         for code, url in (alternates or []))
+    body = reveal_markup(body)
     doc = """<!DOCTYPE html>
 <html lang="%(lang)s">
 <head>
@@ -1567,7 +1619,9 @@ HOME_FAQS = [
 
 
 def build_home():
-    body = f"""<section class="hero">
+    body = f"""{door()}
+<section class="hero hero--video">
+  {hero_video()}
   <div class="wrap">
     <div class="hero-grid">
       <div>
@@ -1596,6 +1650,7 @@ def build_home():
 </section>
 
 {stat_band()}
+{ticker()}
 
 <section>
   <div class="wrap">
