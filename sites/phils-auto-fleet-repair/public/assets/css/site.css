@@ -200,7 +200,7 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
    the three actions sit high in the first screen, just under the header,
    so calling, quoting and directions are the first things a visitor sees. */
 .video-hero{
-  position:relative;width:100%;height:160vh;height:160svh;min-height:520px;
+  padding:0;position:relative;width:100%;height:160vh;height:160svh;min-height:520px;
   background:var(--ink);color:#fff;overflow:hidden;isolation:isolate;
   display:flex;align-items:flex-start;
 }
@@ -536,8 +536,18 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   .site-header--overlay .nav a{color:#26384a}
   .site-header--overlay .nav a[aria-current="page"]{color:var(--accent-dk)}
   /* keep the hero buttons clear of the fixed call bar and the stat band overlap */
-  .video-hero__content{padding-top:calc(72px + 4vh);padding-top:calc(72px + 4svh)}
-  .video-hero h1{font-size:clamp(2rem,1rem + 5vw,2.6rem)}
+  /* Phones: the clip is landscape, so instead of blowing it up to fill a
+     tall portrait box it runs as a full-width band under the header at a
+     modest zoom, fading into a dark panel that holds the headline and
+     the three actions. */
+  .video-hero{display:block;height:auto;min-height:100vh;min-height:100svh}
+  .video-hero__media{position:relative;inset:auto;z-index:auto;display:block;width:100%;height:50vh;height:50svh;object-position:50% 50%}
+  .video-hero::after{content:"";position:absolute;left:0;right:0;top:calc(50vh - 120px);top:calc(50svh - 120px);height:120px;pointer-events:none;
+    background:linear-gradient(rgba(10,10,31,0),var(--ink))}
+  /* actions come straight after the video band; the headline follows */
+  .video-hero__content{position:relative;display:flex;flex-direction:column;padding-top:4px;padding-bottom:calc(74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 20px)}
+  .video-hero__actions{order:-1;margin:0 0 22px}
+  .video-hero h1{font-size:clamp(1.8rem,1rem + 4.5vw,2.4rem);text-shadow:none}
   .video-hero__actions{gap:10px}
   .video-hero__actions .btn{min-width:0}
   .header-inner{position:relative}
