@@ -203,6 +203,10 @@ labels, never in the folder name (the URL slug can change in `nav` if the keywor
 
 ## 9. Marketing kit (generated per niche from `marketing/plan.md`)
 
+**Keep it out of a public repository.** `marketing/`, `seo/` and `perf/` are the owner's
+playbook; the site source can be public, the strategy should not be. Deliver them as a zip
+(or keep the site repo private and host on Netlify) and gitignore the three folders.
+
 Same ten sections every time: positioning, AI answer engines, local SEO, reviews engine,
 12-month content calendar (from the keyword map), social cadence, B2B/referral outreach with an
 email template, paid structure with negatives (no budget numbers), measurement, 30/60/90.

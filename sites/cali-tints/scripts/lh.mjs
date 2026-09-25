@@ -1,4 +1,5 @@
-/** Lighthouse mobile on the four pages the blueprint names. Writes perf/lighthouse.md. */
+/** Lighthouse mobile on the four pages the blueprint names. Prints the report;
+    perf/ is gitignored (kept with the owner's private playbook), so it is written there only if the folder exists. */
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -104,5 +105,5 @@ Last run: ${new Date().toISOString().slice(0,10)}
 - GSAP and Lenis are dynamically imported after \`load\` and skipped entirely for
   \`prefers-reduced-motion\`.
 `;
-writeFileSync(path.join(ROOT, 'perf/lighthouse.md'), md);
-console.log('\nwrote perf/lighthouse.md');
+if (existsSync(path.join(ROOT, 'perf'))) { writeFileSync(path.join(ROOT, 'perf/lighthouse.md'), md); console.log('\nwrote perf/lighthouse.md'); }
+else console.log('\n' + md);

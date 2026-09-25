@@ -4,3 +4,6 @@ dist-preview/
 .astro/
 preview.html
 qa/
+marketing/
+seo/
+perf/

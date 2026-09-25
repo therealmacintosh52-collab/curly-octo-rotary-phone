@@ -1,7 +1,7 @@
 # Cali Tints — Sacramento, CA
 
 Built from `blueprint/MASTER-BLUEPRINT.md`. Astro 5, plain CSS, video hero,
-GSAP + Lenis, self-hosted fonts, JSON-LD, `llms.txt`, IndexNow, marketing kit.
+GSAP + Lenis, self-hosted fonts, JSON-LD, `llms.txt`, IndexNow.
 
 **This is the blueprint's reference implementation** — copied from
 `sites/automotive-solutions-v2` (on branch `claude/automotive-solutions-site-fqxf20`),
@@ -13,7 +13,7 @@ npm install
 npm run build          # -> dist/
 npm run og             # per-page OG images (run AFTER build)
 node scripts/audit.mjs # gate: exits non-zero on any failure
-node scripts/lh.mjs    # Lighthouse mobile -> perf/lighthouse.md
+node scripts/lh.mjs    # Lighthouse mobile (prints the table)
 npm run contrast       # hero copy vs what is behind it, frame by frame
 node scripts/shots.mjs      # QA screenshots -> qa/
 npm run video -- clip.mov   # encode a new hero clip to spec + recut posters
@@ -60,14 +60,14 @@ public/assets/video/    shop.mp4 + shop.webm (the hero clip)
 public/assets/img/      logo.png (256), logo-800.png, apple-touch-icon.png,
                         favicon.svg, hero-poster.{jpg,webp,avif}
 scripts/                build, audit, perf and asset tooling
-seo/ perf/ marketing/   keyword map, launch checklist, Lighthouse, the kit
 qa/                     screenshots (gitignored; regenerate with shots.mjs)
 ```
 
 ## Scores
 
-`node scripts/lh.mjs`, throttled mobile, against the built `dist/` — the current
-numbers are in `perf/lighthouse.md`. `node scripts/audit.mjs` passes with 0 errors
+`node scripts/lh.mjs`, throttled mobile, against the built `dist/`: home 96, service 99,
+guide 99, contact 100 performance; 100 accessibility / best practices / SEO; CLS 0
+(2026-09-25). `node scripts/audit.mjs` passes with 0 errors
 and 0 warnings across 26 pages: one H1 each, heading order, unique titles ≤ 60
 and descriptions 70–160, valid JSON-LD with no aggregateRating, every internal
 link and anchor resolving, alt text everywhere, one phone number everywhere,
@@ -82,7 +82,8 @@ that nothing is laid over the video.
 
 Nothing on the site is invented, but most of it came from public listings and the
 owner's pasted Google card rather than from the shop directly. Confirm each before
-launch; `seo/launch-checklist.md` has the sequence.
+launch. The launch checklist, keyword map and marketing plan are kept with the
+owner, outside this public repository (`marketing/`, `seo/` and `perf/` are gitignored).
 
 | # | Item | Source | Action |
 |---|---|---|---|
@@ -227,4 +228,4 @@ Inherited from the reference, unchanged:
    website link — and make name/address/phone/hours match this site exactly.
 5. Supply photos and, when convenient, a real clip of the bay.
 6. Name the films installed and their warranty terms.
-7. Ask customers for reviews. See `marketing/review-request-templates.md`.
+7. Ask customers for reviews, using the review-request templates in the private playbook.
