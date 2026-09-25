@@ -196,12 +196,10 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
    The video fills the first viewport behind everything; the headline and
    buttons are in the DOM from the start (for search engines) but invisible
    until site.js sees the video playing, or falls back to the poster. */
-/* The track is taller than the screen and the hero sticks to the top of it,
-   so the video holds for about half a screen of scrolling before the rest
-   of the page slides up over it. */
-.video-hero-track{height:160vh;height:160svh;min-height:520px}
+/* The section is 1.6 screens tall and scrolls normally; the headline and
+   buttons are padded up so they still sit inside the first screen. */
 .video-hero{
-  position:sticky;top:0;width:100%;height:100vh;height:100svh;min-height:520px;
+  position:relative;width:100%;height:160vh;height:160svh;min-height:520px;
   background:var(--ink);color:#fff;overflow:hidden;isolation:isolate;
   display:flex;align-items:flex-end;
 }
@@ -210,7 +208,7 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
   object-fit:cover;object-position:50% 50%;background:var(--ink);
 }
 .video-hero__content{
-  width:100%;padding-bottom:clamp(96px,11vw,150px);
+  width:100%;padding-bottom:calc(60vh + clamp(96px,11vw,150px));padding-bottom:calc(60svh + clamp(96px,11vw,150px));
   opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease;
 }
 .video-hero.is-playing .video-hero__content,
@@ -536,7 +534,7 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   .site-header--overlay .nav a{color:#26384a}
   .site-header--overlay .nav a[aria-current="page"]{color:var(--accent-dk)}
   /* keep the hero buttons clear of the fixed call bar and the stat band overlap */
-  .video-hero__content{padding-bottom:calc(74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 18px)}
+  .video-hero__content{padding-bottom:calc(60vh + 74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 18px);padding-bottom:calc(60svh + 74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 18px)}
   .header-inner{position:relative}
   .header-cta{display:none}
   .nav-toggle{display:block;order:3}
@@ -571,8 +569,7 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
 }
 @media print{
   .site-header,.callbar,.topbar,.cta-band,.site-footer,.hero::before,.hero::after,.video-hero__media{display:none}
-  .video-hero-track{height:auto;min-height:0}
-  .video-hero{position:static;height:auto;min-height:0;background:#fff;color:#000}
+  .video-hero{height:auto;min-height:0;background:#fff;color:#000}
   .video-hero__content{opacity:1;transform:none;padding:0}
   .video-hero h1{color:#000;text-shadow:none}
   body{font-size:12pt}

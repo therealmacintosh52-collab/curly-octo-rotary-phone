@@ -1306,8 +1306,7 @@ def build_home():
     # a visitor sees is the shop, not text over a black box. site.js handles
     # the reveal, the poster fallback when autoplay is refused, and reduced
     # motion. Replace shop-bay.mp4 + shop-bay-poster.jpg to change the clip.
-    body = f"""<div class="video-hero-track">
-<section class="video-hero" data-video-hero>
+    body = f"""<section class="video-hero" data-video-hero>
   <video class="video-hero__media" autoplay muted loop playsinline preload="auto"
          disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1"
          data-poster="/assets/img/shop-bay-poster.jpg">
@@ -1323,7 +1322,6 @@ def build_home():
     </div>
   </div>
 </section>
-</div>
 
 {stat_band()}
 
