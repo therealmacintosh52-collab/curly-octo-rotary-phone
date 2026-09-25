@@ -99,7 +99,8 @@ const boxes = await page.evaluate((sel) => sel.map(([name, q]) => {
   return {
     name,
     rects: rects.map((r) => ({
-      x: Math.max(0, Math.round(r.x) - 3), y: Math.max(0, Math.round(r.y) - 3),
+      x: Math.max(0, Math.round(r.x + window.scrollX) - 3),
+      y: Math.max(0, Math.round(r.y + window.scrollY) - 3),
       width: Math.round(r.width) + 6, height: Math.round(r.height) + 6,
     })),
   };
@@ -149,7 +150,10 @@ for (const t of steps) {
     for (let k = 0; k < entry.rects.length; k++) {
       const box = entry.rects[k];
       const shot = path.join(TMP, `t${t}-${i}-${k}.png`);
-      await page.screenshot({ path: shot, clip: box });
+      // fullPage: the copy can sit below the fold (the clip runs its full 16:9,
+      // so on a laptop the hero fills the window), and a viewport-relative clip
+      // outside it throws rather than returning the pixels.
+      await page.screenshot({ path: shot, clip: box, fullPage: true });
       const { data, info } = await sharp(shot).raw().toBuffer({ resolveWithObject: true });
       for (let j = 0; j < data.length; j += info.channels) {
         const px = [data[j], data[j + 1], data[j + 2]];

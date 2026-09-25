@@ -91,11 +91,9 @@ It is AI-generated, not this building, and it was reviewed and shipped as-is by
 the owner's decision. Recording what is on screen so nobody rediscovers it:
 
 - **The sign on the building reads `916-000-5277`.** The shop's real number is
-  **(916) 686-5277** — the middle three digits are wrong. It is small and at a
-  distance. On a **desktop** the media band is much wider than 16:9, so
-  `object-fit: cover` crops top and bottom and the sign stays out of frame. On a
-  **phone or tablet** the band is taller than 16:9, so it crops the sides and
-  shows the full frame height — the sign is legible there from about 3 s to 5 s.
+  **(916) 686-5277** — the middle three digits are wrong. Now that the frame runs
+  uncropped it is in view at every width, though the logo animation covers much
+  of it for the first couple of seconds.
 - The logo on that small building sign is maroon rather than the real orange and
   blue, and "SOLUTIONS" under it is garbled. The address line is illegible. This
   is the *painted sign in the shot*, not the animated logo overlay, which is
@@ -137,6 +135,25 @@ the attribute alone and refuse the autoplay. Play is retried on `canplay`,
 `loadeddata`, `pageshow`, visibility change and the first gesture. If it is still
 refused — iPhone Low Power Mode is the usual reason — the poster stays and a
 "Tap to play" pill appears. The video pauses when scrolled off-screen.
+
+### The clip runs its full 16:9 — nothing is cropped
+
+`.hero-v__media` carries `aspect-ratio: 16 / 9`, which is the clip's own ratio,
+so `object-fit: cover` has nothing to crop and the whole frame is on screen at
+every width. `focus`/`--hero-focus` is therefore a no-op for the video; it still
+governs the poster if the band ratio is ever changed.
+
+An earlier version sized the band off viewport height
+(`clamp(210px, 32svh, 400px)`) to keep the call button above the fold. It looked
+tidier but it cut the top and bottom off the shot — including most of the logo
+animation. **The cost of not cropping:** on a 1440x900 laptop the frame is
+810px tall, so the headline and the call button sit below the fold. The sticky
+header keeps the phone number and *Get a Quote* on screen throughout, and the
+mobile call bar does the same on phones, where the frame is only 219px tall and
+the headline and call button are both above the fold.
+
+To trade back: give `.hero-v__media` a `max-height` and either accept the crop
+(`object-fit: cover`) or letterbox it (`object-fit: contain` on `--grad-dark`).
 
 ### Nothing is laid over the clip, at any width
 
@@ -216,7 +233,7 @@ never goes idle. Both are handled in `scripts/`.
 | Hero copy vs the brightest pixel behind it, every second of the clip (`npm run contrast`) | worst 7.50:1, needs 4.5:1 — and identical at every frame, which is the proof nothing overlays the video |
 | Call button above the fold, 7 viewport sizes | clears at all 7 |
 | Audio | stripped (`-an`) |
-| Wrong phone number from the storefront sign in frame | cropped out on desktop; visible ~3–5 s on phones and tablets — shipped as-is by the owner's decision |
+| Wrong phone number from the storefront sign in frame | visible at every width now that the frame is uncropped — shipped as-is by the owner's decision |
 
 ---
 

@@ -58,9 +58,8 @@ Tick in order. Anything marked **owner** cannot be done from this repo.
 - **Hero video is AI-generated, not the real shop.** Used whole by the owner's
   decision — including the neon logo animation over the opening, which is
   deliberate branding and must not be trimmed. The painted sign on the building
-  in the shot reads `916-000-5277` against the real (916) 686-5277; it is
-  cropped out on desktop but legible from about 3 s to 5 s on phones and
-  tablets. Ten seconds shot at the real shop replaces it:
+  in the shot reads `916-000-5277` against the real (916) 686-5277, and the clip
+  now runs its full 16:9 uncropped, so it is in view at every width. Ten seconds shot at the real shop replaces it:
   `npm run video -- real-clip.mov`. Nothing else changes.
 - Three more real reviews to quote. Only one verified quote exists.
 - Full-resolution shop photos. The two in use are ~200px originals.

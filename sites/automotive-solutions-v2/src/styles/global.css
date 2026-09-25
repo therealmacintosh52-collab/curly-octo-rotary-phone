@@ -58,10 +58,12 @@
    that can make the copy hard to read. */
 .hero-v__media {
   position: relative; z-index: 0; width: 100%;
-  /* Sized off viewport HEIGHT, not width: a 1366x768 laptop is as wide as a
-     desktop but has 130px less to give, and the band is what decides whether
-     the call button clears the fold. */
-  height: clamp(210px, 32svh, 400px);
+  /* The clip's own 16:9, so `cover` has nothing to crop and the WHOLE frame is
+     on screen at every width. A shorter band looked better against the fold but
+     cut the top and bottom off the shot — including the logo animation, which is
+     the point of the opening. Nothing is worth cutting that. */
+  aspect-ratio: 16 / 9;
+  height: auto;
 }
 /* The poster is a real <img> so it is the LCP element and can be preloaded.
    The video fades in over it once it can actually play. */
@@ -211,14 +213,11 @@
 }
 
 @media (max-width: 940px) {
-  /* Phone band: tall enough to read the frame, short enough that the headline
-     and the call button are both above the fold. */
-  .hero-v__media { height: min(72vw, 52svh); min-height: 0; }
   /* Until a real clip exists the poster is a flat texture, so a full band is
      dead space above the headline on the most valuable screen there is.
      Collapsing it lifts the H1 and the call button. Flipping hasVideo back to
-     true in index.astro restores the full band automatically. */
-  .hero-v--noclip .hero-v__media { height: min(38vw, 26svh); }
+     true in index.astro restores the full frame automatically. */
+  .hero-v--noclip .hero-v__media { aspect-ratio: auto; height: min(38vw, 26svh); }
   .hero-v__inner { padding-top: 26px; padding-bottom: 62px; }
   .hero-v h1 { max-width: none; }
 }
