@@ -38,7 +38,7 @@ const schema = [
 >
   <VideoHero
     src="/media/hero.mp4"
-    fallbackImage="/media/03-engine.jpg"
+    fallbackImage="/media/03-engine.webp"
     fallbackAlt="An engine stripped down on the floor of Phil's Auto and Fleet Repair"
   />
 
@@ -219,7 +219,9 @@ const schema = [
   .quotes p { font-size: 0.96rem; margin-bottom: 1rem; }
   .quotes figcaption { font-size: 0.85rem; color: var(--color-muted); }
   .quotes strong { color: var(--color-text); }
-  .more { color: var(--color-brand-bright); font-weight: 700; }
+  /* --color-brand-bright is 4.2:1 on this ground and fails; the lighter
+     tint is 6.0:1. Same rule the eyebrow already follows. */
+  .more { color: #8b7dff; font-weight: 700; }
 
   .cta-block {
     padding: clamp(2rem, 5vw, 3.5rem); border-radius: 20px;

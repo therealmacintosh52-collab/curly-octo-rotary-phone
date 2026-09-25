@@ -8,7 +8,7 @@ export const ratio = (a, b) => {
   const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
   return (x + 0.05) / (y + 0.05);
 };
-if (process.argv[1].endsWith("contrast.mjs")) {
+if (process.argv[1]?.endsWith("contrast.mjs")) {
   const pairs = [
     ["--eyebrow on ink", "#8b7dff", "#07071a"],
     ["--eyebrow on black", "#8b7dff", "#05050f"],
