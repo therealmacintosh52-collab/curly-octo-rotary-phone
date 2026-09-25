@@ -589,3 +589,25 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
 /* A grid item defaults to min-width:auto, so a wide child (the comparison
    table on the home page) forces its column past the viewport on phones. */
 .split>*{min-width:0}
+
+/* Brand lockup. The badge is a round mark, so the name is set beside it — and
+   set the way the badge sets it: uppercase display type in the logo green on
+   a black band with the badge's grey ring, so the header reads as the logo
+   rather than as a caption next to it. */
+.brand-badge{height:52px;width:52px;filter:drop-shadow(0 2px 6px rgba(128,216,80,.35))}
+.brand-word{
+  display:inline-block;align-self:flex-start;
+  background:var(--ink);color:var(--accent-vivid);
+  border:1.5px solid #686868;border-radius:7px;
+  font-family:var(--font-display);font-weight:700;font-size:1.02rem;
+  letter-spacing:.09em;text-transform:uppercase;line-height:1.1;
+  padding:5px 11px 4px;margin-bottom:4px;
+}
+.brand-sub{color:var(--accent-dk);letter-spacing:.14em}
+.site-footer .brand-word{background:var(--accent-vivid);color:var(--ink);border-color:transparent}
+.site-footer .brand-sub{color:var(--accent-lt)}
+@media (max-width:940px){
+  .brand-badge{height:44px;width:44px}
+  .brand-word{font-size:.92rem;padding:4px 9px 3px;letter-spacing:.08em}
+  .brand-sub{font-size:.6rem}
+}

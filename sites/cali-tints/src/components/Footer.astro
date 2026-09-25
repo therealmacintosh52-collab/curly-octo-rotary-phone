@@ -15,7 +15,7 @@ const shopLinks: [string, string][] = [
         <a class="brand" href="/">
           <img class="brand-badge" src={S.logo} alt="" width="256" height="256" loading="lazy" />
           <span class="brand-text">
-            <span class="brand-name">{S.name}</span>
+            <span class="brand-name brand-word">{S.name}</span>
             <span class="brand-sub">Sacramento, California</span>
           </span>
         </a>
@@ -51,7 +51,7 @@ const shopLinks: [string, string][] = [
           </li>
           <li><a href={`tel:${S.phone_link}`} data-loc="footer">{S.phone_display}</a></li>
           {S.hours_rows.filter(([d]) => d === 'Monday' || d === 'Saturday' || d === 'Sunday').map(([d, h]) => (
-            <li>{d === 'Monday' ? 'Mon–Fri' : d}: {h}</li>
+            <li>{d === 'Monday' ? 'Monday – Friday' : d}: {h}</li>
           ))}
         </ul>
         <p style="margin-top:16px">

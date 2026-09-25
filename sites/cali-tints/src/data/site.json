@@ -14,8 +14,8 @@
     "lat": "38.5995",
     "lng": "-121.4014",
     "neighborhood": "Arden-Arcade",
-    "hours_human": "Monday – Friday, 10:00 AM – 6:00 PM · Saturday, 10:00 AM – 4:00 PM",
-    "hours_short": "Mon–Fri 10–6 · Sat 10–4",
+    "hours_human": "Monday – Friday, 10:00 AM – 6:00 PM · Saturday, 10:00 AM – 4:00 PM · Sunday closed",
+    "hours_short": "Monday – Friday, 10:00 AM – 6:00 PM · Saturday, 10:00 AM – 4:00 PM",
     "hours_rows": [
       [
         "Monday",

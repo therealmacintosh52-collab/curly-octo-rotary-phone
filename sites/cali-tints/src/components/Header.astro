@@ -23,8 +23,9 @@ const { active, over = false } = Astro.props;
     <a class="brand" href="/">
       <img class="brand-badge" src={S.logo} alt="" width="256" height="256" />
       <span class="brand-text">
-        <span class="brand-name">{S.name}</span>
-        <span class="brand-sub">Sacramento, California</span>
+        <!-- The wordmark echoes the badge: green type on a black band. -->
+        <span class="brand-name brand-word">{S.name}</span>
+        <span class="brand-sub">Tint · Wraps · PPF · Ceramic</span>
       </span>
     </a>
 

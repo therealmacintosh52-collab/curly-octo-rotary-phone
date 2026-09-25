@@ -71,7 +71,7 @@ launch; `seo/launch-checklist.md` has the sequence.
 |---|---|---|---|
 | 1 | **Shop email** | Not published anywhere | **Blocking.** Set `site.email`, rebuild, click the FormSubmit confirmation. Until then the form tells visitors to call rather than pretending to send. |
 | 2 | Name, address, phone | Google card pasted by the owner, 2026-09-25 | Settle `# F` (Google) vs `Suite F` (this site) one way, everywhere |
-| 3 | **Hours: Mon–Fri 10–6, Sat 10–4, closed Sun** | Owner's choice; matches Google "closes 6 PM" and two directories. **Yelp says Mon–Fri 10–7, Sat 11–5.** | Confirm; fix whichever listing is wrong |
+| 3 | **Hours: Monday – Friday 10:00 AM – 6:00 PM, Saturday 10:00 AM – 4:00 PM, closed Sunday** | Owner's choice; matches Google "closes 6 PM" and two directories. **Yelp says Monday – Friday 10:00 AM – 7:00 PM, Saturday 11:00 AM – 5:00 PM.** | Confirm; fix whichever listing is wrong |
 | 4 | 4.9 from 48 Google reviews | The Google card, read 2026-09-25 | Re-read before launch; update `rating` / `review_count` / `rating_checked` |
 | 5 | Three quoted reviews | The three snippets on the Google card, verbatim, reviewer names as shown | Add a fourth; the blueprint asks for four |
 | 6 | Twelve services | Owner's 11-category list + the Google listing's service list | Confirm "inspections & mechanical" is work the shop wants to advertise |
@@ -121,8 +121,13 @@ disc with a grey ring `#686868`. That green is too light to carry text on white
 Everything is a custom property in `src/styles/legacy.css` `:root`; the OG and
 poster scripts carry their own copies of the gradient and were updated to match.
 
-The logo is round, so the header and footer use the badge beside the name in
-text (`.brand-badge` + `.brand-text`), the same lockup the v1 Python site used.
+The logo is round, so the header and footer use the badge beside the name
+(`.brand-badge` + `.brand-text`). The name is set the way the badge sets it —
+uppercase display type in the logo green on a black band with the grey ring
+(`.brand-word`) — so the header reads as the logo rather than as a caption next
+to it; the footer inverts it to black on green. Hours and day names are never
+abbreviated anywhere on the site (owner's instruction): `hours_short` in
+`site.json` is the full string and every component reads it.
 `logo.png` is 256 px for the header; `logo-800.png` is the master and feeds the
 manifest and the JSON-LD `logo`. Both were cut from the supplied JPG with the
 white ground made transparent. An SVG from the owner would be better.

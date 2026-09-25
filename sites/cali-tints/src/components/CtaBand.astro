@@ -5,7 +5,7 @@ const S = data.site;
 export interface Props { heading?: string; text?: string }
 const {
   heading = 'Ready for a price on your vehicle?',
-  text = `Call the shop with the year, make and model and you will get a number on the phone. Open Monday through Saturday, ${S.hours_short.replace('Mon–Fri ', 'weekdays ').replace(' · Sat ', ', Saturday ')}.`,
+  text = `Call the shop with the year, make and model and you will get a number on the phone. Open ${S.hours_short}.`,
 } = Astro.props;
 ---
 <section>
