@@ -1620,11 +1620,11 @@ HOME_FAQS = [
 
 def build_home():
     body = f"""{door()}
-<section class="hero hero--video">
+<section class="hero hero--video" style="background-image:url(/assets/img/hero-poster.jpg)">
   {hero_video()}
   <div class="wrap">
     <div class="hero-grid">
-      <div>
+      <div class="hero-copy">
         <span class="eyebrow">Locally owned · Lodi, California</span>
         <h1>Honest auto, diesel &amp; fleet repair in <em>Lodi, California</em></h1>
         {rating_line()}

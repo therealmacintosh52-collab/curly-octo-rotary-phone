@@ -207,10 +207,14 @@ section{padding:var(--section) 0;position:relative}
 .rating-text strong{color:#fff}
 
 /* ---------------- Hero video ---------------- */
-.hero--video{isolation:isolate}
+.hero--video{isolation:isolate;background-color:var(--navy-900);background-size:cover;background-position:50% 62%;background-repeat:no-repeat}
 .hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 62%;z-index:-3;pointer-events:none}
-.hero--video::before{content:"";position:absolute;inset:0;z-index:-2;background:var(--navy-900);opacity:.52}
-.hero--video .hero-grid{min-height:min(78vh,760px)}
+.hero--video::before{content:"";position:absolute;inset:0;z-index:-2;background:var(--navy-900);opacity:.28}
+.hero--video::after{display:none}
+.hero--video .hero-grid{min-height:min(80vh,780px)}
+/* The copy sits on its own panel so the clip can stay bright behind it. */
+.hero--video .hero-copy{background:rgba(20,27,58,.86);border-left:6px solid var(--red-700);padding:clamp(22px,3vw,40px)}
+.hero--video .hero-copy .rating{background:rgba(0,0,0,.25)}
 .hero--video .quote-card{box-shadow:6px 6px 0 var(--red-700)}
 
 /* ---------------- Quote card: Motif B, the sign panel ---------------- */
@@ -467,6 +471,10 @@ a.tag:hover{border-color:var(--navy-700);color:var(--navy-700)}
   .callbar{display:grid}
   .topbar .wrap{gap:2px 16px}
   .statband{margin-top:calc(-1 * clamp(30px,4vw,50px))}
+  /* Phones: the clip gets a band of its own above the copy panel. */
+  .hero--video .hero-grid{padding-top:min(42vh,360px);gap:28px}
+  .hero--video .hero-copy{margin:0 -22px;border-left:0;border-top:6px solid var(--red-700);padding:26px 22px}
+  .hero--video .hero-video{object-position:50% 70%}
 }
 @keyframes door-roll{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 @media (max-width:560px){
