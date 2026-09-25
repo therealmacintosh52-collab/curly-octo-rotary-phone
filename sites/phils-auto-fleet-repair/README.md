@@ -53,7 +53,7 @@ electrical & batteries · AC & heating · suspension & steering.
 - **Full-screen video of the shop** opens the homepage: a muted six-second loop of the bay fills
   the first screen, the header floats over it, and the headline and Call / Get-a-quote buttons
   fade in once the video is playing. If a phone refuses autoplay (Low Power Mode, data saver),
-  a still frame and the headline show instead. See "The homepage video" below.
+  a still frame, the headline and a tap-to-play cue show instead. See "The homepage video" below.
 - **Quote form directly under the video** on the homepage, and again on every service page
   pre-filled with that service.
 - **Objection handling built into the copy**: diagnosis before parts, no upsells, you approve
@@ -162,8 +162,9 @@ names and re-run the build; nothing else needs editing.
 - **Framing:** `object-fit: cover` crops to fill the screen, so keep the subject near the centre
   of the frame. `object-position` in `.video-hero__media` (`site.css`) nudges the crop.
 - **Behaviour** is in `assets/js/site.js` under "Full-screen video hero": the headline is
-  revealed on the `playing` event, autoplay refusal falls back to the poster frame, the first tap
-  retries playback, and visitors with reduced motion enabled see the still frame only.
+  revealed on the `playing` event, autoplay refusal falls back to the poster frame with a
+  tap-to-play cue, and the first tap retries playback. The loop plays regardless of the visitor's
+  reduced-motion setting (the shop's choice; the fade-in is skipped for those visitors).
 
 ## Sharing a preview before launch
 

@@ -26,13 +26,12 @@
      Reveals the headline only once the video is really playing. If the
      browser refuses autoplay (iOS Low Power Mode, data saver) or nothing
      plays within 3 s, it shows the poster frame and the headline instead,
-     and the first tap anywhere retries playback. Reduced-motion users get
-     the poster straight away and the video never starts.               */
+     and the first tap anywhere retries playback. The shop chose to play
+     the loop regardless of the OS reduced-motion setting.              */
   var hero = document.querySelector("[data-video-hero]");
   var video = hero && hero.querySelector("video");
   var overlayHeader = document.querySelector(".site-header--overlay");
   if (hero && video) {
-    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var revealed = false;
     var guard = null;
 
@@ -79,26 +78,17 @@
       stopRetrying();
     });
 
-    if (reduceMotion) {
-      /* Respect the setting: no motion until asked for. Show the still
-         frame with the tap-to-play cue; a tap on the hero starts the loop. */
-      video.removeAttribute("autoplay");
-      video.pause();
-      fallback();
-      waitForGesture(hero);
-    } else {
-      /* The autoplay policy checks the property, not just the attribute. */
-      video.muted = true;
-      video.defaultMuted = true;
-      guard = setTimeout(fallback, 3000);
-      var attempt = video.play();
-      if (attempt && typeof attempt.catch === "function") {
-        attempt.catch(function () {
-          if (video.error) return;
-          fallback();
-          waitForGesture(document);
-        });
-      }
+    /* The autoplay policy checks the property, not just the attribute. */
+    video.muted = true;
+    video.defaultMuted = true;
+    guard = setTimeout(fallback, 3000);
+    var attempt = video.play();
+    if (attempt && typeof attempt.catch === "function") {
+      attempt.catch(function () {
+        if (video.error) return;
+        fallback();
+        waitForGesture(document);
+      });
     }
 
     document.addEventListener("visibilitychange", function () {
