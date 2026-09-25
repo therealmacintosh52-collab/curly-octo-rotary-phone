@@ -46,8 +46,16 @@
        (pointerdown does not on touch screens), so retry on those until
        playback actually starts. */
     var gestures = ["click", "touchend", "keydown"];
+    var gestureTarget = null;
+    function waitForGesture(target) {
+      gestureTarget = target;
+      hero.classList.add("is-blocked");
+      gestures.forEach(function (ev) { target.addEventListener(ev, retryOnGesture); });
+    }
     function stopRetrying() {
-      gestures.forEach(function (ev) { document.removeEventListener(ev, retryOnGesture); });
+      if (!gestureTarget) return;
+      gestures.forEach(function (ev) { gestureTarget.removeEventListener(ev, retryOnGesture); });
+      gestureTarget = null;
     }
     function retryOnGesture() {
       var p = video.play();
@@ -72,9 +80,12 @@
     });
 
     if (reduceMotion) {
+      /* Respect the setting: no motion until asked for. Show the still
+         frame with the tap-to-play cue; a tap on the hero starts the loop. */
       video.removeAttribute("autoplay");
       video.pause();
       fallback();
+      waitForGesture(hero);
     } else {
       /* The autoplay policy checks the property, not just the attribute. */
       video.muted = true;
@@ -85,8 +96,7 @@
         attempt.catch(function () {
           if (video.error) return;
           fallback();
-          hero.classList.add("is-blocked");
-          gestures.forEach(function (ev) { document.addEventListener(ev, retryOnGesture); });
+          waitForGesture(document);
         });
       }
     }
