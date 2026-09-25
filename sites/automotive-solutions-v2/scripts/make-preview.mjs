@@ -56,12 +56,10 @@ for (const file of files) {
   let body = html.split('<body>')[1].split('</body>')[0];
   body = body.replace(/<script[^>]*type="module"[^>]*><\/script>/g, '');
   body = body.replace(/<iframe class="map-frame"[\s\S]*?<\/iframe>/g, MAP_PLACEHOLDER);
-  // A 1.4 MB video cannot be inlined into a single shareable file, so the
-  // preview shows the poster frame instead and says so rather than looking broken.
-  body = body.replace(/<video class="hero-v__video"[\s\S]*?<\/video>/g, '');
-  body = body.replace(/<button class="hero-v__tap"[\s\S]*?<\/button>/g,
-    '<span class="hero-v__tap" style="display:inline-flex;pointer-events:none">' +
-    'Poster frame — the live site plays the clip here</span>');
+  // The hero video is inlined as a data URI further down, so the preview
+  // actually plays rather than looking like a still. The tap-to-play cue is
+  // dropped: the preview has no retry logic behind it.
+  body = body.replace(/<button class="hero-v__tap"[\s\S]*?<\/button>/g, '');
   // <picture> sources cannot be rewritten per-format cheaply; keep the img only.
   body = body.replace(/<source[^>]*>/g, '');
   // hand images to the router as data-src so each data URI is stored once
@@ -82,10 +80,26 @@ for (const t of templates) {
   }
 }
 
+// Both formats, negotiated at runtime exactly as the live site does. Inlining
+// only the MP4 would be untestable here (this Chromium has no H.264 decoder)
+// and inlining only the WebM would risk Safari. Base64 adds about a third; the
+// pair still lands well inside the 16 MB page budget.
+const videoSources = [
+  ['assets/video/shop.webm', 'video/webm', 'video/webm; codecs="vp9"'],
+  ['assets/video/shop.mp4', 'video/mp4', 'video/mp4; codecs="avc1.42E01E"'],
+]
+  .map(([rel, mime, canPlay]) => {
+    const f = path.join(DIST, rel);
+    if (!existsSync(f)) return null;
+    return { canPlay, uri: `data:${mime};base64,${readFileSync(f).toString('base64')}` };
+  })
+  .filter(Boolean);
+
 const router = `
 (function () {
   "use strict";
   var ASSETS = ${JSON.stringify(assets)};
+  var HERO_SOURCES = ${JSON.stringify(videoSources)};
   var PHONE = ${JSON.stringify(S.phone_display)};
   var app = document.getElementById("app"), views = {};
   Array.prototype.forEach.call(document.querySelectorAll("template[data-route]"), function (t) {
@@ -103,6 +117,24 @@ const router = `
       var k = el.getAttribute("data-src");
       if (ASSETS[k]) { el.setAttribute("src", ASSETS[k]); el.removeAttribute("data-src"); }
     });
+    var vid = app.querySelector("[data-hero-video]");
+    var pick = null;
+    for (var i = 0; i < HERO_SOURCES.length; i++) {
+      if (vid && vid.canPlayType(HERO_SOURCES[i].canPlay) !== "") { pick = HERO_SOURCES[i]; break; }
+    }
+    if (vid && pick) {
+      vid.muted = true; vid.defaultMuted = true; vid.loop = true;
+      vid.setAttribute("muted", ""); vid.setAttribute("playsinline", "");
+      vid.src = pick.uri;
+      var hero = app.querySelector("[data-hero]");
+      var go = function () {
+        var p = vid.play();
+        if (p && p.then) p.then(function () { if (hero) hero.classList.add("is-playing"); })
+                          .catch(function () {});
+      };
+      vid.addEventListener("canplay", go);
+      go();
+    }
     var t = app.querySelector(".nav-toggle"), n = app.querySelector("#primary-nav");
     if (t && n) t.addEventListener("click", function () {
       var open = n.classList.toggle("open");
@@ -161,5 +193,6 @@ const page = FRAGMENT ? core
     `</body>\n</html>\n`;
 
 writeFileSync(OUT, page);
-console.log(`${OUT} — ${(statSync(OUT).size / 1024).toFixed(0)} KB, ${templates.length} pages, ` +
-            `${Object.keys(assets).length} images inlined${FRAGMENT ? ', fragment' : ''}`);
+console.log(`${OUT} — ${(statSync(OUT).size / 1024 / 1024).toFixed(2)} MB, ${templates.length} pages, ` +
+            `${Object.keys(assets).length} images + ${videoSources.length} video format(s) inlined` +
+            `${FRAGMENT ? ', fragment' : ''}`);
