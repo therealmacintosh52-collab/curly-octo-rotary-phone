@@ -206,16 +206,23 @@ section{padding:var(--section) 0;position:relative}
 .rating-text{color:var(--on-dark);font-size:var(--step--1)}
 .rating-text strong{color:#fff}
 
-/* ---------------- Hero video ---------------- */
-.hero--video{isolation:isolate;background-color:var(--navy-900);background-size:cover;background-position:50% 62%;background-repeat:no-repeat}
-.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 62%;z-index:-3;pointer-events:none}
-.hero--video::before{content:"";position:absolute;inset:0;z-index:-2;background:var(--navy-900);opacity:.28}
-.hero--video::after{display:none}
-.hero--video .hero-grid{min-height:min(80vh,780px)}
-/* The copy sits on its own panel so the clip can stay bright behind it. */
-.hero--video .hero-copy{background:rgba(20,27,58,.86);border-left:6px solid var(--red-700);padding:clamp(22px,3vw,40px)}
-.hero--video .hero-copy .rating{background:rgba(0,0,0,.25)}
-.hero--video .quote-card{box-shadow:6px 6px 0 var(--red-700)}
+/* ---------------- Site-wide video ----------------
+   One fixed clip under everything; content floats on translucent panels. */
+body{background-color:var(--navy-900);background-size:cover;background-position:50% 60%;background-repeat:no-repeat;background-attachment:fixed}
+.site-video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 60%;z-index:-2;pointer-events:none}
+.site-shade{position:fixed;inset:0;z-index:-1;background:var(--navy-900);opacity:.5;pointer-events:none}
+main{position:relative;z-index:0}
+section{background:rgba(255,255,255,.94)}
+.bg-alt,.listed{background-color:rgba(244,240,230,.94)}
+.bg-dark{background:rgba(20,27,58,.9)}
+.page-head{background:rgba(20,27,58,.66)}
+.site-footer{background:rgba(36,38,43,.95)}
+main > section + section,main > .listed + section,main > section + .listed,main > .ticker + section{margin-top:22px}
+.hero{background:transparent;border-top:8px solid var(--red-700)}
+.hero::after{display:none}
+.hero .hero-grid{min-height:min(80vh,780px)}
+.hero .hero-copy{background:rgba(20,27,58,.86);border-left:6px solid var(--red-700);padding:clamp(22px,3vw,40px)}
+.hero .hero-copy .rating{background:rgba(0,0,0,.25)}
 
 /* ---------------- Quote card: Motif B, the sign panel ---------------- */
 .quote-card{position:relative;background:#fff;color:var(--text);border:var(--rule-heavy);padding:30px 28px 26px;box-shadow:var(--shadow-panel)}
@@ -471,11 +478,9 @@ a.tag:hover{border-color:var(--navy-700);color:var(--navy-700)}
   .callbar{display:grid}
   .topbar .wrap{gap:2px 16px}
   .statband{margin-top:calc(-1 * clamp(30px,4vw,50px))}
-  /* Phones: the clip gets a band of its own above the copy panel. */
-  .hero--video .hero-grid{padding-top:min(42vh,360px);gap:28px}
-  .hero--video .hero-copy{margin:0 -22px;border-left:0;border-top:6px solid var(--red-700);padding:26px 22px}
-  .hero--video .hero-video{height:calc(min(42vh,360px) + 8px + 40px);object-position:50% 78%}
-  .hero--video::before{bottom:auto;height:calc(min(42vh,360px) + 48px);opacity:.18}
+  /* Phones: the clip shows in a band above the copy panel. */
+  .hero .hero-grid{padding-top:min(40vh,340px);gap:28px}
+  .hero .hero-copy{margin:0 -22px;border-left:0;border-top:6px solid var(--red-700);padding:26px 22px}
 }
 @keyframes door-roll{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 @media (max-width:560px){
@@ -577,7 +582,7 @@ a.tag:hover{border-color:var(--navy-700);color:var(--navy-700)}
 .ticker-track b{color:var(--tan-500);padding:0 12px;font-weight:700}
 @media (prefers-reduced-motion:reduce){
   .door{display:none}
-  .hero-video{display:none}
+  .site-video{display:none}
   .ticker-track{width:auto;flex-wrap:wrap;white-space:normal;padding:12px 22px;justify-content:center}
 }
 

@@ -1241,14 +1241,17 @@ def door():
             '<span class="door-phone">%s</span></div></div>' % SITE["phone_display"])
 
 
-def hero_video():
-    """The shop-front clip under the home hero. Muted, looped, inline on
-    phones, poster first so nothing shifts; the stylesheet hides it under
-    reduced motion and darkens it so the copy keeps its contrast."""
-    return ('<video class="hero-video" autoplay muted loop playsinline preload="metadata" '
+def site_video():
+    """The shop-front clip runs behind the whole site: a fixed, full-viewport
+    layer under every page with a navy shade over it, and the content on
+    translucent panels above. Muted, looped, inline on phones, poster first;
+    the stylesheet hides it under reduced motion and the poster stays as the
+    body background wherever video cannot play."""
+    return ('<video class="site-video" autoplay muted loop playsinline preload="metadata" '
             'poster="/assets/img/hero-poster.jpg" aria-hidden="true" tabindex="-1">'
             '<source src="/assets/video/shop-front.mp4" type="video/mp4">'
-            '<source src="/assets/video/shop-front.webm" type="video/webm"></video>')
+            '<source src="/assets/video/shop-front.webm" type="video/webm"></video>'
+            '<div class="site-shade" aria-hidden="true"></div>')
 
 
 def render(path, title, description, body, schemas=None, active=None, noindex=False,
@@ -1293,7 +1296,8 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
 <link rel="preload" href="/assets/fonts/BarlowCondensed-Bold-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">%(alts)s%(schema)s
 </head>
-<body>
+<body style="background-image:url(/assets/img/hero-poster.jpg)">
+%(video)s
 <a class="skip" href="#main">Skip to content</a>
 %(header)s
 <main id="main">
@@ -1309,7 +1313,7 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
        "favicon": SITE.get("favicon") or "/assets/img/favicon.svg",
        "favicon_type": "image/svg+xml" if (SITE.get("favicon") or ".svg").endswith(".svg") else "image/png",
        "lat": SITE["lat"], "lng": SITE["lng"], "schema": schema_html,
-       "header": header_html(active, es=(lang == "es")), "body": body,
+       "header": header_html(active, es=(lang == "es")), "body": body, "video": site_video(),
        "footer": footer_html(es=(lang == "es")),
        "lang": lang, "alts": alt_links}
 
@@ -1620,8 +1624,7 @@ HOME_FAQS = [
 
 def build_home():
     body = f"""{door()}
-<section class="hero hero--video" style="background-image:url(/assets/img/hero-poster.jpg)">
-  {hero_video()}
+<section class="hero">
   <div class="wrap">
     <div class="hero-grid">
       <div class="hero-copy">

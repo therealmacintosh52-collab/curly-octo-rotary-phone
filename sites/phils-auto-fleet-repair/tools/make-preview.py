@@ -70,7 +70,7 @@ def main():
     for path, filename in routes().items():
         with open(filename, encoding="utf-8") as fh:
             html = fh.read()
-        body = html.split("<body>", 1)[1].rsplit("</body>", 1)[0]
+        body = re.split(r"<body[^>]*>", html, 1)[1].rsplit("</body>", 1)[0]
         body = body.replace('<script src="/assets/js/site.js" defer></script>', "")
         body = body.replace("/assets/img/logo.png", logo)
         body = body.replace("/assets/img/shop-scene.svg", scene)
@@ -94,7 +94,7 @@ def main():
 %(css)s
 </style>
 </head>
-<body>
+<body style="background-image:url(%(poster)s)">
 <div id="app"></div>
 %(templates)s
 <script>
@@ -167,7 +167,7 @@ def main():
 </script>
 </body>
 </html>
-""" % {"title": title, "css": css, "templates": "\n".join(templates),
+""" % {"title": title, "poster": poster, "css": css, "templates": "\n".join(templates),
        "js": __import__("json").dumps(js)}
 
     with open(OUT, "w", encoding="utf-8") as fh:

@@ -36,8 +36,8 @@
     else { door.addEventListener("animationend", function () { if (door.parentNode) door.parentNode.removeChild(door); }); }
   }
 
-  /* The hero clip only plays where motion is welcome and data is not scarce. */
-  var vid = document.querySelector(".hero-video");
+  /* The background clip only plays where motion is welcome and data is not scarce. */
+  var vid = document.querySelector(".site-video");
   if (vid) {
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var saveData = navigator.connection && navigator.connection.saveData;
