@@ -42,16 +42,33 @@
       if (video.dataset.poster) video.setAttribute("poster", video.dataset.poster);
       hero.classList.add("is-fallback");
     }
-    function retryOnTap() {
-      document.removeEventListener("pointerdown", retryOnTap);
-      video.play().catch(function () {});
+    /* click, touchend and keydown count as user activation everywhere
+       (pointerdown does not on touch screens), so retry on those until
+       playback actually starts. */
+    var gestures = ["click", "touchend", "keydown"];
+    function stopRetrying() {
+      gestures.forEach(function (ev) { document.removeEventListener(ev, retryOnGesture); });
     }
+    function retryOnGesture() {
+      var p = video.play();
+      if (p && typeof p.then === "function") { p.then(stopRetrying).catch(function () {}); }
+    }
+    function mediaFailed() {
+      /* the file itself could not be loaded or decoded: nothing to retry */
+      fallback();
+      hero.classList.remove("is-blocked");
+      stopRetrying();
+    }
+    video.addEventListener("error", mediaFailed);
+    var lastSource = video.querySelector("source:last-of-type");
+    if (lastSource) lastSource.addEventListener("error", mediaFailed);
 
     video.addEventListener("playing", function () {
       revealed = true;
       if (guard) { clearTimeout(guard); guard = null; }
       hero.classList.remove("is-blocked");
       hero.classList.add("is-playing");
+      stopRetrying();
     });
 
     if (reduceMotion) {
@@ -66,9 +83,10 @@
       var attempt = video.play();
       if (attempt && typeof attempt.catch === "function") {
         attempt.catch(function () {
+          if (video.error) return;
           fallback();
           hero.classList.add("is-blocked");
-          document.addEventListener("pointerdown", retryOnTap);
+          gestures.forEach(function (ev) { document.addEventListener(ev, retryOnGesture); });
         });
       }
     }
