@@ -93,7 +93,11 @@ jobs:
           echo "Built $ct Cali Tints pages"
           test "$ct" -ge 25
 
+      # enablement: create the Pages site for this repo if it does not exist yet,
+      # so the deploy job does not need a one-time click in Settings → Pages.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: sites/phils-auto-fleet-repair/public
