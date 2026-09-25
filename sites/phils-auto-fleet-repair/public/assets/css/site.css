@@ -545,8 +545,28 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   .video-hero::after{content:"";position:absolute;left:0;right:0;top:calc(50vh - 120px);top:calc(50svh - 120px);height:120px;pointer-events:none;
     background:linear-gradient(rgba(10,10,31,0),var(--ink))}
   /* actions come straight after the video band; the headline follows */
-  .video-hero__content{position:relative;display:flex;flex-direction:column;padding-top:4px;padding-bottom:calc(74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 20px)}
+  .video-hero{min-height:0}
+  .video-hero__content{position:relative;display:flex;flex-direction:column;padding-top:4px;padding-bottom:8px}
   .video-hero__actions{order:-1;margin:0 0 22px}
+  /* the quote form itself follows straight after, so no button for it here */
+  .video-hero__actions a[href="#quote-form"]{display:none}
+  /* Phones: the quote form comes right after the hero, inside the same
+     dark panel, before the stat band. main becomes a column so the order
+     can change without touching the markup. */
+  main{display:flex;flex-direction:column}
+  main>*{order:3}
+  main>.video-hero{order:0}
+  main>.quote-section{order:1}
+  main>.statband{order:2}
+  .quote-section{background:var(--ink);color:#e7eef5;padding-top:0;padding-bottom:calc(74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 28px)}
+  .quote-section .split>div:last-child{order:-1}
+  .quote-section h2{color:#fff}
+  .quote-section p{color:#b9c9d8}
+  .quote-section .checklist li{color:#d6e2ec}
+  .quote-section .eyebrow{color:var(--accent-lt)}
+  .quote-section .rating{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16)}
+  .quote-section .rating-text{color:#c4d3e0}
+  .quote-section .rating-text strong{color:#fff}
   .video-hero h1{font-size:clamp(1.8rem,1rem + 4.5vw,2.4rem);text-shadow:none}
   .video-hero__actions{gap:10px}
   .video-hero__actions .btn{min-width:0}

@@ -119,10 +119,13 @@
   /* Transparent header over the hero; normal white header once scrolled past it. */
   if (overlayHeader) {
     if (hero && "IntersectionObserver" in window) {
+      /* Watch the video itself rather than the section: on phones the
+         video is a band at the top and the header must go white as soon
+         as that band is gone, not when the whole section is. */
       var watcher = new IntersectionObserver(function (entries) {
         overlayHeader.classList.toggle("is-scrolled", !entries[0].isIntersecting);
       }, { rootMargin: "-" + overlayHeader.offsetHeight + "px 0px 0px 0px", threshold: 0 });
-      watcher.observe(hero);
+      watcher.observe(video || hero);
     } else {
       overlayHeader.classList.add("is-scrolled");
     }
