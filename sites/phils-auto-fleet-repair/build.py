@@ -1314,11 +1314,14 @@ def build_home():
   </video>
   <div class="wrap video-hero__content">
     <span class="video-hero__hint" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Tap anywhere to play the video</span>
-    <span class="eyebrow">Locally owned · Lodi, California</span>
-    <h1>Honest auto, diesel &amp; fleet repair in <em>Lodi, California</em></h1>
-    <div class="btn-row">
+    <div class="video-hero__headline">
+      <span class="eyebrow">Locally owned · Lodi, California</span>
+      <h1>Honest auto, diesel &amp; fleet repair in <em>Lodi, California</em></h1>
+    </div>
+    <div class="btn-row video-hero__actions">
       {tel_btn("btn btn-accent", "hero")}
-      <a class="btn btn-ghost" href="#quote-form">Get a free quote</a>
+      <a class="btn btn-ghost" href="#quote-form">{icon("chat")}<span>Get a free quote</span></a>
+      <a class="btn btn-ghost" href="{MAPS_DIRECTIONS}" rel="noopener">{icon("map")}<span>Get directions</span></a>
     </div>
   </div>
 </section>
