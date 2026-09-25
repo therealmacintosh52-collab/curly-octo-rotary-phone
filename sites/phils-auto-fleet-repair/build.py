@@ -1450,7 +1450,9 @@ def build_home():
         </div>
       </div>
       <div>
-        {photo_slot("Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.", "In the bay")}
+        {photo_slot("Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.", "In the bay",
+                    src="/assets/img/shop-lift.jpg", size=(1200, 750),
+                    alt="A pickup truck raised on a two-post lift inside Phil's service bay, wheels off, with more vehicles on lifts behind it")}
       </div>
     </div>
   </div>

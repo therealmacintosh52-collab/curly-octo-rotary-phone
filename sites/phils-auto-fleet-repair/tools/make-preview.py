@@ -56,6 +56,7 @@ def main():
     # base64), so the offline preview opens on the same full-screen loop.
     video = data_uri("/assets/video/shop-bay.mp4", "video/mp4")
     poster = data_uri("/assets/img/shop-bay-poster.jpg", "image/jpeg")
+    lift = data_uri("/assets/img/shop-lift.jpg", "image/jpeg")
 
     templates = []
     for path, filename in routes().items():
@@ -67,6 +68,7 @@ def main():
         body = body.replace("/assets/img/shop-scene.svg", scene)
         body = body.replace("/assets/video/shop-bay.mp4", video)
         body = body.replace("/assets/img/shop-bay-poster.jpg", poster)
+        body = body.replace("/assets/img/shop-lift.jpg", lift)
         body = re.sub(r'<iframe class="map-frame".*?</iframe>', MAP_PLACEHOLDER, body, flags=re.S)
         templates.append('<template data-route="%s">%s</template>' % (path, body))
 
