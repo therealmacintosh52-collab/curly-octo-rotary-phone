@@ -49,6 +49,9 @@ MAP_PLACEHOLDER = (
 
 def main():
     css = read("assets", "css", "site.css")
+    # The display font ships inside the bundle too, so headings look right offline.
+    css = css.replace("url(/assets/fonts/BarlowCondensed-Bold-latin.woff2)",
+                      "url(%s)" % data_uri("/assets/fonts/BarlowCondensed-Bold-latin.woff2", "font/woff2"))
     js = read("assets", "js", "site.js")
     logo = data_uri("/assets/img/logo.png", "image/png")
     scene = data_uri("/assets/img/shop-scene.svg", "image/svg+xml")
