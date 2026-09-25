@@ -560,8 +560,8 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   main>.statband{order:2}
   .quote-section{background:var(--ink);color:#e7eef5;padding-top:0;padding-bottom:calc(74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 28px)}
   .quote-section .split>div:last-child{order:-1}
-  .quote-section h2{color:#fff}
-  .quote-section p{color:#b9c9d8}
+  .quote-section .split>div:first-child h2{color:#fff}
+  .quote-section .split>div:first-child p{color:#b9c9d8}
   .quote-section .checklist li{color:#d6e2ec}
   .quote-section .eyebrow{color:var(--accent-lt)}
   .quote-section .rating{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16)}
