@@ -1,7 +1,10 @@
 # Keyword map — Phil's Auto and Fleet Repair
 
 One keyword family per page. Titles ≤ 60 characters, meta descriptions ≤ 155 with a CTA.
-Lengths are enforced by `npm run check:seo`, not by eye.
+Lengths are enforced by `npm run check:seo`, not by eye — it reads the
+**built** HTML and fails the build on a title over 60, a description outside
+70–155, a missing canonical, a duplicate title or description, or anything
+other than exactly one H1.
 
 ## Read this before you trust a number
 

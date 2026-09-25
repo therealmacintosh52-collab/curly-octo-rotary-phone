@@ -8,9 +8,9 @@
     "preview": "astro preview --port 4321",
     "check:seo": "node scripts/check-seo.mjs",
     "check:budget": "node scripts/check-budget.mjs",
-    "poster": "node scripts/make-poster.mjs",
-    "shots": "node scripts/screenshots.mjs",
-    "lh": "node scripts/lighthouse.mjs"
+    "lh": "node scripts/lighthouse.mjs",
+    "check:hero": "node scripts/check-hero.mjs",
+    "vitals": "node scripts/vitals.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",

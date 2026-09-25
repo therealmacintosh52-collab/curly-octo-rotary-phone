@@ -33,11 +33,12 @@ npm run preview      # serve dist/
 ## Check
 
 ```bash
+npm run check:seo    # built HTML against seo/keyword-map.md — fails the build
 npm run check:budget # JS budget, measured by reachability from the HTML
+npm run check:hero   # the hero's four paths, screenshotted
+npm run vitals       # LCP and CLS straight from PerformanceObserver
 npm run lh           # Lighthouse, mobile emulation, against the preview
-node scripts/vitals.mjs       # LCP and CLS straight from PerformanceObserver
-node scripts/check-hero.mjs   # the hero's four paths, screenshotted
-node scripts/contrast.mjs     # WCAG ratios for the palette
+node scripts/contrast.mjs  # WCAG ratios for the palette
 ```
 
 `CHROME_PATH=/path/to/chrome` makes the browser scripts use a browser the
