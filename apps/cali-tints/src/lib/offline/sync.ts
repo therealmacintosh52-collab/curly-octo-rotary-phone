@@ -94,7 +94,19 @@ async function run(): Promise<SyncResult> {
   return result;
 }
 
-/** Upload compressed photos to storage and register them on the job. Failures here do not block the job. */
+/**
+ * Save one job straight to the server, bypassing the outbox. Used only when
+ * IndexedDB is unavailable; the normal path is enqueueJob() + syncOutbox().
+ */
+export async function createJobDirect(item: OutboxItem): Promise<string> {
+  const supabase = createClient();
+  const { data: job, error } = await supabase.rpc("create_job", { p: { ...item.payload, client_id: item.client_id } });
+  if (error) throw error;
+  await uploadPhotos(item, job.id);
+  return job.id;
+}
+
+/** Upload compressed photos to storage and register them on the job. */
 async function uploadPhotos(item: OutboxItem, jobId: string) {
   if (!item.photos.length) return;
   const supabase = createClient();

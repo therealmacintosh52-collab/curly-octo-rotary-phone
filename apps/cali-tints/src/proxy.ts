@@ -32,7 +32,10 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isPublic =
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    // Fixture-driven UI previews; the page itself 404s in production.
+    (process.env.NODE_ENV !== "production" && pathname.startsWith("/dev/"));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

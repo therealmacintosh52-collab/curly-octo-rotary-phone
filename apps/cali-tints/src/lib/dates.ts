@@ -69,3 +69,13 @@ export function presetRange(preset: RangePreset, today = new Date()): { start: s
       return { start: toDateInput(startOfMonth(today)), end: toDateInput(today) };
   }
 }
+
+/** ISO timestamp `days` ago. Kept out of components so the React compiler rules stay happy. */
+export function isoDaysAgo(days: number): string {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+/** Current epoch ms (see isoDaysAgo). */
+export function nowMs(): number {
+  return Date.now();
+}
