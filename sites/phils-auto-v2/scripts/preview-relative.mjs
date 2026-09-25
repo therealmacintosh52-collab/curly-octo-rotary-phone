@@ -25,7 +25,7 @@ for (const file of walk(out)) {
   const prefix = depth === 0 ? './' : '../'.repeat(depth);
   let html = readFileSync(file, 'utf8');
   html = html
-    .replace(/((?:href|src|data-src|data-poster|srcset|action)=")\/(?!\/)/g, `$1${prefix}`)
+    .replace(/((?:href|src|data-src|data-poster|srcset|action|component-url|renderer-url)=")\/(?!\/)/g, `$1${prefix}`)
     .replace(/url\(\/(?!\/)/g, `url(${prefix}`);
   writeFileSync(file, html);
   n++;
