@@ -55,12 +55,12 @@ Tick in order. Anything marked **owner** cannot be done from this repo.
 
 ## Still outstanding (see README)
 
-- **Hero video is AI-generated, not the real shop.** The storefront sign in the
-  raw footage reads `916-000-5277` against the real (916) 686-5277, so the
-  encode now starts at 5.25 s and cuts the storefront out entirely — verified
-  not in frame at 11 viewports from 360x780 to 2560x1440, at any point in the
-  loop. What remains is the bay interior. Replacing it with real footage is an
-  upgrade rather than a fix: `npm run video -- real-clip.mov`, nothing else
-  changes.
+- **Hero video is AI-generated, not the real shop.** Used whole by the owner's
+  decision — including the neon logo animation over the opening, which is
+  deliberate branding and must not be trimmed. The painted sign on the building
+  in the shot reads `916-000-5277` against the real (916) 686-5277; it is
+  cropped out on desktop but legible from about 3 s to 5 s on phones and
+  tablets. Ten seconds shot at the real shop replaces it:
+  `npm run video -- real-clip.mov`. Nothing else changes.
 - Three more real reviews to quote. Only one verified quote exists.
 - Full-resolution shop photos. The two in use are ~200px originals.

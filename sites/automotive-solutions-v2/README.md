@@ -67,52 +67,55 @@ background each element actually renders on.
 
 ## The hero video
 
-**In and live.** `public/assets/video/shop.mp4` (1.53 MB) + `shop.webm` (1.52 MB),
-9.6 s, silent. It is a slow push through the roll-up door into the bay, ping-pong
-looped — in, then back out — so the loop has no visible cut.
+**In and live.** `public/assets/video/shop.mp4` (2.26 MB) + `shop.webm` (2.54 MB),
+the full 10.0 s, silent. **No trim.** The owner supplied it to be used whole.
 
-### The storefront is cut, and with it the wrong phone number
+The clip runs: the shop's neon logo animates in over the storefront (~0.5–2.5 s),
+then the camera pushes through the roll-up door into the bay and holds there.
 
-The encode starts at **5.25 s** of the supplied clip. Two things are removed by
-that cut, and both matter:
+### Do not trim the opening — the logo is the point
 
-1. The generation tool lays a large animated logo watermark over the first ~2.7
-   seconds.
-2. **The sign on the building reads `916-000-5277`.** The shop's real number is
-   **(916) 686-5277** — the middle three digits are wrong. The clip opens on
-   that storefront and dollies in; the number is legible until ~1.75 s past the
-   watermark and fully out of frame by 2.25 s. Starting at 5.25 s means it never
-   appears.
+An earlier encode started at 3.0 s and a later one at 5.25 s, on the reading that
+the logo over the first ~2.7 s was a generation watermark. **It is not.** It is
+the shop's own orange-and-blue logo animated into the footage deliberately, and
+cutting it threw away the most on-brand seconds in the clip. That mistake cost
+two rounds. If the clip is ever re-encoded, run `npm run video` with no `--start`
+unless the owner asks for a cut.
 
-That second point was not obvious and is worth recording. On a **desktop** the
-media band is much wider than 16:9, so `object-fit: cover` crops top and bottom
-and the sign was already out of view. On a **phone or tablet** the band is
-taller than 16:9, so it crops the sides and shows the full frame height — the
-sign was fully legible there. And because the old loop hard-cut from inside the
-shop back to the storefront, it reappeared every 7 seconds, not just on load.
-Checked with a sweep over 11 viewports from 360x780 to 2560x1440.
+`--start`/`--end`/`--speed`/`--pingpong` still exist in `scripts/encode-video.mjs`
+for genuinely raw footage. They are not used here.
 
-Other problems in the generated footage, now all outside the cut or never in it:
+### What is in the footage
 
-- The logo on that storefront sign is maroon rather than the real orange and
-  blue, and "SOLUTIONS" under it is garbled. The address line is illegible.
+It is AI-generated, not this building, and it was reviewed and shipped as-is by
+the owner's decision. Recording what is on screen so nobody rediscovers it:
+
+- **The sign on the building reads `916-000-5277`.** The shop's real number is
+  **(916) 686-5277** — the middle three digits are wrong. It is small and at a
+  distance. On a **desktop** the media band is much wider than 16:9, so
+  `object-fit: cover` crops top and bottom and the sign stays out of frame. On a
+  **phone or tablet** the band is taller than 16:9, so it crops the sides and
+  shows the full frame height — the sign is legible there from about 3 s to 5 s.
+- The logo on that small building sign is maroon rather than the real orange and
+  blue, and "SOLUTIONS" under it is garbled. The address line is illegible. This
+  is the *painted sign in the shot*, not the animated logo overlay, which is
+  correct.
 - A **"DIESEL REPAIR"** sign is on the wall. This shop does not claim diesel.
-- The building is not 9253 Elk Grove Blvd. The neighbouring "blush salon" sign
-  is real — Blush Salon & Spa does share that address. A sliver of it clips the
-  top-right corner on narrow phones.
+- The neighbouring "blush salon" sign is real — Blush Salon & Spa does share
+  that address.
 
 Everywhere on the site the phone number is correct and identical;
-`scripts/audit.mjs` enforces that.
+`scripts/audit.mjs` enforces that. The number in the video is the one place it
+is wrong, and no text on the page repeats it.
 
-**A real clip is still worth shooting**, and now purely as an upgrade rather
-than a fix — ten seconds on a phone at the real shop, then:
+**Ten seconds shot on a phone at the real shop** would replace the whole thing
+and remove every item above:
 
 ```bash
 npm run video -- ~/real-clip.mov
 ```
 
-Nothing in the code changes. Note `--start`/`--end`/`--pingpong` if the raw
-footage needs trimming; run `npm run contrast` and `npm run audit` after.
+Nothing in the code changes; run `npm run contrast` and `npm run audit` after.
 
 ### Swapping a new clip in
 
@@ -213,7 +216,7 @@ never goes idle. Both are handled in `scripts/`.
 | Hero copy vs the brightest pixel behind it, every second of the clip (`npm run contrast`) | worst 7.50:1, needs 4.5:1 — and identical at every frame, which is the proof nothing overlays the video |
 | Call button above the fold, 7 viewport sizes | clears at all 7 |
 | Audio | stripped (`-an`) |
-| Wrong phone number from the storefront sign in frame, 11 viewports 360x780 – 2560x1440 | not in frame at any of them, at any point in the loop |
+| Wrong phone number from the storefront sign in frame | cropped out on desktop; visible ~3–5 s on phones and tablets — shipped as-is by the owner's decision |
 
 ---
 
@@ -255,7 +258,7 @@ owner. `seo/launch-checklist.md` has the full sequence.
 | # | Item | Source | Action |
 |---|---|---|---|
 | 1 | **Shop email** | Not published anywhere | **Blocking.** Set `site.email`, rebuild, click the FormSubmit confirmation. Until then the form tells visitors to call rather than pretending to send. |
-| 2 | **Hero video is AI-generated, not the real shop** | The supplied clip. The wrong phone number it showed is now cut out of the encode entirely (starts at 5.25 s) | Optional upgrade, no longer a correctness problem: shoot 10 s at the real shop and re-run `npm run video`. See above. |
+| 2 | **Hero video is AI-generated, not the real shop, and its storefront sign shows a wrong phone number** | The supplied clip, used whole by the owner's decision | Shoot 10 s at the real shop and re-run `npm run video`. See above. |
 | 3 | Hours Mon–Fri 9–6 | NAPA, Yelp and the old site agree | Confirm Saturdays |
 | 4 | Since 2001 | automotivesolutionsbysingle.com | Confirm — directories loosely say "15 years" and "20 years" |
 | 5 | Owners: Mike and Valerie Single | Public listings | Confirm spelling, and that they want naming |
@@ -273,10 +276,9 @@ owner. `seo/launch-checklist.md` has the full sequence.
 ## Only the owner can do these
 
 1. Supply the email, then click the one-time FormSubmit confirmation link.
-2. Shoot a real hero clip when convenient. The wrong phone number is cut out of
-   the current encode, so this is an upgrade rather than a fix — but the footage
-   is still AI-generated and is not this building. Ten seconds on a phone
-   replaces it with one command.
+2. Shoot a real hero clip when convenient. The current one is AI-generated, is
+   not this building, and its storefront sign reads `916-000-5277` against the
+   real (916) 686-5277. Ten seconds on a phone replaces it with one command.
 3. Verify the old page addresses so the 301s are complete.
 4. Update the Google Business Profile — categories, all twelve services, photos,
    website link — and make the name/address/phone match this site exactly.
