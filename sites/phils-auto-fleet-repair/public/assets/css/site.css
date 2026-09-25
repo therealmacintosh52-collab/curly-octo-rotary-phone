@@ -196,12 +196,13 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
    The video fills the first viewport behind everything; the headline and
    buttons are in the DOM from the start (for search engines) but invisible
    until site.js sees the video playing, or falls back to the poster. */
-/* One screen tall, but never taller than 62% of the width: a 16:9 clip
-   in a box that tall shows at least ~90% of its frame, so tall or narrow
-   windows never zoom in on the middle of the shop. The crop is anchored
-   to the right so the wall plaque stays in view as the camera pushes in. */
+/* One screen tall, but never taller than 16:9 (56.25% of the width), so
+   the whole frame of the clip is always visible on a desktop: a tall or
+   narrow window shows the next section below the video rather than
+   zooming in on the middle of the shop. The crop is anchored to the
+   right so the wall plaque stays in view as the camera pushes in. */
 .video-hero{
-  padding:0;position:relative;width:100%;height:min(100vh,62vw);height:min(100svh,62vw);min-height:520px;
+  padding:0;position:relative;width:100%;height:min(100vh,56.25vw);height:min(100svh,56.25vw);min-height:520px;
   background:var(--ink);color:#fff;overflow:hidden;isolation:isolate;
   display:flex;align-items:flex-start;
 }
@@ -542,11 +543,12 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
      modest zoom, fading into a dark panel that holds the headline and
      the three actions. */
   .video-hero{display:block;height:auto;min-height:100vh;min-height:100svh}
-  /* band height tied to width so about 58% of the frame is visible: the
-     painted door and the wall plaque both fit, centred between them */
+  /* band height tied to width so about 70% of the frame is visible,
+     anchored to the right edge: the wall plaque and the painted door
+     both fit */
   .video-hero{min-height:0}
-  .video-hero__media{position:relative;inset:auto;z-index:auto;display:block;width:100%;height:min(97vw,60vh);height:min(97vw,60svh);object-position:62% 50%}
-  .video-hero::after{content:"";position:absolute;left:0;right:0;top:calc(min(97vw,60vh) - 120px);top:calc(min(97vw,60svh) - 120px);height:120px;pointer-events:none;
+  .video-hero__media{position:relative;inset:auto;z-index:auto;display:block;width:100%;height:min(80vw,60vh);height:min(80vw,60svh);object-position:100% 50%}
+  .video-hero::after{content:"";position:absolute;left:0;right:0;top:calc(min(80vw,60vh) - 120px);top:calc(min(80vw,60svh) - 120px);height:120px;pointer-events:none;
     background:linear-gradient(rgba(10,10,31,0),var(--ink))}
   /* actions come straight after the video band; the headline follows */
   .video-hero__content{position:relative;display:flex;flex-direction:column;padding-top:4px;padding-bottom:8px}
