@@ -50,8 +50,8 @@ electrical & batteries · AC & heating · suspension & steering.
 - **Call is the primary action everywhere** — top bar, sticky header, hero, every section CTA,
   footer, and a fixed mobile call bar (Call / Directions / Get a Quote) pinned to the bottom
   of every page on phones.
-- **Full-screen video of the shop** opens the homepage: a muted six-second loop of the bay fills
-  the first screen, the header floats over it, and the headline and Call / Get-a-quote buttons
+- **Full-screen video of the shop** opens the homepage: a muted ten-second loop of the bay fills
+  the first screen and stays pinned for about half a screen of scrolling, the header floats over it, and the headline and Call / Get-a-quote buttons
   fade in once the video is playing. If a phone refuses autoplay (Low Power Mode, data saver),
   a still frame, the headline and a tap-to-play cue show instead. See "The homepage video" below.
 - **Quote form directly under the video** on the homepage, and again on every service page
