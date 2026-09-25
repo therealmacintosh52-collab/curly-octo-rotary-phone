@@ -47,6 +47,7 @@
     var gestures = ["click", "touchend", "keydown"];
     var gestureTarget = null;
     function waitForGesture(target) {
+      if (gestureTarget) return;
       gestureTarget = target;
       hero.classList.add("is-blocked");
       gestures.forEach(function (ev) { target.addEventListener(ev, retryOnGesture); });
@@ -81,20 +82,37 @@
     /* The autoplay policy checks the property, not just the attribute. */
     video.muted = true;
     video.defaultMuted = true;
+    function tryPlay() {
+      if (hero.classList.contains("is-playing")) return;
+      var attempt = video.play();
+      if (attempt && typeof attempt.catch === "function") {
+        attempt.catch(function () {
+          if (video.error) return;
+          fallback();
+          waitForGesture(document);
+        });
+      }
+    }
     guard = setTimeout(fallback, 3000);
-    var attempt = video.play();
-    if (attempt && typeof attempt.catch === "function") {
-      attempt.catch(function () {
-        if (video.error) return;
-        fallback();
-        waitForGesture(document);
-      });
+    tryPlay();
+    /* Embedded viewers and background tabs sometimes hold the first attempt
+       back, so try again whenever the video or the page becomes ready. */
+    video.addEventListener("canplay", tryPlay);
+    window.addEventListener("pageshow", tryPlay);
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) tryPlay();
+      }).observe(hero);
     }
 
     document.addEventListener("visibilitychange", function () {
-      if (!hero.classList.contains("is-playing")) return;
-      if (document.hidden) { video.pause(); }
-      else { video.play().catch(function () {}); }
+      if (document.hidden) {
+        if (hero.classList.contains("is-playing")) video.pause();
+      } else if (hero.classList.contains("is-playing")) {
+        video.play().catch(function () {});
+      } else {
+        tryPlay();
+      }
     });
   }
 

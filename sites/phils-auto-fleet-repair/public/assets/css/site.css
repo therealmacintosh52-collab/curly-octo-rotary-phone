@@ -533,6 +533,9 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   .site-header--overlay .nav a[aria-current="page"]{color:var(--accent-dk)}
   /* keep the hero buttons clear of the fixed call bar and the stat band overlap */
   .video-hero__content{padding-bottom:calc(74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 18px)}
+  /* a phone shows about a quarter of the clip's width: anchor to the right
+     edge so the loop opens on the shop sign, then the push-in enters the bay */
+  .video-hero__media{object-position:100% 50%}
   .header-inner{position:relative}
   .header-cta{display:none}
   .nav-toggle{display:block;order:3}
