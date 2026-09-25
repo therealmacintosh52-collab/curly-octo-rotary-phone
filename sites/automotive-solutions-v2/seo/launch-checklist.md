@@ -55,7 +55,9 @@ Tick in order. Anything marked **owner** cannot be done from this repo.
 
 ## Still outstanding (see README)
 
-- Hero video (owner is supplying it) — then `npm run video && npm run posters`,
-  set `hasVideo={true}` in `src/pages/index.astro`.
+- **Hero video shows a wrong phone number.** The clip's storefront sign reads
+  `916-000-5277`; the real number is (916) 686-5277. It was reviewed and shipped
+  as-is by decision. Ten seconds shot at the real shop replaces it:
+  `npm run video -- real-clip.mov`. Nothing else changes.
 - Three more real reviews to quote. Only one verified quote exists.
 - Full-resolution shop photos. The two in use are ~200px originals.

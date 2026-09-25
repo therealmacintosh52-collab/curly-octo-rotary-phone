@@ -17,6 +17,7 @@ node scripts/lh.mjs    # Lighthouse mobile -> perf/lighthouse.md
 npm run og             # per-page OG images (run AFTER build)
 npm run posters        # hero poster set (jpg/webp/avif)
 npm run video -- clip.mov   # encode the hero clip to spec + recut posters
+npm run contrast       # hero copy vs the video, frame by frame
 node scripts/shots.mjs      # QA screenshots -> qa/
 node scripts/preview-relative.mjs   # -> dist-preview/ (sub-path safe)
 node scripts/indexnow.mjs --send    # push the sitemap to Bing
@@ -66,35 +67,39 @@ background each element actually renders on.
 
 ## The hero video
 
-**In and live.** `public/assets/video/shop.mp4` (1.36 MB) + `shop.webm` (1.21 MB),
-10.3 s, silent, seamless loop.
+**In and live.** `public/assets/video/shop.mp4` (2.26 MB) + `shop.webm` (2.54 MB),
+10.0 s, silent, the full supplied clip. It is a push from the forecourt through
+the roll-up door into the bay, so the loop point is a scene change rather than a
+match cut — acceptable, and unavoidable without trimming.
 
-### Only the second half of the supplied clip is used — read this before reshooting
+### The clip is the full 10 seconds, by the owner's decision
 
-The clip supplied was AI-generated, and its first ~6 seconds are a storefront
-that cannot go on the site:
+The supplied clip is AI-generated and its first ~6 seconds are a storefront
+with problems. They were raised, reviewed and the call was made to use the
+whole thing anyway. Recording what is on screen so nobody rediscovers it:
 
-- **The sign on the building reads `916-000-5277`.** The shop's number is
-  **(916) 686-5277**. A wrong phone number, rendered large on the building, on a
-  site whose entire job is getting people to call.
-- The logo on that sign is the wrong colours (maroon, not orange and blue) and
-  "SOLUTIONS" underneath it is garbled; the address line is illegible.
-- A **"DIESEL REPAIR"** sign appears on the wall. This shop does not claim diesel.
-- The generated logo watermark fades out over the first second.
-- The building is not 9253 Elk Grove Blvd.
+- **The sign on the building reads `916-000-5277`.** The shop's real number is
+  **(916) 686-5277** — the middle three digits are wrong. It sits behind the
+  headline and the hero scrim knocks it well back, but it is there.
+- The logo on that sign is maroon rather than the real orange and blue, and
+  "SOLUTIONS" under it is garbled. The address line is illegible.
+- A **"DIESEL REPAIR"** sign is on the wall. This shop does not claim diesel.
+- The building is not 9253 Elk Grove Blvd. The neighbouring "blush salon" sign
+  is real — Blush Salon & Spa does share that address.
+- A generated logo watermark fades out over the first second.
 
-So the encode starts at **6.2 s**, after all of that leaves frame. What is left
-is a slow push through the roll-up door into a bay full of cars on lifts, with
-no text, no sign and no watermark in it — which is both accurate and the better
-shot. It is slowed to 0.75× and ping-ponged (forward then reversed) so the loop
-has no visible cut, since a push-in never loops cleanly on its own.
+Everywhere else on the site the phone number is correct and identical;
+`scripts/audit.mjs` enforces that. The number in the video is the one place it
+is wrong, and no text on the page repeats it.
+
+**This stays on the confirm-before-launch list.** Ten seconds shot on a phone
+at the real shop would replace it outright, cost nothing, and remove the issue:
 
 ```bash
-npm run video -- raw.mp4 --start 6.2 --speed 0.75 --pingpong
+npm run video -- ~/real-clip.mov
 ```
 
-If a real 10 seconds gets shot at the actual shop, it will beat this. Nothing
-in the code changes — re-run the command and rebuild.
+Nothing in the code changes.
 
 ### Swapping a new clip in
 
@@ -149,7 +154,7 @@ never goes idle. Both are handled in `scripts/`.
 | Autoplay, default Chrome policy | plays, `readyState 4`, `is-playing` set |
 | Autoplay, `--autoplay-policy=document-user-activation-required` | still plays |
 | Autoplay refused (Low Power Mode simulated) | poster stays, tap cue shown, no false "playing" |
-| Hero text vs the brightest pixel behind it, sampled every 2 s of the loop | white 10.9–11.9:1, orange eyebrow 5.0–5.5:1 |
+| Hero copy vs the brightest pixel behind it, every second of the clip (`npm run contrast`) | worst 5.81:1, needs 4.5:1 |
 | Audio | stripped (`-an`) |
 
 ---
@@ -192,7 +197,7 @@ owner. `seo/launch-checklist.md` has the full sequence.
 | # | Item | Source | Action |
 |---|---|---|---|
 | 1 | **Shop email** | Not published anywhere | **Blocking.** Set `site.email`, rebuild, click the FormSubmit confirmation. Until then the form tells visitors to call rather than pretending to send. |
-| 2 | ~~Hero video~~ | **Done** — supplied clip trimmed to its usable half | Consider reshooting 10 s at the real shop; see above |
+| 2 | **Hero video shows a wrong phone number** | The supplied AI-generated clip; owner chose to ship it as-is | Reshoot 10 s at the real shop and re-run `npm run video`. See above. |
 | 3 | Hours Mon–Fri 9–6 | NAPA, Yelp and the old site agree | Confirm Saturdays |
 | 4 | Since 2001 | automotivesolutionsbysingle.com | Confirm — directories loosely say "15 years" and "20 years" |
 | 5 | Owners: Mike and Valerie Single | Public listings | Confirm spelling, and that they want naming |
@@ -210,9 +215,9 @@ owner. `seo/launch-checklist.md` has the full sequence.
 ## Only the owner can do these
 
 1. Supply the email, then click the one-time FormSubmit confirmation link.
-2. Decide on the hero clip: keep the trimmed interior shot, or shoot 10 seconds
-   at the real shop. The supplied clip's storefront half is unusable — it shows a
-   wrong phone number on the building.
+2. Reshoot the hero clip when convenient. The current one shows `916-000-5277`
+   on the building; the real number is (916) 686-5277. Ten seconds on a phone
+   replaces it with one command.
 3. Verify the old page addresses so the 301s are complete.
 4. Update the Google Business Profile — categories, all twelve services, photos,
    website link — and make the name/address/phone match this site exactly.
