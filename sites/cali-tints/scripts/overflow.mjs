@@ -2,12 +2,16 @@ import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
+// Chromium: this container's Playwright build, or the one `npx playwright install`
+// puts in ~/.cache/ms-playwright (CI), or whatever PW_CHROME points at.
+const _LOCAL_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = process.env.PW_CHROME || (existsSync(_LOCAL_CHROME) ? _LOCAL_CHROME : chromium.executablePath());
 const DIST = path.resolve('dist');
 const MIME={'.html':'text/html','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.avif':'image/avif','.woff2':'font/woff2','.webm':'video/webm','.mp4':'video/mp4'};
 const server=createServer((req,res)=>{const u=decodeURIComponent((req.url||'/').split('?')[0]);let f=path.join(DIST,u);if(u.endsWith('/'))f=path.join(f,'index.html');if(!existsSync(f)||statSync(f).isDirectory()){res.writeHead(404);res.end();return;}res.writeHead(200,{'Content-Type':MIME[path.extname(f)]||'application/octet-stream'});res.end(readFileSync(f));});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const BASE=`http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-sandbox'] });
+const browser = await chromium.launch({ executablePath: CHROME, args:['--no-sandbox'] });
 for (const p of ['/','/services/window-tinting/','/reviews/','/contact/']) {
   const pg = await browser.newPage({ viewport:{width:390,height:844}, deviceScaleFactor:2, isMobile:true, hasTouch:true });
   await pg.goto(BASE+p,{waitUntil:'load'}); await pg.waitForTimeout(400);

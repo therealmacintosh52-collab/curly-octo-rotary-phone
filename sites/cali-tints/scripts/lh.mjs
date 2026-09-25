@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import lighthouse from 'lighthouse';
 import { launch } from 'chrome-launcher';
+const _LOCAL_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
@@ -47,7 +48,7 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}`;
 
 const chrome = await launch({
-  chromePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  chromePath: process.env.PW_CHROME || (existsSync(_LOCAL_CHROME) ? _LOCAL_CHROME : undefined),
   chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
 });
 

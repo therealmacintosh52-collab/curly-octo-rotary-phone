@@ -4,13 +4,16 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+// Chromium: this container's Playwright build, or the one `npx playwright install`
+// puts in ~/.cache/ms-playwright (CI), or whatever PW_CHROME points at.
+const _LOCAL_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = process.env.PW_CHROME || (existsSync(_LOCAL_CHROME) ? _LOCAL_CHROME : chromium.executablePath());
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(ROOT, process.argv[2] || 'dist');
 const MIME={'.html':'text/html','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.avif':'image/avif','.woff2':'font/woff2','.webm':'video/webm','.mp4':'video/mp4'};
 const server=createServer((req,res)=>{const u=decodeURIComponent((req.url||'/').split('?')[0]);let f=path.join(DIST,u);if(u.endsWith('/'))f=path.join(f,'index.html');if(!existsSync(f)||statSync(f).isDirectory()){res.writeHead(404);res.end();return;}const buf=readFileSync(f);const type=MIME[path.extname(f)]||'application/octet-stream';const range=req.headers.range;if(range){const m=/bytes=(\d*)-(\d*)/.exec(range);const start=m[1]?+m[1]:0;const end=m[2]?+m[2]:buf.length-1;res.writeHead(206,{'Content-Type':type,'Content-Range':`bytes ${start}-${end}/${buf.length}`,'Accept-Ranges':'bytes','Content-Length':end-start+1});res.end(buf.subarray(start,end+1));return;}res.writeHead(200,{'Content-Type':type,'Accept-Ranges':'bytes','Content-Length':buf.length});res.end(buf);});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const BASE=`http://127.0.0.1:${server.address().port}`;
-const CHROME='/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 let fail = 0;
 for (const [label, args, expect] of [
   ['default policy', [], 'is-playing'],

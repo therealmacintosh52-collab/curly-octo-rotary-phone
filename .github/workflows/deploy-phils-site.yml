@@ -1,19 +1,30 @@
-# Builds Phil's Auto and Fleet Repair and publishes it to GitHub Pages.
+# Builds the sites in this repo and publishes them to GitHub Pages as one site:
+#
+#   /             Phil's Auto and Fleet Repair   (sites/phils-auto-fleet-repair, Python build)
+#   /cali-tints/  Cali Tints                     (sites/cali-tints, Astro build)
 #
 # One-time setup: repo Settings → Pages → Build and deployment →
-# Source: "GitHub Actions". Nothing else to configure.
+# Source: "GitHub Actions". Nothing else to configure. Until that is done the
+# `deploy` job fails in about a second with "Get Pages site failed".
 #
-# Note: GitHub Pages cannot serve the 301 redirect map in public/_redirects
+# Note: GitHub Pages cannot serve the 301 redirect maps in public/_redirects
 # or the headers in public/_headers. Use this for a staging URL to review and
-# share; for the live site on philsautofleet.com, deploy to Netlify or
-# Cloudflare Pages, which honour both files.
+# share; for the live sites deploy to Netlify or Cloudflare Pages, which honour
+# both files.
 
-name: Deploy Phil's Auto site
+name: Deploy the sites to GitHub Pages
 
 on:
   push:
-    branches: [main, claude/affectionate-brown-h3wfam, claude/phils-auto-website-redesign-ndu5oa]
-    paths: ['sites/phils-auto-fleet-repair/**', '.github/workflows/deploy-phils-site.yml']
+    branches:
+      - main
+      - claude/affectionate-brown-h3wfam
+      - claude/phils-auto-website-redesign-ndu5oa
+      - claude/new-session-d8l5j5
+    paths:
+      - 'sites/phils-auto-fleet-repair/**'
+      - 'sites/cali-tints/**'
+      - '.github/workflows/deploy-phils-site.yml'
   workflow_dispatch:
 
 permissions:
@@ -31,22 +42,56 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ---- Phil's Auto (root) -------------------------------------------
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Build the site
+      - name: Build Phil's Auto
         working-directory: sites/phils-auto-fleet-repair
         run: python3 build.py --relative
+
+      # ---- Cali Tints (/cali-tints/) ------------------------------------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: sites/cali-tints/package-lock.json
+
+      - name: Install Cali Tints dependencies
+        working-directory: sites/cali-tints
+        run: npm ci
+
+      # The OG-image script renders with Chromium. Match the playwright-core
+      # version in package-lock.json so the browser revision lines up.
+      - name: Install Chromium for the OG images
+        working-directory: sites/cali-tints
+        run: npx --yes playwright@1.63.0 install --with-deps chromium
+
+      - name: Build Cali Tints
+        working-directory: sites/cali-tints
+        run: |
+          npm run build
+          npm run og
+          node scripts/preview-relative.mjs
+          rm -rf ../phils-auto-fleet-repair/public/cali-tints
+          cp -r dist-preview ../phils-auto-fleet-repair/public/cali-tints
 
       - name: Check the output
         working-directory: sites/phils-auto-fleet-repair
         run: |
           test -f public/index.html
           test -f public/sitemap.xml
-          pages=$(find public -name index.html | wc -l)
-          echo "Built $pages pages"
+          pages=$(find public -name index.html -not -path 'public/cali-tints/*' | wc -l)
+          echo "Built $pages Phil's pages"
           test "$pages" -ge 20
+          test -f public/cali-tints/index.html
+          test -f public/cali-tints/services/window-tinting/index.html
+          test -f public/cali-tints/assets/video/shop.mp4
+          test -f public/cali-tints/assets/og/home.jpg
+          ct=$(find public/cali-tints -name index.html | wc -l)
+          echo "Built $ct Cali Tints pages"
+          test "$ct" -ge 25
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

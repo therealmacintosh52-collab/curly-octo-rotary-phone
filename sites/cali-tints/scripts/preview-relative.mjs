@@ -38,6 +38,8 @@ for (const file of walk(OUT)) {
   // href/src/action="/…"  ->  relative. Protocol-relative (//) is left alone.
   html = html.replace(/(href|src|action)="\/(?!\/)/g, `$1="${prefix}`);
   html = html.replace(/srcset="\/(?!\/)/g, `srcset="${prefix}`);
+  // url(/fonts/…) inside the inlined stylesheet (@font-face) — with or without quotes
+  html = html.replace(/url\((['"]?)\/(?!\/)/g, `url($1${prefix}`);
   // canonical/og:url must keep pointing at the real domain, so put those back
   html = html.replace(new RegExp(`(rel="canonical" href=")${prefix.replace(/\./g,'\\.')}`, 'g'),
                       '$1https://calitintsca.com/');

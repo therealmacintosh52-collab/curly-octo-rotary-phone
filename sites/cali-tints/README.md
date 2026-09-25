@@ -25,6 +25,23 @@ node scripts/indexnow.mjs --send    # push the sitemap to Bing
 Every business fact lives in `src/data/site.json`. Adding a service or a guide is
 a data change plus `npm run build && npm run og`.
 
+## Preview on GitHub Pages
+
+`.github/workflows/deploy-phils-site.yml` builds this site on every push to the
+listed branches and publishes it **under `/cali-tints/`** on the repo's Pages
+site (Phil's Auto keeps the root; a repo has one Pages site):
+
+    https://therealmacintosh52-collab.github.io/curly-octo-rotary-phone/cali-tints/
+
+It uses the relative-URL copy from `scripts/preview-relative.mjs`, so every link,
+font, poster and the video resolve from the sub-path. One-time setup by the repo
+owner: **Settings → Pages → Build and deployment → Source: GitHub Actions.** Until
+that is set the `deploy` job fails in a second with "Get Pages site failed".
+
+Pages is the shareable preview, not production: it cannot serve `_headers` or
+`_redirects`, and the canonical URLs still point at `calitintsca.com`. Production
+is Netlify (base directory `sites/cali-tints`, build `npm run build`, publish `dist`).
+
 ---
 
 ## Where things are

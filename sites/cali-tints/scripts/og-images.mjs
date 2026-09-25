@@ -15,7 +15,10 @@ import { chromium } from 'playwright-core';
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
 const OUT = path.join(DIST, 'assets/og');
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Chromium: this container's Playwright build, or the one `npx playwright install`
+// puts in ~/.cache/ms-playwright (CI), or whatever PW_CHROME points at.
+const _LOCAL_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = process.env.PW_CHROME || (existsSync(_LOCAL_CHROME) ? _LOCAL_CHROME : chromium.executablePath());
 const S = JSON.parse(readFileSync(path.join(ROOT, 'src/data/site.json'), 'utf8')).site;
 const LOGO = path.join(DIST, 'assets/img/logo.png');
 

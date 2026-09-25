@@ -22,7 +22,10 @@ const IMG = path.join(ROOT, 'public/assets/img');
 const VIDEO = path.join(ROOT, 'public/assets/video/shop.mp4');
 import { FFMPEG } from './ffmpeg-path.mjs';
 
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Chromium: this container's Playwright build, or the one `npx playwright install`
+// puts in ~/.cache/ms-playwright (CI), or whatever PW_CHROME points at.
+const _LOCAL_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = process.env.PW_CHROME || (existsSync(_LOCAL_CHROME) ? _LOCAL_CHROME : chromium.executablePath());
 const W = 1280, H = 720;
 
 mkdirSync(IMG, { recursive: true });
