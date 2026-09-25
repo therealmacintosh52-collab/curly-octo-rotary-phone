@@ -196,17 +196,18 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
    The video fills the first viewport behind everything; the headline and
    buttons are in the DOM from the start (for search engines) but invisible
    until site.js sees the video playing, or falls back to the poster. */
-/* One screen tall: any taller and the 16:9 clip has to be blown up to
-   fill it, cropping most of its width. The headline and the three
-   actions sit high in the screen, just under the header. */
+/* One screen tall, but never taller than 62% of the width: a 16:9 clip
+   in a box that tall shows at least ~90% of its frame, so tall or narrow
+   windows never zoom in on the middle of the shop. The crop is anchored
+   to the right so the wall plaque stays in view as the camera pushes in. */
 .video-hero{
-  padding:0;position:relative;width:100%;height:100vh;height:100svh;min-height:520px;
+  padding:0;position:relative;width:100%;height:min(100vh,62vw);height:min(100svh,62vw);min-height:520px;
   background:var(--ink);color:#fff;overflow:hidden;isolation:isolate;
   display:flex;align-items:flex-start;
 }
 .video-hero__media{
   position:absolute;inset:0;width:100%;height:100%;z-index:-1;
-  object-fit:cover;object-position:50% 50%;background:var(--ink);
+  object-fit:cover;object-position:100% 50%;background:var(--ink);
 }
 .video-hero__content{width:100%;padding-top:calc(72px + 10vh);padding-top:calc(72px + 10svh)}
 /* The actions are visible from the first paint; only the headline waits
@@ -541,11 +542,13 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
      modest zoom, fading into a dark panel that holds the headline and
      the three actions. */
   .video-hero{display:block;height:auto;min-height:100vh;min-height:100svh}
-  .video-hero__media{position:relative;inset:auto;z-index:auto;display:block;width:100%;height:50vh;height:50svh;object-position:50% 50%}
-  .video-hero::after{content:"";position:absolute;left:0;right:0;top:calc(50vh - 120px);top:calc(50svh - 120px);height:120px;pointer-events:none;
+  /* band height tied to width so about 58% of the frame is visible: the
+     painted door and the wall plaque both fit, centred between them */
+  .video-hero{min-height:0}
+  .video-hero__media{position:relative;inset:auto;z-index:auto;display:block;width:100%;height:min(97vw,60vh);height:min(97vw,60svh);object-position:62% 50%}
+  .video-hero::after{content:"";position:absolute;left:0;right:0;top:calc(min(97vw,60vh) - 120px);top:calc(min(97vw,60svh) - 120px);height:120px;pointer-events:none;
     background:linear-gradient(rgba(10,10,31,0),var(--ink))}
   /* actions come straight after the video band; the headline follows */
-  .video-hero{min-height:0}
   .video-hero__content{position:relative;display:flex;flex-direction:column;padding-top:4px;padding-bottom:8px}
   .video-hero__actions{order:-1;margin:0 0 22px}
   /* the quote form itself follows straight after, so no button for it here */
