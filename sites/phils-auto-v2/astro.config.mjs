@@ -10,7 +10,7 @@ export default defineConfig({
   site: 'https://philsautofleet.com',
   output: 'static',
   trailingSlash: 'always',
-  build: { format: 'directory', inlineStylesheets: 'auto' },
+  build: { format: 'directory', inlineStylesheets: 'auto', assets: 'static' },
   integrations: [
     react(),
     sitemap({
