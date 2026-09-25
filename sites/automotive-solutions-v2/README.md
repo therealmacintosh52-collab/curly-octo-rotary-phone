@@ -128,6 +128,28 @@ the attribute alone and refuse the autoplay. Play is retried on `canplay`,
 refused — iPhone Low Power Mode is the usual reason — the poster stays and a
 "Tap to play" pill appears. The video pauses when scrolled off-screen.
 
+### The copy sits beside the clip, not on top of it
+
+On desktop the hero is a two-column grid: copy on a solid panel at the left,
+video filling the right column with **no scrim over the picture at all**.
+
+That is a compositional answer to a problem three rounds of gradient tuning
+could not solve. The copy block occupies the middle half of the frame, so any
+overlay dark enough to make it readable also dims the shot — a full-height band
+needed ~95% opacity across 60% of the width, and an ellipse centred on the copy
+is still a vignette. Moving the copy off the picture removes the constraint
+entirely. What is left is a thin band under the nav and a soft feather where the
+video meets the panel, neither of which touches the body of the frame.
+
+On phones the copy was already below the clip, so the same rule applies there:
+the band holds only for the top ~20% the header overlays, and the rest plays
+clean.
+
+One trap in that layout: `.hero-v` is a `<section>`, and the global `section`
+rule puts ~94px of vertical padding on it. Harmless while the media was
+absolutely positioned; with a grid it squeezed the row and letterboxed the clip
+inside its own column. `padding: 0` on the hero.
+
 Two formats are shipped and negotiated at runtime with `canPlayType`: WebM/VP9
 first (smaller, taken by Chrome, Firefox, Edge and Android), H.264 MP4 second
 for Safari and iOS. If neither decodes, the poster simply stays.
@@ -160,7 +182,7 @@ never goes idle. Both are handled in `scripts/`.
 | Autoplay, default Chrome policy | plays, `readyState 4`, `is-playing` set |
 | Autoplay, `--autoplay-policy=document-user-activation-required` | still plays |
 | Autoplay refused (Low Power Mode simulated) | poster stays, tap cue shown, no false "playing" |
-| Hero copy vs the brightest pixel behind it, every second of the clip (`npm run contrast`) | worst 5.81:1, needs 4.5:1 |
+| Hero copy vs the brightest pixel behind it, every second of the clip (`npm run contrast`) | worst 7.74:1, needs 4.5:1 |
 | Audio | stripped (`-an`) |
 
 ---

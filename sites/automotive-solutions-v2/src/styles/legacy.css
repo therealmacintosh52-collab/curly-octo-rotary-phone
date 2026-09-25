@@ -97,6 +97,8 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
   color:var(--accent-dk);margin-bottom:1em;
 }
 .eyebrow::before{content:"";width:30px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--accent-vivid),var(--accent-dk))}
+/* Flat dark panels can carry the orange; the video hero overrides it to white. */
+.bg-dark .eyebrow,.page-head .eyebrow{color:var(--accent-lt)}
 .bg-dark .eyebrow,.hero .eyebrow,.page-head .eyebrow{color:var(--accent-lt)}
 .lede{font-size:1.14rem;color:var(--slate)}
 .center{text-align:center}

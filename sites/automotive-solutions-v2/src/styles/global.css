@@ -44,6 +44,11 @@
 /* ------------------------------------------------------------- video hero */
 .hero-v {
   position: relative;
+  /* .hero-v is a <section>, and the global section rule adds ~94px of vertical
+     padding at desktop width. Harmless while the media was absolutely
+     positioned; with the grid layout it squeezed the row and letterboxed the
+     clip inside its own column. */
+  padding: 0;
   /* Desktop shows the whole 16:9 frame rather than cropping it. */
   height: min(100svh, 56.25vw);
   min-height: 560px;
@@ -65,19 +70,16 @@
 .hero-v__video { opacity: 0; transition: opacity .6s ease; }
 .hero-v.is-playing .hero-v__video { opacity: 1; }
 
-/* Legibility scrim.
-   Its only job is keeping the copy readable where the copy actually sits: the
-   left column on desktop. A flat wash across the whole frame just dims the
-   clip for nothing, so the horizontal ramp carries almost all of the weight
-   and is gone by the right-hand third. The vertical ramp is light — enough to
-   hold the nav at the top and blend into the dark section at the bottom.
-   `npm run contrast` walks the clip and fails below 4.5:1. */
+/* No scrim over the picture.
+   Three rounds of gradient tuning all ran into the same wall: the copy block
+   occupies the middle half of the frame, so anything that makes it readable
+   also dims the shot. The fix is compositional, not a gradient — the copy gets
+   its own solid ground beside the video instead of sitting on top of it. What
+   is left here is a thin band under the nav and a soft feather where the video
+   meets the copy panel, neither of which touches the body of the frame. */
 .hero-v__scrim {
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background:
-    linear-gradient(to bottom, rgba(4,7,26,.62) 0%, rgba(4,7,26,.26) 22%, rgba(4,7,26,.22) 68%, rgba(4,7,26,.82) 100%),
-    linear-gradient(to right, rgba(4,7,26,.965) 0%, rgba(4,7,26,.955) 46%, rgba(4,7,26,.92) 62%,
-                              rgba(4,7,26,.32) 78%, rgba(4,7,26,0) 90%);
+  background: linear-gradient(to bottom, rgba(4,7,26,.62) 0%, rgba(4,7,26,.12) 11%, rgba(4,7,26,0) 22%);
 }
 .hero-v__inner {
   position: relative; z-index: 2;
@@ -86,7 +88,53 @@
   padding-bottom: clamp(38px, 5vw, 76px);
   color: #fff;
 }
-.hero-v h1 { color: #fff; max-width: 17ch; margin-bottom: .28em; text-wrap: balance; }
+
+/* ---- desktop: copy beside the clip, not on it ---- */
+@media (min-width: 941px) {
+  .hero-v {
+    display: grid;
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+    /* an explicit 1fr row: an auto row sizes to the copy and leaves the clip
+       letterboxed inside the hero instead of filling its column */
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+    align-content: stretch;
+  }
+  .hero-v__media { position: relative; inset: auto; grid-area: 1 / 2; height: 100%; }
+  .hero-v__inner {
+    grid-area: 1 / 1;
+    justify-content: center;
+    /* line the copy up with the page gutter, not with the grid cell */
+    /* clears the top bar + nav, which overlay the hero rather than sit above it */
+    padding: clamp(128px, 11vw, 158px) clamp(30px, 3vw, 54px) clamp(46px, 5vw, 80px)
+             max(22px, calc((100vw - var(--wrap)) / 2 + 22px));
+  }
+  .hero-v__inner .wrap { max-width: none; padding: 0; }
+  .hero-v__scrim {
+    /* only over the clip: a band under the nav, and a feather into the panel */
+    grid-area: 1 / 2; position: relative; inset: auto;
+    background:
+      /* the nav row sits at 5–14% of the hero and the clip is bright behind it,
+         so the band has to hold that far down; it is a thin strip and leaves
+         the body of the frame untouched */
+      linear-gradient(to bottom, rgba(4,7,26,.88) 0%, rgba(4,7,26,.82) 9%,
+                                 rgba(4,7,26,.34) 17%, rgba(4,7,26,0) 27%),
+      linear-gradient(to right, rgba(6,10,46,1) 0%, rgba(6,10,46,.55) 5%, rgba(6,10,46,0) 13%);
+  }
+  .hero-v h1 { max-width: 14ch; font-size: clamp(2.1rem, 1rem + 2.7vw, 3.4rem); }
+  .hero-v__promise { max-width: 40ch; font-size: 1.06rem; }
+  /* the column is finite: keep the three CTAs on one row and the meta on one
+     line, or the last row slides under the stat band that overlaps the hero */
+  .hero-v__ctas { flex-wrap: nowrap; gap: 11px; }
+  .hero-v__ctas .btn { padding: 14px 20px; font-size: .96rem; white-space: nowrap; }
+  .hero-v__meta { gap: 8px 20px; font-size: .88rem; }
+}
+.hero-v h1 { color: #fff; max-width: 16ch; margin-bottom: .28em; text-wrap: balance; }
+/* White, not the orange accent: small tinted text over a moving photograph is
+   what drives the scrim dark. The orange stays on the rule and the H1 accent,
+   which are large enough to carry it. */
+.hero-v .eyebrow { color: #fff; }
+.hero-v .rating-text { color: #fff; }
 .hero-v h1 em {
   font-style: normal;
   background: linear-gradient(100deg, #ffbe8f, #ff8a44);
@@ -95,13 +143,13 @@
 .hero-v__promise {
   font-family: var(--font-display);
   font-size: clamp(1rem, .9rem + .5vw, 1.24rem);
-  font-weight: 500; color: #ffd9bd; margin: 0 0 1.1em;
+  font-weight: 500; color: #fff; margin: 0 0 1.1em;
   letter-spacing: -.01em; max-width: 44ch;
 }
 .hero-v__ctas { display: flex; flex-wrap: wrap; gap: 13px; margin-bottom: 22px; }
 .hero-v__meta {
   display: flex; flex-wrap: wrap; gap: 10px 26px;
-  font-size: .93rem; color: #d3daf1;
+  font-size: .93rem; color: #fff;
 }
 .hero-v__meta .icon { color: var(--accent-lt); vertical-align: -3px; margin-right: 6px; }
 
@@ -155,9 +203,11 @@
      short fade into the section below are kept; the rest of the frame plays
      clean. */
   .hero-v__scrim {
+    /* the header overlays the top ~20% of the band, so hold the tint that far
+       and no further; the rest of the frame plays clean */
     background: linear-gradient(to bottom,
-      rgba(4,7,26,.80) 0%, rgba(4,7,26,.30) 14%,
-      rgba(4,7,26,0) 34%, rgba(4,7,26,0) 82%, rgba(4,7,26,.55) 100%);
+      rgba(4,7,26,.88) 0%, rgba(4,7,26,.78) 20%, rgba(4,7,26,.22) 32%,
+      rgba(4,7,26,0) 44%, rgba(4,7,26,0) 84%, rgba(4,7,26,.55) 100%);
     bottom: auto; height: min(80vw, 60svh);
   }
   /* Until a real clip exists the poster is a flat texture, so a full band is
