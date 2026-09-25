@@ -35,53 +35,68 @@ npm run preview      # serve dist/
 ```bash
 npm run check:budget # JS budget, measured by reachability from the HTML
 npm run lh           # Lighthouse, mobile emulation, against the preview
-npm run shots        # hero at 0/50/100% scroll, desktop + mobile → shots/
-npm run poster       # re-render the hero poster from the live scene
+node scripts/vitals.mjs       # LCP and CLS straight from PerformanceObserver
+node scripts/check-hero.mjs   # the hero's four paths, screenshotted
+node scripts/contrast.mjs     # WCAG ratios for the palette
 ```
 
 `CHROME_PATH=/path/to/chrome` makes the browser scripts use a browser the
-machine already has instead of downloading one.
+machine already has instead of downloading one. `WEBM=/media/x.webm` makes
+`check-hero.mjs` substitute a decodable clip, which matters on any machine
+without an H.264 decoder — headless Chromium here has none.
+
+Lighthouse takes **several minutes** against this page: a looping background
+video never lets it reach network-quiet. Give it room rather than assuming it
+has hung, and kill stray `chrome` processes between runs — orphans from an
+interrupted run will quietly skew everything after them.
 
 ## The hero
 
-`?scene=force` on the home page runs the WebGL scene regardless of device
-tier. It exists because the poster and screenshot scripts have to see the
-scene on machines whose only GPU is software. A normal visit never reaches it.
+A full-bleed background video, `src/components/VideoHero.astro`.
 
-Reading order if you need to change the hero:
+The interesting part is not the video, it is everything that happens when it
+does not play. Autoplay is refused in iOS Low Power Mode; a Save-Data or
+reduced-motion visitor should not be served a looping megabyte and a half;
+a codec can simply fail. Each of those falls back to a still photograph, and
+the hero copy — which by design waits for the video — is released by whichever
+comes first, the `playing` event or a four-second backstop. The page is never
+left wordless. `scripts/check-hero.mjs` walks all four paths and screenshots
+each one.
 
-| File | What it holds |
-| --- | --- |
-| `src/components/HeroCanvas.astro` | The tier gate. The only path to the renderer, and the reason a low-end phone never downloads one. |
-| `src/scene/mount.jsx` | The only module importing React or Three. |
-| `src/scene/Hero3D.jsx` | Canvas, lights, the three parallax layers, camera rig. |
-| `src/scene/Engine.jsx` | The engine itself: every part, the axis it flies out along, and the material lerp that leaves one coil lit. |
+Two things worth knowing before changing it:
 
-Swapping the engine for a real model: drop a Draco-compressed GLB in
-`public/models/`, load it in `Hero3D.jsx`, and give each named part the same
-`out` vector and material treatment `Engine.jsx` applies. Keep the `coilTarget`
-ref updated or the camera will not know where to push in.
+- **`preload` decides your LCP.** `preload="auto"` tries to buffer the whole
+  file before playing, which pushed first paint to 13.7s on throttled 4G.
+  `preload="metadata"` streams it: 1.5s. Do not "optimise" this back.
+- **The fallback image ships as `data-src`, not `src`.** As a plain `<img>` it
+  is a full-viewport photograph that every visitor downloads and that wins the
+  LCP race against the copy, for a picture most of them never see.
+
+The current clip is **368 × 816** — fine on a phone (1.1× upscale), poor on a
+desktop, where `object-fit: cover` has to enlarge it ~5× and crops away three
+quarters of the frame. Replacing it with a 1920 × 1080 landscape clip is the
+fix; nothing in the component needs to change.
 
 ## Measured, not claimed
 
-See `design/concept.md` for the full picture. The short version, on mobile
-emulation with 4× CPU throttling:
+Mobile emulation, 4× CPU throttling, five runs on the home page:
 
-| Path | Perf | A11y | BP | SEO | LCP | CLS | TBT |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `/` — what real visitors get here | 100 | 100 | 100 | 100 | 1.5s | 0 | 0ms |
-| `/?scene=force` — WebGL forced on | 60 | 100 | 100 | 100 | 1.4s | 0 | 162s |
-
-That 162s TBT is **software rendering, not the site**: this machine has no GPU,
-so WebGL falls back to SwiftShader on the CPU, underneath Lighthouse's own 4×
-throttle. It is a floor, not a forecast. The number that matters is the first
-row, because device tiering means a phone that would struggle never loads the
-scene at all — verified by watching what the page actually requests:
-
-| | JS files fetched |
+| | Result |
 | --- | --- |
-| Normal visit on a low tier | 5 — no React, no Three.js |
-| Tier 2+ | 8 — React and Three arrive after LCP |
+| Accessibility · Best practices · SEO | **100 / 100 / 100** — identical in every run |
+| Performance | **89–100**, median 98 |
+| LCP | **1.3 – 2.4s** (target < 2.5s) |
+| CLS | **0** in every run |
+| TBT | 0 – 460ms |
 
-JS budget, measured by following what the HTML actually pulls: **1.8 KB
-critical**, 313 KB deferred behind a dynamic import.
+The performance spread is this container, not the page: it is shared and
+throttled, and video decode here is software. A single run is not a number —
+the 89 and the 100 are the same build. Quote the range.
+
+`scripts/vitals.mjs` measures LCP and CLS independently through
+PerformanceObserver and agreed with Lighthouse to within 10ms, which is the
+main reason to trust either.
+
+JS budget, measured by following what the HTML actually pulls: **1.6 KB
+critical**, 5.3 KB deferred. There is no React and no Three.js in the project
+— the WebGL hero that needed them is in history at `04b6db3`.
