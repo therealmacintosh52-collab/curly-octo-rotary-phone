@@ -564,6 +564,13 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   .btn{width:100%}
   .btn-row{flex-direction:column}
   .cta-band{flex-direction:column;align-items:flex-start}
+  /* phone hero: everything centred so the stacked full-width buttons and
+     the headline line up on the same axis */
+  .video-hero__content{text-align:center}
+  .video-hero .eyebrow{justify-content:center}
+  .video-hero h1{margin-left:auto;margin-right:auto}
+  .video-hero__actions{align-items:stretch}
+  .video-hero__actions .btn{justify-content:center}
   .card,.review,.step{padding:24px 22px}
   .quote-card{padding:26px 22px 22px}
   .listed .wrap{gap:10px 20px}
