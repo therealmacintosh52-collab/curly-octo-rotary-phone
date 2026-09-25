@@ -1,0 +1,53 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import { site, fullAddress, allGuides, seoTitle, breadcrumb, article } from '../../lib/seo';
+
+export function getStaticPaths() {
+  return allGuides.map((g: any) => ({ params: { slug: g.slug }, props: { g } }));
+}
+const { g } = Astro.props;
+const path = `/advice/${g.slug}/`;
+const trail: [string, string][] = [['Home', '/'], ['Advice', '/advice/'], [g.nav, path]];
+const others = allGuides.filter((x: any) => x.slug !== g.slug);
+const modified = new Date().toISOString().slice(0, 10);
+const toc = g.sections.map(([h]: [string]) => h);
+const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+---
+<Base title={seoTitle(g.title)} description={g.meta} path={path} active="/advice/"
+      schemas={[article(g, path, modified), breadcrumb(trail)]}>
+  <PageHead trail={trail} title={g.nav} lede={g.blurb} />
+  <section>
+    <div class="wrap narrow">
+      <nav class="panel" aria-label="On this page" style="margin-bottom:2em">
+        <h3 style="margin-bottom:.5em">On this page</h3>
+        <ol style="margin:0">{toc.map((h: string) => <li><a href={`#${slugify(h)}`}>{h}</a></li>)}</ol>
+      </nav>
+      {g.sections.map(([heading, kind, items]: [string, string, string[]]) => (
+        <>
+          <h2 id={slugify(heading)}>{heading}</h2>
+          {kind === 'ul'
+            ? <ul>{items.map((x: string) => <li set:html={x} />)}</ul>
+            : items.map((x: string) => <p set:html={x} />)}
+        </>
+      ))}
+      <div class="panel panel-accent" style="margin-top:2em" data-reveal>
+        <h3>The short version</h3>
+        <p style="margin-bottom:1.2em">{g.takeaway}</p>
+        <div class="btn-row">
+          <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="guide" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+          <a class="btn btn-ghost" href="/contact/#quote" data-magnetic>Ask us about it</a>
+        </div>
+      </div>
+      <p style="margin-top:2em;color:var(--slate);font-size:.9rem">Written by the team at {site.name}, {fullAddress}. General guidance, not a substitute for having your own vehicle looked at. Every car tells its own story. Related: <a href="/services/">our services</a>.</p>
+      <h2 style="margin-top:1.6em">More advice</h2>
+      <div class="tag-row">
+        {others.map((o: any) => <a class="tag" href={`/advice/${o.slug}/`}>{o.nav}</a>)}
+        <a class="tag" href="/advice/">All guides</a>
+      </div>
+    </div>
+  </section>
+  <CtaBand heading="Rather just ask someone?" text="Call the shop and describe what your vehicle is doing. We will tell you what we think it is and what it takes to know for sure." loc="guide-band" />
+</Base>

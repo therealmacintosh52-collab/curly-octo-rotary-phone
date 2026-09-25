@@ -1,0 +1,24 @@
+---
+import Icon from './Icon.astro';
+import { site } from '../lib/seo';
+interface Props { heading?: string; text?: string; loc?: string }
+const {
+  heading = 'Ready to get a straight answer about your vehicle?',
+  text = "Call the shop and talk to someone who works on cars for a living. We're open Monday through Saturday, 8:00 AM to 5:00 PM.",
+  loc = 'cta-band',
+} = Astro.props;
+---
+<section>
+  <div class="wrap">
+    <div class="cta-band" data-reveal>
+      <div>
+        <h2>{heading}</h2>
+        <p>{text}</p>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc={loc} data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+        <a class="btn btn-ghost" href="/contact/#quote" data-magnetic>Request a quote</a>
+      </div>
+    </div>
+  </div>
+</section>

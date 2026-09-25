@@ -1,0 +1,118 @@
+---
+import Base from '../layouts/Base.astro';
+import StatBand from '../components/StatBand.astro';
+import Icon from '../components/Icon.astro';
+import { site, fullAddress, formEndpoint, mapsDirections } from '../lib/seo';
+const servicios = [
+  ['wrench', 'Reparación general', 'Vehículos nacionales, importados y de flota.'],
+  ['gauge', 'Diagnóstico y luz de motor', 'Encontramos la causa en vez de adivinar.'],
+  ['disc', 'Frenos', 'Pastillas, discos, mordazas y fallas de ABS.'],
+  ['engine', 'Motor', 'Fallas de encendido, fugas, sobrecalentamiento y distribución.'],
+  ['gears', 'Transmisión', 'Diagnóstico y reparación, automática y manual.'],
+  ['truck', 'Diésel y flotas', 'Camionetas de trabajo y flotas comerciales.'],
+  ['drop', 'Cambio de aceite', 'Servicio programado con inspección de verdad.'],
+  ['tire', 'Llantas', 'Reparación de ponchaduras, rotación y balanceo.'],
+  ['bolt', 'Eléctrico y baterías', 'No arranca, alternador, marcha y corrientes parásitas.'],
+];
+---
+<Base title="Taller Mecánico en Lodi, CA | Phil's Auto & Fleet"
+      description="Reparación de autos, diésel y flotas en Lodi. Diagnóstico antes de cotizar, sin ventas forzadas. Llame al (209) 647-4953 o pida una cotización gratis."
+      path="/es/" lang="es" alternates={[['en', '/'], ['es', '/es/'], ['x-default', '/']]}>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">Negocio local · Lodi, California</span>
+          <h1 data-split>Taller mecánico honesto en <em>Lodi, California</em></h1>
+          <div class="rating"><span class="stars" aria-hidden="true">★★★★★</span><span class="rating-text"><strong>{site.rating} de 5</strong> en {site.review_count} reseñas de Google</span></div>
+          <p>Una alternativa justa a la agencia. Diagnosticamos el problema de verdad, se lo explicamos en palabras claras y le damos el precio antes de tocar el vehículo, para que nunca pague por piezas que su carro no necesitaba.</p>
+          <div class="btn-row">
+            <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="es-hero" data-magnetic><Icon name="phone" /><span>Llame al {site.phone_display}</span></a>
+            <a class="btn btn-ghost" href="#cotizacion" data-magnetic>Pedir cotización</a>
+            <a class="btn btn-ghost" href={mapsDirections} rel="noopener" data-magnetic><Icon name="map" /><span>Cómo llegar</span></a>
+          </div>
+          <ul class="hero-points">
+            <li><Icon name="check-circle" /><span>Autos, camionetas, diésel y flotas comerciales</span></li>
+            <li><Icon name="check-circle" /><span>Reparamos fallas que otros talleres no encontraron</span></li>
+            <li><Icon name="check-circle" /><span>Sin ventas de más: usted autoriza cada reparación</span></li>
+            <li><Icon name="check-circle" /><span>Abierto de lunes a sábado, 8:00 AM a 5:00 PM</span></li>
+          </ul>
+        </div>
+        <div id="cotizacion">
+          <form class="quote-card" data-quote-form action={formEndpoint} method="post" data-mailto={site.email}>
+            <h2>Pida su cotización</h2>
+            <p class="sub">Cuéntenos qué está pasando y le respondemos con los siguientes pasos. ¿Prefiere hablar? Llame al {site.phone_display}.</p>
+            <div class="field"><label for="es-nombre">Su nombre</label><input id="es-nombre" name="name" type="text" autocomplete="name" required></div>
+            <div class="field"><label for="es-tel">Teléfono</label><input id="es-tel" name="phone" type="tel" autocomplete="tel" required></div>
+            <div class="field"><label for="es-vehiculo">Vehículo (año, marca, modelo)</label><input id="es-vehiculo" name="vehicle" type="text" placeholder="2016 Ram 2500 diésel"></div>
+            <div class="field"><label for="es-mensaje">¿Qué está haciendo el vehículo?</label><textarea id="es-mensaje" name="message" placeholder="Ruidos, luces del tablero, cuándo empezó, y qué le dijeron en otro taller."></textarea></div>
+            <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <input type="hidden" name="_subject" value="Cotización desde philsautofleet.com">
+            <input type="hidden" name="_template" value="table">
+            <input type="hidden" name="_captcha" value="false">
+            <button class="btn btn-accent" type="submit" style="width:100%" data-magnetic>Enviar solicitud</button>
+            <p class="form-status" role="status" aria-live="polite"></p>
+            <p class="fine">Sin compromiso. Nunca vendemos su información.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <StatBand es />
+
+  <section id="servicios">
+    <div class="wrap">
+      <div class="sec-head center"><span class="eyebrow">Servicios</span><h2>Todo, desde un cambio de aceite hasta un diésel que no arranca</h2><p>Un solo taller para su carro, su troca y toda su flota, con el mismo método: primero diagnosticar, después cotizar.</p></div>
+      <div class="grid g3" data-stagger>
+        {servicios.map(([ic, t, d]) => <div class="card"><span class="card-ico"><Icon name={ic} /></span><h3>{t}</h3><p style="margin-bottom:0">{d}</p></div>)}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt" id="por-que">
+    <div class="wrap">
+      <div class="split center-y">
+        <div>
+          <span class="eyebrow">Por qué la gente cambia de taller</span>
+          <h2>La agencia no es su única opción</h2>
+          <p>En la agencia el trabajo se organiza por volumen y por menú de precios. Eso funciona hasta que su problema no cabe en el menú, y entonces termina pagando piezas que se cambiaron porque estaban en una lista, no porque hubieran fallado.</p>
+          <ul class="checklist" data-stagger>
+            <li><Icon name="check" /><span><strong>Habla con quien revisó su vehículo</strong>, no con un intermediario.</span></li>
+            <li><Icon name="check" /><span><strong>Probamos antes de cambiar piezas</strong>, por eso una segunda opinión aquí suele costar menos que la primera cotización.</span></li>
+            <li><Icon name="check" /><span><strong>Nada se repara sin su autorización</strong>, incluyendo lo que encontremos durante el trabajo.</span></li>
+            <li><Icon name="check" /><span><strong>Le decimos qué puede esperar</strong> y qué es cuestión de seguridad.</span></li>
+          </ul>
+          <div class="btn-row" style="margin-top:26px">
+            <a class="btn btn-dark" href={`tel:${site.phone_link}`} data-loc="es-body" data-magnetic><Icon name="phone" /><span>Llame al {site.phone_display}</span></a>
+            <a class="btn btn-outline" href="/" data-magnetic>See this page in English</a>
+          </div>
+        </div>
+        <div class="panel panel-accent" id="taller" data-reveal>
+          <h3>El taller</h3>
+          <table class="hours"><tbody>
+            <tr><th scope="row">Dirección</th><td>{fullAddress}</td></tr>
+            <tr><th scope="row">Teléfono</th><td><a href={`tel:${site.phone_link}`} data-loc="es-panel">{site.phone_display}</a></td></tr>
+            <tr><th scope="row">Correo</th><td><a href={`mailto:${site.email}`}>{site.email}</a></td></tr>
+            <tr><th scope="row">Horario</th><td>Lunes a sábado, 8 AM – 5 PM</td></tr>
+            <tr><th scope="row">Domingo</th><td>Cerrado</td></tr>
+          </tbody></table>
+          <p style="margin:22px 0 0"><a class="btn btn-accent" href={mapsDirections} rel="noopener" style="width:100%" data-magnetic>Cómo llegar</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="cta-band" data-reveal>
+        <div><h2>¿Quiere una respuesta clara sobre su vehículo?</h2><p>Llame al taller y hable con alguien que repara carros todos los días. Abierto de lunes a sábado, de 8:00 AM a 5:00 PM.</p></div>
+        <div class="btn-row">
+          <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="es-cta" data-magnetic><Icon name="phone" /><span>Llame al {site.phone_display}</span></a>
+          <a class="btn btn-ghost" href="#cotizacion" data-magnetic>Pedir cotización</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>

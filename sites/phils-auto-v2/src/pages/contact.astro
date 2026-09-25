@@ -1,0 +1,59 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import QuoteForm from '../components/QuoteForm.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { site, fullAddress, hoursRows, mapsDirections, mapsEmbed, breadcrumb } from '../lib/seo';
+const trail: [string, string][] = [['Home', '/'], ['Contact', '/contact/']];
+---
+<Base title="Contact Phil's Auto & Fleet Repair, Lodi CA"
+      description="Call (209) 647-4953, visit 103 E Elm St, Lodi, CA 95240 (Mon–Sat 8–5), or send the quote form and we'll call you back. Directions and map inside."
+      path="/contact/" active="/contact/" schemas={[breadcrumb(trail)]}>
+  <PageHead trail={trail} title="Call, visit or send the form"
+    lede="Call the shop, send a quote request, or stop by. We're on E Elm St in Lodi, open six days a week.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="contact-head" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+      <a class="btn btn-ghost" href={mapsDirections} rel="noopener" data-magnetic><Icon name="map" /><span>Get directions</span></a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <h2>Shop information</h2>
+          <p><strong>{site.name}</strong><br>{site.street}<br>{site.city}, {site.region_long} {site.zip}</p>
+          <p><strong>Phone:</strong> <a href={`tel:${site.phone_link}`} data-loc="contact-body">{site.phone_display}</a><br>
+          <strong>Email:</strong> <a href={`mailto:${site.email}`}>{site.email}</a></p>
+          <h3>Hours</h3>
+          <table class="hours"><caption class="sr-only">Business hours</caption><tbody>
+            {hoursRows.map(([d, h]) => <tr><th scope="row">{d}</th><td>{h}</td></tr>)}
+          </tbody></table>
+          <h3 style="margin-top:1.6em">Getting here</h3>
+          <p>We're just east of downtown Lodi on E Elm St, a short drive from Highway 99 and Cherokee Lane. If you're
+          coming from Stockton, Galt or Acampo, allow a few extra minutes during weekday morning traffic.
+          See our <a href="/service-areas/">service areas</a>.</p>
+          <h3 style="margin-top:1.4em">Before you call, it helps to have</h3>
+          <ul>
+            <li>Year, make, model and engine (especially for diesel vehicles)</li>
+            <li>What the vehicle is doing, and when it started</li>
+            <li>Any warning lights that are on</li>
+            <li>What another shop has already replaced or told you, if anything</li>
+          </ul>
+          <div class="btn-row"><a class="btn btn-dark" href={`tel:${site.phone_link}`} data-loc="contact-mid" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a></div>
+        </div>
+        <div id="quote" data-reveal><QuoteForm id="contact-quote" heading="Request a quote" /></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head"><h2>Find the shop</h2><p><a href={mapsDirections} rel="noopener">Open directions in Google Maps</a> from wherever you are.</p></div>
+      <iframe class="map-frame" src={mapsEmbed} title={`Map showing Phil's Auto and Fleet Repair at ${fullAddress}`} loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+  </section>
+
+  <CtaBand heading="Not sure what's wrong? That's fine." text="Describe the symptom. We'll tell you what it takes to find out for certain and what that costs." loc="contact-cta" />
+</Base>

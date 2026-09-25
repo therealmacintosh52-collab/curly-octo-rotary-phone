@@ -1,0 +1,24 @@
+---
+/* Dark page header with breadcrumbs, H1, lede and an optional action row. */
+interface Props { trail: [string, string][]; title: string; lede?: string; noAngle?: boolean }
+const { trail, title, lede, noAngle = false } = Astro.props;
+---
+<div class="page-head">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <ol>
+        {trail.map(([name, path], i) => (
+          <li>{i < trail.length - 1 ? <a href={path}>{name}</a> : <span aria-current="page">{name}</span>}</li>
+        ))}
+      </ol>
+    </nav>
+    <h1 data-split data-split-delay="0.05">{title}</h1>
+    {lede && <p>{lede}</p>}
+    <slot />
+  </div>
+  {!noAngle && (
+    <div class="angle-bottom" aria-hidden="true">
+      <svg viewBox="0 0 100 10" preserveAspectRatio="none"><polygon fill="#ffffff" points="0,10 100,0 100,10" /></svg>
+    </div>
+  )}
+</div>

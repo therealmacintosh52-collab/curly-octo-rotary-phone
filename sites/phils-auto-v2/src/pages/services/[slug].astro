@@ -1,0 +1,73 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import QuoteForm from '../../components/QuoteForm.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import { site, services, fullAddress, seoTitle, breadcrumb, serviceSchema, faqPage } from '../../lib/seo';
+
+export function getStaticPaths() {
+  return services.map((s: any) => ({ params: { slug: s.slug }, props: { s } }));
+}
+const { s } = Astro.props;
+const path = `/services/${s.slug}/`;
+const trail: [string, string][] = [['Home', '/'], ['Services', '/services/'], [s.nav, path]];
+const related = services.filter((x: any) => x.slug !== s.slug).slice(0, 6);
+const areas = site.areas as string[];
+---
+<Base title={seoTitle(s.title)} description={s.meta} path={path} active="/services/"
+      schemas={[serviceSchema(s), breadcrumb(trail), faqPage(s.faqs)]}>
+  <PageHead trail={trail} title={s.h1} lede={s.blurb}>
+    <div class="rating"><span class="stars" aria-hidden="true">★★★★★</span><span class="rating-text"><strong>{site.rating} out of 5</strong> from {site.review_count} Google reviews · Rated on Yelp and Nextdoor too</span></div>
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="service-head" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+      <a class="btn btn-ghost" href="#quote" data-magnetic>Get a quote</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          {s.intro.map((p: string) => <p>{p}</p>)}
+          <h2>What this service covers</h2>
+          <ul class="checklist" data-stagger>{s.includes.map((i: string) => <li><Icon name="check" /><span>{i}</span></li>)}</ul>
+          <h2 style="margin-top:1.8em">Signs it's time to call us</h2>
+          <ul>{s.signs.map((x: string) => <li>{x}</li>)}</ul>
+          <p>If any of these sound like your vehicle, call <a href={`tel:${site.phone_link}`} data-loc="service-body">{site.phone_display}</a>.
+          We'll tell you what we think it is, what it takes to know for sure, and what that costs, before you commit to anything.</p>
+          <h2 style="margin-top:1.8em">Serving Lodi and the surrounding area</h2>
+          <p>Phil's Auto and Fleet Repair is at {fullAddress}, minutes from downtown Lodi and Highway 99.
+          We handle {s.nav.toLowerCase()} for drivers and businesses across {areas.slice(0, -1).join(', ')} and {areas[areas.length - 1]}.
+          See our <a href="/service-areas/">service areas</a>.</p>
+        </div>
+        <div>
+          <div id="quote" data-reveal><QuoteForm id={`${s.slug}-quote`} heading={`Get a quote for ${s.nav.toLowerCase()}`} serviceDefault={s.slug} /></div>
+          <div class="panel" style="margin-top:22px">
+            <h3>Shop details</h3>
+            <p style="margin-bottom:.6em"><strong>{site.name}</strong><br>{site.street}<br>{site.city}, {site.region} {site.zip}</p>
+            <p style="margin-bottom:.6em"><a href={`tel:${site.phone_link}`} data-loc="service-panel">{site.phone_display}</a></p>
+            <p style="margin-bottom:0">{site.hours_human}<br>Closed Sunday</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt"><div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Questions</span><h2>{s.nav}: questions we get asked</h2></div>
+    <div class="faq">{s.faqs.map(([q, a]: [string, string]) => <details><summary>{q}</summary><div class="answer"><p>{a}</p></div></details>)}</div>
+  </div></section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head"><span class="eyebrow">Also at our shop</span><h2>Other services</h2></div>
+      <div class="tag-row">
+        {related.map((r: any) => <a class="tag" href={`/services/${r.slug}/`}>{r.nav}</a>)}
+        <a class="tag" href="/services/">All services</a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand heading={`Need ${s.nav.toLowerCase()} in Lodi?`} text="Call the shop and talk it through with someone who does this work every day." loc="service-cta" />
+</Base>

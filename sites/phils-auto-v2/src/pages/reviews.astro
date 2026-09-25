@@ -1,0 +1,64 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { site, reviews, mapsListing, yelpUrl, seoTitle, breadcrumb, aggregateRating } from '../lib/seo';
+const trail: [string, string][] = [['Home', '/'], ['Reviews', '/reviews/']];
+---
+<Base title="Reviews | Phil's Auto & Fleet Repair, Lodi CA"
+      description="4.4 stars from 83 Google reviews plus Yelp and Nextdoor. Read what Lodi drivers and fleet owners say about Phil's, then get your own free quote."
+      path="/reviews/" active="/reviews/" schemas={[breadcrumb(trail), aggregateRating()]}>
+  <PageHead trail={trail} title="What Lodi drivers say"
+    lede={`Rated ${site.rating} out of 5 across ${site.review_count} Google reviews, with more on Yelp and Nextdoor. Here's what customers in Lodi keep saying.`}>
+    <div class="btn-row">
+      <a class="btn btn-accent" href={mapsListing} rel="noopener" data-magnetic>Read reviews on Google</a>
+      <a class="btn btn-ghost" href={yelpUrl} rel="noopener" data-magnetic>Read reviews on Yelp</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head"><span class="eyebrow">In their own words</span><h2>What customers say</h2><p>A rating is a number. What people actually wrote is more useful.</p></div>
+      <div class="grid g2" data-stagger>
+        {reviews.map((r: any) => (
+          <div class="review">
+            <span class="stars" aria-hidden="true">★★★★★</span>
+            <blockquote>&ldquo;{r.quote}&rdquo;</blockquote>
+            <cite><strong>{r.name}</strong>via {r.source}</cite>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap narrow">
+      <h2>Why misdiagnosis comes up so often</h2>
+      <p>A large share of the reviews mentioning us describe the same story: a vehicle that had already been to
+      another shop, sometimes more than one, with parts already replaced and the original symptom still there.</p>
+      <p>That happens when a shop treats a trouble code as a diagnosis. The code tells you which circuit reported
+      a fault, not which component caused it. Replacing the most likely part is faster than testing, and when it
+      works, nobody notices. When it doesn't, the customer pays for the guess.</p>
+      <p>We test instead. It takes longer up front and it's the reason people drive past closer shops to get here.</p>
+      <div class="btn-row">
+        <a class="btn btn-dark" href={`tel:${site.phone_link}`} data-loc="reviews-body" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+        <a class="btn btn-outline" href="/services/car-diagnostics/" data-magnetic>How we diagnose <Icon name="arrow" /></a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow center">
+      <h2>Been in recently?</h2>
+      <p>Reviews from real customers are how neighbors in Lodi find an honest shop. If we did right by you, a few
+      sentences on Google or Yelp genuinely helps. If we didn't, call the shop first and give us the chance to fix it.</p>
+      <div class="btn-row" style="justify-content:center">
+        <a class="btn btn-accent" href={mapsListing} rel="noopener" data-magnetic>Leave a Google review</a>
+        <a class="btn btn-outline" href={`tel:${site.phone_link}`} data-loc="reviews-cta" data-magnetic>Call the shop</a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand loc="reviews-band" />
+</Base>

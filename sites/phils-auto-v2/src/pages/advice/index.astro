@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import { site, allGuides, seoTitle, breadcrumb } from '../../lib/seo';
+const trail: [string, string][] = [['Home', '/'], ['Advice', '/advice/']];
+---
+<Base title={seoTitle('Car Repair Advice, Lodi CA')}
+      description="Plain-English guides from a Lodi repair shop: check engine lights, second opinions, summer heat, diesel warning lights, brake noise, fleet upkeep. Call us."
+      path="/advice/" active="/advice/" schemas={[breadcrumb(trail)]}>
+  <PageHead trail={trail} title="Straight answers about your vehicle"
+    lede="The questions we get asked at the counter, written down, so you can decide what to do before you spend anything.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="advice-head" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+      <a class="btn btn-ghost" href="/contact/#quote" data-magnetic>Ask a question</a>
+    </div>
+  </PageHead>
+  <section><div class="wrap">
+    <div class="grid g2" data-stagger>
+      {allGuides.map((g: any) => (
+        <a class="card" href={`/advice/${g.slug}/`} data-cursor="Read">
+          <span class="card-ico"><Icon name={g.icon} /></span>
+          <h3>{g.nav}</h3>
+          <p>{g.blurb}</p>
+          <span class="more">Read it <Icon name="arrow" /></span>
+        </a>
+      ))}
+    </div>
+  </div></section>
+  <CtaBand loc="advice-band" />
+</Base>

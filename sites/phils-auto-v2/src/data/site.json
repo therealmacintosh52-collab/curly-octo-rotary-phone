@@ -1029,5 +1029,19 @@
   "https://nextdoor.com/pages/phils-auto-fleet-repair-lodi-ca/",
   "https://www.mapquest.com/us/california/phils-auto-and-fleet-repair-355906651",
   "https://www.carfax.com/Phils-Auto-and-Fleet-Repair-Lodi-CA_bs101148341"
- ]
+ ],
+ "area_notes": {
+  "Lodi": "Our home city — downtown, the east side, Kettleman Lane and everywhere between.",
+  "Stockton": "A short run down Highway 99 for drivers who want a shop that isn't a chain.",
+  "Galt": "North of us on 99, and a regular stop for fleet and diesel customers.",
+  "Acampo": "Minutes away, including vineyard and agricultural vehicles.",
+  "Woodbridge": "Just west of Lodi — daily drivers and work trucks alike.",
+  "Lockeford": "East on Highway 12, well worth the drive for a proper diagnosis.",
+  "Victor": "Close by, and familiar territory for our diesel customers.",
+  "Thornton": "Delta-area drivers and farm fleets we've come to know.",
+  "Clements": "Rural miles are hard on vehicles; we service them accordingly.",
+  "Elk Grove": "Further north, but customers make the trip for second opinions."
+ },
+ "maps_listing": "https://www.google.com/maps/search/?api=1&query=Phil%27s+Auto+and+Fleet+Repair+Lodi+CA",
+ "maps_embed": "https://maps.google.com/maps?q=103%20E%20Elm%20St%2C%20Lodi%2C%20CA%2095240&t=&z=15&ie=UTF8&iwloc=&output=embed"
 }

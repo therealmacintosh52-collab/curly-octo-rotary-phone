@@ -11,6 +11,15 @@ export const mapsDirections = data.maps_directions as string;
 export const formEndpoint = data.form_endpoint as string;
 export const fullAddress = data.full_address as string;
 export const profiles = (data as any).profiles as string[] | undefined;
+export const mapsListing = (data as any).maps_listing as string;
+export const mapsEmbed = (data as any).maps_embed as string;
+export const yelpUrl = (data as any).yelp_url as string;
+export const areaNotes = (data as any).area_notes as Record<string, string>;
+export const hoursRows = site.hours_rows as [string, string][];
+
+import { extraGuides } from '../data/guides-v2';
+/** Guides from v1 plus the two written for v2, in display order. */
+export const allGuides: any[] = [...guides, ...extraGuides];
 
 export const BASE = site.base_url as string;
 

@@ -1,0 +1,24 @@
+---
+import Icon from './Icon.astro';
+import { site } from '../lib/seo';
+interface Props { es?: boolean }
+const { es = false } = Astro.props;
+const stats = es ? [
+  ['star', `${site.rating} de 5`, `${site.review_count} reseñas de Google`],
+  ['shield', 'Primero el diagnóstico', 'Probamos antes de cambiar piezas'],
+  ['truck', 'Autos · Diésel · Flotas', 'Un taller para todo lo que maneja'],
+  ['clock', 'Abierto seis días', 'Lunes a sábado, 8 AM – 5 PM'],
+] : [
+  ['star', `${site.rating} out of 5`, `${site.review_count} Google reviews`],
+  ['shield', 'Diagnosis first', 'We test before we replace parts'],
+  ['truck', 'Auto · Diesel · Fleet', 'One shop for every vehicle you run'],
+  ['clock', 'Open six days', 'Mon–Sat, 8:00 AM – 5:00 PM'],
+];
+---
+<div class="statband" data-reveal>
+  <div class="wrap"><div class="statband-inner">
+    {stats.map(([ic, t, sub]) => (
+      <div class="stat"><span class="stat-ico"><Icon name={ic} /></span><div><b>{t}</b><span>{sub}</span></div></div>
+    ))}
+  </div></div>
+</div>

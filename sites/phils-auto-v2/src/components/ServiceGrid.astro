@@ -1,0 +1,17 @@
+---
+import Icon from './Icon.astro';
+import { services } from '../lib/seo';
+interface Props { limit?: number }
+const { limit } = Astro.props;
+const items = limit ? services.slice(0, limit) : services;
+---
+<div class="grid g3" data-stagger>
+  {items.map((s: any) => (
+    <a class="card" href={`/services/${s.slug}/`} data-cursor="View">
+      <span class="card-ico"><Icon name={s.icon} /></span>
+      <h3>{s.nav}</h3>
+      <p>{s.blurb}</p>
+      <span class="more">Learn more <Icon name="arrow" /></span>
+    </a>
+  ))}
+</div>

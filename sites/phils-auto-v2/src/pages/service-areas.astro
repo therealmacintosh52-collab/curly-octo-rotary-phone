@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { site, fullAddress, areaNotes, breadcrumb } from '../lib/seo';
+const trail: [string, string][] = [['Home', '/'], ['Service Areas', '/service-areas/']];
+const areas = site.areas as string[];
+---
+<Base title="Auto Repair Near Lodi: Stockton, Galt, Acampo & More"
+      description="Drivers and fleets from Stockton, Galt, Acampo, Woodbridge, Lockeford and Elk Grove bring their vehicles to Phil's in Lodi. See if we cover your area."
+      path="/service-areas/" schemas={[breadcrumb(trail)]}>
+  <PageHead trail={trail} title="Serving Lodi and the towns around it"
+    lede="Based in Lodi, trusted across San Joaquin County, for cars, diesel trucks and business fleets.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="areas-head" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+      <a class="btn btn-ghost" href="/contact/#quote" data-magnetic>Request a quote</a>
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head"><p class="lede">Our shop is at {fullAddress}, minutes from Highway 99 and Highway 12. Customers regularly drive in from these communities, and fleet customers operate throughout the region.</p></div>
+      <div class="grid g3" data-stagger>
+        {areas.map((a) => (
+          <div class="card"><span class="card-ico"><Icon name="pin" /></span><h3>{a}, CA</h3><p>{areaNotes[a] ?? `Auto, diesel and fleet repair for drivers in ${a}.`}</p></div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap narrow">
+      <h2>Worth the drive for a real diagnosis</h2>
+      <p>Plenty of our customers pass closer shops to get here, usually after paying for a repair somewhere else that
+      didn't fix the problem. If that's where you are right now, bring the estimate and the paperwork. We'll start
+      from the symptom and test our way to the actual cause.</p>
+      <div class="btn-row">
+        <a class="btn btn-dark" href={`tel:${site.phone_link}`} data-loc="areas-body" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+        <a class="btn btn-outline" href="/services/" data-magnetic>See all services</a>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand loc="areas-band" />
+</Base>

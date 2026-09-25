@@ -1,0 +1,38 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import StatBand from '../../components/StatBand.astro';
+import ServiceGrid from '../../components/ServiceGrid.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import { site, seoTitle, breadcrumb } from '../../lib/seo';
+const trail: [string, string][] = [['Home', '/'], ['Services', '/services/']];
+---
+<Base title={seoTitle('Car Repair Services in Lodi, CA')}
+      description="Brakes, engines, transmissions, diesel, fleet, AC, electrical and more, all diagnosed before they're quoted. See every service Phil's offers in Lodi."
+      path="/services/" active="/services/" schemas={[breadcrumb(trail)]}>
+  <PageHead trail={trail} title="Every service, one shop"
+    lede="One shop for the whole vehicle, and for every vehicle you run. Every job starts the same way: find out what's actually wrong, then quote the repair.">
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="services-head" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+      <a class="btn btn-ghost" href="/contact/#quote" data-magnetic>Request a quote</a>
+    </div>
+  </PageHead>
+  <StatBand />
+  <section><div class="wrap"><ServiceGrid /></div></section>
+  <section class="bg-alt">
+    <div class="wrap narrow">
+      <h2>Don't see what you need?</h2>
+      <p>This list covers the work that comes through the shop most often, but it isn't everything we
+      do. If your vehicle has a problem that isn't on this page, or you don't know what to call it,
+      describe it to us and we'll tell you honestly whether it's work we can take on.</p>
+      <p>We service domestic and import cars, trucks, SUVs and vans, diesel pickups and work trucks,
+      and mixed commercial fleets.</p>
+      <div class="btn-row">
+        <a class="btn btn-dark" href={`tel:${site.phone_link}`} data-loc="services-body" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+        <a class="btn btn-outline" href="/contact/" data-magnetic>Contact the shop</a>
+      </div>
+    </div>
+  </section>
+  <CtaBand />
+</Base>

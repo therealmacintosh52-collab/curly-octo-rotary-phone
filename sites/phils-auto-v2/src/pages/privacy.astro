@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { site, fullAddress, seoTitle, breadcrumb } from '../lib/seo';
+const trail: [string, string][] = [['Home', '/'], ['Privacy', '/privacy/']];
+---
+<Base title={seoTitle('Privacy Policy')} description="How Phil's Auto and Fleet Repair in Lodi, CA collects and uses information submitted through this website."
+      path="/privacy/" noindex schemas={[breadcrumb(trail)]}>
+  <PageHead trail={trail} title="Privacy policy" lede="How we handle the information you send us through this website." />
+  <section><div class="wrap narrow">
+    <p><strong>What we collect.</strong> If you submit the quote form, we receive the name, phone number, vehicle details and description you provide. The site does not require an account and we do not ask for payment details online.</p>
+    <p><strong>How we use it.</strong> Only to respond to your request and to service your vehicle. We do not sell, rent or trade your information.</p>
+    <p><strong>Analytics.</strong> This site may use standard web analytics to understand how many people visit and which pages they use. That data is aggregated and is not used to identify you personally.</p>
+    <p><strong>Third-party services.</strong> Quote requests are delivered to our inbox by FormSubmit, a form-forwarding service, which processes the details you submit in order to send them to us. Map and review links on this site lead to Google, Yelp and similar services, which apply their own privacy policies once you leave our site.</p>
+    <p><strong>Your choices.</strong> Ask us to delete the information you sent and we will. Call {site.phone_display} or email <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
+    <p><strong>Contact.</strong> {site.name}, {fullAddress}, <a href={`tel:${site.phone_link}`}>{site.phone_display}</a>.</p>
+  </div></section>
+</Base>

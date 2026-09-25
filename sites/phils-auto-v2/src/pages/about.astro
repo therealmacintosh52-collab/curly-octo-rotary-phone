@@ -1,0 +1,72 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { site, fullAddress, seoTitle, breadcrumb } from '../lib/seo';
+const trail: [string, string][] = [['Home', '/'], ['About', '/about/']];
+---
+<Base title="About Phil's Auto & Fleet Repair, Lodi CA"
+      description="Locally owned in Lodi. Meet the shop that tests before it replaces parts, explains the repair in plain language and lets you decide. Visit 103 E Elm St."
+      path="/about/" active="/about/" schemas={[breadcrumb(trail)]}>
+  <PageHead trail={trail} title="The shop that diagnoses before it quotes"
+    lede="A locally owned repair shop in Lodi, California, built around one idea: tell people the truth about their vehicles." />
+
+  <section>
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <h2>A dealership alternative for Lodi drivers</h2>
+          <p>Phil's Auto and Fleet Repair is {site.founded_note} from a shop at {fullAddress}. We work on
+          domestic and import vehicles, diesel trucks and commercial fleets, everything from a routine oil
+          change to a drivability fault three other shops couldn't pin down.</p>
+          <p>What we're known for locally isn't a slogan. Customers on Google, Yelp and neighborhood boards
+          keep describing the same experience: a vehicle that was misdiagnosed elsewhere, finally diagnosed
+          correctly here, without a list of extra services attached to the bill.</p>
+          <h2 style="margin-top:1.6em">How we work</h2>
+          <ul class="checklist" data-stagger>
+            <li><Icon name="check" /><span><strong>Diagnose first.</strong> A trouble code is a starting point, not an answer. We test until we can point at the failure.</span></li>
+            <li><Icon name="check" /><span><strong>Explain it plainly.</strong> You should understand what failed and why before you spend money on it.</span></li>
+            <li><Icon name="check" /><span><strong>Quote before we start.</strong> Nothing gets repaired without your approval, including anything we find along the way.</span></li>
+            <li><Icon name="check" /><span><strong>Separate urgent from optional.</strong> We'll tell you what can safely wait. That's not lost revenue; that's why you come back.</span></li>
+            <li><Icon name="check" /><span><strong>Respect your time.</strong> Realistic turnaround estimates, and a call if anything changes.</span></li>
+          </ul>
+        </div>
+        <div class="panel panel-accent" data-reveal>
+          <h3>The shop at a glance</h3>
+          <table class="hours"><tbody>
+            <tr><th scope="row">Location</th><td>{fullAddress}</td></tr>
+            <tr><th scope="row">Phone</th><td><a href={`tel:${site.phone_link}`} data-loc="about">{site.phone_display}</a></td></tr>
+            <tr><th scope="row">Hours</th><td>Mon–Sat, 8 AM – 5 PM</td></tr>
+            <tr><th scope="row">Rating</th><td>{site.rating} / 5 ({site.review_count} Google reviews)</td></tr>
+            <tr><th scope="row">Vehicles</th><td>Domestic, import, diesel, fleet</td></tr>
+            <tr><th scope="row">Business type</th><td>Locally owned small business</td></tr>
+          </tbody></table>
+          <p style="margin:22px 0 0"><a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="about-panel" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a></p>
+          <figure class="photo" style="margin-top:26px">
+            <span class="photo-badge"><Icon name="camera" />Our shop</span>
+            <picture>
+              <source type="image/webp" srcset="/assets/img/shop-bay-poster.webp">
+              <img src="/assets/img/shop-bay-poster.jpg" width="1280" height="720" loading="lazy" decoding="async" alt="The front of Phil's Auto and Fleet Repair on E Elm St in Lodi, with the bay door and the shop sign">
+            </picture>
+            <figcaption>103 E Elm St, the shop where every one of these vehicles gets diagnosed before it gets quoted.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head center"><span class="eyebrow">Who we serve</span><h2>Daily drivers, work trucks and everything between</h2></div>
+      <div class="grid g3" data-stagger>
+        <div class="card"><span class="card-ico"><Icon name="user" /></span><h3>Families and commuters</h3><p>Maintenance, repairs and honest advice on whether a car is worth keeping, for the vehicle that gets your family where it's going.</p></div>
+        <div class="card"><span class="card-ico"><Icon name="truck" /></span><h3>Diesel owners</h3><p>Fuel systems, emissions faults, hard starts and power loss on trucks that have to work tomorrow morning.</p></div>
+        <div class="card"><span class="card-ico"><Icon name="gears" /></span><h3>Business fleets</h3><p>Preventive maintenance schedules and fast turnaround for vans and trucks where downtime costs real money.</p></div>
+      </div>
+      <p class="center" style="margin-top:30px"><a class="btn btn-outline" href="/services/" data-magnetic>See every service <Icon name="arrow" /></a></p>
+    </div>
+  </section>
+
+  <CtaBand heading="Come see how a straight answer feels." text="We're on E Elm St in Lodi, open Monday through Saturday. Call ahead and we'll make room for you." loc="about-cta" />
+</Base>
