@@ -1,0 +1,249 @@
+---
+/**
+ * Full-bleed background video.
+ *
+ * The video is the first thing on the page and sits behind everything. Text
+ * does not appear until it is actually playing — with the important caveat
+ * that "playing" is not guaranteed: iOS Low Power Mode, a data saver, a
+ * reduced-motion preference or a plain decode failure all end with no video.
+ * Every one of those paths still has to end with a readable page, so the copy
+ * is revealed by whichever comes first: the video playing, or a short
+ * fallback timer.
+ */
+import { SITE } from "../lib/site";
+
+export interface Props {
+  src: string;
+  /** Shown if the video cannot or should not play. */
+  fallbackImage: string;
+  fallbackAlt: string;
+}
+
+const { src, fallbackImage, fallbackAlt } = Astro.props;
+---
+
+<section class="hero" data-hero>
+  <div class="hero-media" aria-hidden="true">
+    <video
+      id="hero-video"
+      class="hero-video"
+      muted
+      loop
+      playsinline
+      autoplay
+      disablepictureinpicture
+      disableremoteplayback
+      preload="auto"
+      tabindex="-1"
+    >
+      <source src={src} type="video/mp4" />
+    </video>
+
+    {/* Only drawn if the video never runs. */}
+    <img class="hero-fallback" src={fallbackImage} alt={fallbackAlt} width="1284" height="1711" />
+  </div>
+
+  {/* Readability scrim: sits behind the nav only, per the spec — the rest of
+      the frame stays untouched so the footage reads at full contrast. */}
+  <div class="nav-scrim" aria-hidden="true"></div>
+
+  <div class="hero-inner shell">
+    <p class="eyebrow">Locally owned · Lodi, California</p>
+    <h1>Honest auto, diesel &amp; fleet repair in Lodi</h1>
+    <p class="lede">
+      We diagnose the vehicle before we replace anything, and you get the price
+      before a wrench moves.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary phone" href={`tel:${SITE.phoneLink}`} data-magnetic data-cursor="Call">
+        {SITE.phone}
+      </a>
+      <a class="btn btn-glass" href="#quote" data-magnetic>Get a quote</a>
+    </div>
+    <p class="trust tnum">
+      <span class="stars" aria-hidden="true">★★★★☆</span>
+      <strong>{SITE.rating}</strong> from {SITE.reviewCount} ratings · Mon–Sat 8–5
+    </p>
+  </div>
+
+  <span class="scroll-hint" aria-hidden="true">Scroll</span>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    width: 100%;
+    /* svh, so a mobile browser's collapsing toolbar does not crop the CTA. */
+    height: 100svh;
+    min-height: 34rem;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    background: #05050f;          /* what shows before the first frame */
+    isolation: isolate;
+  }
+
+  /* --- the video layer: behind everything --- */
+  .hero-media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .hero-video,
+  .hero-fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;            /* fill, never distort */
+    object-position: center;
+    display: block;
+  }
+  /* Faded up once it is genuinely playing, so the cut from black is not a
+     jump and a stalled video never shows a half-decoded frame. */
+  .hero-video { opacity: 0; transition: opacity 0.9s ease; }
+  .hero.is-playing .hero-video { opacity: 1; }
+
+  .hero-fallback { opacity: 0; transition: opacity 0.6s ease; }
+  .hero.is-fallback .hero-fallback { opacity: 1; }
+  .hero.is-fallback .hero-video { display: none; }
+
+  /* --- nav scrim: behind the navbar only --- */
+  .nav-scrim {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 7.5rem;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0.42) 0%,
+      rgb(0 0 0 / 0.2) 45%,
+      rgb(0 0 0 / 0) 100%
+    );
+  }
+
+  /* --- copy --- */
+  .hero-inner {
+    position: relative;
+    z-index: 2;
+    padding-block: 6rem 4rem;
+    max-width: min(1200px, 100% - 2.5rem);
+    /* Held back until the video is up, exactly as asked. */
+    opacity: 0;
+    translate: 0 14px;
+  }
+  .hero.is-ready .hero-inner {
+    opacity: 1;
+    translate: 0 0;
+    transition: opacity 0.8s ease 0.25s, translate 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
+  }
+
+  /* A local wash behind the copy only — the nav scrim is for the nav, and
+     white type over unknown footage needs its own footing. */
+  .hero-inner::before {
+    content: "";
+    position: absolute;
+    inset: -3rem -3rem -3rem -50vw;
+    z-index: -1;
+    background: linear-gradient(
+      100deg,
+      rgb(5 5 15 / 0.82) 0%,
+      rgb(5 5 15 / 0.62) 58%,
+      rgb(5 5 15 / 0) 100%
+    );
+    pointer-events: none;
+  }
+
+  h1 {
+    max-width: 17ch;
+    text-shadow: 0 2px 30px rgb(0 0 0 / 0.55);
+  }
+  .lede {
+    font-size: clamp(1.05rem, 1.7vw, 1.28rem);
+    max-width: 42ch;
+    margin-top: 1.3rem;
+    text-shadow: 0 1px 18px rgb(0 0 0 / 0.6);
+  }
+  .cta-row { display: flex; gap: 0.9rem; flex-wrap: wrap; margin: 2rem 0 1.5rem; }
+  .btn-glass {
+    background: rgb(255 255 255 / 0.1);
+    color: #fff;
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.28);
+  }
+  .trust { font-size: 0.95rem; color: #cdd6e6; text-shadow: 0 1px 12px rgb(0 0 0 / 0.6); }
+  .trust strong { color: #fff; }
+  .stars { color: var(--color-signal); letter-spacing: 0.1em; margin-right: 0.35rem; }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 1.6rem;
+    left: 50%;
+    translate: -50% 0;
+    z-index: 2;
+    font-size: 0.62rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.65);
+    opacity: 0;
+  }
+  .hero.is-ready .scroll-hint { opacity: 1; transition: opacity 0.6s ease 0.8s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-inner, .scroll-hint { opacity: 1; translate: none; transition: none; }
+  }
+</style>
+
+<script>
+  const hero = document.querySelector<HTMLElement>("[data-hero]");
+  const video = document.getElementById("hero-video") as HTMLVideoElement | null;
+
+  if (hero) {
+    const reveal = () => hero.classList.add("is-ready");
+    const useFallback = () => {
+      hero.classList.add("is-fallback");
+      video?.removeAttribute("src");
+      video?.load?.();
+      reveal();
+    };
+
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const link = (navigator as any).connection ?? {};
+    const metered = !!(link.saveData || link.effectiveType === "slow-2g" || link.effectiveType === "2g");
+
+    if (!video || reduced || metered) {
+      /* A looping video is motion, and it is a megabyte and a half. Neither is
+         something to force on someone who has asked for less of either. */
+      useFallback();
+    } else {
+      video.muted = true; // attribute alone is not always enough for autoplay
+
+      video.addEventListener("playing", () => {
+        hero.classList.add("is-playing");
+        reveal();
+      }, { once: true });
+
+      video.addEventListener("error", useFallback, { once: true });
+      Array.from(video.querySelectorAll("source")).forEach((s) =>
+        s.addEventListener("error", () => {
+          if (video.readyState === 0) useFallback();
+        })
+      );
+
+      /* Autoplay can be refused outright — iOS Low Power Mode is the common
+         one — and the promise rejection is the only notice you get. */
+      video.play?.().catch(() => {
+        if (!hero.classList.contains("is-playing")) useFallback();
+      });
+
+      /* Last resort. Whatever happened, the page must not sit there wordless. */
+      setTimeout(() => {
+        if (!hero.classList.contains("is-playing")) useFallback();
+      }, 4000);
+    }
+  }
+</script>

@@ -28,11 +28,21 @@ import { SITE } from "../lib/site";
 </header>
 
 <style>
+  /* Over the hero the bar is genuinely transparent — the video shows through
+     it, and the only thing separating the type from the footage is the scrim
+     the hero paints behind it. Past the hero there is no video left to show
+     through, so it takes a solid ground rather than floating unreadably over
+     the page content. */
   .site-header {
     position: sticky; top: 0; z-index: 60;
-    background: color-mix(in srgb, var(--color-ink) 82%, transparent);
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    transition: background 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease;
+  }
+  :global(html[data-past-hero]) .site-header {
+    background: color-mix(in srgb, var(--color-ink) 88%, transparent);
     backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--color-line);
+    border-bottom-color: var(--color-line);
   }
   .vh {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -40,16 +50,30 @@ import { SITE } from "../lib/site";
   }
   .brand { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
   .brand img { border-radius: 8px; background: #fff; padding: 3px; }
-  .brand strong { display: block; font-weight: 800; letter-spacing: -0.02em; font-size: 1rem; }
-  .brand small { display: block; font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-muted); }
+  .brand strong { display: block; font-weight: 800; letter-spacing: -0.02em; font-size: 1rem; text-shadow: 0 1px 10px rgb(0 0 0 / 0.5); }
+  .brand small { display: block; font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: #b9c4d6; }
   .primary-nav { display: flex; gap: 1.5rem; font-weight: 600; font-size: 0.95rem; }
-  .primary-nav a { text-decoration: none; color: var(--color-muted); }
+  .primary-nav a { text-decoration: none; color: #d3dbe8; text-shadow: 0 1px 10px rgb(0 0 0 / 0.5); }
   .primary-nav a:hover { color: var(--color-text); }
   .header-call { text-decoration: none; text-align: right; }
-  .header-call small { display: block; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--color-muted); }
+  .header-call small { display: block; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: #b9c4d6; }
   .header-call strong { font-weight: 800; font-size: 1.05rem; }
   @media (max-width: 900px) {
     .primary-nav { display: none; }
     .header-call { margin-left: auto; }
   }
 </style>
+
+<script>
+  /* Tells the header when there is no longer a video behind it. */
+  const hero = document.querySelector("[data-hero]");
+  const root = document.documentElement;
+  if (hero && "IntersectionObserver" in window) {
+    new IntersectionObserver(
+      ([e]) => root.toggleAttribute("data-past-hero", !e.isIntersecting),
+      { threshold: 0, rootMargin: "-72px 0px 0px 0px" }
+    ).observe(hero);
+  } else {
+    root.toggleAttribute("data-past-hero", true);
+  }
+</script>
