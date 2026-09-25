@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { existsSync } from 'node:fs';
 import { site, BASE, localBusiness } from '../lib/seo';
 
 interface Props {
@@ -18,9 +19,13 @@ interface Props {
 }
 const {
   title, description, path, active, noindex = false, lang = 'en', alternates = [],
-  schemas = [], overlayHeader = false, ogImage = '/assets/img/og-cover.png',
+  schemas = [], overlayHeader = false,
 } = Astro.props;
 const canonical = `${BASE}${path}`;
+// Per-page Open Graph image from scripts/og-images.mjs; falls back to the generic cover.
+const ogKey = path === '/' ? 'home' : path.replace(/^\/|\/$/g, '').replace(/\//g, '-');
+const ogImage = Astro.props.ogImage
+  ?? (existsSync(new URL(`../../public/assets/og/${ogKey}.jpg`, import.meta.url)) ? `/assets/og/${ogKey}.jpg` : '/assets/img/og-cover.png');
 const allSchemas = [localBusiness(), ...schemas];
 ---
 <!DOCTYPE html>
@@ -41,6 +46,8 @@ const allSchemas = [localBusiness(), ...schemas];
   <meta property="og:image" content={`${BASE}${ogImage}`}>
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content={title}>
+  <meta name="twitter:image" content={`${BASE}${ogImage}`}>
   <meta property="og:locale" content={lang === 'es' ? 'es_US' : 'en_US'}>
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content={title}>
