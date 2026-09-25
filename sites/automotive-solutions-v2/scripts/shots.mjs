@@ -19,14 +19,14 @@ const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromiu
 // --- desktop ---
 for (const [w,h] of [[1440,900],[1920,1080]]) {
   const pg = await browser.newPage({ viewport:{width:w,height:h}, deviceScaleFactor:1 });
-  await pg.goto(BASE+'/', {waitUntil:'networkidle'});
+  await pg.goto(BASE+'/', {waitUntil:'load'});
   await pg.waitForTimeout(500);
   await pg.screenshot({ path: path.join(QA, `desktop-${w}x${h}-hero.png`) });
   await pg.close();
 }
 const full = await browser.newPage({ viewport:{width:1440,height:900} });
 for (const p of ['/','/services/brake-repair/','/advice/check-engine-light/','/reviews/']) {
-  await full.goto(BASE+p,{waitUntil:'networkidle'});
+  await full.goto(BASE+p,{waitUntil:'load'});
   await full.evaluate(()=>document.querySelectorAll('img[loading=lazy]').forEach(i=>i.loading='eager'));
   await full.evaluate(()=>Promise.all(Array.from(document.images).map(i=>i.complete?0:new Promise(r=>{i.onload=r;i.onerror=r}))));
   await full.waitForTimeout(700);
@@ -37,7 +37,7 @@ await full.close();
 
 // --- iPhone 390x844 ---
 const phone = await browser.newPage({ viewport:{width:390,height:844}, deviceScaleFactor:2, isMobile:true, hasTouch:true });
-await phone.goto(BASE+'/',{waitUntil:'networkidle'});
+await phone.goto(BASE+'/',{waitUntil:'load'});
 await phone.waitForTimeout(500);
 await phone.screenshot({ path: path.join(QA,'iphone-390x844-hero.png') });
 await phone.click('.nav-toggle');

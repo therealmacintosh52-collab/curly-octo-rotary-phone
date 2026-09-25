@@ -42,8 +42,26 @@ const server = createServer((req, res) => {
   if (!existsSync(file) || statSync(file).isDirectory()) {
     res.writeHead(404); res.end('nope'); return;
   }
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
-  res.end(readFileSync(file));
+  // Range support: <video> asks for byte ranges and treats a plain 200 for a
+  // large file as a reason to abort, which looks exactly like a broken clip.
+  const buf = readFileSync(file);
+  const type = MIME[path.extname(file)] || 'application/octet-stream';
+  const range = req.headers.range;
+  if (range) {
+    const m = /bytes=(\d*)-(\d*)/.exec(range);
+    const start = Number(m[1] || 0);
+    const end = Math.min(Number(m[2] || buf.length - 1), buf.length - 1);
+    res.writeHead(206, {
+      'Content-Type': type,
+      'Content-Range': `bytes ${start}-${end}/${buf.length}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': end - start + 1,
+    });
+    res.end(buf.subarray(start, end + 1));
+    return;
+  }
+  res.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Length': buf.length });
+  res.end(buf);
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}`;
@@ -73,7 +91,9 @@ page.on('console', (m) => { if (m.type() === 'error' && !/maps|favicon/i.test(m.
 
 for (const p of pages) {
   jsErrors.length = 0;
-  await page.goto(BASE + p, { waitUntil: 'networkidle' });
+  // 'load', not 'networkidle': the hero video streams continuously, so the
+  // network never goes idle and networkidle would hang or time out.
+  await page.goto(BASE + p, { waitUntil: 'load' });
   await page.waitForTimeout(120);
 
   const info = await page.evaluate(() => {
@@ -171,7 +191,7 @@ for (const p of pages) {
 }
 
 /* ------------------------------------------------------------- contrast */
-await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+await page.goto(BASE + '/', { waitUntil: 'load' });
 const contrast = await page.evaluate(() => {
   const lum = (r, g, b) => {
     const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };

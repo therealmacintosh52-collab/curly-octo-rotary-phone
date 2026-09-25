@@ -122,11 +122,21 @@ const hero = document.querySelector<HTMLElement>('[data-hero]');
 const video = document.querySelector<HTMLVideoElement>('[data-hero-video]');
 
 if (hero && video) {
-  const SRC = '/assets/video/shop.mp4';
+  // WebM/VP9 first (smaller, and what Chrome, Firefox, Edge and Android take),
+  // H.264 MP4 second for Safari and iOS. canPlayType picks; if neither is
+  // supported the poster simply stays, which is a perfectly good outcome.
+  const SOURCES: [string, string][] = [
+    ['/assets/video/shop.webm', 'video/webm; codecs="vp9"'],
+    ['/assets/video/shop.mp4', 'video/mp4; codecs="avc1.42E01E"'],
+  ];
+  let attached = false;
   let settled = false;
 
   const attempt = () => {
-    if (settled) return;
+    // Never call play() before a source exists. Doing so fails the element's
+    // resource-selection algorithm, leaves networkState at NETWORK_NO_SOURCE,
+    // and raises a spurious "tap to play" before the clip has had any chance.
+    if (!attached || settled) return;
     const p = video.play();
     if (p && typeof p.then === 'function') {
       p.then(() => {
@@ -140,18 +150,19 @@ if (hero && video) {
   };
 
   const attach = () => {
+    if (attached) return;
     // muted must be set in JS as well as in markup; some iOS builds ignore the
     // attribute alone and refuse the autoplay.
     video.muted = true;
     video.defaultMuted = true;
     video.setAttribute('muted', '');
-    if (!video.querySelector('source')) {
-      const source = document.createElement('source');
-      source.src = SRC;
-      source.type = 'video/mp4';
-      video.appendChild(source);
-      video.load();
-    }
+    // Assigning .src directly rather than appending <source> children: with
+    // preload="none" the child-element path leaves the element in a state
+    // where selection has already failed and does not reliably re-run.
+    const pick = SOURCES.find(([, type]) => video.canPlayType(type) !== '');
+    if (!pick) return;                 // no decoder for either — keep the poster
+    video.src = pick[0];
+    attached = true;
     attempt();
   };
 
@@ -177,7 +188,7 @@ if (hero && video) {
     new IntersectionObserver((entries) => {
       entries.forEach((en) => {
         if (en.isIntersecting) { if (settled) video.play().catch(() => {}); }
-        else video.pause();
+        else if (attached) video.pause();
       });
     }, { threshold: 0.05 }).observe(hero);
   }

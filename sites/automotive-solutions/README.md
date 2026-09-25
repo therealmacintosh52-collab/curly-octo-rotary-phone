@@ -47,7 +47,7 @@ the owner. Check each one before it goes live.
 | 11 | Towns served | Neighboring communities around Elk Grove | Confirm the shop actually wants customers from all of them (`SITE["areas"]`) |
 | 12 | Old-site redirects | Only `/services`, `/aboutus` and `/contact` were confirmed indexed; the rest are informed guesses | **Verify against the live site** — see below |
 | 13 | Reviews | Only one verbatim quote was supplied, with no reviewer name | Paste more real reviews into `REVIEWS`, with the name and the platform |
-| 14 | **Shop photos are low resolution** | Two photos from the shop's Google listing: 201×144 and 201×202 originals | Get the full-size files off the phone or camera they were taken on. See below. |
+| 14 | ~~Shop photos~~ | **Resolved** — full-resolution originals supplied, now 1400×875 | Still missing: the storefront with the sign, and the team |
 
 ### Reviews policy
 
@@ -86,14 +86,9 @@ missing to `OLD_URL_MAP` and rebuild.
    the profile's own share link, and check the profile itself lists the same
    name, address, phone and hours as this site. Mismatched citations cost local
    ranking.
-5. **Supply full-resolution photos.** Two real bay photos are now in the site
-   (a classic sedan on the lift, and a wagon with its hood up), but they came
-   from the Google listing at 201px wide and are displayed at 513px — roughly
-   2.5× beyond their real resolution. They hold up at this size and they are a
-   large improvement on an illustration, but they are soft up close and they
-   cannot be used any larger. The originals off the phone that took them would
-   fix this with no other change. Still missing: the shop front, the team, and
-   a photo of someone actually working on a car.
+5. **Supply the remaining photos.** The two bay photos are now full-resolution
+   originals (a 1956 Ford and a BMW 3 Series on the lifts), cropped to 16:10 at
+   1400×875. Still missing: the storefront with the real sign, and the team.
 6. **Ask customers for reviews.** 55 is decent; the shops that outrank you in
    Elk Grove mostly just have more.
 
@@ -108,7 +103,7 @@ assets/                  hand-maintained; copied into the output on every build
   js/site.js             mobile nav, dataLayer/gtag events, form handling
   img/logo.png           the shop's real logo, cropped from the supplied file
   img/bay-classic.jpg    real shop photo — classic sedan on the lift
-  img/bay-subaru.jpg     real shop photo — wagon on the lift, hood up
+  img/bay-bmw.jpg        real shop photo — BMW 3 Series on the lift, hood up
   img/shop-scene.svg     custom illustration; the fallback when a slot has no
                          photo, and still used if PHOTOS entries are removed
   img/favicon.svg        mark built from the logo's two colors
@@ -131,9 +126,8 @@ is ever left with an empty frame. To swap a photo: drop the file in
 `assets/img/`, change the entry in `PHOTOS`, re-run `build.py`. Crop to roughly
 16:10 and supply at least 1200px wide.
 
-Both current photos were cropped to 16:10 and given a restrained unsharp pass,
-because a 2× upscale of a 201px source goes mushy without one. That is a
-salvage job, not a substitute for the originals — see the owner list below.
+Both photos are full-resolution originals supplied by the shop, cropped to
+16:10 and resized to 1400×875. No upscaling is involved any more.
 
 ## Design
 

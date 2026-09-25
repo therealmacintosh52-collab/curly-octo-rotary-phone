@@ -69,9 +69,13 @@
    the frame, and a bottom band so the gradient nav has something to sit on. */
 .hero-v__scrim {
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  /* Deliberately heavy through the middle band where all the copy sits. The
+     clip pushes past a white roll-up door, so at some frames the brightest
+     part of the shot lands directly behind the eyebrow and the headline; the
+     scrim has to hold for the worst frame, not the average one. */
   background:
-    linear-gradient(to bottom, rgba(4,7,26,.86) 0%, rgba(4,7,26,.42) 34%, rgba(4,7,26,.30) 56%, rgba(4,7,26,.90) 100%),
-    linear-gradient(to right, rgba(4,7,26,.80) 0%, rgba(4,7,26,.30) 55%, rgba(4,7,26,0) 100%);
+    linear-gradient(to bottom, rgba(4,7,26,.90) 0%, rgba(4,7,26,.64) 30%, rgba(4,7,26,.60) 56%, rgba(4,7,26,.93) 100%),
+    linear-gradient(to right, rgba(4,7,26,.88) 0%, rgba(4,7,26,.52) 52%, rgba(4,7,26,.08) 100%);
 }
 .hero-v__inner {
   position: relative; z-index: 2;

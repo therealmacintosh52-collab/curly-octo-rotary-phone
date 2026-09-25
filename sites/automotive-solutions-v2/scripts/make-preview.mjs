@@ -56,6 +56,12 @@ for (const file of files) {
   let body = html.split('<body>')[1].split('</body>')[0];
   body = body.replace(/<script[^>]*type="module"[^>]*><\/script>/g, '');
   body = body.replace(/<iframe class="map-frame"[\s\S]*?<\/iframe>/g, MAP_PLACEHOLDER);
+  // A 1.4 MB video cannot be inlined into a single shareable file, so the
+  // preview shows the poster frame instead and says so rather than looking broken.
+  body = body.replace(/<video class="hero-v__video"[\s\S]*?<\/video>/g, '');
+  body = body.replace(/<button class="hero-v__tap"[\s\S]*?<\/button>/g,
+    '<span class="hero-v__tap" style="display:inline-flex;pointer-events:none">' +
+    'Poster frame — the live site plays the clip here</span>');
   // <picture> sources cannot be rewritten per-format cheaply; keep the img only.
   body = body.replace(/<source[^>]*>/g, '');
   // hand images to the router as data-src so each data URI is stored once

@@ -859,19 +859,18 @@ SERVICE_BY_SLUG = {s["slug"]: s for s in SERVICES}
 # ==========================================================================
 # Real photographs of the shop.
 #
-# These two came from the shop's own Google listing and are small - see
-# README.md. Replace them with full-resolution originals when the shop can
-# supply them: same keys, same 16:10 crop, at least 1200px wide.
+# Full-resolution originals supplied by the shop, cropped to 16:10 at 1400px.
+# To swap one: drop the file in assets/img/, update the entry here, re-run.
 # ==========================================================================
 PHOTOS = {
     "classic": ("bay-classic.jpg",
-                "A classic sedan raised on a two-post lift with its hood open inside the "
+                "A 1956 Ford sedan raised on a two-post lift with its hood open inside the "
                 "service bay at Automotive Solutions in Elk Grove",
-                402, 250),
-    "subaru": ("bay-subaru.jpg",
-               "A Subaru wagon raised on a lift with its hood up, under the bay lights at "
-               "Automotive Solutions in Elk Grove",
-               402, 250),
+                1400, 875),
+    "bmw": ("bay-bmw.jpg",
+            "A BMW 3 Series raised on a two-post lift with its hood open in the service "
+            "bay at Automotive Solutions in Elk Grove",
+            1400, 875),
 }
 
 
@@ -1654,7 +1653,7 @@ def build_home():
         </div>
       </div>
       <div>
-        {photo_slot("Every vehicle gets diagnosed before it gets quoted — that is the whole method.", "In the bay", photo=PHOTOS["subaru"])}
+        {photo_slot("Every vehicle gets diagnosed before it gets quoted — that is the whole method.", "In the bay", photo=PHOTOS["bmw"])}
       </div>
     </div>
   </div>
@@ -2760,7 +2759,7 @@ def build_spanish():
         <p style="margin:22px 0 0">
           <a class="btn btn-accent" href="{MAPS_DIRECTIONS}" rel="noopener" data-loc="es-directions" style="width:100%">Cómo llegar</a></p>
         <div style="margin-top:26px">
-          {photo_slot("Cada vehículo se diagnostica antes de cotizarse — ese es todo el método.", "En el taller", photo=PHOTOS["subaru"])}
+          {photo_slot("Cada vehículo se diagnostica antes de cotizarse — ese es todo el método.", "En el taller", photo=PHOTOS["bmw"])}
         </div>
       </div>
     </div>

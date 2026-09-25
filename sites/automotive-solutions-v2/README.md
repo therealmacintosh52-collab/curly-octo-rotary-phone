@@ -66,12 +66,41 @@ background each element actually renders on.
 
 ## The hero video
 
-Built and shipped now; the clip is a file swap with no code change.
+**In and live.** `public/assets/video/shop.mp4` (1.36 MB) + `shop.webm` (1.21 MB),
+10.3 s, silent, seamless loop.
+
+### Only the second half of the supplied clip is used — read this before reshooting
+
+The clip supplied was AI-generated, and its first ~6 seconds are a storefront
+that cannot go on the site:
+
+- **The sign on the building reads `916-000-5277`.** The shop's number is
+  **(916) 686-5277**. A wrong phone number, rendered large on the building, on a
+  site whose entire job is getting people to call.
+- The logo on that sign is the wrong colours (maroon, not orange and blue) and
+  "SOLUTIONS" underneath it is garbled; the address line is illegible.
+- A **"DIESEL REPAIR"** sign appears on the wall. This shop does not claim diesel.
+- The generated logo watermark fades out over the first second.
+- The building is not 9253 Elk Grove Blvd.
+
+So the encode starts at **6.2 s**, after all of that leaves frame. What is left
+is a slow push through the roll-up door into a bay full of cars on lifts, with
+no text, no sign and no watermark in it — which is both accurate and the better
+shot. It is slowed to 0.75× and ping-ponged (forward then reversed) so the loop
+has no visible cut, since a push-in never loops cleanly on its own.
 
 ```bash
-npm run video -- ~/the-raw-clip.mov
-# then set hasVideo={true} on <VideoHero> in src/pages/index.astro
-# and focus="…" to wherever the sign sits in frame
+npm run video -- raw.mp4 --start 6.2 --speed 0.75 --pingpong
+```
+
+If a real 10 seconds gets shot at the actual shop, it will beat this. Nothing
+in the code changes — re-run the command and rebuild.
+
+### Swapping a new clip in
+
+```bash
+npm run video -- ~/the-raw-clip.mov          # + --start/--end/--speed/--pingpong
+# hasVideo={true} and focus="…" are already set in src/pages/index.astro
 npm run build && npm run og && node scripts/audit.mjs
 ```
 
@@ -88,10 +117,40 @@ the attribute alone and refuse the autoplay. Play is retried on `canplay`,
 refused — iPhone Low Power Mode is the usual reason — the poster stays and a
 "Tap to play" pill appears. The video pauses when scrolled off-screen.
 
-**Until the clip arrives** the poster is a flat dark texture with no logo and no
-words on it, and the mobile media band collapses (`.hero-v--noclip`) so the
-headline and the call button are not pushed down by empty space. Setting
-`hasVideo={true}` restores the full band automatically.
+Two formats are shipped and negotiated at runtime with `canPlayType`: WebM/VP9
+first (smaller, taken by Chrome, Firefox, Edge and Android), H.264 MP4 second
+for Safari and iOS. If neither decodes, the poster simply stays.
+
+**With no clip present** the poster falls back to a flat dark texture and the
+mobile media band collapses (`.hero-v--noclip`) so nothing is pushed down by
+empty space. `hasVideo={false}` restores that state.
+
+### Two traps worth knowing about, both cost time here
+
+1. **Do not use the ffmpeg bundled with Playwright** (`/opt/pw-browsers/ffmpeg-*`).
+   It is a stripped build for WebM screen recording: matroska/webm demux and VP8
+   decode only, no MP4 container and no H.264. Handed a normal phone clip it says
+   `Invalid data found when processing input`, which reads exactly like a corrupt
+   file and is not one. `scripts/ffmpeg-path.mjs` resolves `ffmpeg-static` instead.
+2. **The headless Chromium here has no H.264 decoder** — it is the open-source
+   build, and `canPlayType('video/mp4; codecs="avc1.42E01E"')` returns empty. An
+   MP4-only hero is therefore untestable in this container and looks broken when
+   it is fine. Shipping the WebM alongside is what makes the autoplay path
+   verifiable, and it is smaller for most visitors anyway.
+
+Also: the test server must support HTTP **Range** requests and pages with video
+must wait for `load`, not `networkidle` — a streaming video means the network
+never goes idle. Both are handled in `scripts/`.
+
+### Verified
+
+| | Result |
+|---|---|
+| Autoplay, default Chrome policy | plays, `readyState 4`, `is-playing` set |
+| Autoplay, `--autoplay-policy=document-user-activation-required` | still plays |
+| Autoplay refused (Low Power Mode simulated) | poster stays, tap cue shown, no false "playing" |
+| Hero text vs the brightest pixel behind it, sampled every 2 s of the loop | white 10.9–11.9:1, orange eyebrow 5.0–5.5:1 |
+| Audio | stripped (`-an`) |
 
 ---
 
@@ -133,7 +192,7 @@ owner. `seo/launch-checklist.md` has the full sequence.
 | # | Item | Source | Action |
 |---|---|---|---|
 | 1 | **Shop email** | Not published anywhere | **Blocking.** Set `site.email`, rebuild, click the FormSubmit confirmation. Until then the form tells visitors to call rather than pretending to send. |
-| 2 | **Hero video** | Owner is supplying | `npm run video`, flip `hasVideo` |
+| 2 | ~~Hero video~~ | **Done** — supplied clip trimmed to its usable half | Consider reshooting 10 s at the real shop; see above |
 | 3 | Hours Mon–Fri 9–6 | NAPA, Yelp and the old site agree | Confirm Saturdays |
 | 4 | Since 2001 | automotivesolutionsbysingle.com | Confirm — directories loosely say "15 years" and "20 years" |
 | 5 | Owners: Mike and Valerie Single | Public listings | Confirm spelling, and that they want naming |
@@ -146,14 +205,16 @@ owner. `seo/launch-checklist.md` has the full sequence.
 | 12 | Towns served | Neighbouring communities | Confirm the shop wants all ten |
 | 13 | **Redirects** | Only `/services`, `/aboutus`, `/contact` confirmed indexed | **Verify against the live site** — Search Console → Indexing → Pages |
 | 14 | Reviews | One verbatim quote, no reviewer name | Add real ones to `reviews` in `site.json` |
-| 15 | Shop photos | Google-listing thumbnails, ~200 px originals | Get the full-size files off the phone that took them |
+| 15 | ~~Shop photos~~ | **Done** — full-resolution originals supplied, 1400×875 | Still missing: storefront with the real sign, and the team |
 
 ## Only the owner can do these
 
 1. Supply the email, then click the one-time FormSubmit confirmation link.
-2. Supply the hero clip.
+2. Decide on the hero clip: keep the trimmed interior shot, or shoot 10 seconds
+   at the real shop. The supplied clip's storefront half is unusable — it shows a
+   wrong phone number on the building.
 3. Verify the old page addresses so the 301s are complete.
 4. Update the Google Business Profile — categories, all twelve services, photos,
    website link — and make the name/address/phone match this site exactly.
-5. Supply full-resolution photos: storefront with the sign, the team, work in progress.
+5. Supply the remaining photos: the real storefront with the real sign, and the team.
 6. Ask customers for reviews. See `marketing/review-request-templates.md`.

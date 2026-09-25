@@ -17,8 +17,26 @@ const server = createServer((req, res) => {
   let file = path.join(DIST, url);
   if (url.endsWith('/')) file = path.join(file, 'index.html');
   if (!existsSync(file) || statSync(file).isDirectory()) { res.writeHead(404); res.end(); return; }
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
-  res.end(readFileSync(file));
+  // Range support: <video> asks for byte ranges and treats a plain 200 for a
+  // large file as a reason to abort, which looks exactly like a broken clip.
+  const buf = readFileSync(file);
+  const type = MIME[path.extname(file)] || 'application/octet-stream';
+  const range = req.headers.range;
+  if (range) {
+    const m = /bytes=(\d*)-(\d*)/.exec(range);
+    const start = Number(m[1] || 0);
+    const end = Math.min(Number(m[2] || buf.length - 1), buf.length - 1);
+    res.writeHead(206, {
+      'Content-Type': type,
+      'Content-Range': `bytes ${start}-${end}/${buf.length}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': end - start + 1,
+    });
+    res.end(buf.subarray(start, end + 1));
+    return;
+  }
+  res.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Length': buf.length });
+  res.end(buf);
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}`;

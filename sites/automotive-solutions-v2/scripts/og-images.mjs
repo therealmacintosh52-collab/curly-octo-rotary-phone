@@ -81,10 +81,12 @@ const tpl = ({ h1, eyebrow }) => `<!DOCTYPE html><html><head><meta charset="utf-
 
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
+// 'load', not 'networkidle': the hero video streams continuously, so the
+// network never goes idle and networkidle would hang or time out.
 await page.goto(`file://${path.dirname(LOGO)}/`);
 
 for (const p of pages) {
-  await page.setContent(tpl(p), { waitUntil: 'networkidle' });
+  await page.setContent(tpl(p), { waitUntil: 'load' });
   await page.screenshot({ path: path.join(OUT, `${p.slug}.jpg`), type: 'jpeg', quality: 84 });
 }
 await browser.close();

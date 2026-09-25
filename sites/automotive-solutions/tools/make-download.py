@@ -224,7 +224,7 @@ def main():
         "assets/css/site.css", "assets/js/site.js",
         "assets/img/logo.png", "assets/img/shop-scene.svg",
         "assets/img/favicon.svg", "assets/img/og-cover.png",
-        "assets/img/bay-classic.jpg", "assets/img/bay-subaru.jpg",
+        "assets/img/bay-classic.jpg", "assets/img/bay-bmw.jpg",
         "services/index.html", "services/brake-repair/index.html",
         "about/index.html", "contact/index.html", "reviews/index.html",
         "es/index.html", "advice/index.html", "privacy/index.html",

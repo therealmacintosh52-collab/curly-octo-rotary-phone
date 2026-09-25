@@ -20,14 +20,15 @@ import { chromium } from 'playwright-core';
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const IMG = path.join(ROOT, 'public/assets/img');
 const VIDEO = path.join(ROOT, 'public/assets/video/shop.mp4');
+import { FFMPEG } from './ffmpeg-path.mjs';
+
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-const FFMPEG = '/opt/pw-browsers/ffmpeg-1011/ffmpeg-linux';
 const W = 1280, H = 720;
 
 mkdirSync(IMG, { recursive: true });
 const base = path.join(IMG, 'hero-poster.png');
 
-if (existsSync(VIDEO) && existsSync(FFMPEG)) {
+if (existsSync(VIDEO)) {
   console.log('• real clip found — cutting frame 1');
   execFileSync(FFMPEG, ['-y', '-i', VIDEO, '-vframes', '1', '-vf', `scale=${W}:-2`, base], {
     stdio: 'ignore',
@@ -70,8 +71,10 @@ if (existsSync(VIDEO) && existsSync(FFMPEG)) {
 
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+  // 'load', not 'networkidle': the hero video streams continuously, so the
+  // network never goes idle and networkidle would hang or time out.
   await page.goto(`file://${IMG}/`);           // so the relative logo.png resolves
-  await page.setContent(html, { waitUntil: 'networkidle' });
+  await page.setContent(html, { waitUntil: 'load' });
   await page.screenshot({ path: base });
   await browser.close();
 }
