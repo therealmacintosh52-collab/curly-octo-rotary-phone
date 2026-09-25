@@ -89,7 +89,8 @@ def main():
             names = z.namelist()
         for required in ("index.html", ".htaccess", "sitemap.xml", "robots.txt",
                          "assets/css/site.css", "assets/js/site.js",
-                         "assets/img/logo.png", "assets/img/og-cover.png"):
+                         "assets/img/logo.png", "assets/img/og-cover.png",
+                         "assets/video/shop-bay.mp4", "assets/img/shop-bay-poster.jpg"):
             assert required in names, "archive is missing %s" % required
         print("%s — %.0f KB, %d files" % (OUT, os.path.getsize(OUT) / 1024, len(names)))
     finally:

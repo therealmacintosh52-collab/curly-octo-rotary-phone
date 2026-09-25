@@ -50,8 +50,12 @@ electrical & batteries · AC & heating · suspension & steering.
 - **Call is the primary action everywhere** — top bar, sticky header, hero, every section CTA,
   footer, and a fixed mobile call bar (Call / Directions / Get a Quote) pinned to the bottom
   of every page on phones.
-- **Quote form above the fold** on the homepage, and again on every service page pre-filled
-  with that service.
+- **Full-screen video of the shop** opens the homepage: a muted six-second loop of the bay fills
+  the first screen, the header floats over it, and the headline and Call / Get-a-quote buttons
+  fade in once the video is playing. If a phone refuses autoplay (Low Power Mode, data saver),
+  a still frame and the headline show instead. See "The homepage video" below.
+- **Quote form directly under the video** on the homepage, and again on every service page
+  pre-filled with that service.
 - **Objection handling built into the copy**: diagnosis before parts, no upsells, you approve
   every repair, second opinions welcome, dealership comparison table.
 - **Fleet/B2B path** kept distinct from the consumer path — fleet work is higher value and
@@ -74,8 +78,9 @@ electrical & batteries · AC & heating · suspension & steering.
   and `hreflang` between the English and Spanish pages.
 - `Article` schema on the advice guides.
 - Fast by construction: the home page is ~10 KB gzipped and makes four local requests (stylesheet,
-  script, logo, illustration) plus the lazy-loaded map. No webfonts, no icon fonts, no CDN, no
-  tracking pixels, no cookie banner to need.
+  script, logo, illustration) plus the lazy-loaded map and the 1.3 MB homepage video, which
+  streams in after the page has painted. No webfonts, no icon fonts, no CDN, no tracking pixels,
+  no cookie banner to need.
 - Accessible: skip link, semantic landmarks, labelled form fields, visible focus states,
   keyboard-operable nav and FAQ, reduced-motion support.
 
@@ -141,6 +146,24 @@ The related settings, all in the `SITE` block at the top of `build.py`:
 - `SITE["logo_dark_bg"]` — optional light/reversed logo for the dark footer. Without one, the
   footer puts the normal logo on a white disc so the dark line-art stays legible.
 - `SITE["favicon"]` — browser-tab icon, currently the logo itself.
+
+## The homepage video
+
+The loop lives at `public/assets/video/shop-bay.mp4` with a matching still frame at
+`public/assets/img/shop-bay-poster.jpg`. To change the clip, replace both files with the same
+names and re-run the build; nothing else needs editing.
+
+- **Format:** H.264 MP4, no audio track (the video is muted anyway, so audio is wasted bytes),
+  with the `moov` atom at the front (`ffmpeg -movflags +faststart`) so it starts before it has
+  fully downloaded.
+- **Shape:** the current clip is portrait (368x816), which is right for phones but is stretched
+  and cropped to a horizontal slice on a desktop monitor. A landscape 16:9 clip at 1920x1080 will
+  look markedly better on desktop; keep it under about 4 MB and under ten seconds.
+- **Framing:** `object-fit: cover` crops to fill the screen, so keep the subject near the centre
+  of the frame. `object-position` in `.video-hero__media` (`site.css`) nudges the crop.
+- **Behaviour** is in `assets/js/site.js` under "Full-screen video hero": the headline is
+  revealed on the `playing` event, autoplay refusal falls back to the poster frame, the first tap
+  retries playback, and visitors with reduced motion enabled see the still frame only.
 
 ## Sharing a preview before launch
 
@@ -301,7 +324,8 @@ public/                   generated site — deploy this
   sitemap.xml, robots.txt, 404.html
   assets/css/site.css     design system
   assets/js/site.js       nav, form handling, tracking hooks
-  assets/img/             logo, favicon fallback, social share image, shop illustration
+  assets/img/             logo, favicon fallback, social share image, shop illustration, video poster
+  assets/video/           the homepage loop (replace shop-bay.mp4 + the poster to change it)
   _redirects, .htaccess   301s from the old site's URLs (verify before launch)
   _headers                caching and security headers
   site.webmanifest        name, colours and icon for add-to-home-screen
@@ -309,4 +333,5 @@ tools/
   og-cover.html           source for the 1200x630 social share image
   png_crop.py             crops a PNG to an exact size (standard library only)
   make-preview.py         bundles the whole site into one shareable HTML file
+  make-download.py        zips the site with relative links for uploading to a host
 ```

@@ -872,7 +872,11 @@ ES_NAV = [
 ]
 
 
-def header_html(active=None, es=False):
+def header_html(active=None, es=False, overlay=False):
+    """Top strip plus the sticky header. With `overlay` (the video homepage)
+    the strip is dropped and the header floats transparently over the video;
+    site.js swaps it back to the normal white header once the hero scrolls
+    out of view."""
     links = []
     for label, url in (ES_NAV if es else NAV):
         cur = ' aria-current="page"' if active == url else ""
@@ -881,7 +885,7 @@ def header_html(active=None, es=False):
     cta_label = "Cotización" if es else "Get a Quote"
     call_label = "Llame al taller" if es else "Call the shop"
     cta_href = "#cotizacion" if es else "/contact/#quote"
-    return """<div class="topbar">
+    topbar = "" if overlay else """<div class="topbar">
   <div class="wrap">
     <span>%(pin)s %(addr)s</span>
     <span class="dot" aria-hidden="true">•</span>
@@ -890,7 +894,8 @@ def header_html(active=None, es=False):
     <a href="tel:%(tel)s" data-loc="topbar">%(phone)s</a>
   </div>
 </div>
-<header class="site-header">
+"""
+    return (topbar + """<header class="site-header%(overlay_cls)s">
   <div class="wrap header-inner">
     %(brand)s
     <nav class="nav" id="primary-nav" aria-label="Main">%(links)s</nav>
@@ -904,11 +909,12 @@ def header_html(active=None, es=False):
       <svg viewBox="0 0 24 24" aria-hidden="true">%(menu)s</svg>
     </button>
   </div>
-</header>""" % {"brand": brand(), "pin": icon("pin"), "clock": icon("clock"), "addr": esc(FULL_ADDRESS),
-                "tel": SITE["phone_link"], "phone": SITE["phone_display"],
-                "links": "".join(links), "menu": ICONS["menu"],
-                "hours_label": hours_label, "cta_label": cta_label,
-                "call_label": call_label, "cta_href": cta_href}
+</header>""") % {"brand": brand(), "pin": icon("pin"), "clock": icon("clock"), "addr": esc(FULL_ADDRESS),
+                 "tel": SITE["phone_link"], "phone": SITE["phone_display"],
+                 "links": "".join(links), "menu": ICONS["menu"],
+                 "hours_label": hours_label, "cta_label": cta_label,
+                 "call_label": call_label, "cta_href": cta_href,
+                 "overlay_cls": " site-header--overlay" if overlay else ""}
 
 
 def footer_html(es=False):
@@ -988,8 +994,9 @@ def footer_html(es=False):
 
 
 def render(path, title, description, body, schemas=None, active=None, noindex=False,
-           lang="en", alternates=None):
-    """Write one page. `path` is a URL path like '/services/brakes/' ('/' = home)."""
+           lang="en", alternates=None, overlay_header=False):
+    """Write one page. `path` is a URL path like '/services/brakes/' ('/' = home).
+    `overlay_header` floats the header over a full-screen hero (see header_html)."""
     canonical = SITE["base_url"] + path
     schemas = schemas or []
     schema_html = "".join('\n<script type="application/ld+json">%s</script>' % s for s in schemas)
@@ -1043,14 +1050,14 @@ def render(path, title, description, body, schemas=None, active=None, noindex=Fa
        "favicon": SITE.get("favicon") or "/assets/img/favicon.svg",
        "favicon_type": "image/svg+xml" if (SITE.get("favicon") or ".svg").endswith(".svg") else "image/png",
        "lat": SITE["lat"], "lng": SITE["lng"], "schema": schema_html,
-       "header": header_html(active, es=(lang == "es")), "body": body,
+       "header": header_html(active, es=(lang == "es"), overlay=overlay_header), "body": body,
        "footer": footer_html(es=(lang == "es")),
        "lang": lang, "alts": alt_links}
 
     if RELATIVE:
         depth = 0 if path == "/" else path.strip("/").count("/") + 1
         prefix = "./" if depth == 0 else "../" * depth
-        doc = re.sub(r'(href|src)="/(?!/)', r'\1="%s' % prefix, doc)
+        doc = re.sub(r'(href|src|poster|data-poster)="/(?!/)', r'\1="%s' % prefix, doc)
 
     rel = "index.html" if path == "/" else path.strip("/") + "/index.html"
     dest = os.path.join(OUT, rel)
@@ -1292,35 +1299,53 @@ HOME_FAQS = [
 
 
 def build_home():
-    body = f"""<section class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div>
-        <span class="eyebrow">Locally owned · Lodi, California</span>
-        <h1>Honest auto, diesel &amp; fleet repair in <em>Lodi, California</em></h1>
-        {rating_line()}
-        <p>A value-driven alternative to the dealership. We diagnose the problem properly,
-        explain it in plain language, and quote it before we touch a wrench — so you never
-        pay for parts your vehicle didn't need.</p>
-        <div class="btn-row">
-          {tel_btn("btn btn-accent", "hero")}
-          <a class="btn btn-ghost" href="#quote-form">Get a free quote</a>
-        </div>
-        <ul class="hero-points">
-          <li>{icon("check-circle")}<span>Domestic, import, diesel and commercial fleet vehicles</span></li>
-          <li>{icon("check-circle")}<span>Known for fixing what other shops misdiagnosed</span></li>
-          <li>{icon("check-circle")}<span>No upsells — you approve every repair before it happens</span></li>
-          <li>{icon("check-circle")}<span>Open Monday through Saturday, 8:00 AM – 5:00 PM</span></li>
-        </ul>
-      </div>
-      <div id="quote-form">
-        {quote_form("home-quote")}
-      </div>
+    # The homepage opens on a full-screen loop of the shop (assets/video/).
+    # The video is muted and inline so browsers allow autoplay; the headline
+    # and buttons stay invisible until the `playing` event so the first thing
+    # a visitor sees is the shop, not text over a black box. site.js handles
+    # the reveal, the poster fallback when autoplay is refused, and reduced
+    # motion. Replace shop-bay.mp4 + shop-bay-poster.jpg to change the clip.
+    body = f"""<section class="video-hero" data-video-hero>
+  <video class="video-hero__media" autoplay muted loop playsinline preload="auto"
+         disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1"
+         data-poster="/assets/img/shop-bay-poster.jpg">
+    <source src="/assets/video/shop-bay.mp4" type="video/mp4">
+  </video>
+  <div class="wrap video-hero__content">
+    <span class="eyebrow">Locally owned · Lodi, California</span>
+    <h1>Honest auto, diesel &amp; fleet repair in <em>Lodi, California</em></h1>
+    <div class="btn-row">
+      {tel_btn("btn btn-accent", "hero")}
+      <a class="btn btn-ghost" href="#quote-form">Get a free quote</a>
     </div>
   </div>
 </section>
 
 {stat_band()}
+
+<section class="quote-section" id="quote-form">
+  <div class="wrap">
+    <div class="split center-y">
+      <div>
+        <span class="eyebrow">Free quote</span>
+        <h2>Tell us what it's doing. We'll tell you what it needs.</h2>
+        {rating_line()}
+        <p>A value-driven alternative to the dealership. We diagnose the problem properly,
+        explain it in plain language, and quote it before we touch a wrench — so you never
+        pay for parts your vehicle didn't need.</p>
+        <ul class="checklist">
+          <li>{icon("check")}<span>Domestic, import, diesel and commercial fleet vehicles</span></li>
+          <li>{icon("check")}<span>Known for fixing what other shops misdiagnosed</span></li>
+          <li>{icon("check")}<span>No upsells — you approve every repair before it happens</span></li>
+          <li>{icon("check")}<span>Open Monday through Saturday, 8:00 AM – 5:00 PM</span></li>
+        </ul>
+      </div>
+      <div>
+        {quote_form("home-quote")}
+      </div>
+    </div>
+  </div>
+</section>
 
 <section>
   <div class="wrap">
@@ -1486,7 +1511,8 @@ def build_home():
            "reviewers. Diagnosis before parts, no upsells. Call (209) 647-4953.",
            body,
            schemas=[business_schema(), faq_schema(HOME_FAQS), website_schema()],
-           active="/", alternates=[("en", "/"), ("es", "/es/"), ("x-default", "/")])
+           active="/", alternates=[("en", "/"), ("es", "/es/"), ("x-default", "/")],
+           overlay_header=True)
     PAGES.append(("/", "1.0", "weekly"))
 
 
@@ -2357,7 +2383,9 @@ ErrorDocument 404 /404.html
   ExpiresByType text/css "access plus 1 week"
   ExpiresByType application/javascript "access plus 1 week"
   ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
   ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType video/mp4 "access plus 1 month"
 </IfModule>
 """ % rules)
 

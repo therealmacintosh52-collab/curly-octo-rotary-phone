@@ -12,7 +12,7 @@ name: Deploy Phil's Auto site
 
 on:
   push:
-    branches: [main, claude/affectionate-brown-h3wfam, claude/phils-auto-website-redesign-ndu5oa]
+    branches: [main, claude/affectionate-brown-h3wfam, claude/phils-auto-website-redesign-ndu5oa, claude/fullscreen-video-landing-kd70l9]
     paths: ['sites/phils-auto-fleet-repair/**', '.github/workflows/deploy-phils-site.yml']
   workflow_dispatch:
 

@@ -52,15 +52,21 @@ def main():
     js = read("assets", "js", "site.js")
     logo = data_uri("/assets/img/logo.png", "image/png")
     scene = data_uri("/assets/img/shop-scene.svg", "image/svg+xml")
+    # The homepage video and its poster ride along too (about 1.8 MB of
+    # base64), so the offline preview opens on the same full-screen loop.
+    video = data_uri("/assets/video/shop-bay.mp4", "video/mp4")
+    poster = data_uri("/assets/img/shop-bay-poster.jpg", "image/jpeg")
 
     templates = []
     for path, filename in routes().items():
         with open(filename, encoding="utf-8") as fh:
             html = fh.read()
-        body = html.split("<body>", 1)[1].rsplit("</body>", 1)[0]
+        body = re.split(r"<body[^>]*>", html, 1)[1].rsplit("</body>", 1)[0]
         body = body.replace('<script src="/assets/js/site.js" defer></script>', "")
         body = body.replace("/assets/img/logo.png", logo)
         body = body.replace("/assets/img/shop-scene.svg", scene)
+        body = body.replace("/assets/video/shop-bay.mp4", video)
+        body = body.replace("/assets/img/shop-bay-poster.jpg", poster)
         body = re.sub(r'<iframe class="map-frame".*?</iframe>', MAP_PLACEHOLDER, body, flags=re.S)
         templates.append('<template data-route="%s">%s</template>' % (path, body))
 

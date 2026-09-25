@@ -22,6 +22,74 @@
   var y = document.querySelectorAll("[data-year]");
   for (var i = 0; i < y.length; i++) { y[i].textContent = new Date().getFullYear(); }
 
+  /* --- Full-screen video hero (homepage) ------------------------------
+     Reveals the headline only once the video is really playing. If the
+     browser refuses autoplay (iOS Low Power Mode, data saver) or nothing
+     plays within 3 s, it shows the poster frame and the headline instead,
+     and the first tap anywhere retries playback. Reduced-motion users get
+     the poster straight away and the video never starts.               */
+  var hero = document.querySelector("[data-video-hero]");
+  var video = hero && hero.querySelector("video");
+  var overlayHeader = document.querySelector(".site-header--overlay");
+  if (hero && video) {
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var revealed = false;
+    var guard = null;
+
+    function fallback() {
+      if (revealed) return;
+      revealed = true;
+      if (video.dataset.poster) video.setAttribute("poster", video.dataset.poster);
+      hero.classList.add("is-fallback");
+    }
+    function retryOnTap() {
+      document.removeEventListener("pointerdown", retryOnTap);
+      video.play().catch(function () {});
+    }
+
+    video.addEventListener("playing", function () {
+      revealed = true;
+      if (guard) { clearTimeout(guard); guard = null; }
+      hero.classList.add("is-playing");
+    });
+
+    if (reduceMotion) {
+      video.removeAttribute("autoplay");
+      video.pause();
+      fallback();
+    } else {
+      /* The autoplay policy checks the property, not just the attribute. */
+      video.muted = true;
+      video.defaultMuted = true;
+      guard = setTimeout(fallback, 3000);
+      var attempt = video.play();
+      if (attempt && typeof attempt.catch === "function") {
+        attempt.catch(function () {
+          fallback();
+          document.addEventListener("pointerdown", retryOnTap);
+        });
+      }
+    }
+
+    document.addEventListener("visibilitychange", function () {
+      if (!hero.classList.contains("is-playing")) return;
+      if (document.hidden) { video.pause(); }
+      else { video.play().catch(function () {}); }
+    });
+  }
+
+  /* Transparent header over the hero; normal white header once scrolled past it. */
+  if (overlayHeader) {
+    if (hero && "IntersectionObserver" in window) {
+      var watcher = new IntersectionObserver(function (entries) {
+        overlayHeader.classList.toggle("is-scrolled", !entries[0].isIntersecting);
+      }, { rootMargin: "-" + overlayHeader.offsetHeight + "px 0px 0px 0px", threshold: 0 });
+      watcher.observe(hero);
+    } else {
+      overlayHeader.classList.add("is-scrolled");
+    }
+  }
+
   /* --- Conversion tracking hooks -------------------------------------
      Fires a dataLayer event on calls, directions and form submits so the
      shop can measure leads in GA4 / Google Ads without editing markup.  */

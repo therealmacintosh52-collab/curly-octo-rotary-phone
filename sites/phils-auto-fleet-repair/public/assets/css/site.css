@@ -192,6 +192,60 @@ section{padding:clamp(54px,6.5vw,104px) 0;position:relative}
 .rating-text{color:#c4d3e0;font-size:.92rem}
 .rating-text strong{color:#fff}
 
+/* ---------------- Video hero (homepage) ----------------
+   The video fills the first viewport behind everything; the headline and
+   buttons are in the DOM from the start (for search engines) but invisible
+   until site.js sees the video playing, or falls back to the poster. */
+.video-hero{
+  position:relative;width:100%;height:100vh;height:100svh;min-height:520px;
+  background:var(--ink);color:#fff;overflow:hidden;isolation:isolate;
+  display:flex;align-items:flex-end;
+}
+.video-hero__media{
+  position:absolute;inset:0;width:100%;height:100%;z-index:-1;
+  object-fit:cover;object-position:50% 50%;background:var(--ink);
+}
+.video-hero__content{
+  width:100%;padding-bottom:clamp(96px,11vw,150px);
+  opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease;
+}
+.video-hero.is-playing .video-hero__content,
+.video-hero.is-fallback .video-hero__content{opacity:1;transform:none}
+.video-hero .eyebrow{color:var(--accent-lt)}
+.video-hero h1{color:#fff;max-width:18ch;margin-bottom:.35em;text-wrap:balance;text-shadow:0 2px 24px rgba(0,0,0,.35)}
+.video-hero h1 em{font-style:normal;background:linear-gradient(100deg,#a99bff,#6a5bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.video-hero .btn-row{margin-top:26px}
+
+/* Quote section that follows the video (the form used to sit in the hero) */
+.quote-section{scroll-margin-top:96px}
+.quote-section .rating{background:var(--accent-soft);border-color:transparent;backdrop-filter:none}
+.quote-section .rating-text,.quote-section .rating-text strong{color:var(--text)}
+
+/* Header floating over the video: transparent, white text, and a soft dark
+   band behind the nav only so the logo and links stay legible on any frame.
+   site.js adds .is-scrolled once the hero is out of view, which restores
+   the normal white sticky header used on every other page. */
+.site-header--overlay{
+  position:fixed;left:0;right:0;top:0;
+  background:transparent;border-bottom-color:transparent;backdrop-filter:none;
+  transition:background .25s ease,border-color .25s ease;
+}
+.site-header--overlay::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:140%;z-index:-1;pointer-events:none;
+  background:linear-gradient(rgba(0,0,0,.2),rgba(0,0,0,0));transition:opacity .25s ease;
+}
+.site-header--overlay .brand,.site-header--overlay .brand-sub,
+.site-header--overlay .nav a,.site-header--overlay .nav a[aria-current="page"],
+.site-header--overlay .header-phone,.site-header--overlay .header-phone span{color:#fff}
+.site-header--overlay .brand-badge{background:#fff;border-radius:50%;padding:3px}
+.site-header--overlay.is-scrolled{background:rgba(255,255,255,.92);border-bottom-color:var(--line);backdrop-filter:saturate(180%) blur(12px)}
+.site-header--overlay.is-scrolled::before{opacity:0}
+.site-header--overlay.is-scrolled .brand,.site-header--overlay.is-scrolled .header-phone{color:var(--text)}
+.site-header--overlay.is-scrolled .brand-sub,.site-header--overlay.is-scrolled .header-phone span{color:var(--slate)}
+.site-header--overlay.is-scrolled .nav a{color:#26384a}
+.site-header--overlay.is-scrolled .nav a[aria-current="page"]{color:var(--accent-dk)}
+.site-header--overlay.is-scrolled .brand-badge{background:transparent;padding:0}
+
 /* wave/angle transition out of dark sections */
 .angle-bottom{position:absolute;left:0;right:0;bottom:-1px;height:clamp(40px,5vw,78px);z-index:1}
 .angle-bottom svg{display:block;width:100%;height:100%}
@@ -468,6 +522,11 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   .nav.open{display:flex}
   .nav a{padding:14px 10px;border-bottom:1px solid var(--paper-2)}
   .nav a::after{display:none}
+  /* the dropdown is a white panel, so its links stay dark even over the video */
+  .site-header--overlay .nav a{color:#26384a}
+  .site-header--overlay .nav a[aria-current="page"]{color:var(--accent-dk)}
+  /* keep the hero buttons clear of the fixed call bar and the stat band overlap */
+  .video-hero__content{padding-bottom:calc(74px + env(safe-area-inset-bottom) + clamp(30px,4vw,50px) + 18px)}
   .header-inner{position:relative}
   .header-cta{display:none}
   .nav-toggle{display:block;order:3}
@@ -501,6 +560,9 @@ a.tag:hover{border-color:var(--accent);color:var(--accent-dk);transform:translat
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
 @media print{
-  .site-header,.callbar,.topbar,.cta-band,.site-footer,.hero::before,.hero::after{display:none}
+  .site-header,.callbar,.topbar,.cta-band,.site-footer,.hero::before,.hero::after,.video-hero__media{display:none}
+  .video-hero{height:auto;min-height:0;background:#fff;color:#000}
+  .video-hero__content{opacity:1;transform:none;padding:0}
+  .video-hero h1{color:#000;text-shadow:none}
   body{font-size:12pt}
 }
