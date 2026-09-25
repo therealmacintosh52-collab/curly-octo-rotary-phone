@@ -474,7 +474,8 @@ a.tag:hover{border-color:var(--navy-700);color:var(--navy-700)}
   /* Phones: the clip gets a band of its own above the copy panel. */
   .hero--video .hero-grid{padding-top:min(42vh,360px);gap:28px}
   .hero--video .hero-copy{margin:0 -22px;border-left:0;border-top:6px solid var(--red-700);padding:26px 22px}
-  .hero--video .hero-video{object-position:50% 70%}
+  .hero--video .hero-video{height:calc(min(42vh,360px) + 8px + 40px);object-position:50% 78%}
+  .hero--video::before{bottom:auto;height:calc(min(42vh,360px) + 48px);opacity:.18}
 }
 @keyframes door-roll{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 @media (max-width:560px){
