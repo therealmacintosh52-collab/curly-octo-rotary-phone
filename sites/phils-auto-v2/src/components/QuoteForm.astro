@@ -1,0 +1,57 @@
+---
+import { site, services, formEndpoint } from '../lib/seo';
+interface Props { id?: string; heading?: string; sub?: string; serviceDefault?: string }
+const {
+  id = 'quote',
+  heading = 'Get a free quote',
+  sub = `Tell us what's going on and we'll get back to you with next steps. Need an answer now? Call ${site.phone_display}.`,
+  serviceDefault,
+} = Astro.props;
+---
+<form class="quote-card" id={id} data-quote-form action={formEndpoint} method="post" data-mailto={site.email}>
+  <h2>{heading}</h2>
+  <p class="sub">{sub}</p>
+  <div class="field">
+    <label for={`${id}-name`}>Your name</label>
+    <input id={`${id}-name`} name="name" type="text" autocomplete="name" required>
+  </div>
+  <div class="field">
+    <label for={`${id}-phone`}>Phone</label>
+    <input id={`${id}-phone`} name="phone" type="tel" autocomplete="tel" required>
+  </div>
+  <div class="field">
+    <label for={`${id}-vehicle`}>Vehicle (year, make, model)</label>
+    <input id={`${id}-vehicle`} name="vehicle" type="text" placeholder="2016 Ram 2500 diesel">
+  </div>
+  <div class="field">
+    <label for={`${id}-service`}>Service needed</label>
+    <select id={`${id}-service`} name="service">
+      <option value="">What do you need?</option>
+      {services.map((s: any) => <option value={s.nav} selected={serviceDefault === s.slug}>{s.nav}</option>)}
+      <option value="Not sure — please diagnose">Not sure — please diagnose</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for={`${id}-when`}>When could you bring it in?</label>
+    <select id={`${id}-when`} name="when">
+      <option value="">Whenever you have room</option>
+      <option>Today if possible — it's not drivable</option>
+      <option>This week</option>
+      <option>Next week</option>
+      <option>Just want an estimate for now</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for={`${id}-message`}>What's happening with it?</label>
+    <textarea id={`${id}-message`} name="message" placeholder="Noises, warning lights, when it started, anything another shop already told you."></textarea>
+  </div>
+  <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <input type="hidden" name="_subject" value="Quote request from philsautofleet.com">
+  <input type="hidden" name="_template" value="table">
+  <input type="hidden" name="_captcha" value="false">
+  <button class="btn btn-accent" type="submit" data-magnetic>Request my quote</button>
+  <p class="fine">No obligation. We'll never sell your information. Prefer to talk it through?
+    <a href={`tel:${site.phone_link}`} data-loc="form">Call {site.phone_display}</a>.</p>
+  <p class="form-status" role="status" aria-live="polite"></p>
+</form>

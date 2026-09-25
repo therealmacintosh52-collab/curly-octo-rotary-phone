@@ -1,0 +1,202 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/home/Hero.astro';
+import RippleImage from '../components/home/RippleImage';
+import QuoteForm from '../components/QuoteForm.astro';
+import Icon from '../components/Icon.astro';
+import { site, services, reviews, homeFaqs, seoTitle, website, faqPage, aggregateRating } from '../lib/seo';
+
+const title = seoTitle('Auto Repair in Lodi, CA');
+const description = 'Honest auto, diesel and fleet repair in Lodi. Diagnosis before parts, no upsells, 4.4 stars from 83 Google reviews. Call (209) 647-4953 or get a free quote.';
+const stats = [
+  ['star', `${site.rating} out of 5`, `${site.review_count} Google reviews`],
+  ['shield', 'Diagnosis first', 'We test before we replace parts'],
+  ['truck', 'Auto · Diesel · Fleet', 'One shop for every vehicle you run'],
+  ['clock', 'Open six days', 'Mon–Sat, 8:00 AM – 5:00 PM'],
+];
+const marquee = services.map((s: any) => s.nav);
+---
+<Base title={title} description={description} path="/" active="/" overlayHeader
+      alternates={[['en', '/'], ['es', '/es/'], ['x-default', '/']]}
+      schemas={[website(), faqPage(homeFaqs), aggregateRating()]}>
+
+  <Hero />
+
+  <div class="statband" data-reveal>
+    <div class="wrap"><div class="statband-inner">
+      {stats.map(([ic, t, sub]) => (
+        <div class="stat"><span class="stat-ico"><Icon name={ic} /></span><div><b>{t}</b><span>{sub}</span></div></div>
+      ))}
+    </div></div>
+  </div>
+
+  <section class="quote-section" id="quote-form">
+    <div class="wrap">
+      <div class="split center-y">
+        <div>
+          <span class="eyebrow">Free quote</span>
+          <h2>Tell us what it's doing. We'll tell you what it needs.</h2>
+          <div class="rating"><span class="stars" aria-hidden="true">★★★★★</span><span class="rating-text"><strong>{site.rating} out of 5</strong> from {site.review_count} Google reviews · Rated on Yelp and Nextdoor too</span></div>
+          <p>A value-driven alternative to the dealership. We diagnose the problem properly,
+          explain it in plain language, and quote it before we touch a wrench — so you never
+          pay for parts your vehicle didn't need.</p>
+          <ul class="checklist" data-stagger>
+            <li><Icon name="check" /><span>Domestic, import, diesel and commercial fleet vehicles</span></li>
+            <li><Icon name="check" /><span>Known for fixing what other shops misdiagnosed</span></li>
+            <li><Icon name="check" /><span>No upsells — you approve every repair before it happens</span></li>
+            <li><Icon name="check" /><span>Open Monday through Saturday, 8:00 AM – 5:00 PM</span></li>
+          </ul>
+        </div>
+        <div data-reveal><QuoteForm id="home-quote" /></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      {[...marquee, ...marquee].map((m) => <span>{m}</span>)}
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">What we fix</span>
+        <h2>Everything from an oil change to a diesel that won't start</h2>
+        <p>One shop for your car, your truck and your whole fleet — with the same diagnosis-first
+        approach on every one of them.</p>
+      </div>
+      <div class="grid g3" data-stagger>
+        {services.map((s: any) => (
+          <a class="card" href={`/services/${s.slug}/`} data-cursor="View">
+            <span class="card-ico"><Icon name={s.icon} /></span>
+            <h3>{s.nav}</h3>
+            <p>{s.blurb}</p>
+            <span class="more">Learn more <Icon name="arrow" /></span>
+          </a>
+        ))}
+      </div>
+      <p class="center" style="margin-top:30px"><a class="btn btn-outline" href="/services/" data-magnetic>See all services <Icon name="arrow" /></a></p>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="split center-y">
+        <div>
+          <span class="eyebrow">Why drivers switch to us</span>
+          <h2>The dealership isn't your only option</h2>
+          <p>Dealership service departments are built around volume and menu pricing. That works fine
+          until you have a problem that doesn't fit the menu — and then you're paying for parts that
+          were replaced because they were on a list, not because they failed.</p>
+          <p>{site.promise} {site.warranty_text}</p>
+          <ul class="checklist" data-stagger>
+            <li><Icon name="check" /><span><strong>You talk to the people who saw your vehicle</strong> — not a service writer relaying a summary.</span></li>
+            <li><Icon name="check" /><span><strong>We test before we replace</strong>, which is why a second opinion here often costs less than the first quote.</span></li>
+            <li><Icon name="check" /><span><strong>Nothing happens without your approval</strong>, including anything we find mid-repair.</span></li>
+          </ul>
+          <div class="btn-row" style="margin-top:26px">
+            <a class="btn btn-dark" href={`tel:${site.phone_link}`} data-loc="why-us" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+            <a class="btn btn-outline" href="/about/" data-magnetic>More about the shop</a>
+          </div>
+        </div>
+        <div class="table-scroll" data-reveal>
+          <table class="compare">
+            <caption class="sr-only">Comparison of Phil's Auto and Fleet Repair with typical dealership service</caption>
+            <thead><tr><th scope="col">What matters</th><th scope="col">Phil's Auto &amp; Fleet</th><th scope="col">Typical dealership</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Who explains the repair</th><td class="yes">The shop working on it</td><td>A service advisor</td></tr>
+              <tr><th scope="row">Approach to unclear faults</th><td class="yes">Diagnose, then quote</td><td>Replace by likelihood</td></tr>
+              <tr><th scope="row">Recommended extras</th><td class="yes">Only what we can show you</td><td>Menu-driven upsells</td></tr>
+              <tr><th scope="row">Diesel &amp; fleet work</th><td class="yes">Everyday work here</td><td>Often a separate department</td></tr>
+              <tr><th scope="row">Second opinions</th><td class="yes">Welcome — bring the estimate</td><td>Rarely offered</td></tr>
+              <tr><th scope="row">Saturday service</th><td class="yes">Open 8 AM – 5 PM</td><td>Limited or closed</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">How it works</span>
+        <h2>Three steps, no surprises</h2>
+        <p>The same process whether it's an oil change or an engine that three shops couldn't sort out.</p>
+      </div>
+      <div class="steps" data-stagger>
+        <div class="step"><h3>Tell us what it's doing</h3><p>Call the shop or send the form. Describe the noise, the light or the symptom — including anything another shop already told you.</p></div>
+        <div class="step"><h3>We diagnose it properly</h3><p>We test and verify until we can point at the actual failure, then explain what we found and what it costs to fix.</p></div>
+        <div class="step"><h3>You decide what gets fixed</h3><p>Urgent, worth watching, or fine for now — you get the whole picture and the final call is always yours.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-dark">
+    <div class="wrap">
+      <div class="split center-y">
+        <div>
+          <span class="eyebrow">Fleet &amp; commercial</span>
+          <h2>Downtime costs more than the repair</h2>
+          <p>Work trucks, vans and mixed fleets get scheduled maintenance that fits your routes,
+          honest triage when something breaks, and a direct line to the people doing the work.</p>
+          <div class="btn-row" style="margin-top:22px">
+            <a class="btn btn-accent" href="/services/fleet-services/" data-magnetic>Fleet services</a>
+            <a class="btn btn-ghost" href="/contact/#quote" data-magnetic>Ask for a fleet quote</a>
+          </div>
+        </div>
+        <figure class="photo" data-reveal>
+          <span class="photo-badge"><Icon name="camera" />In the bay</span>
+          <RippleImage client:visible src="/assets/img/shop-lift.jpg" width={1200} height={750}
+            alt="A pickup truck raised on a two-post lift inside Phil's service bay, wheels off, with more vehicles on lifts behind it" />
+          <figcaption>Work trucks, vans and mixed fleets — serviced on a schedule that fits your routes.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">Reviews</span>
+        <h2>What Lodi drivers say</h2>
+        <p>{site.rating} out of 5 from {site.review_count} Google reviews. Rated on Yelp, Nextdoor and MapQuest too.</p>
+      </div>
+      <div class="grid g2" data-stagger>
+        {reviews.map((r: any) => (
+          <div class="review">
+            <span class="stars" aria-hidden="true">★★★★★</span>
+            <blockquote>&ldquo;{r.quote}&rdquo;</blockquote>
+            <cite><strong>{r.name}</strong>via {r.source}</cite>
+          </div>
+        ))}
+      </div>
+      <p class="center" style="margin-top:30px"><a class="btn btn-outline" href="/reviews/" data-magnetic>Read more reviews <Icon name="arrow" /></a></p>
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="sec-head"><span class="eyebrow">Questions</span><h2>Frequently asked questions</h2></div>
+      <div class="faq">
+        {homeFaqs.map(([q, a]) => <details><summary>{q}</summary><div class="answer"><p>{a}</p></div></details>)}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="cta-band">
+        <div>
+          <h2>Ready to get a straight answer about your vehicle?</h2>
+          <p>Call the shop and talk to someone who works on cars for a living. We're open Monday through Saturday, 8:00 AM to 5:00 PM.</p>
+        </div>
+        <div class="btn-row">
+          <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="cta-band" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+          <a class="btn btn-ghost" href="/contact/#quote" data-magnetic>Request a quote</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>

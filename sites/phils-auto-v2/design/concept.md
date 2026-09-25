@@ -10,22 +10,24 @@
 - v2 lives in `sites/phils-auto-v2/` beside v1. v1 stays deployable and untouched.
 - The bay-door video from v1 is kept and used inside the 3D scene (see beat 3).
 
-## 3D concept: (a) a procedural brand object
+## 3D concept: (a) a procedural brand object, built around the shop video
 
-**A three-gear assembly in chrome and brushed steel, lit like a product shot.** A large ring gear, a mid gear and a small pinion, meshed and turning at correct ratios, floating in a dark studio. It is the shop's badge logo made physical, and gears are the one automotive object that reads instantly at any size and looks expensive when lit well.
+**Revised after review: the owner rejected a gear assembly as the opener. The bay-door video stays the hero; the 3D lives around it.**
 
-Why not (b) particles: a point cloud forming a truck silhouette is a well-worn move and reads "tech startup", not "the shop that fixes your F-250". Why not (c) fluid gradient: beautiful but anonymous; nothing about it says auto repair. The gear assembly is specific to this business, works as a still (poster for low-tier devices) and gives the scroll story something mechanical to do: mesh, separate, reassemble.
+The clip of the shop (bay door rolling up, the shop's name painted on it) is the first thing on screen, exactly as in v1. In WebGL it becomes a surface inside a space with depth: the DOM `<video>` element feeds a `VideoTexture` on a gently curved plane, with dust and light in front of it, a 4% film grain, and the whole space tilting ±4° with the mouse. The video is decoded once; the DOM element is the source for both the fallback and the texture.
 
-Materials: `MeshStandardMaterial` with metalness 1, roughness 0.18 (chrome teeth) and 0.42 (brushed faces, anisotropy faked with a procedural normal map), a small HDR studio environment (drei `Environment` preset "studio", 256px), one key spot with soft shadows via `AccumulativeShadows`, indigo rim light from behind. Idle: gears turn slowly at their ratios, whole assembly drifts 2° on a sine, mouse tilts the assembly ±6°.
+Three procedural parts join the scene as the scroll story plays, in chrome and brushed steel under studio light: a **brake rotor** (vented disc with hat, built from lathe and extrude geometry), a **diesel piston** with rod and pin, and a **hex-head bolt** cluster. They are lit and shaded like a product shot (`MeshStandardMaterial`, metalness 1, roughness 0.18–0.42, drei `Environment` preset "studio" at 256 px, one key spot with soft `AccumulativeShadows`, indigo rim light).
+
+Why this and not the earlier gears: the owner has iterated on the video for a day and it is the asset that shows the real place. The parts are secondary: they give the scroll story something physical to do without competing with the shop itself.
 
 Depth layers (parallax at different rates on mouse and scroll):
 
 1. Backdrop: a shader plane with domain-warped noise in ink and deep indigo, 4% film grain. Barely moves.
 2. Far dust: 1,500 instanced points, soft-focus, drifting up. Moves at 0.3× the mouse.
-3. The gear assembly. Moves at 1×.
+3. The video surface, then the parts in front of it. Moves at 1×.
 4. Near flecks and two light streaks, out of focus, moving at 1.8×. Blurred by a cheap depth-of-field on tier 3 only.
 
-Text sits on top in the DOM: H1, one-line value prop, Call + Get a free quote, and the 4.4-star / 83-review trust line. All real HTML, all readable before any JavaScript runs.
+Text sits on top in the DOM: H1, one-line value prop, Call + Get a free quote + Get directions, and the 4.4-star / 83-review trust line. All real HTML, all readable before any JavaScript runs.
 
 ## Scroll storyboard
 

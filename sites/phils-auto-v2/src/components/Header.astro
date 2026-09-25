@@ -1,0 +1,40 @@
+---
+import Icon from './Icon.astro';
+import { site, nav, fullAddress } from '../lib/seo';
+interface Props { active?: string; overlay?: boolean }
+const { active, overlay = false } = Astro.props;
+---
+{!overlay && (
+  <div class="topbar">
+    <div class="wrap">
+      <span><Icon name="pin" /> {fullAddress}</span>
+      <span class="dot" aria-hidden="true">•</span>
+      <span><Icon name="clock" /> Mon–Sat 8:00 AM – 5:00 PM</span>
+      <span class="dot" aria-hidden="true">•</span>
+      <a href={`tel:${site.phone_link}`} data-loc="topbar">{site.phone_display}</a>
+    </div>
+  </div>
+)}
+<header class:list={['site-header', { 'site-header--overlay': overlay }]}>
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-badge" src={site.logo} alt="" width="46" height="46">
+      <span class="brand-text">
+        <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
+        <span class="brand-sub">Lodi, California</span>
+      </span>
+    </a>
+    <nav class="nav" id="primary-nav" aria-label="Main">
+      {nav.map(([label, url]) => <a href={url} aria-current={active === url ? 'page' : undefined}>{label}</a>)}
+    </nav>
+    <div class="header-cta">
+      <a class="header-phone" href={`tel:${site.phone_link}`} data-loc="header">
+        <span>Call the shop</span><strong>{site.phone_display}</strong>
+      </a>
+      <a class="btn btn-accent btn-sm" href="/contact/#quote" data-magnetic>Get a Quote</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+</header>

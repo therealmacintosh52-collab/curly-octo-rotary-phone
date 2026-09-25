@@ -1,0 +1,117 @@
+/* Phil's Auto & Fleet Repair v2 — design system.
+   Tailwind for layout utilities; the v1 component styles are kept as
+   legacy.css so every ported section renders identically; v2 adds the
+   type pair, the hero stage, the scroll-story beats, cursor and marquee. */
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/space-grotesk";
+@import "./legacy.css";
+
+:root {
+  --font: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Space Grotesk Variable", "Inter Variable", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --chrome: #d9dbe6;
+}
+
+/* Lenis drives smooth scrolling; the CSS version would fight it. */
+html { scroll-behavior: auto; }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+body { font-family: var(--font); }
+h1, h2, h3, h4, .btn, .eyebrow, .brand-name, .stat b, .nav a, .header-phone strong {
+  font-family: var(--font-display);
+}
+h1 { letter-spacing: -.035em; }
+h2 { letter-spacing: -.03em; }
+
+/* ---------------- Hero stage (v2) ----------------
+   Layers, bottom to top: poster (LCP), DOM video, WebGL canvas, DOM text. */
+.v2-hero { padding: 0; height: auto; min-height: 0; display: block; overflow: visible; position: relative; }
+.v2-stage {
+  position: relative; height: min(100vh, 56.25vw); height: min(100svh, 56.25vw); min-height: 520px;
+  overflow: hidden; background: var(--ink); isolation: isolate; display: flex; align-items: flex-start;
+}
+.v2-hero.has-story { height: 320vh; }
+.v2-hero.has-story .v2-stage { position: sticky; top: 0; height: 100vh; height: 100svh; }
+.v2-poster { position: absolute; inset: 0; z-index: 0; }
+.v2-poster img { width: 100%; height: 100%; object-fit: cover; object-position: 100% 50%; display: block; }
+.v2-stage .video-hero__media { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; transition: opacity .6s ease; }
+.v2-canvas { position: absolute; inset: 0; z-index: 2; opacity: 0; transition: opacity .6s ease; }
+.v2-canvas.is-ready { opacity: 1; }
+.v2-canvas canvas { display: block; width: 100% !important; height: 100% !important; }
+.has-webgl .video-hero__media { opacity: 0; }
+.v2-stage .video-hero__content { position: relative; z-index: 3; min-height: 62vh; }
+
+/* Scroll-story beats: panels that swap as the pinned stage scrubs. */
+.v2-beat { display: none; }
+.has-story .v2-beat {
+  display: block; position: absolute; left: 22px; right: 22px; top: 0;
+  opacity: 0; visibility: hidden; transform: translateY(14px);
+  transition: opacity .55s ease, transform .55s ease, visibility 0s linear .55s;
+}
+.has-story .v2-beat.is-active { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+.has-story .v2-beat[data-beat="0"] { position: relative; left: 0; right: 0; }
+.v2-beat h2 { color: #fff; max-width: 16ch; text-wrap: balance; text-shadow: 0 2px 24px rgba(0,0,0,.35); font-size: clamp(2rem, 1.1rem + 3vw, 3.4rem); }
+.v2-beat .lines { list-style: none; padding: 0; margin: 18px 0 26px; display: grid; gap: 10px; max-width: 46ch; }
+.v2-beat .lines li { display: flex; gap: 12px; align-items: flex-start; color: #d6e2ec; font-size: 1.08rem; margin: 0; }
+.v2-beat .lines .icon { color: var(--accent-lt); margin-top: .25em; width: 20px; height: 20px; flex: none; }
+.v2-beat .btn-row { margin-top: 6px; }
+.v2-progress { position: absolute; left: 22px; bottom: 28px; z-index: 3; display: none; gap: 8px; }
+.has-story .v2-progress { display: flex; }
+.v2-progress i { width: 34px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.25); transition: background .3s; }
+.v2-progress i.is-on { background: var(--accent-lt); }
+
+/* ---------------- Marquee ---------------- */
+.marquee { overflow: hidden; border-block: 1px solid var(--line); padding: 14px 0; background: var(--paper); }
+.marquee-track { display: flex; gap: 40px; width: max-content; animation: marquee 38s linear infinite; }
+.marquee span { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; letter-spacing: -.01em; color: var(--slate); white-space: nowrap; display: inline-flex; align-items: center; gap: 40px; }
+.marquee span::after { content: "•"; color: var(--accent-lt); }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+/* ---------------- Custom cursor ---------------- */
+.cursor {
+  position: fixed; top: 0; left: 0; z-index: 9999; pointer-events: none;
+  width: 12px; height: 12px; border-radius: 50%; background: #fff; mix-blend-mode: difference;
+  transform: translate(-50%, -50%); transition: width .25s ease, height .25s ease, opacity .2s;
+  opacity: 0;
+}
+html.has-cursor .cursor { opacity: 1; }
+.cursor.is-link { width: 48px; height: 48px; }
+.cursor.is-label { width: 72px; height: 72px; }
+.cursor-label {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font: 700 .72rem/1 var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: #fff;
+  opacity: 0; transition: opacity .2s;
+}
+.cursor.is-label .cursor-label { opacity: 1; }
+html.has-cursor a, html.has-cursor button { cursor: none; }
+html.has-cursor input, html.has-cursor textarea, html.has-cursor select { cursor: auto; }
+
+/* Split-text words */
+[data-split] .w { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .08em; margin-bottom: -.08em; }
+[data-split] .wi { display: inline-block; will-change: transform; }
+/* the gradient on <em> is clipped to text; inline-block word spans need their own copy */
+.video-hero h1 em .wi { background: linear-gradient(100deg, #a99bff, #6a5bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Ripple image island */
+.ripple { position: relative; display: block; aspect-ratio: 16/10; overflow: hidden; }
+.ripple canvas, .ripple img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.ripple canvas { opacity: 0; transition: opacity .3s; }
+.ripple.is-ready canvas { opacity: 1; }
+
+/* ---------------- Phone overrides for the stage ---------------- */
+@media (max-width: 880px) {
+  .v2-hero, .v2-hero.has-story { height: auto; }
+  .v2-stage, .v2-hero.has-story .v2-stage { position: relative; top: auto; height: auto; min-height: 0; display: block; }
+  .v2-poster { height: min(80vw, 60vh); height: min(80vw, 60svh); inset: auto; top: 0; left: 0; right: 0; }
+  .v2-stage .video-hero__media { position: relative; inset: auto; height: min(80vw, 60vh); height: min(80vw, 60svh); }
+  .v2-stage .video-hero__content { min-height: 0; }
+  .v2-beat, .v2-progress { display: none !important; }
+  .v2-beat[data-beat="0"] { display: block !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  .cursor { display: none; }
+}

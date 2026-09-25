@@ -1,0 +1,58 @@
+---
+import Icon from './Icon.astro';
+import { site, services, mapsDirections } from '../lib/seo';
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="/">
+          <img class="brand-badge brand-badge--chip" src={site.logo} alt="" width="46" height="46">
+          <span class="brand-text">
+            <span class="brand-name">Phil's Auto &amp; Fleet Repair</span>
+            <span class="brand-sub">Lodi, California</span>
+          </span>
+        </a>
+        <p>Locally owned auto, diesel and fleet repair in Lodi — a value-driven alternative to the
+        dealership, for drivers and businesses that need the truth about their vehicles.</p>
+      </div>
+      <div>
+        <h4>Services</h4>
+        <ul>{services.map((s: any) => <li><a href={`/services/${s.slug}/`}>{s.nav}</a></li>)}</ul>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/services/">All Services</a></li>
+          <li><a href="/about/">About Phil's</a></li>
+          <li><a href="/reviews/">Reviews</a></li>
+          <li><a href="/service-areas/">Service Areas</a></li>
+          <li><a href="/contact/">Contact &amp; Directions</a></li>
+          <li><a href="/advice/">Advice &amp; Guides</a></li>
+          <li><a href="/es/" hreflang="es" lang="es">Español</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Visit or Call</h4>
+        <ul>
+          <li><a href={mapsDirections} rel="noopener">{site.street}<br>{site.city}, {site.region} {site.zip}</a></li>
+          <li><a href={`tel:${site.phone_link}`} data-loc="footer">{site.phone_display}</a></li>
+          <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
+          <li>{site.hours_human}</li>
+        </ul>
+        <p style="margin-top:16px"><a class="btn btn-accent btn-sm" href={`tel:${site.phone_link}`} data-loc="footer-btn"><Icon name="phone" /><span>Call the shop</span></a></p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; <span data-year>{year}</span> {site.name}. All rights reserved.</span>
+      <span><a href="/privacy/">Privacy</a> · <a href="/sitemap-index.xml">Sitemap</a> · Auto repair in Lodi, CA</span>
+    </div>
+  </div>
+</footer>
+<div class="callbar" aria-label="Quick actions">
+  <a class="primary" href={`tel:${site.phone_link}`} data-loc="callbar"><Icon name="phone" /><span>Call</span></a>
+  <a href={mapsDirections} rel="noopener"><Icon name="map" /><span>Directions</span></a>
+  <a href="/contact/#quote"><Icon name="chat" /><span>Get a Quote</span></a>
+</div>

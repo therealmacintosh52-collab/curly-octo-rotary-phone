@@ -1,0 +1,86 @@
+---
+import Icon from '../Icon.astro';
+import HeroScene from './HeroScene';
+import { site, mapsDirections } from '../../lib/seo';
+---
+<section class="video-hero v2-hero" id="hero" data-video-hero>
+  <div class="v2-stage">
+    <picture class="v2-poster" aria-hidden="true">
+      <source type="image/avif" srcset="/assets/img/shop-bay-poster.avif">
+      <source type="image/webp" srcset="/assets/img/shop-bay-poster.webp">
+      <img src="/assets/img/shop-bay-poster.jpg" width="1280" height="720" alt="" fetchpriority="high" decoding="async">
+    </picture>
+    <video class="video-hero__media" id="hero-video" autoplay muted loop playsinline preload="auto"
+           disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1"
+           data-poster="/assets/img/shop-bay-poster.jpg">
+      <source src="/assets/video/shop-bay.mp4" type="video/mp4">
+    </video>
+
+    <HeroScene client:only="react" heroId="hero" videoId="hero-video" />
+
+    <div class="wrap video-hero__content">
+      <span class="video-hero__hint" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Tap anywhere to play the video</span>
+
+      <div class="v2-beat" data-beat="0">
+        <div class="video-hero__headline">
+          <span class="eyebrow">Locally owned · Lodi, California</span>
+          <h1 data-split>Honest auto, diesel &amp; fleet repair in <em>Lodi, California</em></h1>
+          <p class="v2-lede">Diagnosis before parts. A plain-language quote before any work. You approve every repair.</p>
+        </div>
+        <div class="btn-row video-hero__actions">
+          <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="hero" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+          <a class="btn btn-ghost" href="#quote-form" data-magnetic><Icon name="chat" /><span>Get a free quote</span></a>
+          <a class="btn btn-ghost" href={mapsDirections} rel="noopener" data-magnetic><Icon name="map" /><span>Get directions</span></a>
+        </div>
+        <p class="v2-trust"><span class="stars" aria-hidden="true">★★★★★</span> <strong>{site.rating} out of 5</strong> from {site.review_count} Google reviews</p>
+      </div>
+
+      <div class="v2-beat" data-beat="1">
+        <span class="eyebrow">Diagnosis first</span>
+        <h2>We test before we replace parts.</h2>
+        <ul class="lines">
+          <li><Icon name="check-circle" /><span>The fault gets found with test equipment, not by swapping likely parts.</span></li>
+          <li><Icon name="check-circle" /><span>You get the diagnosis, the price and the reasoning in plain language.</span></li>
+          <li><Icon name="check-circle" /><span>Nothing happens without your approval, including anything found mid-repair.</span></li>
+        </ul>
+        <div class="btn-row"><a class="btn btn-ghost" href="/services/car-diagnostics/" data-magnetic>How diagnostics work</a></div>
+      </div>
+
+      <div class="v2-beat" data-beat="2">
+        <span class="eyebrow">Auto · Diesel · Fleet</span>
+        <h2>One shop for every vehicle you run.</h2>
+        <ul class="lines">
+          <li><Icon name="check-circle" /><span>Domestic and import cars and SUVs.</span></li>
+          <li><Icon name="check-circle" /><span>Diesel pickups and equipment: Cummins, Duramax, Powerstroke.</span></li>
+          <li><Icon name="check-circle" /><span>Work trucks and vans on a schedule that fits your routes.</span></li>
+        </ul>
+        <div class="btn-row">
+          <a class="btn btn-ghost" href="/services/diesel-repair/" data-magnetic>Diesel</a>
+          <a class="btn btn-ghost" href="/services/fleet-services/" data-magnetic>Fleet</a>
+        </div>
+      </div>
+
+      <div class="v2-beat" data-beat="3">
+        <span class="eyebrow">The promise</span>
+        <h2>You get the diagnosis, the price and the reasoning up front. Then you decide.</h2>
+        <div class="btn-row">
+          <a class="btn btn-accent" href={`tel:${site.phone_link}`} data-loc="hero-end" data-magnetic><Icon name="phone" /><span>Call {site.phone_display}</span></a>
+          <a class="btn btn-ghost" href="#quote-form" data-magnetic>Get a free quote</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="v2-progress" aria-hidden="true"><i class="is-on"></i><i></i><i></i><i></i></div>
+  </div>
+</section>
+
+<style>
+  .v2-lede { color: #d6e2ec; font-size: 1.12rem; max-width: 46ch; margin: 0 0 22px; }
+  .v2-trust { margin: 18px 0 0; color: #c4d3e0; font-size: .95rem; }
+  .v2-trust strong { color: #fff; }
+  .v2-trust .stars { color: var(--star); letter-spacing: 2px; }
+  @media (max-width: 880px) {
+    .v2-lede { display: none; }
+    .v2-trust { text-align: center; }
+  }
+</style>

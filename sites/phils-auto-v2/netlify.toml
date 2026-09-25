@@ -1,0 +1,11 @@
+# Netlify configuration for Phil's Auto & Fleet Repair v2.
+# In Netlify: New site -> Import from Git -> pick this repo, then set
+#   Base directory: sites/phils-auto-v2
+# public/_headers and public/_redirects are copied into dist/ by the build.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"

@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../lib/seo';
+---
+<Base title="Page not found | Phil's Auto & Fleet" description="That page isn't here. Find the service you need or call the shop." path="/404/" noindex>
+  <section class="page-head bg-dark"><div class="wrap">
+    <span class="eyebrow">404</span>
+    <h1>That page isn't here</h1>
+    <p>The link may be old. Everything the shop offers is one click away.</p>
+    <div class="btn-row" style="margin-top:24px">
+      <a class="btn btn-accent" href="/">Home</a>
+      <a class="btn btn-ghost" href="/services/">All services</a>
+      <a class="btn btn-ghost" href={`tel:${site.phone_link}`}>Call {site.phone_display}</a>
+    </div>
+  </div></section>
+</Base>

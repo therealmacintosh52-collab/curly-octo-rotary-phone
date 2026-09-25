@@ -1,0 +1,15 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../lib/seo';
+---
+<Base title="Thanks — we got it | Phil's Auto & Fleet" description="Your quote request is in. We'll call you back with next steps." path="/thank-you/" noindex>
+  <section class="page-head bg-dark"><div class="wrap">
+    <span class="eyebrow">Request received</span>
+    <h1>Thanks — we got it</h1>
+    <p>We'll call you back with next steps. Need an answer sooner? Call {site.phone_display}, Monday through Saturday, 8:00 AM to 5:00 PM.</p>
+    <div class="btn-row" style="margin-top:24px">
+      <a class="btn btn-accent" href={`tel:${site.phone_link}`}>Call the shop</a>
+      <a class="btn btn-ghost" href="/">Back to home</a>
+    </div>
+  </div></section>
+</Base>
