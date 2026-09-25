@@ -45,18 +45,24 @@
 .hero-v {
   position: relative;
   /* .hero-v is a <section>, and the global section rule adds ~94px of vertical
-     padding at desktop width. Harmless while the media was absolutely
-     positioned; with the grid layout it squeezed the row and letterboxed the
-     clip inside its own column. */
+     padding at desktop width — which would show up as dead space above the
+     clip. The hero sets its own rhythm. */
   padding: 0;
-  /* Desktop shows the whole 16:9 frame rather than cropping it. */
-  height: min(100svh, 56.25vw);
-  min-height: 560px;
   background: var(--grad-dark);
   overflow: hidden;
   isolation: isolate;
 }
-.hero-v__media { position: absolute; inset: 0; z-index: 0; }
+/* The clip is a band, not a backdrop: it occupies its own strip of the page at
+   every width, with the copy on solid ground beneath it. Nothing is ever laid
+   over the picture, so there is no tint to tune and no frame — bright or dark —
+   that can make the copy hard to read. */
+.hero-v__media {
+  position: relative; z-index: 0; width: 100%;
+  /* Sized off viewport HEIGHT, not width: a 1366x768 laptop is as wide as a
+     desktop but has 130px less to give, and the band is what decides whether
+     the call button clears the fold. */
+  height: clamp(210px, 32svh, 400px);
+}
 /* The poster is a real <img> so it is the LCP element and can be preloaded.
    The video fades in over it once it can actually play. */
 .hero-v__poster,
@@ -70,71 +76,84 @@
 .hero-v__video { opacity: 0; transition: opacity .6s ease; }
 .hero-v.is-playing .hero-v__video { opacity: 1; }
 
-/* No scrim over the picture.
-   Three rounds of gradient tuning all ran into the same wall: the copy block
-   occupies the middle half of the frame, so anything that makes it readable
-   also dims the shot. The fix is compositional, not a gradient — the copy gets
-   its own solid ground beside the video instead of sitting on top of it. What
-   is left here is a thin band under the nav and a soft feather where the video
-   meets the copy panel, neither of which touches the body of the frame. */
-.hero-v__scrim {
-  position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: linear-gradient(to bottom, rgba(4,7,26,.62) 0%, rgba(4,7,26,.12) 11%, rgba(4,7,26,0) 22%);
-}
+/* No scrim at all. Four rounds of gradient tuning kept running into the same
+   wall: any overlay dark enough to carry text is also dark enough to read as a
+   tint on the shot. Stacking the copy under the clip removes the conflict
+   rather than balancing it, so this element now paints nothing. It is kept in
+   the markup so a future overlay layout has its hook back. */
+.hero-v__scrim { display: none; }
 .hero-v__inner {
   position: relative; z-index: 2;
-  height: 100%;
-  display: flex; flex-direction: column; justify-content: flex-end;
-  padding-bottom: clamp(38px, 5vw, 76px);
+  display: flex; flex-direction: column;
+  /* the stat band overlaps the hero by up to 62px, so the bottom padding has
+     to clear it as well as the meta row */
+  padding: clamp(28px, 2.8vw, 44px) 0 clamp(74px, 7vw, 108px);
   color: #fff;
 }
+/* .wrap centres itself with `margin: 0 auto`. As a flex item that auto margin
+   is a cross-axis margin, which makes the box shrink to fit its own text — so
+   the hero copy centred on the longest line instead of lining up with the logo
+   and the stat band. An explicit width puts it back on the page grid. */
+.hero-v__inner .wrap { width: 100%; }
 
-/* ---- desktop: copy beside the clip, not on it ---- */
+/* ---- desktop ---- */
 @media (min-width: 941px) {
-  .hero-v {
+  /* The clip takes the top of the screen, so the headline, the rating and the
+     call button all have to clear the fold in what is left. */
+  .hero-v h1 { font-size: clamp(2.1rem, 1rem + 2.5vw, 3.1rem); max-width: 20ch; }
+  .hero-v__promise { max-width: 46ch; font-size: 1.08rem; margin-bottom: .9em; }
+  .hero-v__ctas { flex-wrap: nowrap; gap: 13px; margin-bottom: 0; }
+  .hero-v__ctas .btn { white-space: nowrap; }
+
+  /* Stacked, the copy leaves the right 40% of the panel empty and the three
+     trust lines run as a thin strip under the buttons where they read as fine
+     print. Putting them in that empty column fills the panel and gives them the
+     weight they are worth — and taking a row out of the left column is what
+     buys the call button its clearance on a 720px laptop. */
+  .hero-v__inner .wrap {
     display: grid;
-    grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
-    /* an explicit 1fr row: an auto row sizes to the copy and leaves the clip
-       letterboxed inside the hero instead of filling its column */
-    grid-template-rows: minmax(0, 1fr);
-    align-items: stretch;
-    align-content: stretch;
+    grid-template-columns: minmax(0, 1.28fr) minmax(0, .72fr);
+    grid-template-areas:
+      'eyebrow meta'
+      'h1      meta'
+      'promise meta'
+      'rating  meta'
+      'ctas    meta';
+    column-gap: clamp(30px, 4vw, 68px);
+    align-items: start;
   }
-  .hero-v__media { position: relative; inset: auto; grid-area: 1 / 2; height: 100%; }
-  .hero-v__inner {
-    grid-area: 1 / 1;
-    justify-content: center;
-    /* line the copy up with the page gutter, not with the grid cell */
-    /* clears the top bar + nav, which overlay the hero rather than sit above it */
-    padding: clamp(128px, 11vw, 158px) clamp(30px, 3vw, 54px) clamp(46px, 5vw, 80px)
-             max(22px, calc((100vw - var(--wrap)) / 2 + 22px));
+  .hero-v .eyebrow { grid-area: eyebrow; }
+  .hero-v h1 { grid-area: h1; }
+  .hero-v__promise { grid-area: promise; }
+  /* a grid item stretches by default; the chip should hug its own text */
+  .hero-v .rating { grid-area: rating; justify-self: start; }
+  .hero-v__ctas { grid-area: ctas; justify-self: start; }
+  .hero-v__meta {
+    grid-area: meta; align-self: center;
+    display: flex; flex-direction: column; gap: 0;
+    border-left: 2px solid rgba(255,255,255,.16);
+    padding-left: clamp(18px, 2vw, 28px);
+    font-size: .95rem;
   }
-  .hero-v__inner .wrap { max-width: none; padding: 0; }
-  .hero-v__scrim {
-    /* only over the clip: a band under the nav, and a feather into the panel */
-    grid-area: 1 / 2; position: relative; inset: auto;
-    background:
-      /* the nav row sits at 5–14% of the hero and the clip is bright behind it,
-         so the band has to hold that far down; it is a thin strip and leaves
-         the body of the frame untouched */
-      linear-gradient(to bottom, rgba(4,7,26,.88) 0%, rgba(4,7,26,.82) 9%,
-                                 rgba(4,7,26,.34) 17%, rgba(4,7,26,0) 27%),
-      linear-gradient(to right, rgba(6,10,46,1) 0%, rgba(6,10,46,.55) 5%, rgba(6,10,46,0) 13%);
-  }
-  .hero-v h1 { max-width: 14ch; font-size: clamp(2.1rem, 1rem + 2.7vw, 3.4rem); }
-  .hero-v__promise { max-width: 40ch; font-size: 1.06rem; }
-  /* the column is finite: keep the three CTAs on one row and the meta on one
-     line, or the last row slides under the stat band that overlaps the hero */
-  .hero-v__ctas { flex-wrap: nowrap; gap: 11px; }
-  .hero-v__ctas .btn { padding: 14px 20px; font-size: .96rem; white-space: nowrap; }
-  .hero-v__meta { gap: 8px 20px; font-size: .88rem; }
+  .hero-v__meta > * { padding: 9px 0; }
+  .hero-v__meta > * + * { border-top: 1px solid rgba(255,255,255,.1); }
 }
+
+/* Laptops: same width as a desktop, ~130px less height. Without this the call
+   button lands under the fold on 1280x720 and 1366x768. */
+@media (min-width: 941px) and (max-height: 840px) {
+  .hero-v__inner { padding-top: 22px; }
+  .hero-v h1 { font-size: clamp(1.95rem, 1rem + 1.9vw, 2.65rem); }
+  .hero-v__promise { font-size: 1rem; margin-bottom: .75em; }
+  .hero-v .rating { margin-bottom: 16px; }
+  .hero-v__ctas { margin-bottom: 16px; }
+}
+
 .hero-v h1 { color: #fff; max-width: 16ch; margin-bottom: .28em; text-wrap: balance; }
-/* White, not the orange accent: small tinted text over a moving photograph is
-   what drives the scrim dark. The orange stays on the rule and the H1 accent,
-   which are large enough to carry it. */
-.hero-v .eyebrow { color: #fff; }
-.hero-v .rating-text { color: #fff; }
+/* These two were forced to white while the copy sat on the moving frame —
+   small tinted text over a photograph is what drove the scrim dark. On a solid
+   panel they can go back to the site's normal dark-section treatment, which is
+   what every other dark section uses. */
 .hero-v h1 em {
   font-style: normal;
   background: linear-gradient(100deg, #ffbe8f, #ff8a44);
@@ -192,34 +211,15 @@
 }
 
 @media (max-width: 940px) {
-  .hero-v {
-    /* Phone band: tall enough to read the frame, short enough that the
-       headline and the call button are both above the fold. */
-    height: auto; min-height: 0;
-  }
-  .hero-v__media { position: relative; height: min(80vw, 60svh); }
-  /* On phones the copy sits BELOW the clip, not on top of it, so there is
-     nothing here to make legible. Only the top strip (behind the nav) and a
-     short fade into the section below are kept; the rest of the frame plays
-     clean. */
-  .hero-v__scrim {
-    /* the header overlays the top ~20% of the band, so hold the tint that far
-       and no further; the rest of the frame plays clean */
-    background: linear-gradient(to bottom,
-      rgba(4,7,26,.88) 0%, rgba(4,7,26,.78) 20%, rgba(4,7,26,.22) 32%,
-      rgba(4,7,26,0) 44%, rgba(4,7,26,0) 84%, rgba(4,7,26,.55) 100%);
-    bottom: auto; height: min(80vw, 60svh);
-  }
+  /* Phone band: tall enough to read the frame, short enough that the headline
+     and the call button are both above the fold. */
+  .hero-v__media { height: min(72vw, 52svh); min-height: 0; }
   /* Until a real clip exists the poster is a flat texture, so a full band is
      dead space above the headline on the most valuable screen there is.
      Collapsing it lifts the H1 and the call button. Flipping hasVideo back to
      true in index.astro restores the full band automatically. */
   .hero-v--noclip .hero-v__media { height: min(38vw, 26svh); }
-  .hero-v--noclip .hero-v__scrim { height: min(38vw, 26svh); }
-  .hero-v__inner {
-    padding-top: 26px; padding-bottom: 34px;
-    background: var(--grad-dark);
-  }
+  .hero-v__inner { padding-top: 26px; padding-bottom: 62px; }
   .hero-v h1 { max-width: none; }
 }
 

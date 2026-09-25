@@ -35,6 +35,11 @@ const SAMPLES = [
   ['meta', '.hero-v__meta', [211, 218, 241]],
 ];
 
+// Since the copy moved off the frame and onto a solid panel, every row of the
+// table below should read the SAME number. A column that moves from second to
+// second means something has been laid back over the video — which is the whole
+// failure this hero was rebuilt to make impossible. Keep the check for that.
+
 const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp',
   '.avif': 'image/avif', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.webm': 'video/webm',

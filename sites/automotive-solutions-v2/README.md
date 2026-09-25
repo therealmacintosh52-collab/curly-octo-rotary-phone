@@ -17,7 +17,7 @@ node scripts/lh.mjs    # Lighthouse mobile -> perf/lighthouse.md
 npm run og             # per-page OG images (run AFTER build)
 npm run posters        # hero poster set (jpg/webp/avif)
 npm run video -- clip.mov   # encode the hero clip to spec + recut posters
-npm run contrast       # hero copy vs the video, frame by frame
+npm run contrast       # hero copy vs what is behind it, frame by frame
 node scripts/shots.mjs      # QA screenshots -> qa/
 node scripts/preview-relative.mjs   # -> dist-preview/ (sub-path safe)
 node scripts/indexnow.mjs --send    # push the sitemap to Bing
@@ -84,8 +84,9 @@ with problems. They were raised, reviewed and the call was made to use the
 whole thing anyway. Recording what is on screen so nobody rediscovers it:
 
 - **The sign on the building reads `916-000-5277`.** The shop's real number is
-  **(916) 686-5277** — the middle three digits are wrong. It sits behind the
-  headline and the hero scrim knocks it well back, but it is there.
+  **(916) 686-5277** — the middle three digits are wrong. With the copy no
+  longer over the frame there is nothing knocking it back, so it is plainly
+  visible on the sign.
 - The logo on that sign is maroon rather than the real orange and blue, and
   "SOLUTIONS" under it is garbled. The address line is illegible.
 - A **"DIESEL REPAIR"** sign is on the wall. This shop does not claim diesel.
@@ -128,27 +129,48 @@ the attribute alone and refuse the autoplay. Play is retried on `canplay`,
 refused — iPhone Low Power Mode is the usual reason — the poster stays and a
 "Tap to play" pill appears. The video pauses when scrolled off-screen.
 
-### The copy sits beside the clip, not on top of it
+### Nothing is laid over the clip, at any width
 
-On desktop the hero is a two-column grid: copy on a solid panel at the left,
-video filling the right column with **no scrim over the picture at all**.
+The clip is a band across the top of the page with the copy on solid ground
+beneath it — the same structure on a phone and on a 2560px monitor. There is no
+scrim, no gradient and no nav over the picture: `.hero-v__scrim` is
+`display: none` and the home page does not pass `navOver`, so the header sits
+above the band on its own ground rather than on the frame.
 
-That is a compositional answer to a problem three rounds of gradient tuning
-could not solve. The copy block occupies the middle half of the frame, so any
-overlay dark enough to make it readable also dims the shot — a full-height band
-needed ~95% opacity across 60% of the width, and an ellipse centred on the copy
-is still a vignette. Moving the copy off the picture removes the constraint
-entirely. What is left is a thin band under the nav and a soft feather where the
-video meets the panel, neither of which touches the body of the frame.
+That is a compositional answer to a problem four rounds of gradient tuning could
+not solve. While the copy sat on the frame, any overlay dark enough to make it
+readable also dimmed the shot — a full-height band needed ~95% opacity across
+60% of the width, and an ellipse centred on the copy is still a vignette. A
+two-column split (copy left on a dark panel, video right) fixed the contrast but
+left a hard seam and a large flat panel next to the picture. Stacking removes
+the constraint instead of balancing it: no overlay exists, so no frame — bright
+or dark — can ever be a problem.
 
-On phones the copy was already below the clip, so the same rule applies there:
-the band holds only for the top ~20% the header overlays, and the rest plays
-clean.
+`npm run contrast` is the regression test for this. Every row of its table
+should read the **same** number from second to second; a column that moves means
+something has been put back over the video.
 
-One trap in that layout: `.hero-v` is a `<section>`, and the global `section`
-rule puts ~94px of vertical padding on it. Harmless while the media was
-absolutely positioned; with a grid it squeezed the row and letterboxed the clip
-inside its own column. `padding: 0` on the hero.
+Two things the layout has to hold, both measured rather than eyeballed:
+
+- **The call button must clear the fold**, and a 1366×768 laptop is as wide as a
+  desktop with 130px less height. The media band is therefore sized off viewport
+  height (`clamp(210px, 32svh, 400px)`), with a `max-height: 840px` query that
+  tightens the headline and the spacing. Checked at 1280×720, 1366×768,
+  1440×900, 1536×864, 1920×1080, 390×844 and 414×896.
+- **`.wrap` centres with `margin: 0 auto`.** Inside `.hero-v__inner`, which is a
+  flex column, that is a *cross-axis* auto margin — so the box shrank to fit its
+  own longest line and the hero copy centred on itself instead of lining up with
+  the logo and the stat band. `.hero-v__inner .wrap { width: 100% }` puts it back
+  on the page grid.
+
+The three trust lines (hours, ASE, NAPA) sit in the right-hand column of the
+copy block rather than as a strip under the buttons: it fills what would
+otherwise be 40% empty panel, gives them more weight than fine print, and taking
+a row out of the left column is what buys the call button its clearance at 720px.
+
+One more trap: `.hero-v` is a `<section>`, and the global `section` rule puts
+~94px of vertical padding on it, which shows up as dead space above the clip.
+`padding: 0` on the hero.
 
 Two formats are shipped and negotiated at runtime with `canPlayType`: WebM/VP9
 first (smaller, taken by Chrome, Firefox, Edge and Android), H.264 MP4 second
@@ -182,7 +204,8 @@ never goes idle. Both are handled in `scripts/`.
 | Autoplay, default Chrome policy | plays, `readyState 4`, `is-playing` set |
 | Autoplay, `--autoplay-policy=document-user-activation-required` | still plays |
 | Autoplay refused (Low Power Mode simulated) | poster stays, tap cue shown, no false "playing" |
-| Hero copy vs the brightest pixel behind it, every second of the clip (`npm run contrast`) | worst 7.74:1, needs 4.5:1 |
+| Hero copy vs the brightest pixel behind it, every second of the clip (`npm run contrast`) | worst 7.50:1, needs 4.5:1 — and identical at every frame, which is the proof nothing overlays the video |
+| Call button above the fold, 7 viewport sizes | clears at all 7 |
 | Audio | stripped (`-an`) |
 
 ---

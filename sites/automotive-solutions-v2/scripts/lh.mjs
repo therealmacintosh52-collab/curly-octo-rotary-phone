@@ -8,9 +8,14 @@ import { launch } from 'chrome-launcher';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(ROOT, 'dist');
+// .mp4 and .webm belong here: without them the clip is served as
+// application/octet-stream, Chrome falls back to sniffing it, and the hero's
+// first frame — which is the LCP element on the home page — lands seconds late.
+// That read as a site regression for one round; it was this table.
 const MIME = { '.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json',
   '.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.avif':'image/avif',
-  '.woff2':'font/woff2','.xml':'application/xml','.txt':'text/plain','.webmanifest':'application/manifest+json' };
+  '.woff2':'font/woff2','.xml':'application/xml','.txt':'text/plain','.webmanifest':'application/manifest+json',
+  '.mp4':'video/mp4','.webm':'video/webm' };
 
 const server = createServer((req, res) => {
   const url = decodeURIComponent((req.url || '/').split('?')[0]);
