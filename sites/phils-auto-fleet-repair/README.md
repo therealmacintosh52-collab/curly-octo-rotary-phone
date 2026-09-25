@@ -51,7 +51,8 @@ electrical & batteries · AC & heating · suspension & steering.
   footer, and a fixed mobile call bar (Call / Directions / Get a Quote) pinned to the bottom
   of every page on phones.
 - **Full-screen video of the shop** opens the homepage: a muted ten-second loop of the bay fills
-  the first screen and a half (the section is 1.6 screens tall), the header floats over it, and the headline and Call / Get-a-quote buttons
+  the first screen (on phones it runs as a band under the header with the actions below it), the
+  header floats over it, and the headline and Call / Get-a-quote buttons
   fade in once the video is playing. If a phone refuses autoplay (Low Power Mode, data saver),
   a still frame, the headline and a tap-to-play cue show instead. See "The homepage video" below.
 - **Quote form directly under the video** on the homepage, and again on every service page
