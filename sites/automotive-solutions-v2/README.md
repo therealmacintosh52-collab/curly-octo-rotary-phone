@@ -67,10 +67,15 @@ background each element actually renders on.
 
 ## The hero video
 
-**In and live.** `public/assets/video/shop.mp4` (2.26 MB) + `shop.webm` (2.54 MB),
-10.0 s, silent, the full supplied clip. It is a push from the forecourt through
-the roll-up door into the bay, so the loop point is a scene change rather than a
-match cut — acceptable, and unavoidable without trimming.
+**In and live.** `public/assets/video/shop.mp4` (1.36 MB) + `shop.webm` (1.48 MB),
+7.0 s, silent. It is a push from the forecourt through the roll-up door into the
+bay, so the loop point is a scene change rather than a match cut — acceptable,
+and unavoidable without ping-ponging it.
+
+The encode starts at **3.0 s**, which is the only cut made: the generation tool
+lays a large animated logo watermark over the first ~2.7 seconds, and it is the
+single most visible thing in the frame while it is there. Nothing of the shop is
+lost — the storefront is fully in view from 3.0 s on.
 
 ### The clip is the full 10 seconds, by the owner's decision
 
@@ -86,7 +91,8 @@ whole thing anyway. Recording what is on screen so nobody rediscovers it:
 - A **"DIESEL REPAIR"** sign is on the wall. This shop does not claim diesel.
 - The building is not 9253 Elk Grove Blvd. The neighbouring "blush salon" sign
   is real — Blush Salon & Spa does share that address.
-- A generated logo watermark fades out over the first second.
+- A generated logo watermark covers most of the frame for the first ~2.7
+  seconds. This is the one thing trimmed: the encode starts at 3.0 s.
 
 Everywhere else on the site the phone number is correct and identical;
 `scripts/audit.mjs` enforces that. The number in the video is the one place it

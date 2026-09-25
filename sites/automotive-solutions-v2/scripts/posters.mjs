@@ -28,11 +28,15 @@ const W = 1280, H = 720;
 mkdirSync(IMG, { recursive: true });
 const base = path.join(IMG, 'hero-poster.png');
 
+// Which second of the ENCODED clip to cut the poster from. 0 keeps the poster
+// and the video's first frame identical, which is what you want unless the
+// opening frames carry something they should not. Override with POSTER_AT=1.4.
+const POSTER_AT = process.env.POSTER_AT || '0';
+
 if (existsSync(VIDEO)) {
-  console.log('• real clip found — cutting frame 1');
-  execFileSync(FFMPEG, ['-y', '-i', VIDEO, '-vframes', '1', '-vf', `scale=${W}:-2`, base], {
-    stdio: 'ignore',
-  });
+  console.log(`• real clip found — cutting the poster at t=${POSTER_AT}s`);
+  execFileSync(FFMPEG, ['-y', '-ss', POSTER_AT, '-i', VIDEO, '-vframes', '1',
+                        '-vf', `scale=${W}:-2`, base], { stdio: 'ignore' });
 } else {
   console.log('• no clip yet — rendering the placeholder poster');
   // A quiet textured ground, deliberately with no logo and no words on it.

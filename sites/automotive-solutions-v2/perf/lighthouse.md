@@ -8,9 +8,9 @@ SEO = 100, CLS = 0.
 
 | Page | URL | Perf | A11y | Best prac. | SEO | LCP | CLS | TBT |
 |---|---|---|---|---|---|---|---|---|
-| Home | `/` | **97** | **100** | **100** | **100** | 2.6 s | 0 | 20 ms |
+| Home | `/` | **98** | **100** | **100** | **100** | 2.3 s | 0 | 10 ms |
 | Service | `/services/brake-repair/` | **99** | **100** | **100** | **100** | 1.8 s | 0 | 0 ms |
-| Guide | `/advice/check-engine-light/` | **100** | **100** | **100** | **100** | 1.7 s | 0 | 0 ms |
+| Guide | `/advice/check-engine-light/` | **99** | **100** | **100** | **100** | 1.8 s | 0 | 0 ms |
 | Contact | `/contact/` | **100** | **100** | **100** | **100** | 1.7 s | 0 | 0 ms |
 
 Last run: 2026-09-25

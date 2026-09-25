@@ -65,20 +65,19 @@
 .hero-v__video { opacity: 0; transition: opacity .6s ease; }
 .hero-v.is-playing .hero-v__video { opacity: 1; }
 
-/* Legibility scrim. Two stops so white text clears 4.5:1 over either end of
-   the frame, and a bottom band so the gradient nav has something to sit on. */
+/* Legibility scrim.
+   Its only job is keeping the copy readable where the copy actually sits: the
+   left column on desktop. A flat wash across the whole frame just dims the
+   clip for nothing, so the horizontal ramp carries almost all of the weight
+   and is gone by the right-hand third. The vertical ramp is light — enough to
+   hold the nav at the top and blend into the dark section at the bottom.
+   `npm run contrast` walks the clip and fails below 4.5:1. */
 .hero-v__scrim {
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  /* Deliberately heavy through the middle band where all the copy sits. The
-     clip opens on a sunlit storefront under a bright sky and then pushes past
-     a white roll-up door, so at several frames the brightest part of the shot
-     lands directly behind the eyebrow and the headline. The scrim is set for
-     the worst frame, not the average one — `npm run contrast` walks the clip
-     second by second and fails the build below 4.5:1. The orange eyebrow is
-     the binding constraint; the white headline has ~9:1 of headroom. */
   background:
-    linear-gradient(to bottom, rgba(4,7,26,.93) 0%, rgba(4,7,26,.78) 30%, rgba(4,7,26,.72) 56%, rgba(4,7,26,.95) 100%),
-    linear-gradient(to right, rgba(4,7,26,.90) 0%, rgba(4,7,26,.60) 52%, rgba(4,7,26,.12) 100%);
+    linear-gradient(to bottom, rgba(4,7,26,.62) 0%, rgba(4,7,26,.26) 22%, rgba(4,7,26,.22) 68%, rgba(4,7,26,.82) 100%),
+    linear-gradient(to right, rgba(4,7,26,.965) 0%, rgba(4,7,26,.955) 46%, rgba(4,7,26,.92) 62%,
+                              rgba(4,7,26,.32) 78%, rgba(4,7,26,0) 90%);
 }
 .hero-v__inner {
   position: relative; z-index: 2;
@@ -97,7 +96,7 @@
   font-family: var(--font-display);
   font-size: clamp(1rem, .9rem + .5vw, 1.24rem);
   font-weight: 500; color: #ffd9bd; margin: 0 0 1.1em;
-  letter-spacing: -.01em;
+  letter-spacing: -.01em; max-width: 44ch;
 }
 .hero-v__ctas { display: flex; flex-wrap: wrap; gap: 13px; margin-bottom: 22px; }
 .hero-v__meta {
@@ -151,8 +150,14 @@
     height: auto; min-height: 0;
   }
   .hero-v__media { position: relative; height: min(80vw, 60svh); }
+  /* On phones the copy sits BELOW the clip, not on top of it, so there is
+     nothing here to make legible. Only the top strip (behind the nav) and a
+     short fade into the section below are kept; the rest of the frame plays
+     clean. */
   .hero-v__scrim {
-    background: linear-gradient(to bottom, rgba(4,7,26,.72) 0%, rgba(4,7,26,.18) 40%, rgba(4,7,26,.55) 100%);
+    background: linear-gradient(to bottom,
+      rgba(4,7,26,.80) 0%, rgba(4,7,26,.30) 14%,
+      rgba(4,7,26,0) 34%, rgba(4,7,26,0) 82%, rgba(4,7,26,.55) 100%);
     bottom: auto; height: min(80vw, 60svh);
   }
   /* Until a real clip exists the poster is a flat texture, so a full band is

@@ -24,12 +24,15 @@ const DIST = path.join(ROOT, 'dist');
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const TMP = mkdtempSync(path.join(os.tmpdir(), 'herocontrast-'));
 
-// Colours the hero actually paints, from global.css / legacy.css.
+// Each piece of hero copy, with the colour it is painted in. Measured against
+// its OWN bounding box — not a rectangle around all of them, which would drag
+// in the empty right-hand side of the frame where no text sits and report a
+// failure the reader could never see.
 const SAMPLES = [
-  ['headline (white)', [255, 255, 255]],
-  ['eyebrow (--accent-lt)', [255, 148, 85]],
-  ['promise line (#ffd9bd)', [255, 217, 189]],
-  ['meta row (#d3daf1)', [211, 218, 241]],
+  ['eyebrow', '.hero-v .eyebrow', [255, 148, 85]],
+  ['headline', '.hero-v h1', [255, 255, 255]],
+  ['promise', '.hero-v__promise', [255, 217, 189]],
+  ['meta', '.hero-v__meta', [211, 218, 241]],
 ];
 
 const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
@@ -76,13 +79,28 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 await page.goto(BASE + '/', { waitUntil: 'load' });
 await page.waitForTimeout(2500);
 
-const box = await page.evaluate(() => {
-  const el = document.querySelector('.hero-v__inner .wrap');
+// The box to measure is where the GLYPHS are, not where the element is. A <p>
+// is a block: its box spans the whole column even when the sentence fills half
+// of it, and sampling that empty tail picks up whatever is behind the far side
+// of the frame. Range.getClientRects() gives the real line boxes instead.
+const boxes = await page.evaluate((sel) => sel.map(([name, q]) => {
+  const el = document.querySelector(q);
   if (!el) return null;
-  const r = el.getBoundingClientRect();
-  return { x: Math.max(0, r.x), y: Math.max(0, r.y), width: r.width, height: r.height };
-});
-if (!box) { console.log('No video hero on this page — nothing to check.'); await browser.close(); server.close(); process.exit(0); }
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const rects = Array.from(range.getClientRects()).filter((r) => r.width > 2 && r.height > 2);
+  if (!rects.length) return null;
+  // Pad by a few px: antialiasing bleeds glyph edges outward.
+  return {
+    name,
+    rects: rects.map((r) => ({
+      x: Math.max(0, Math.round(r.x) - 3), y: Math.max(0, Math.round(r.y) - 3),
+      width: Math.round(r.width) + 6, height: Math.round(r.height) + 6,
+    })),
+  };
+}), SAMPLES.map(([n, q]) => [n, q]));
+
+if (!boxes.some(Boolean)) { console.log('No video hero on this page — nothing to check.'); await browser.close(); server.close(); process.exit(0); }
 
 const duration = await page.evaluate(() =>
   new Promise((res) => {
@@ -115,28 +133,40 @@ for (const t of steps) {
     if (v) { v.pause(); v.currentTime = time; }
   }, t);
   await page.waitForTimeout(450);
-  const shot = path.join(TMP, `t${t}.png`);
-  await page.screenshot({ path: shot, clip: box });
-  const { data, info } = await sharp(shot).raw().toBuffer({ resolveWithObject: true });
-  let bright = [0, 0, 0];
+  const per = [];
+  let brightest = [0, 0, 0];
   let bl = -1;
-  for (let i = 0; i < data.length; i += info.channels * 4) {
-    const px = [data[i], data[i + 1], data[i + 2]];
-    const l = lum(px);
-    if (l > bl) { bl = l; bright = px; }
+  for (let i = 0; i < SAMPLES.length; i++) {
+    const entry = boxes[i];
+    if (!entry) { per.push(null); continue; }
+    let b = [0, 0, 0];
+    let best = -1;
+    for (let k = 0; k < entry.rects.length; k++) {
+      const box = entry.rects[k];
+      const shot = path.join(TMP, `t${t}-${i}-${k}.png`);
+      await page.screenshot({ path: shot, clip: box });
+      const { data, info } = await sharp(shot).raw().toBuffer({ resolveWithObject: true });
+      for (let j = 0; j < data.length; j += info.channels) {
+        const px = [data[j], data[j + 1], data[j + 2]];
+        const l = lum(px);
+        if (l > best) { best = l; b = px; }
+      }
+    }
+    if (best > bl) { bl = best; brightest = b; }
+    per.push(ratio(SAMPLES[i][2], b));
   }
-  const per = SAMPLES.map(([, rgb]) => ratio(rgb, bright));
-  const min = Math.min(...per);
+  const vals = per.filter((v) => v !== null);
+  const min = Math.min(...vals);
   if (min < worst) { worst = min; worstAt = t; }
-  rows.push([t, bright, per, min]);
+  rows.push([t, brightest, per, min]);
 }
 
-console.log(`Hero copy vs the brightest pixel behind it — ${steps.length} frames across ${duration.toFixed(1)}s\n`);
-console.log(`  ${'t'.padStart(5)}  ${'brightest bg'.padEnd(16)}  ` +
-            SAMPLES.map(([n]) => n.split(' ')[0].padStart(9)).join('  ') + '   min');
-for (const [t, bright, per, min] of rows) {
-  console.log(`  ${(t + 's').padStart(5)}  ${`rgb(${bright.join(',')})`.padEnd(16)}  ` +
-              per.map((v) => v.toFixed(2).padStart(9)).join('  ') +
+console.log(`Hero copy vs the brightest pixel inside each element's own box — ` +
+            `${steps.length} frames across ${duration.toFixed(1)}s\n`);
+console.log(`  ${'t'.padStart(5)}  ` + SAMPLES.map(([n]) => n.padStart(9)).join('  ') + '   min');
+for (const [t, , per, min] of rows) {
+  console.log(`  ${(t + 's').padStart(5)}  ` +
+              per.map((v) => (v === null ? '—' : v.toFixed(2)).padStart(9)).join('  ') +
               `   ${min.toFixed(2)} ${min >= 4.5 ? 'ok' : 'LOW'}`);
 }
 
