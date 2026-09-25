@@ -209,7 +209,8 @@ section{padding:var(--section) 0;position:relative}
 /* ---------------- Hero video ---------------- */
 .hero--video{isolation:isolate}
 .hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 62%;z-index:-3;pointer-events:none}
-.hero--video::before{content:"";position:absolute;inset:0;z-index:-2;background:var(--navy-900);opacity:.6}
+.hero--video::before{content:"";position:absolute;inset:0;z-index:-2;background:var(--navy-900);opacity:.52}
+.hero--video .hero-grid{min-height:min(78vh,760px)}
 .hero--video .quote-card{box-shadow:6px 6px 0 var(--red-700)}
 
 /* ---------------- Quote card: Motif B, the sign panel ---------------- */

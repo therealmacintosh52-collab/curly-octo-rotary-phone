@@ -15,7 +15,8 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUB = os.path.join(ROOT, "public")
-OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "preview.html")
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+OUT = ARGS[0] if ARGS else os.path.join(ROOT, "preview.html")
 
 
 def read(*parts):
@@ -55,9 +56,15 @@ def main():
     js = read("assets", "js", "site.js")
     logo = data_uri("/assets/img/logo.png", "image/png")
     scene = data_uri("/assets/img/shop-scene.svg", "image/svg+xml")
-    poster = data_uri("/assets/img/hero-poster.jpg", "image/jpeg")
-    video = data_uri("/assets/video/shop-front.mp4", "video/mp4")
-    webm = data_uri("/assets/video/shop-front.webm", "video/webm")
+    # Media stays as files beside the bundle when --media-files is given
+    # (hosts that refuse data: video), otherwise it is inlined like the rest.
+    if "--media-files" in sys.argv:
+        poster, video, webm = ("assets/img/hero-poster.jpg", "assets/video/shop-front.mp4",
+                               "assets/video/shop-front.webm")
+    else:
+        poster = data_uri("/assets/img/hero-poster.jpg", "image/jpeg")
+        video = data_uri("/assets/video/shop-front.mp4", "video/mp4")
+        webm = data_uri("/assets/video/shop-front.webm", "video/webm")
 
     templates = []
     for path, filename in routes().items():
