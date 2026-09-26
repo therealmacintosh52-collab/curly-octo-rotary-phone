@@ -202,7 +202,7 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
               <div className="grid gap-1.5">
                 <Label>Preferred method</Label>
                 <Select value={f.submission_method} onValueChange={(v) => setF((s) => ({ ...s, submission_method: v as SubmissionMethod }))}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Preferred submission method">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -215,7 +215,7 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
               <div className="grid gap-1.5">
                 <Label>Invoice mode</Label>
                 <Select value={f.invoice_mode} onValueChange={(v) => setF((s) => ({ ...s, invoice_mode: v as InvoiceMode }))}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Invoice mode">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

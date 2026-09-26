@@ -24,7 +24,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-10 px-3 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "h-10 px-3 text-left align-middle text-caption font-medium text-subtle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

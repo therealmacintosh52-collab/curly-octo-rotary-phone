@@ -15,6 +15,7 @@ import { InvoiceActions } from "@/components/invoices/invoice-actions";
 import { PaymentsCard } from "@/components/invoices/payments-card";
 import { SubmissionsCard } from "@/components/invoices/submissions-card";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Invoice" };
 
@@ -43,18 +44,19 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
 
   return (
     <Page>
-      <Link href="/invoices" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link href="/invoices" className="mb-4 inline-flex items-center gap-1 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeftIcon className="size-4" /> Invoices
       </Link>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+      {/* Header */}
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight">{invoice.display_number}</h1>
+            <h1 className="text-title">{invoice.display_number}</h1>
             <InvoiceStatusBadge status={invoice.status} overdue={overdue} />
           </div>
-          <p className="mt-1 text-lg">{dealership.name}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-foreground">{dealership.name}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             {formatDateOnly(invoice.period_start)} – {formatDateOnly(invoice.period_end)} · created {formatDate(invoice.created_at)}
             {invoice.ro_po_number ? ` · RO/PO ${invoice.ro_po_number}` : ""}
           </p>
@@ -65,7 +67,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
             </p>
           )}
         </div>
-        <div className="grid grid-cols-3 gap-3 lg:text-right">
+        <div className="grid shrink-0 grid-cols-3 gap-2 sm:gap-3">
           <Stat label="Total" value={formatMoney(invoice.total)} />
           <Stat label="Paid" value={formatMoney(invoice.amount_paid)} />
           <Stat label="Balance" value={formatMoney(balance)} highlight={balance > 0 && invoice.status !== "void"} />
@@ -84,44 +86,52 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
         <div className="flex min-w-0 flex-col gap-4">
           <Card className="min-w-0 overflow-hidden">
             <CardHeader>
-              <CardTitle>
+              <CardTitle className="flex items-center gap-2">
                 Line items <Badge variant="muted">{items.length}</Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Tag</TableHead>
-                    <TableHead>Vehicle</TableHead>
-                    <TableHead className="hidden xl:table-cell">VIN</TableHead>
-                    <TableHead>Service</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((it) => (
-                    <TableRow key={it.id}>
-                      <TableCell className="text-muted-foreground">{formatDate(it.performed_at, "MM/dd/yy")}</TableCell>
-                      <TableCell>
-                        {it.job_id ? (
-                          <Link href={`/jobs/${it.job_id}`} className="font-semibold hover:text-primary">
-                            {it.tag_number}
-                          </Link>
-                        ) : (
-                          <span className="font-semibold">{it.tag_number}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{[it.year, it.make, it.model].filter(Boolean).join(" ")}</TableCell>
-                      <TableCell className="hidden font-mono text-xs text-muted-foreground xl:table-cell">{it.vin ?? "—"}</TableCell>
-                      <TableCell>{it.service_name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatMoney(it.price)}</TableCell>
+            <CardContent className="px-0 sm:px-5">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead scope="col" className="pl-5 sm:pl-2">
+                        Date
+                      </TableHead>
+                      <TableHead scope="col">Tag</TableHead>
+                      <TableHead scope="col">Vehicle</TableHead>
+                      <TableHead scope="col" className="hidden xl:table-cell">
+                        VIN
+                      </TableHead>
+                      <TableHead scope="col">Service</TableHead>
+                      <TableHead scope="col" className="pr-5 text-right sm:pr-2">
+                        Amount
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="ml-auto mt-4 grid w-full max-w-xs gap-1 text-sm">
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((it) => (
+                      <TableRow key={it.id}>
+                        <TableCell className="pl-5 text-muted-foreground sm:pl-2">{formatDate(it.performed_at, "MM/dd/yy")}</TableCell>
+                        <TableCell>
+                          {it.job_id ? (
+                            <Link href={`/jobs/${it.job_id}`} className="font-semibold hover:text-primary">
+                              {it.tag_number}
+                            </Link>
+                          ) : (
+                            <span className="font-semibold">{it.tag_number}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{[it.year, it.make, it.model].filter(Boolean).join(" ")}</TableCell>
+                        <TableCell className="hidden font-mono text-xs text-muted-foreground xl:table-cell">{it.vin ?? "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap">{it.service_name}</TableCell>
+                        <TableCell className="pr-5 text-right tabular-nums sm:pr-2">{formatMoney(it.price)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="mt-4 ml-auto grid w-full max-w-xs gap-1.5 px-5 text-sm sm:px-0">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="tabular-nums">{formatMoney(invoice.subtotal)}</span>
@@ -162,9 +172,9 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
 
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3">
-      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={`mt-0.5 text-lg font-semibold tabular-nums ${highlight ? "text-warning" : ""}`}>{value}</div>
+    <div className={cn("rounded-xl border border-border bg-card px-3 py-2.5 surface-raised sm:px-4 sm:py-3 lg:min-w-28 lg:text-right", highlight && "border-warning/40")}>
+      <div className="text-caption text-muted-foreground">{label}</div>
+      <div className={cn("mt-0.5 text-base font-semibold tabular-nums sm:text-lg", highlight && "text-warning")}>{value}</div>
     </div>
   );
 }

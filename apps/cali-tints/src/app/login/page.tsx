@@ -16,7 +16,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
         <div className="mb-8 flex flex-col items-center gap-4 text-center">
           <Logo size={88} className="glow-primary" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Cali Tints</h1>
+            <h1 className="text-title">Cali Tints</h1>
             <p className="mt-1 text-sm text-muted-foreground">Dealer detailing · job log &amp; invoicing</p>
           </div>
         </div>

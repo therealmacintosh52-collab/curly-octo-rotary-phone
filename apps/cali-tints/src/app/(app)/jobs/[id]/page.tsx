@@ -75,23 +75,23 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[id]">) {
 
   return (
     <Page narrow>
-      <Link href="/jobs" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link href="/jobs" className="mb-4 inline-flex items-center gap-1 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeftIcon className="size-4" /> Jobs
       </Link>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-wider">{job.tag_number}</h1>
+            <h1 className="text-title tracking-wide">{job.tag_number}</h1>
             <JobStatusBadge row={{ deleted_at: job.deleted_at, invoice: job.invoice }} />
           </div>
-          <p className="mt-1 text-lg">{vehicleLabel(job)}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-1 text-base">{vehicleLabel(job)}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             {formatDate(job.performed_at)} · {job.dealership?.name} · {job.detailer?.full_name}
           </p>
         </div>
         <div className="text-left sm:text-right">
-          <div className="text-2xl font-semibold tabular-nums">{formatMoney(total)}</div>
+          <div className="text-stat">{formatMoney(total)}</div>
           {job.invoice && session.isAdmin && (
             <Link href={`/invoices/${job.invoice.id}`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
               {job.invoice.display_number} <ExternalLinkIcon className="size-3.5" />

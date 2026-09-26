@@ -13,6 +13,7 @@ import { formatDate, presetRange, RANGE_PRESETS, type RangePreset } from "@/lib/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -137,7 +138,7 @@ export function InvoiceBuilder({
   }
 
   if (dealerships.length === 0) {
-    return <p className="text-sm text-muted-foreground">Add a dealership in Settings first.</p>;
+    return <EmptyState title="No dealerships yet" description="Add a dealership in Settings before generating an invoice." />;
   }
 
   return (
@@ -151,7 +152,7 @@ export function InvoiceBuilder({
           <div className="grid gap-1.5">
             <Label>Dealership</Label>
             <Select value={dealershipId ?? ""} onValueChange={(v) => navigate({ dealership: v })}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Dealership">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -175,7 +176,7 @@ export function InvoiceBuilder({
               <div className="grid gap-1.5">
                 <Label>Period</Label>
                 <Select value={preset} onValueChange={(v) => applyPreset(v as RangePreset)}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Period">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -249,8 +250,8 @@ export function InvoiceBuilder({
             </div>
           </div>
 
-          <Button size="lg" disabled={pending || included.length === 0} onClick={generate}>
-            {pending ? <LoaderCircleIcon className="animate-spin" /> : <FileTextIcon />}
+          <Button size="lg" loading={pending} disabled={included.length === 0} onClick={generate} className="glow-primary">
+            {!pending && <FileTextIcon />}
             {perJob ? `Generate all pending (${groups.length})` : "Generate invoice"}
           </Button>
         </CardContent>
@@ -421,7 +422,7 @@ function PreviewRows({
 function ExcludedRows({ jobs, onInclude }: { jobs: PreviewJob[]; onInclude: (id: string) => void }) {
   return (
     <div className="rounded-lg border border-dashed border-border p-3 text-sm">
-      <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Excluded</div>
+      <div className="mb-1 text-caption font-medium text-subtle">Excluded</div>
       <ul className="flex flex-col gap-1">
         {jobs.map((j) => (
           <li key={j.id} className="flex items-center justify-between">

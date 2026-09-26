@@ -172,7 +172,7 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
         <div className="grid gap-1.5">
           <Label>Role</Label>
           <Select value={role} onValueChange={(v) => setRole(v as "admin" | "detailer")}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Role">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -225,7 +225,7 @@ function EditUserDialog({ user, currentRole, isSelf, onClose }: { user: Profile;
         <div className="grid gap-1.5">
           <Label>Role</Label>
           <Select value={role} onValueChange={(v) => setRole(v as UserRole)} disabled={isSelf}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Role">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -196,7 +196,7 @@ function ServiceDialog({ draft, onClose }: { draft: Draft; onClose: () => void }
         <div className="grid gap-1.5">
           <Label>Category</Label>
           <Select value={f.category} onValueChange={(v) => setF({ ...f, category: v as ServiceCategory })}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Category">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

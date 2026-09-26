@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BanIcon, ChevronDownIcon, DownloadIcon, FileCheckIcon, LoaderCircleIcon, MailIcon, PrinterIcon, SendIcon } from "lucide-react";
+import { BanIcon, ChevronDownIcon, DownloadIcon, FileCheckIcon, MailIcon, MoreHorizontalIcon, PrinterIcon, SendIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { InvoiceStatus, SubmissionMethod } from "@/lib/db/types";
 import { markSubmittedAction, submitInvoiceByEmailAction, voidInvoiceAction } from "@/app/(app)/invoices/actions";
@@ -45,56 +45,87 @@ export function InvoiceActions({ invoice, dealership, companyEmail }: Props) {
     });
   }
 
+  const downloads = (
+    <>
+      <DropdownMenuLabel>PDF</DropdownMenuLabel>
+      <DropdownMenuItem asChild>
+        <a href={dl("pdf")}>
+          <DownloadIcon /> Branded PDF
+        </a>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <a href={dl("pdf", "?variant=print")}>
+          <PrinterIcon /> Print-ready PDF (B&amp;W, letter)
+        </a>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <a href={dl("pdf", "?inline=1")} target="_blank" rel="noreferrer">
+          Open in browser
+        </a>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuLabel>Accounting import</DropdownMenuLabel>
+      <DropdownMenuItem asChild>
+        <a href={dl("csv")}>CSV line items</a>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <a href={dl("xlsx")}>Excel workbook</a>
+      </DropdownMenuItem>
+    </>
+  );
+
   return (
     <div className="flex flex-wrap gap-2">
+      {/* One primary action per state: send it (draft) or send it again. */}
       {!isVoid && (
-        <Button onClick={() => setEmailOpen(true)} disabled={pending}>
+        <Button onClick={() => setEmailOpen(true)} disabled={pending} className="flex-1 sm:flex-none">
           {hasBeenSent ? <SendIcon /> : <MailIcon />}
           {hasBeenSent ? "Resend by email" : "Submit by email"}
         </Button>
       )}
-      {!isVoid && (
-        <Button variant="outline" onClick={() => setManualOpen(true)}>
-          <FileCheckIcon /> Mark as submitted
-        </Button>
-      )}
 
+      {/* Phones: everything else behind one "More" button. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">
-            <DownloadIcon /> Download <ChevronDownIcon className="opacity-60" />
+          <Button variant="outline" className="sm:hidden" aria-label="More actions">
+            <MoreHorizontalIcon /> More
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuLabel>PDF</DropdownMenuLabel>
-          <DropdownMenuItem asChild>
-            <a href={dl("pdf")}>
-              <DownloadIcon /> Branded PDF
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={dl("pdf", "?variant=print")}>
-              <PrinterIcon /> Print-ready PDF (B&amp;W, letter)
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={dl("pdf", "?inline=1")} target="_blank" rel="noreferrer">
-              Open in browser
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>Accounting import</DropdownMenuLabel>
-          <DropdownMenuItem asChild>
-            <a href={dl("csv")}>CSV line items</a>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={dl("xlsx")}>Excel workbook</a>
-          </DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-64">
+          {!isVoid && (
+            <DropdownMenuItem onSelect={() => setManualOpen(true)}>
+              <FileCheckIcon /> Mark as submitted
+            </DropdownMenuItem>
+          )}
+          {!isVoid && <DropdownMenuSeparator />}
+          {downloads}
+          {canVoid && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setVoidOpen(true)} className="text-destructive focus:text-destructive">
+                <BanIcon /> Void invoice
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Desktop: inline secondary actions. */}
+      {!isVoid && (
+        <Button variant="outline" className="hidden sm:inline-flex" onClick={() => setManualOpen(true)}>
+          <FileCheckIcon /> Mark as submitted
+        </Button>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="hidden sm:inline-flex">
+            <DownloadIcon /> Download <ChevronDownIcon className="opacity-60" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">{downloads}</DropdownMenuContent>
+      </DropdownMenu>
       {canVoid && (
-        <Button variant="ghost" className="text-destructive" onClick={() => setVoidOpen(true)}>
+        <Button variant="ghost" className="hidden text-destructive sm:inline-flex" onClick={() => setVoidOpen(true)}>
           <BanIcon /> Void
         </Button>
       )}
@@ -125,8 +156,8 @@ export function InvoiceActions({ invoice, dealership, companyEmail }: Props) {
             <Button variant="outline" onClick={() => setEmailOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={sendEmail} disabled={pending || dealership.ap_emails.length === 0}>
-              {pending ? <LoaderCircleIcon className="animate-spin" /> : <SendIcon />} Send
+            <Button onClick={sendEmail} loading={pending} disabled={dealership.ap_emails.length === 0}>
+              {!pending && <SendIcon />} Send
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -190,7 +221,7 @@ function ManualSubmitDialog({ invoiceId, defaultMethod, onDone }: { invoiceId: s
         <div className="grid gap-1.5">
           <Label>Method</Label>
           <Select value={method} onValueChange={(v) => setMethod(v as SubmissionMethod)}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Submission method">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -209,8 +240,8 @@ function ManualSubmitDialog({ invoiceId, defaultMethod, onDone }: { invoiceId: s
           <Input id="ms-file" name="confirmation" type="file" accept="image/*,application/pdf" />
         </div>
         <DialogFooter>
-          <Button type="submit" disabled={pending}>
-            {pending ? <LoaderCircleIcon className="animate-spin" /> : <FileCheckIcon />} Mark submitted
+          <Button type="submit" loading={pending}>
+            {!pending && <FileCheckIcon />} Mark submitted
           </Button>
         </DialogFooter>
       </form>

@@ -113,7 +113,7 @@ function PaymentDialog({ invoiceId, balance, onDone }: { invoiceId: string; bala
         <div className="grid gap-1.5">
           <Label>Method</Label>
           <Select value={method} onValueChange={(v) => setMethod(v as PaymentMethod)}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Payment method">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

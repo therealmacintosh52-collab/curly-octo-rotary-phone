@@ -24,13 +24,13 @@ export default async function DemoPage(props: PageProps<"/demo">) {
         <div className="mb-8 flex flex-col items-center gap-4 text-center">
           <Logo size={88} className="glow-primary" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Cali Tints · guest preview</h1>
+            <h1 className="text-title">Cali Tints · guest preview</h1>
             <p className="mt-1 text-sm text-muted-foreground">Sample data. Nothing you do here is saved.</p>
           </div>
         </div>
 
         {!enabled ? (
-          <p className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-2xl border border-border bg-card p-6 surface-raised text-center text-sm text-muted-foreground">
             Guest mode is off on this deployment. Sign in at{" "}
             <Link href="/login" className="text-primary hover:underline">
               /login
@@ -38,7 +38,7 @@ export default async function DemoPage(props: PageProps<"/demo">) {
             .
           </p>
         ) : unlocked ? (
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 text-center">
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 surface-raised text-center">
             <p className="text-sm">You&apos;re in.</p>
             <Button asChild size="lg">
               <Link href="/">Open the app</Link>
@@ -48,9 +48,9 @@ export default async function DemoPage(props: PageProps<"/demo">) {
             </Button>
           </div>
         ) : (
-          <form method="get" action="/demo" className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 surface-gradient">
+          <form method="get" action="/demo" className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 surface-raised surface-gradient">
             {wrong && <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">That key is not right.</p>}
-            <label htmlFor="key" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <label htmlFor="key" className="text-label text-muted-foreground">
               Access key
             </label>
             <Input id="key" name="key" type="password" autoComplete="off" required placeholder="Paste the key you were given" />
