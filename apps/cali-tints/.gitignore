@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /.dev
+
+# demo-only deployments drop the guest key here (never commit)
+demo.key

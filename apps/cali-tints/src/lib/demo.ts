@@ -8,11 +8,13 @@
  * pages are marked noindex. Without the key the deployment shows only the
  * "enter access key" page (or, when Supabase is configured, the real login).
  */
+import { BUILT_IN_DEMO_KEY } from "./demo-key";
+
 export const DEMO_COOKIE = "ct_demo";
 export const DEMO_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 export function demoKey(): string | null {
-  const k = process.env.DEMO_ACCESS_KEY?.trim();
+  const k = (process.env.DEMO_ACCESS_KEY ?? BUILT_IN_DEMO_KEY ?? "").trim();
   return k && k.length >= 8 ? k : null;
 }
 
