@@ -37,7 +37,7 @@
 
   --muted: #171b1f;
   --muted-foreground: #a7b0b8;
-  --subtle: #6f7a83;
+  --subtle: #7d8892; /* 5.1:1 on card, 6.4:1 on background */
 
   --accent: #1f252a;
   --accent-foreground: #f2f4f5;
@@ -98,7 +98,7 @@
 
   --muted: #f1f3f5;
   --muted-foreground: #4b555e;
-  --subtle: #6f7a83;
+  --subtle: #5f6b75; /* 5.5:1 on white */
 
   --accent: #e9ecef;
   --accent-foreground: #0e1215;
@@ -174,7 +174,8 @@
   --ease-in: var(--ease-in);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* VINs and ids use the system mono stack: no second web font to download on the lot. */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   --animate-shimmer: shimmer 1.6s linear infinite;
   --animate-rise: rise var(--duration-base) var(--ease-out) both;

@@ -14,7 +14,7 @@ export function SubmissionsCard({ submissions, submittedAt }: { submissions: Row
     <Card>
       <CardHeader>
         <CardTitle>Submission history</CardTitle>
-        {submittedAt && <p className="text-xs text-muted-foreground">First submitted {formatDateTime(submittedAt)}</p>}
+        {submittedAt && <p className="text-caption text-muted-foreground">First submitted {formatDateTime(submittedAt)}</p>}
       </CardHeader>
       <CardContent>
         {submissions.length === 0 ? (
@@ -31,11 +31,11 @@ export function SubmissionsCard({ submissions, submittedAt }: { submissions: Row
                   </div>
                   <span className="text-xs text-muted-foreground">{formatDateTime(s.created_at)}</span>
                 </div>
-                <div className="mt-0.5 pl-6 text-xs text-muted-foreground">
+                <div className="mt-0.5 min-w-0 pl-6 text-caption break-words text-muted-foreground">
                   {s.created_by_name ? `${s.created_by_name} · ` : ""}
                   {s.recipients.length > 0 && <>to {s.recipients.join(", ")}</>}
                   {s.cc.length > 0 && <> · cc {s.cc.join(", ")}</>}
-                  {s.message_id && <div className="truncate font-mono">msg {s.message_id}</div>}
+                  {s.message_id && <div className="font-mono text-[11px] break-all">msg {s.message_id}</div>}
                   {s.error && <div className="text-destructive">{s.error}</div>}
                   {s.note && <div className="text-foreground/80">{s.note}</div>}
                   {s.confirmation_url && (

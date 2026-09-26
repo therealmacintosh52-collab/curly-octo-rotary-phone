@@ -57,7 +57,9 @@ export function ServicesManager({
                     {d.name.replace(/^Mercedes-Benz of /, "MB ")}
                   </TableHead>
                 ))}
-                <TableHead />
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

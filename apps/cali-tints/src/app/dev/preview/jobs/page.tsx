@@ -7,6 +7,7 @@ import { JobsFilters } from "@/components/jobs/jobs-filters";
 import { JobsTable } from "@/components/jobs/jobs-table";
 import { AuditTimeline } from "@/components/jobs/audit-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { parseJobFilters, type JobListRow } from "@/lib/jobs/query";
 import type { AuditLog, Company, Profile } from "@/lib/db/types";
 import { isoDaysAgo } from "@/lib/dates";
@@ -52,7 +53,15 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
           <Page>
             <PageHeader title="Jobs" description="3 jobs match" />
             <div className="mt-5 flex flex-col gap-4">
-              <Suspense>
+              {/* useSearchParams streams this in after first paint; the fallback reserves the same height so nothing shifts. */}
+              <Suspense
+                fallback={
+                  <div className="flex flex-col gap-3">
+                    <Skeleton className="h-11 w-full" />
+                    <Skeleton className="h-11 w-full sm:w-96" />
+                  </div>
+                }
+              >
                 <JobsFilters
                   filters={filters}
                   services={[{ id: "s1", name: "Used" }, { id: "s2", name: "PDI" }, { id: "s3", name: "Service Loaner Detail" }, { id: "s4", name: "Sold" }]}

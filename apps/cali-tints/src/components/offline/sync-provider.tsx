@@ -3,7 +3,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { OUTBOX_EVENT, pendingCount } from "@/lib/offline/outbox";
-import { syncOutbox } from "@/lib/offline/sync";
 
 interface SyncState {
   online: boolean;
@@ -49,8 +48,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   const syncNow = useCallback(async () => {
     if (!navigator.onLine) return;
+    // Nothing queued: skip entirely, so the Supabase SDK (~65 KB gz) never loads on an ordinary page view.
+    try {
+      if ((await pendingCount()) === 0) return;
+    } catch {
+      return;
+    }
     setSyncing(true);
     try {
+      const { syncOutbox } = await import("@/lib/offline/sync");
       const r = await syncOutbox();
       if (r.synced > 0) toast.success(r.synced === 1 ? "1 job synced" : `${r.synced} jobs synced`);
     } catch (err) {

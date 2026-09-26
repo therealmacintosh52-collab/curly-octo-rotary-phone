@@ -6,12 +6,10 @@ import { CheckIcon, LoaderCircleIcon, ScanLineIcon, XIcon } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import type { Dealership, JobPayload, PriceListRow } from "@/lib/db/types";
-import { createClient } from "@/lib/supabase/client";
 import { useSession } from "@/components/app/session-provider";
 import { useSync } from "@/components/offline/sync-provider";
 import { enqueueJob, findLocalDuplicates, saveRecentJobs, saveReference } from "@/lib/offline/outbox";
 import type { OutboxItem, RecentJob } from "@/lib/offline/db";
-import { createJobDirect } from "@/lib/offline/sync";
 import { decodeVin } from "@/lib/vin-client";
 import { normalizeVin, vinStatus } from "@/lib/vin";
 import { COLORS, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
@@ -150,6 +148,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     let remote: DuplicateHit[] = [];
     if (navigator.onLine && !demo) {
       try {
+        const { createClient } = await import("@/lib/supabase/client");
         const { data } = await createClient().rpc("find_duplicate_jobs", { p_tag_number: tag.trim(), p_vin: vin || null, p_dealership_id: null });
         remote = (data ?? []).map((d) => ({ ...d, detailer_name: d.detailer_name }));
       } catch {
@@ -227,6 +226,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     } catch {
       // IndexedDB unavailable (rare: private mode). Save straight to the server instead.
       try {
+        const { createJobDirect } = await import("@/lib/offline/sync");
         await createJobDirect(item);
       } catch (err) {
         toast.error(errorMessage(err, "Could not save the job"));

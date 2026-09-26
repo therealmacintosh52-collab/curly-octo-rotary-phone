@@ -355,7 +355,9 @@ function PreviewRows({
       {!compact && (
         <TableHeader>
           <TableRow>
-            <TableHead className="w-8" />
+            <TableHead className="w-8">
+              <span className="sr-only">Include</span>
+            </TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Tag</TableHead>
             <TableHead>Vehicle</TableHead>
