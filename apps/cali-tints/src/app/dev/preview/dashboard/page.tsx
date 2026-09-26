@@ -10,7 +10,7 @@ import { invoiceBundleFixture } from "@/test/fixtures";
 export default function DevDashboardPreview() {
   if (process.env.NODE_ENV === "production") notFound();
   const { company } = invoiceBundleFixture();
-  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Vincent (preview)", email: null, active: true } as Profile;
+  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike (preview)", email: null, active: true } as Profile;
 
   const days = Array.from({ length: 26 }, (_, i) => {
     const d = new Date(2026, 8, i + 1);
@@ -31,11 +31,11 @@ export default function DevDashboardPreview() {
     avg_days_to_pay: 27.4,
     paid_last_90: 21870,
     by_service: [
-      { name: "Full Detail", jobs: 41, revenue: 6150 },
+      { name: "Used Car Detail (Full)", jobs: 41, revenue: 6150 },
       { name: "Window Tint (Full)", jobs: 9, revenue: 3591 },
-      { name: "Interior Detail", jobs: 22, revenue: 1870 },
-      { name: "Delivery Prep", jobs: 38, revenue: 1330 },
-      { name: "Exterior Wash & Wax", jobs: 25, revenue: 1125 },
+      { name: "CPO Detail", jobs: 10, revenue: 1850 },
+      { name: "PDI (New Car Prep)", jobs: 38, revenue: 1330 },
+      { name: "Service Wash", jobs: 25, revenue: 1125 },
       { name: "Paint Correction (1-step)", jobs: 4, revenue: 1000 },
       { name: "Engine Bay", jobs: 6, revenue: 240 },
     ],

@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircleIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { Service } from "@/lib/db/types";
+import type { Service, ServiceCategory } from "@/lib/db/types";
+import { categoryLabel, SERVICE_CATEGORIES } from "@/lib/services";
 import { saveServiceAction, setDealershipPriceAction } from "@/app/(app)/settings/actions";
 import { formatMoney } from "@/lib/money";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-type Draft = { id?: string; name: string; description: string; default_price: string; sort_order: string; active: boolean };
-const empty: Draft = { name: "", description: "", default_price: "", sort_order: "100", active: true };
+type Draft = { id?: string; name: string; description: string; category: ServiceCategory; default_price: string; sort_order: string; active: boolean };
+const empty: Draft = { name: "", description: "", category: "addon", default_price: "", sort_order: "100", active: true };
 
 export function ServicesManager({
   services,
@@ -62,8 +64,8 @@ export function ServicesManager({
               {services.map((s) => (
                 <TableRow key={s.id} className={cn(!s.active && "opacity-50")}>
                   <TableCell>
-                    <div className="font-medium">
-                      {s.name} {!s.active && <Badge variant="muted">Inactive</Badge>}
+                    <div className="flex flex-wrap items-center gap-1.5 font-medium">
+                      {s.name} <Badge variant="outline">{categoryLabel(s.category)}</Badge> {!s.active && <Badge variant="muted">Inactive</Badge>}
                     </div>
                     {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
                   </TableCell>
@@ -79,7 +81,7 @@ export function ServicesManager({
                       variant="ghost"
                       aria-label="Edit"
                       onClick={() =>
-                        setEditing({ id: s.id, name: s.name, description: s.description ?? "", default_price: String(s.default_price), sort_order: String(s.sort_order), active: s.active })
+                        setEditing({ id: s.id, name: s.name, description: s.description ?? "", category: s.category ?? "addon", default_price: String(s.default_price), sort_order: String(s.sort_order), active: s.active })
                       }
                     >
                       <PencilIcon />
@@ -152,7 +154,7 @@ function ServiceDialog({ draft, onClose }: { draft: Draft; onClose: () => void }
         onSubmit={(e) => {
           e.preventDefault();
           start(async () => {
-            const r = await saveServiceAction({ id: f.id, name: f.name, description: f.description, default_price: Number(f.default_price), sort_order: Number(f.sort_order), active: f.active });
+            const r = await saveServiceAction({ id: f.id, name: f.name, description: f.description, category: f.category, default_price: Number(f.default_price), sort_order: Number(f.sort_order), active: f.active });
             if (r.ok) {
               toast.success("Service saved");
               onClose();
@@ -173,6 +175,21 @@ function ServiceDialog({ draft, onClose }: { draft: Draft; onClose: () => void }
         <div className="grid gap-1.5">
           <Label htmlFor="s-desc">Description</Label>
           <Input id="s-desc" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label>Category</Label>
+          <Select value={f.category} onValueChange={(v) => setF({ ...f, category: v as ServiceCategory })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SERVICE_CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label} — {c.hint}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">

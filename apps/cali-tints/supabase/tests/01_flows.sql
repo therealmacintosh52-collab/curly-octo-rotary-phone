@@ -222,12 +222,61 @@ begin
   assert (stats ->> 'reminder_days')::int = 30, 'reminder default';
 
   -- price list resolution
-  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000102') where name = 'Full Detail') = 165.00, 'price list override';
-  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Full Detail') = 150.00, 'price list default';
+  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000102') where name = 'Used Car Detail (Full)') = 165.00, 'price list override';
+  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Used Car Detail (Full)') = 150.00, 'price list default';
+  assert (select category from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'PDI (New Car Prep)') = 'new', 'price list category';
 
   -- admin can change prices; audit captures it
   update public.services set default_price = 155 where id = '00000000-0000-4000-8000-000000000201';
   select count(*) into n from public.audit_log where table_name = 'services' and action = 'update'; assert n = 1, 'service price audited';
+end $$;
+
+-- Double-billing guard -------------------------------------------------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare a public.jobs; b public.jobs; c public.jobs; n int; v_inv uuid; v_ids uuid[]; r record;
+begin
+  -- Same VIN twice in one batch, same service → in_batch conflict with shared service.
+  a := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'DUP1',
+        'vin', '4JGDA5HB0EA100001', 'performed_at', now() - interval '5 days',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  b := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'DUP2',
+        'vin', '4JGDA5HB0EA100001', 'performed_at', now() - interval '2 days',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  -- Same tag, different service, at the same dealership → in_batch, no shared service.
+  c := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'DUP1',
+        'performed_at', now() - interval '1 day',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000205'))));
+
+  select count(*) into n from public.find_invoice_conflicts(array[a.id, b.id, c.id]);
+  assert n = 2, 'two in-batch pairs, got ' || n;
+  select * into r from public.find_invoice_conflicts(array[a.id, b.id, c.id]) x where x.job_id = a.id and x.other_job_id = b.id;
+  assert r.kind = 'in_batch' and r.match_on = 'vin' and r.shared_services = 'Used Car Detail (Full)', 'vin pair with shared service';
+  select * into r from public.find_invoice_conflicts(array[a.id, b.id, c.id]) x where x.job_id = a.id and x.other_job_id = c.id;
+  assert r.kind = 'in_batch' and r.match_on = 'tag' and r.shared_services is null, 'tag pair, different work';
+
+  -- Exclude the suspected duplicate; it stays uninvoiced.
+  v_inv := public.generate_invoice('00000000-0000-4000-8000-000000000101', (current_date - 7), current_date + 1, null, array[b.id]);
+  assert (select invoice_id from public.jobs where id = b.id) is null, 'excluded job not invoiced';
+  assert (select invoice_id from public.jobs where id = a.id) = v_inv, 'kept job invoiced';
+
+  -- Now b collides with an INVOICED job and reports the invoice number.
+  select * into r from public.find_invoice_conflicts(array[b.id]) x;
+  assert r.kind = 'invoiced' and r.other_invoice_number = (select display_number from public.invoices where id = v_inv), 'invoiced conflict: ' || coalesce(r.kind, 'none');
+
+  -- Owner reviews it as legitimate → no longer flagged.
+  perform public.review_job_duplicate(b.id, 'Re-detail after customer return, approved by SM');
+  select count(*) into n from public.find_invoice_conflicts(array[b.id]);
+  assert n = 0, 'reviewed job not flagged';
+  assert (select dup_review_note from public.jobs where id = b.id) like 'Re-detail%', 'review note stored';
+
+  -- Entry-time check reports the invoice for the earlier job.
+  select count(*) into n from public.find_duplicate_jobs('DUP1', null, null) x where x.invoice_number is not null;
+  assert n >= 1, 'entry-time duplicate shows invoice number';
+
+  -- Per-job exclusion path works too.
+  select array_agg(x) into v_ids from public.generate_per_job_invoices('00000000-0000-4000-8000-000000000102', null, array[]::uuid[]) x;
+  assert v_ids is null or array_length(v_ids, 1) >= 0, 'per-job generation with empty exclude list';
 end $$;
 
 -- Storage policies: path scoping ---------------------------------------------

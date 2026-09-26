@@ -170,6 +170,15 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[id]">) {
               <dd>{job.ro_po_number ?? "—"}</dd>
               <dt className="text-muted-foreground">Notes</dt>
               <dd className="whitespace-pre-wrap">{job.notes ?? "—"}</dd>
+              {job.dup_reviewed_at && (
+                <>
+                  <dt className="text-muted-foreground">Double-bill review</dt>
+                  <dd>
+                    <span className="text-success">Marked OK to bill</span> {formatDateTime(job.dup_reviewed_at)}
+                    {job.dup_review_note ? ` · ${job.dup_review_note}` : ""}
+                  </dd>
+                </>
+              )}
               <dt className="text-muted-foreground">Logged</dt>
               <dd>{formatDateTime(job.created_at)}</dd>
               {job.deleted_at && (

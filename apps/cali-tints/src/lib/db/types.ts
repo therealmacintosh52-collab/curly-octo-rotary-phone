@@ -70,11 +70,14 @@ export type Dealership = {
   updated_at: string;
 }
 
+export type ServiceCategory = "new" | "used" | "service" | "addon";
+
 export type Service = {
   id: string;
   company_id: string;
   name: string;
   description: string | null;
+  category: ServiceCategory;
   default_price: number;
   active: boolean;
   sort_order: number;
@@ -113,6 +116,9 @@ export type Job = {
   deleted_at: string | null;
   deleted_by: string | null;
   delete_reason: string | null;
+  dup_reviewed_at: string | null;
+  dup_reviewed_by: string | null;
+  dup_review_note: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -245,6 +251,7 @@ export type PriceListRow = {
   service_id: string;
   name: string;
   description: string | null;
+  category: ServiceCategory;
   price: number;
   is_override: boolean;
   sort_order: number;
@@ -261,7 +268,23 @@ export type DuplicateJobRow = {
   performed_at: string;
   detailer_name: string;
   services: string | null;
+  /** Set when the earlier job is already on a live invoice. */
+  invoice_number: string | null;
 }
+
+/** One row of find_invoice_conflicts(). */
+export type InvoiceConflictRow = {
+  job_id: string;
+  other_job_id: string;
+  kind: "invoiced" | "in_batch";
+  other_tag: string;
+  other_vin: string | null;
+  other_performed_at: string;
+  other_invoice_number: string | null;
+  other_services: string | null;
+  shared_services: string | null;
+  match_on: "vin" | "tag";
+};
 
 /** Shape returned by dashboard_stats(). */
 export type DashboardStats = {
@@ -351,10 +374,12 @@ export type Database = {
       restore_job: { Args: { p_id: string }; Returns: undefined };
       uninvoiced_jobs: { Args: { p_dealership_id: string; p_start: string; p_end: string }; Returns: Job[] };
       generate_invoice: {
-        Args: { p_dealership_id: string; p_start: string; p_end: string; p_notes?: string | null };
+        Args: { p_dealership_id: string; p_start: string; p_end: string; p_notes?: string | null; p_exclude?: string[] };
         Returns: string;
       };
-      generate_per_job_invoices: { Args: { p_dealership_id: string; p_notes?: string | null }; Returns: string[] };
+      generate_per_job_invoices: { Args: { p_dealership_id: string; p_notes?: string | null; p_exclude?: string[] }; Returns: string[] };
+      find_invoice_conflicts: { Args: { p_job_ids: string[]; p_days?: number }; Returns: InvoiceConflictRow[] };
+      review_job_duplicate: { Args: { p_id: string; p_note?: string | null }; Returns: undefined };
       void_invoice: { Args: { p_id: string; p_reason?: string | null }; Returns: undefined };
       record_payment: {
         Args: {

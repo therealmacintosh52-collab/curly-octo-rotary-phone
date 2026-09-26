@@ -14,11 +14,11 @@ import type { Profile, Service } from "@/lib/db/types";
 export default function DevSettingsPreview() {
   if (process.env.NODE_ENV === "production") notFound();
   const { company, dealership } = invoiceBundleFixture();
-  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Vincent (preview)", email: "vincent@example.com", active: true, created_at: "", updated_at: "" } as Profile;
-  const svc = (id: string, name: string, price: number, sort: number, active = true): Service => ({
-    id, company_id: company.id, name, description: null, default_price: price, active, sort_order: sort, created_at: "", updated_at: "",
+  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike (preview)", email: "mike@example.com", active: true, created_at: "", updated_at: "" } as Profile;
+  const svc = (id: string, name: string, category: Service["category"], price: number, sort: number, active = true): Service => ({
+    id, company_id: company.id, name, description: null, category, default_price: price, active, sort_order: sort, created_at: "", updated_at: "",
   });
-  const services = [svc("s1", "Full Detail", 150, 10), svc("s2", "Exterior Wash & Wax", 45, 20), svc("s3", "Delivery Prep", 35, 40), svc("s4", "Headlight Restore", 60, 90, false)];
+  const services = [svc("s1", "PDI (New Car Prep)", "new", 35, 10), svc("s2", "Used Car Detail (Full)", "used", 150, 30), svc("s3", "Service Wash", "service", 45, 60), svc("s4", "Headlight Restoration", "addon", 60, 130, false)];
   const dealerships = [dealership, { ...dealership, id: "d2", name: "Mercedes-Benz of Irvine", invoice_mode: "per_job" as const, submission_method: "portal" as const, ap_emails: [], payment_terms: "Net 45" }];
   const users: Profile[] = [profile, { ...profile, id: "u2", role: "detailer", full_name: "Marco R.", email: "marco@example.com" }, { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com", active: false }];
 

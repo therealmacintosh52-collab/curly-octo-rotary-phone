@@ -14,9 +14,11 @@ import type { ActionResult } from "@/app/(app)/jobs/actions";
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use yyyy-mm-dd");
 
 /** Batch mode: one invoice for a date range. Returns the new invoice id. */
-export async function generateInvoiceAction(input: { dealership_id: string; start: string; end: string; notes?: string }): Promise<ActionResult<string>> {
+export async function generateInvoiceAction(input: { dealership_id: string; start: string; end: string; notes?: string; exclude?: string[] }): Promise<ActionResult<string>> {
   await requireAdmin();
-  const parsed = z.object({ dealership_id: z.uuid(), start: dateStr, end: dateStr, notes: z.string().trim().max(1000).optional() }).safeParse(input);
+  const parsed = z
+    .object({ dealership_id: z.uuid(), start: dateStr, end: dateStr, notes: z.string().trim().max(1000).optional(), exclude: z.array(z.uuid()).max(500).optional() })
+    .safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   if (parsed.data.end < parsed.data.start) return { ok: false, error: "End date is before start date" };
   const supabase = await createClient();
@@ -25,6 +27,7 @@ export async function generateInvoiceAction(input: { dealership_id: string; star
     p_start: parsed.data.start,
     p_end: parsed.data.end,
     p_notes: parsed.data.notes || null,
+    p_exclude: parsed.data.exclude ?? [],
   });
   if (error) return { ok: false, error: errorMessage(error) };
   revalidatePath("/invoices");
@@ -34,12 +37,16 @@ export async function generateInvoiceAction(input: { dealership_id: string; star
 }
 
 /** Per-job mode: one invoice per RO/PO for every pending job. Returns the ids. */
-export async function generatePerJobInvoicesAction(input: { dealership_id: string; notes?: string }): Promise<ActionResult<string[]>> {
+export async function generatePerJobInvoicesAction(input: { dealership_id: string; notes?: string; exclude?: string[] }): Promise<ActionResult<string[]>> {
   await requireAdmin();
-  const parsed = z.object({ dealership_id: z.uuid(), notes: z.string().trim().max(1000).optional() }).safeParse(input);
+  const parsed = z.object({ dealership_id: z.uuid(), notes: z.string().trim().max(1000).optional(), exclude: z.array(z.uuid()).max(500).optional() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("generate_per_job_invoices", { p_dealership_id: parsed.data.dealership_id, p_notes: parsed.data.notes || null });
+  const { data, error } = await supabase.rpc("generate_per_job_invoices", {
+    p_dealership_id: parsed.data.dealership_id,
+    p_notes: parsed.data.notes || null,
+    p_exclude: parsed.data.exclude ?? [],
+  });
   if (error) return { ok: false, error: errorMessage(error) };
   revalidatePath("/invoices");
   revalidatePath("/jobs");
@@ -164,6 +171,18 @@ export async function markSubmittedAction(formData: FormData): Promise<ActionRes
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/invoices");
   revalidatePath("/");
+  return { ok: true, data: undefined };
+}
+
+/** Owner reviewed a flagged job and confirmed it is legitimately billable. */
+export async function reviewJobDuplicateAction(jobId: string, note: string): Promise<ActionResult> {
+  await requireAdmin();
+  if (!/^[0-9a-f-]{36}$/i.test(jobId)) return { ok: false, error: "Invalid job" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("review_job_duplicate", { p_id: jobId, p_note: note.trim() || null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/invoices/new");
+  revalidatePath(`/jobs/${jobId}`);
   return { ok: true, data: undefined };
 }
 

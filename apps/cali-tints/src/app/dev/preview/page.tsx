@@ -38,7 +38,7 @@ export default function DevPreviewPage() {
     id: "10000000-0000-4000-8000-000000000001",
     company_id: company.id,
     role: "owner",
-    full_name: "Vincent (preview)",
+    full_name: "Mike (preview)",
     email: "owner@example.com",
     active: true,
     created_at: "",
@@ -89,12 +89,14 @@ export default function DevPreviewPage() {
     },
   ];
   const list: PriceListRow[] = [
-    { service_id: "s1", name: "Full Detail", description: null, price: 150, is_override: false, sort_order: 10 },
-    { service_id: "s2", name: "Exterior Wash & Wax", description: null, price: 45, is_override: false, sort_order: 20 },
-    { service_id: "s3", name: "Interior Detail", description: null, price: 85, is_override: false, sort_order: 30 },
-    { service_id: "s4", name: "Delivery Prep", description: null, price: 35, is_override: false, sort_order: 40 },
-    { service_id: "s5", name: "Window Tint (Full)", description: null, price: 399, is_override: false, sort_order: 50 },
-    { service_id: "s6", name: "Engine Bay", description: null, price: 40, is_override: false, sort_order: 80 },
+    { service_id: "s1", name: "PDI (New Car Prep)", description: null, category: "new", price: 35, is_override: false, sort_order: 10 },
+    { service_id: "s2", name: "New Car Delivery", description: null, category: "new", price: 35, is_override: false, sort_order: 20 },
+    { service_id: "s3", name: "Used Car Detail (Full)", description: null, category: "used", price: 150, is_override: false, sort_order: 30 },
+    { service_id: "s4", name: "CPO Detail", description: null, category: "used", price: 185, is_override: false, sort_order: 40 },
+    { service_id: "s5", name: "Service Wash", description: null, category: "service", price: 45, is_override: false, sort_order: 60 },
+    { service_id: "s6", name: "Loaner Return Clean", description: null, category: "service", price: 35, is_override: false, sort_order: 70 },
+    { service_id: "s7", name: "Window Tint (Full)", description: null, category: "addon", price: 399, is_override: false, sort_order: 90 },
+    { service_id: "s8", name: "Engine Bay", description: null, category: "addon", price: 40, is_override: false, sort_order: 120 },
   ];
 
   return (

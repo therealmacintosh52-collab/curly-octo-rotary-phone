@@ -73,13 +73,13 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
       updated_at: "2026-10-01T16:30:00Z",
     },
     items: [
-      ["2026-09-02T18:10:00Z", "4821", "W1KZF8DB3NA123456", 2024, "GLE 450", "Obsidian Black", "Full Detail", 150],
-      ["2026-09-02T18:10:00Z", "4821", "W1KZF8DB3NA123456", 2024, "GLE 450", "Obsidian Black", "Delivery Prep", 35],
+      ["2026-09-02T18:10:00Z", "4821", "W1KZF8DB3NA123456", 2024, "GLE 450", "Obsidian Black", "Used Car Detail (Full)", 150],
+      ["2026-09-02T18:10:00Z", "4821", "W1KZF8DB3NA123456", 2024, "GLE 450", "Obsidian Black", "PDI (New Car Prep)", 35],
       ["2026-09-05T20:00:00Z", "K-118", null, 2023, "C 300", "Polar White", "Window Tint (Full)", 399],
-      ["2026-09-09T15:45:00Z", "7702", "WDDGF4HB3CR227845", 2012, "C-Class", null, "Exterior Wash & Wax", 45],
-      ["2026-09-09T15:45:00Z", "7702", "WDDGF4HB3CR227845", 2012, "C-Class", null, "Interior Detail", 85],
+      ["2026-09-09T15:45:00Z", "7702", "WDDGF4HB3CR227845", 2012, "C-Class", null, "Service Wash", 45],
+      ["2026-09-09T15:45:00Z", "7702", "WDDGF4HB3CR227845", 2012, "C-Class", null, "CPO Detail", 85],
       ["2026-09-18T21:20:00Z", "3310", "W1N4M4HB0PW412221", 2025, "GLB 250", "Iridium Silver", "Paint Correction (1-step)", 250],
-      ["2026-09-26T16:00:00Z", "9051", null, 2022, "E 350", "Selenite Grey", "Full Detail", 150],
+      ["2026-09-26T16:00:00Z", "9051", null, 2022, "E 350", "Selenite Grey", "Used Car Detail (Full)", 150],
     ].map(([performed_at, tag, vin, year, model, color, service, price], i) => ({
       id: `40000000-0000-4000-8000-00000000000${i + 1}`,
       company_id: companyId,

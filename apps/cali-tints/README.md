@@ -33,9 +33,10 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 | Quick job entry `/jobs/new` | Big tag input, VIN camera scan (Code 39/128, QR, DataMatrix, PDF417) → NHTSA decode with cache, Mercedes model list + free text, service chips with priced overrides (reason required), before/after photos compressed on-device, 7-day duplicate warning, Save & next |
 | Offline | Jobs queue in IndexedDB and sync when online (idempotent on a client id, so retries never duplicate). `/jobs/outbox` shows the queue with retry/discard. App shell is cached by a service worker |
 | Job history `/jobs` | Search tag/VIN/model/RO, filter by service, dealership, detailer, dates, invoiced status; detail page with photos, edit sheet, soft delete/restore and a per-field audit timeline |
+| Double-billing guard | At entry, the 7-day duplicate prompt says if the earlier job is already on an invoice. At invoice time every candidate job is checked for the same VIN (or tag at that dealer) within 30 days, against live invoices and the batch itself, with a red flag when the service is the same; the owner excludes it or marks it OK with a note that is audited and stops future flags |
 | Invoicing `/invoices` | Batch (date range) or per-job (one invoice per RO/PO, bulk zip) modes; auto-numbered; branded and print-ready PDF, CSV, Excel; submit by email (Resend) with full send history; manual mark-as-submitted with confirmation upload; partial payments; void |
 | Dashboard `/` | Week/month cars & revenue, uninvoiced, outstanding, average days to payment, overdue reminders (configurable), revenue per day, by service, by detailer |
-| Settings `/settings` | Company profile + logo, invoicing defaults, dealerships (AP contacts, submission method, invoice mode, terms/tax overrides), services + per-dealership price grid, users (password or email invite, roles, reset), full CSV export |
+| Settings `/settings` | Company profile + logo, invoicing defaults, dealerships (AP contacts, submission method, invoice mode, terms/tax overrides), services grouped by category (New / Used / Service lane / Add-ons) + per-dealership price grid, users (password or email invite, roles, reset), full CSV export |
 | Roles | **Owner/Admin**: everything. **Detailer**: log and view own jobs only, no pricing edits, no invoices. Enforced by Postgres RLS, not just the UI |
 
 ## Project layout
@@ -43,7 +44,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 ```
 apps/cali-tints
 ├── supabase/
-│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage
+│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard + service categories
 │   ├── seed.sql         company, 2 dealerships, 8 services, price overrides
 │   └── tests/           SQL test suite runnable on plain Postgres (run.sh)
 ├── scripts/seed-demo.mjs   demo users + 60 days of jobs + invoices (uses the real RPCs)
@@ -138,6 +139,7 @@ Deviations from the brief and why:
 - `invoice_payments` (partial payments; a trigger rolls up `amount_paid`, `paid_at`, status `partial`/`paid`) and `invoice_submissions` (email attempts with message ids, portal/paper confirmations) replace single columns.
 - `jobs.client_id` = offline idempotency key. `jobs` are soft-deleted only; a trigger rejects hard deletes and locks any job that is on a non-void invoice.
 - `dealerships` carry AP contact/emails, `submission_method`, `invoice_mode` (`batch` | `per_job`), and optional terms/tax overrides. Per-job mode makes RO/PO required at entry (enforced in `create_job`).
+- `services.category` (`new` | `used` | `service` | `addon`) groups the price list the way the dealer buys the work; `jobs.dup_reviewed_*` records an owner's "OK to bill" decision on a flagged job; `find_invoice_conflicts()` powers the guard and `generate_*` accept `p_exclude`.
 - `vin_cache` shares NHTSA decodes; `audit_log` is written by triggers on every business table (who/what/when + changed columns).
 - Invoice numbers come from `companies.next_invoice_number` under a row lock inside `generate_invoice` / `generate_per_job_invoices`, so they are gap-free and never collide.
 

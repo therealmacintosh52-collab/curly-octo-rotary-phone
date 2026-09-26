@@ -84,11 +84,11 @@ async function main() {
   if (!company) throw new Error("Company not found. Apply supabase/migrations/*.sql and supabase/seed.sql first.");
 
   // --- users --------------------------------------------------------------
-  const ownerId = await ensureUser(OWNER_EMAIL, OWNER_PASSWORD, { company_id: COMPANY_ID, role: "owner", full_name: "Vincent Singh" });
+  const ownerId = await ensureUser(OWNER_EMAIL, OWNER_PASSWORD, { company_id: COMPANY_ID, role: "owner", full_name: "Mike" });
   const detailerIds = [];
   for (const d of DETAILERS) detailerIds.push(await ensureUser(d.email, DETAILER_PASSWORD, { company_id: COMPANY_ID, role: "detailer", full_name: d.full_name }));
   // Make sure roles are what we expect even if the users pre-existed.
-  await admin.from("profiles").update({ role: "owner", active: true, full_name: "Vincent Singh" }).eq("id", ownerId);
+  await admin.from("profiles").update({ role: "owner", active: true, full_name: "Mike" }).eq("id", ownerId);
   console.log(`Users ready: owner ${OWNER_EMAIL}, detailers ${DETAILERS.map((d) => d.email).join(", ")}`);
 
   // --- sign in as the owner and use the real RPCs ---------------------------
@@ -104,8 +104,8 @@ async function main() {
 
   const { data: services } = await owner.from("services").select("id, name").eq("active", true);
   const svcByName = Object.fromEntries(services.map((s) => [s.name, s.id]));
-  const common = ["Full Detail", "Exterior Wash & Wax", "Interior Detail", "Delivery Prep"];
-  const rare = ["Window Tint (Full)", "Window Tint (Front 2)", "Paint Correction (1-step)", "Engine Bay"];
+  const common = ["PDI (New Car Prep)", "New Car Delivery", "Used Car Detail (Full)", "CPO Detail", "Service Wash", "Loaner Return Clean"];
+  const rare = ["Window Tint (Full)", "Window Tint (Front 2)", "Paint Correction (1-step)", "Engine Bay", "Headlight Restoration", "Odor Treatment"];
 
   // --- jobs: last 60 days, Mon–Sat -------------------------------------------
   const today = new Date();

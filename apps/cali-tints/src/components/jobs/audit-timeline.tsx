@@ -2,7 +2,7 @@ import type { AuditLog } from "@/lib/db/types";
 import { formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 
-const HIDDEN = new Set(["id", "company_id", "job_id", "client_id", "created_at", "updated_at", "created_by", "updated_by", "deleted_by"]);
+const HIDDEN = new Set(["id", "company_id", "job_id", "client_id", "created_at", "updated_at", "created_by", "updated_by", "deleted_by", "dup_reviewed_by"]);
 const LABELS: Record<string, string> = {
   tag_number: "Tag",
   vin: "VIN",
@@ -22,11 +22,14 @@ const LABELS: Record<string, string> = {
   price: "Price",
   override_reason: "Override reason",
   service_id: "Service",
+  dup_reviewed_at: "Double-bill review",
+  dup_reviewed_by: "Reviewed by",
+  dup_review_note: "Review note",
 };
 
 function fmt(key: string, v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
-  if (key === "performed_at" || key === "deleted_at") return formatDateTime(String(v));
+  if (key === "performed_at" || key === "deleted_at" || key === "dup_reviewed_at") return formatDateTime(String(v));
   if (key === "price") return formatMoney(Number(v));
   if (typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(v)) return v.slice(0, 8) + "…";
   return String(v);
@@ -52,6 +55,7 @@ export function AuditTimeline({ entries, actorNames }: { entries: AuditLog[]; ac
         else if (changed.includes("deleted_at") && !newData.deleted_at) title = "Restored job";
         else if (changed.includes("invoice_id") && newData.invoice_id) title = "Added to invoice";
         else if (changed.includes("invoice_id") && !newData.invoice_id) title = "Removed from invoice (voided)";
+        else if (changed.includes("dup_reviewed_at") && newData.dup_reviewed_at) title = "Reviewed: OK to bill despite duplicate flag";
         else title = isService ? "Changed service line" : "Edited job";
 
         return (
