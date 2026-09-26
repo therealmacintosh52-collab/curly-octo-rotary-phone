@@ -6,7 +6,7 @@ import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { AuditLog, Job, JobPhoto, PriceListRow } from "@/lib/db/types";
 import { formatMoney, sumPrices } from "@/lib/money";
-import { formatDateTime } from "@/lib/dates";
+import { formatDate, formatDateTime } from "@/lib/dates";
 import { Page } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,7 +87,7 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[id]">) {
           </div>
           <p className="mt-1 text-lg">{vehicleLabel(job)}</p>
           <p className="text-sm text-muted-foreground">
-            {formatDateTime(job.performed_at)} · {job.dealership?.name} · {job.detailer?.full_name}
+            {formatDate(job.performed_at)} · {job.dealership?.name} · {job.detailer?.full_name}
           </p>
         </div>
         <div className="text-left sm:text-right">

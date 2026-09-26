@@ -5,6 +5,16 @@ export function toDateInput(d: Date): string {
   return format(d, "yyyy-MM-dd");
 }
 
+/**
+ * A date picked in <input type="date"> → timestamp to store. Today keeps the real
+ * clock time (so same-day jobs stay in the order they were logged); any other
+ * day is stored at local noon so it never drifts across midnight in another timezone.
+ */
+export function dateInputToIso(s: string, now: Date = new Date()): string {
+  if (s === toDateInput(now)) return now.toISOString();
+  return new Date(`${s}T12:00:00`).toISOString();
+}
+
 /** Local "yyyy-MM-ddTHH:mm" for <input type="datetime-local">. */
 export function toDateTimeLocal(d: Date): string {
   return format(d, "yyyy-MM-dd'T'HH:mm");

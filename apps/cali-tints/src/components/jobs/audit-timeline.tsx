@@ -1,5 +1,5 @@
 import type { AuditLog } from "@/lib/db/types";
-import { formatDateTime } from "@/lib/dates";
+import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 
 const HIDDEN = new Set(["id", "company_id", "job_id", "client_id", "created_at", "updated_at", "created_by", "updated_by", "deleted_by", "dup_reviewed_by"]);
@@ -29,7 +29,8 @@ const LABELS: Record<string, string> = {
 
 function fmt(key: string, v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
-  if (key === "performed_at" || key === "deleted_at" || key === "dup_reviewed_at") return formatDateTime(String(v));
+  if (key === "performed_at") return formatDate(String(v));
+  if (key === "deleted_at" || key === "dup_reviewed_at") return formatDateTime(String(v));
   if (key === "price") return formatMoney(Number(v));
   if (typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(v)) return v.slice(0, 8) + "…";
   return String(v);

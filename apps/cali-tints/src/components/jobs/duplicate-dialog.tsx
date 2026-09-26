@@ -4,7 +4,7 @@ import { AlertTriangleIcon, ReceiptIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { formatDateTime } from "@/lib/dates";
+import { formatDate } from "@/lib/dates";
 
 export interface DuplicateHit {
   id: string;
@@ -44,7 +44,7 @@ export function DuplicateDialog({ hits, onCancel, onContinue }: { hits: Duplicat
                     </Badge>
                   )}
                 </span>
-                <span className="text-muted-foreground">{formatDateTime(h.performed_at)}</span>
+                <span className="text-muted-foreground">{formatDate(h.performed_at)}</span>
               </div>
               <div className="text-muted-foreground">
                 {[h.model, h.vin, h.detailer_name].filter(Boolean).join(" · ")}

@@ -13,7 +13,7 @@ import { createJobDirect } from "@/lib/offline/sync";
 import { decodeVin } from "@/lib/vin-client";
 import { normalizeVin, vinStatus } from "@/lib/vin";
 import { COLORS, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
-import { nowMs, toDateTimeLocal } from "@/lib/dates";
+import { dateInputToIso, nowMs, toDateInput } from "@/lib/dates";
 import { formatMoney, sumPrices } from "@/lib/money";
 import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,13 +41,12 @@ interface Props {
  * outbox and returns immediately; the sync loop pushes it to Supabase.
  */
 export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Props) {
-  const { profile, company, isAdmin, demo } = useSession();
+  const { company, demo } = useSession();
   const { online } = useSync();
   const tagRef = useRef<HTMLInputElement>(null);
 
   // --- form state ------------------------------------------------------------
   const [dealershipId, setDealershipId] = useState<string>(() => dealerships[0]?.id ?? "");
-  const [detailerId, setDetailerId] = useState(profile.id);
   const [tag, setTag] = useState("");
   const [vin, setVin] = useState("");
   const [decoding, setDecoding] = useState(false);
@@ -58,7 +57,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const [color, setColor] = useState("");
   const [services, setServices] = useState<SelectedService[]>([]);
   const [photos, setPhotos] = useState<PendingPhoto[]>([]);
-  const [performedAt, setPerformedAt] = useState(() => toDateTimeLocal(new Date()));
+  const [performedAt, setPerformedAt] = useState(() => toDateInput(new Date()));
   const [roPo, setRoPo] = useState("");
   const [notes, setNotes] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -141,7 +140,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     if (vin && vinState === "invalid") return "VIN must be 17 characters (no I, O or Q)";
     if (services.length === 0) return "Select at least one service";
     if (perJob && !roPo.trim()) return `${dealership?.name} invoices per RO/PO — enter the RO/PO number`;
-    if (Number.isNaN(new Date(performedAt).getTime())) return "Date/time is invalid";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(performedAt)) return "Date is invalid";
     return null;
   }
 
@@ -186,14 +185,13 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     const payload: JobPayload = {
       client_id: clientId,
       dealership_id: dealershipId,
-      detailer_id: isAdmin ? detailerId : undefined,
       tag_number: tag.trim().toUpperCase(),
       vin: vin || null,
       year: year ? Number(year) : null,
       make: make === "Other" ? null : make || null,
       model: model.trim() || null,
       color: color === "Other" ? null : color || null,
-      performed_at: new Date(performedAt).toISOString(),
+      performed_at: dateInputToIso(performedAt),
       ro_po_number: roPo.trim() || null,
       notes: notes.trim() || null,
       services: services.map((s) => ({
@@ -253,7 +251,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     setColor("");
     setServices([]);
     setPhotos([]);
-    setPerformedAt(toDateTimeLocal(new Date()));
+    setPerformedAt(toDateInput(new Date()));
     setRoPo("");
     setNotes("");
     setDuplicates(null);
@@ -268,11 +266,11 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
 
   return (
     <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-32 sm:px-6">
-      {/* Date & time + RO/PO, first so they are never missed */}
-      <div className="grid grid-cols-[3fr_2fr] gap-3">
+      {/* Date + RO/PO, first so they are never missed */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">
-          <Label htmlFor="performed">Date &amp; time</Label>
-          <Input id="performed" type="datetime-local" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
+          <Label htmlFor="performed">Date</Label>
+          <Input id="performed" type="date" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="ropo">RO / PO {perJob ? <span className="text-destructive">*</span> : <span className="normal-case tracking-normal text-muted-foreground/70">(optional)</span>}</Label>
@@ -280,40 +278,21 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
         </div>
       </div>
 
-      {/* Dealership + detailer */}
-      <div className={cn("grid gap-3", isAdmin && detailers.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
-        <div className="grid gap-1.5">
-          <Label htmlFor="dealership">Dealership</Label>
-          <Select value={dealershipId} onValueChange={changeDealership}>
-            <SelectTrigger id="dealership">
-              <SelectValue placeholder="Pick a dealership" />
-            </SelectTrigger>
-            <SelectContent>
-              {dealerships.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {isAdmin && detailers.length > 1 && (
-          <div className="grid gap-1.5">
-            <Label htmlFor="detailer">Detailer</Label>
-            <Select value={detailerId} onValueChange={setDetailerId}>
-              <SelectTrigger id="detailer">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {detailers.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+      {/* Dealership (the job is logged under the signed-in user) */}
+      <div className="grid gap-1.5">
+        <Label htmlFor="dealership">Dealership</Label>
+        <Select value={dealershipId} onValueChange={changeDealership}>
+          <SelectTrigger id="dealership">
+            <SelectValue placeholder="Pick a dealership" />
+          </SelectTrigger>
+          <SelectContent>
+            {dealerships.map((d) => (
+              <SelectItem key={d.id} value={d.id}>
+                {d.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Tag */}

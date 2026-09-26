@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { JobListRow } from "@/lib/jobs/query";
 import { formatMoney, sumPrices } from "@/lib/money";
-import { formatDate, formatDateTime } from "@/lib/dates";
+import { formatDate } from "@/lib/dates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -125,7 +125,7 @@ export function JobsTable({ rows, page, pages, isAdmin }: { rows: JobListRow[]; 
           <TableBody>
             {rows.map((r) => (
               <TableRow key={r.id} className={cn(r.deleted_at && "opacity-60")}>
-                <TableCell className="text-muted-foreground">{formatDateTime(r.performed_at)}</TableCell>
+                <TableCell className="text-muted-foreground">{formatDate(r.performed_at)}</TableCell>
                 <TableCell>
                   <Link href={`/jobs/${r.id}`} className="font-semibold tracking-wide text-foreground hover:text-primary">
                     {r.tag_number}

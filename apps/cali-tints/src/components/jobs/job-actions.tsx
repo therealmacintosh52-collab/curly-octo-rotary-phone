@@ -6,7 +6,7 @@ import { LockIcon, PencilIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { PriceListRow } from "@/lib/db/types";
 import { restoreJobAction, softDeleteJobAction, updateJobAction } from "@/app/(app)/jobs/actions";
-import { toDateTimeLocal } from "@/lib/dates";
+import { dateInputToIso, toDateInput } from "@/lib/dates";
 import { normalizeVin, vinStatus } from "@/lib/vin";
 import { COLORS, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
 import { Button } from "@/components/ui/button";
@@ -159,7 +159,7 @@ function EditSheet({
   const [make, setMake] = useState(job.make ?? DEFAULT_MAKE);
   const [model, setModel] = useState(job.model ?? "");
   const [color, setColor] = useState(job.color ?? "");
-  const [performedAt, setPerformedAt] = useState(toDateTimeLocal(new Date(job.performed_at)));
+  const [performedAt, setPerformedAt] = useState(toDateInput(new Date(job.performed_at)));
   const [roPo, setRoPo] = useState(job.ro_po_number ?? "");
   const [notes, setNotes] = useState(job.notes ?? "");
   const [detailerId, setDetailerId] = useState(job.detailer_id);
@@ -190,7 +190,8 @@ function EditSheet({
         make: make || null,
         model: model.trim() || null,
         color: color || null,
-        performed_at: new Date(performedAt).toISOString(),
+        // Unchanged date keeps the original timestamp; a new date is stored per dateInputToIso.
+        performed_at: performedAt === toDateInput(new Date(job.performed_at)) ? job.performed_at : dateInputToIso(performedAt),
         ro_po_number: roPo.trim() || null,
         notes: notes.trim() || null,
         services: services.map((s) => ({ service_id: s.service_id, price: s.price, override_reason: s.override_reason })),
@@ -274,8 +275,8 @@ function EditSheet({
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="e-date">Date &amp; time</Label>
-              <Input id="e-date" type="datetime-local" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
+              <Label htmlFor="e-date">Date</Label>
+              <Input id="e-date" type="date" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="e-ropo">RO / PO {job.per_job && <span className="text-destructive">*</span>}</Label>
