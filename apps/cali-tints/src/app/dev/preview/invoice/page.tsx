@@ -60,14 +60,14 @@ export default function DevInvoicePreview() {
               <h2 className="mb-4 text-xl font-semibold">Builder</h2>
               <InvoiceBuilder
                 conflicts={[
-                  { job_id: "j0", other_job_id: "x1", kind: "invoiced", other_tag: "4821", other_vin: "W1KZF8DB3NA123456", other_performed_at: "2026-08-20T18:00:00Z", other_invoice_number: "INV-000009", other_services: "Used Car Detail (Full)", shared_services: "Used Car Detail (Full)", match_on: "vin" },
-                  { job_id: "j2", other_job_id: "x2", kind: "in_batch", other_tag: "K-118", other_vin: null, other_performed_at: "2026-09-04T18:00:00Z", other_invoice_number: null, other_services: "PDI (New Car Prep)", shared_services: null, match_on: "tag" },
+                  { job_id: "j0", other_job_id: "x1", kind: "invoiced", other_tag: "4821", other_vin: "W1KZF8DB3NA123456", other_performed_at: "2026-08-20T18:00:00Z", other_invoice_number: "INV-000009", other_services: "Used", shared_services: "Used", match_on: "vin" },
+                  { job_id: "j2", other_job_id: "x2", kind: "in_batch", other_tag: "K-118", other_vin: null, other_performed_at: "2026-09-04T18:00:00Z", other_invoice_number: null, other_services: "PDI", shared_services: null, match_on: "tag" },
                 ]}
                 dealerships={[b.dealership, { ...b.dealership, id: "d2", name: "Mercedes-Benz of Irvine", invoice_mode: "per_job" }]}
                 dealershipId={b.dealership.id}
                 from="2026-09-01"
                 to="2026-09-30"
-                taxRate={0.0775}
+                taxRate={0}
                 preview={b.items.slice(0, 4).map((it, i) => ({
                   id: `j${i}`,
                   tag_number: it.tag_number,

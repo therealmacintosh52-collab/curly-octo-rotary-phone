@@ -17,7 +17,7 @@ describe("invoice renderers", () => {
     const lines = csv.replace(/^﻿/, "").trim().split("\r\n");
     expect(lines[0]).toBe(INVOICE_CSV_COLUMNS.map((c) => c.header).join(","));
     expect(lines).toHaveLength(1 + b.items.length);
-    expect(invoiceCsvRows(b)[0]).toMatchObject({ invoice_number: "INV-000012", tag_number: "4821", amount: "150.00" });
+    expect(invoiceCsvRows(b)[0]).toMatchObject({ invoice_number: "INV-000012", tag_number: "4821", amount: "200.00" });
     if (OUT) writeFileSync(`${OUT}/invoice.csv`, csv);
   });
 
@@ -44,8 +44,8 @@ describe("invoice renderers", () => {
     const html = invoiceEmailHtml({ ...b, dealership: { ...b.dealership, name: "MB <Anaheim> & Co" } }, "https://app.example.com");
     expect(html).toContain("MB &lt;Anaheim&gt; &amp; Co");
     expect(html).toContain("INV-000012");
-    expect(html).toContain("$1,200.34");
-    expect(invoiceEmailText(b)).toContain("Total due: $1,200.34");
+    expect(html).toContain("$790.00");
+    expect(invoiceEmailText(b)).toContain("Total due: $790.00");
     if (OUT) writeFileSync(`${OUT}/invoice-email.html`, html);
   });
 

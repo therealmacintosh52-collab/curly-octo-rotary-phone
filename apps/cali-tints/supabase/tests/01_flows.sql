@@ -44,7 +44,7 @@ begin
   assert j.vin = 'W1KZF8DB5NA123456', 'vin uppercased';
   assert j.detailer_id = auth.uid(), 'detailer is self';
   select count(*) into n from public.job_services where job_id = j.id; assert n = 2, 'two services';
-  assert (select price from public.job_services where job_id = j.id and service_id = '00000000-0000-4000-8000-000000000201') = 150.00, 'default price applied';
+  assert (select price from public.job_services where job_id = j.id and service_id = '00000000-0000-4000-8000-000000000201') = 200.00, 'default price applied';
   assert (select override_reason from public.job_services where job_id = j.id and service_id = '00000000-0000-4000-8000-000000000204') = 'Manager approved', 'override reason kept';
 
   -- idempotent retry returns the same row
@@ -76,13 +76,13 @@ begin
   -- dealership price override resolves (Irvine full detail = 165)
   j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'B2', 'ro_po_number', 'RO-77',
       'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-  assert (select price from public.job_services where job_id = j2.id) = 165.00, 'dealership price used';
+  assert (select price from public.job_services where job_id = j2.id) = 215.00, 'dealership price used';
 
   -- detailer cannot read invoices / audit / edit services
   select count(*) into n from public.invoices; assert n = 0, 'invoices hidden (rls)';
   select count(*) into n from public.audit_log; assert n = 0, 'audit hidden (rls)';
   update public.services set default_price = 1 where id = '00000000-0000-4000-8000-000000000201';
-  assert (select default_price from public.services where id = '00000000-0000-4000-8000-000000000201') = 150.00, 'detailer cannot change prices';
+  assert (select default_price from public.services where id = '00000000-0000-4000-8000-000000000201') = 200.00, 'detailer cannot change prices';
   begin
     perform public.generate_invoice('00000000-0000-4000-8000-000000000101', '2000-01-01', '2100-01-01');
     raise exception 'expected admin-only';
@@ -123,12 +123,12 @@ begin
   select count(*) into n from public.jobs; assert n = 3, 'admin sees all jobs';
   select count(*) into n from public.audit_log where table_name = 'jobs'; assert n >= 3, 'audit rows written';
 
-  -- batch invoice for Anaheim (2 jobs: A123 @ 180, C9 @ 45)
+  -- batch invoice for Anaheim (2 jobs: A123 @ 230 (200 + 30 override), C9 @ 125)
   v_inv := public.generate_invoice('00000000-0000-4000-8000-000000000101', (current_date - 30), current_date + 1, 'September batch');
   select * into inv from public.invoices where id = v_inv;
   assert inv.display_number = 'INV-000001', 'first number: ' || inv.display_number;
-  assert inv.subtotal = 225.00, 'subtotal ' || inv.subtotal;
-  assert inv.tax = 0 and inv.total = 225.00, 'tax 0 by default';
+  assert inv.subtotal = 355.00, 'subtotal ' || inv.subtotal;
+  assert inv.tax = 0 and inv.total = 355.00, 'tax 0 by default';
   assert inv.status = 'draft', 'draft';
   select count(*) into n from public.invoice_items where invoice_id = v_inv; assert n = 3, 'three snapshot lines';
   select count(*) into n from public.jobs where invoice_id = v_inv and status = 'invoiced'; assert n = 2, 'jobs linked+invoiced';
@@ -149,7 +149,7 @@ begin
   exception when sqlstate 'P0001' then null; end;
   begin
     insert into public.job_services (company_id, job_id, service_id, price)
-    values (public.current_company_id(), v_job, '00000000-0000-4000-8000-000000000208', 40);
+    values (public.current_company_id(), v_job, '00000000-0000-4000-8000-000000000209', 20);
     raise exception 'expected services lock';
   exception when sqlstate 'P0001' then null; end;
 
@@ -172,13 +172,13 @@ begin
     perform public.void_invoice(v_inv, 'oops');
     raise exception 'expected void block with payments';
   exception when sqlstate 'P0001' then null; end;
-  perform public.record_payment(v_inv, 125, current_date, 'ach');
+  perform public.record_payment(v_inv, 255, current_date, 'ach');
   select * into inv from public.invoices where id = v_inv;
-  assert inv.status = 'paid' and inv.paid_at is not null and inv.amount_paid = 225, 'paid';
+  assert inv.status = 'paid' and inv.paid_at is not null and inv.amount_paid = 355, 'paid';
   -- removing a payment reverts status
   delete from public.invoice_payments where id = v_pay;
   select * into inv from public.invoices where id = v_inv;
-  assert inv.status = 'partial' and inv.amount_paid = 125, 'payment removal recomputes';
+  assert inv.status = 'partial' and inv.amount_paid = 255, 'payment removal recomputes';
 
   -- per-job mode for Irvine: two jobs on RO-77, one on RO-88, one with none → 3 invoices
   perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'D1', 'ro_po_number', 'RO-77',
@@ -188,7 +188,7 @@ begin
   select array_agg(x) into v_ids from public.generate_per_job_invoices('00000000-0000-4000-8000-000000000102') x;
   assert array_length(v_ids, 1) = 2, 'two per-job invoices, got ' || coalesce(array_length(v_ids,1),0);
   select * into inv from public.invoices where ro_po_number = 'RO-77';
-  assert inv.subtotal = 195.00, 'RO-77 groups two jobs: ' || inv.subtotal;   -- 165 + 30
+  assert inv.subtotal = 270.00, 'RO-77 groups two jobs: ' || inv.subtotal;   -- 215 + 55
   assert inv.payment_terms = 'Net 45', 'dealership terms override';
   assert inv.display_number = 'INV-000002' or inv.display_number = 'INV-000003', 'sequential numbering';
 
@@ -203,7 +203,7 @@ begin
 
   -- admin edit on behalf + services replace
   perform public.update_job(v_job, jsonb_build_object('color', 'Black',
-    'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000208'))));
+    'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000209'))));
   select count(*) into n from public.job_services where job_id = v_job; assert n = 1, 'services replaced';
   select count(*) into n from public.audit_log where table_name = 'jobs' and row_id = v_job and action = 'update';
   assert n >= 2, 'edits audited';
@@ -222,12 +222,12 @@ begin
   assert (stats ->> 'reminder_days')::int = 30, 'reminder default';
 
   -- price list resolution
-  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000102') where name = 'Used Car Detail (Full)') = 165.00, 'price list override';
-  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Used Car Detail (Full)') = 150.00, 'price list default';
-  assert (select category from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'PDI (New Car Prep)') = 'new', 'price list category';
+  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000102') where name = 'Used') = 215.00, 'price list override';
+  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Used') = 200.00, 'price list default';
+  assert (select category from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'PDI') = 'new', 'price list category';
 
   -- admin can change prices; audit captures it
-  update public.services set default_price = 155 where id = '00000000-0000-4000-8000-000000000201';
+  update public.services set default_price = 205 where id = '00000000-0000-4000-8000-000000000201';
   select count(*) into n from public.audit_log where table_name = 'services' and action = 'update'; assert n = 1, 'service price audited';
 end $$;
 
@@ -246,12 +246,12 @@ begin
   -- Same tag, different service, at the same dealership → in_batch, no shared service.
   c := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'DUP1',
         'performed_at', now() - interval '1 day',
-        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000205'))));
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000209'))));
 
   select count(*) into n from public.find_invoice_conflicts(array[a.id, b.id, c.id]);
   assert n = 2, 'two in-batch pairs, got ' || n;
   select * into r from public.find_invoice_conflicts(array[a.id, b.id, c.id]) x where x.job_id = a.id and x.other_job_id = b.id;
-  assert r.kind = 'in_batch' and r.match_on = 'vin' and r.shared_services = 'Used Car Detail (Full)', 'vin pair with shared service';
+  assert r.kind = 'in_batch' and r.match_on = 'vin' and r.shared_services = 'Used', 'vin pair with shared service';
   select * into r from public.find_invoice_conflicts(array[a.id, b.id, c.id]) x where x.job_id = a.id and x.other_job_id = c.id;
   assert r.kind = 'in_batch' and r.match_on = 'tag' and r.shared_services is null, 'tag pair, different work';
 

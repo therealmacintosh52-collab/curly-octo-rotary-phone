@@ -104,8 +104,8 @@ async function main() {
 
   const { data: services } = await owner.from("services").select("id, name").eq("active", true);
   const svcByName = Object.fromEntries(services.map((s) => [s.name, s.id]));
-  const common = ["PDI (New Car Prep)", "New Car Delivery", "Used Car Detail (Full)", "CPO Detail", "Service Wash", "Loaner Return Clean"];
-  const rare = ["Window Tint (Full)", "Window Tint (Front 2)", "Paint Correction (1-step)", "Engine Bay", "Headlight Restoration", "Odor Treatment"];
+  const common = ["PDI", "Sold", "Used", "Service Loaner Detail"];
+  const rare = ["Used", "Service Loaner Detail"];
 
   // --- jobs: last 60 days, Mon–Sat -------------------------------------------
   const today = new Date();

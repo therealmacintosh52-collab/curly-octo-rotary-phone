@@ -29,13 +29,10 @@ export default function DevDashboardPreview() {
     avg_days_to_pay: 27.4,
     paid_last_90: 21870,
     by_service: [
-      { name: "Used Car Detail (Full)", jobs: 41, revenue: 6150 },
-      { name: "Window Tint (Full)", jobs: 9, revenue: 3591 },
-      { name: "CPO Detail", jobs: 10, revenue: 1850 },
-      { name: "PDI (New Car Prep)", jobs: 38, revenue: 1330 },
-      { name: "Service Wash", jobs: 25, revenue: 1125 },
-      { name: "Paint Correction (1-step)", jobs: 4, revenue: 1000 },
-      { name: "Engine Bay", jobs: 6, revenue: 240 },
+      { name: "Used", jobs: 41, revenue: 8200 },
+      { name: "Service Loaner Detail", jobs: 28, revenue: 3500 },
+      { name: "PDI", jobs: 38, revenue: 2280 },
+      { name: "Sold", jobs: 33, revenue: 660 },
     ],
     by_detailer: [
       { name: "Marco R.", jobs: 52, revenue: 7010 },

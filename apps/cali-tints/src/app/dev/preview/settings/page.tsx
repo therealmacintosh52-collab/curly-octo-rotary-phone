@@ -16,7 +16,7 @@ export default function DevSettingsPreview() {
   const svc = (id: string, name: string, category: Service["category"], price: number, sort: number, active = true): Service => ({
     id, company_id: company.id, name, description: null, category, default_price: price, active, sort_order: sort, created_at: "", updated_at: "",
   });
-  const services = [svc("s1", "PDI (New Car Prep)", "new", 35, 10), svc("s2", "Used Car Detail (Full)", "used", 150, 30), svc("s3", "Service Wash", "service", 45, 60), svc("s4", "Headlight Restoration", "addon", 60, 130, false)];
+  const services = [svc("s1", "PDI", "new", 60, 10), svc("s2", "Sold", "new", 20, 20), svc("s3", "Used", "used", 200, 30), svc("s4", "Service Loaner Detail", "service", 125, 40)];
   const dealerships = [dealership, { ...dealership, id: "d2", name: "Mercedes-Benz of Irvine", invoice_mode: "per_job" as const, submission_method: "portal" as const, ap_emails: [], payment_terms: "Net 45" }];
   const users: Profile[] = [profile, { ...profile, id: "u2", role: "detailer", full_name: "Marco R.", email: "marco@example.com" }, { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com", active: false }];
 
@@ -30,7 +30,7 @@ export default function DevSettingsPreview() {
               <SettingsNav />
             </div>
             <div className="mt-5 flex flex-col gap-10">
-              <ServicesManager services={services} dealerships={dealerships.map((d) => ({ id: d.id, name: d.name }))} prices={[{ dealership_id: "d2", service_id: "s1", price: 165 }]} />
+              <ServicesManager services={services} dealerships={dealerships.map((d) => ({ id: d.id, name: d.name }))} prices={[{ dealership_id: "d2", service_id: "s3", price: 215 }]} />
               <DealershipsManager dealerships={dealerships} />
               <UsersManager users={users} currentUserId="u1" currentRole="owner" emailConfigured />
             </div>
