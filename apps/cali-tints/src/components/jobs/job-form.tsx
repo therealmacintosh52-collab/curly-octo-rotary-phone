@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckIcon, ChevronDownIcon, LoaderCircleIcon, ScanLineIcon, XIcon } from "lucide-react";
+import { CheckIcon, LoaderCircleIcon, ScanLineIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Dealership, JobPayload, PriceListRow } from "@/lib/db/types";
 import { createClient } from "@/lib/supabase/client";
@@ -61,7 +61,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const [performedAt, setPerformedAt] = useState(() => toDateTimeLocal(new Date()));
   const [roPo, setRoPo] = useState("");
   const [notes, setNotes] = useState("");
-  const [showDetails, setShowDetails] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateHit[] | null>(null);
   const [saving, setSaving] = useState(false);
@@ -269,6 +268,18 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
 
   return (
     <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-32 sm:px-6">
+      {/* Date & time + RO/PO, first so they are never missed */}
+      <div className="grid grid-cols-[3fr_2fr] gap-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="performed">Date &amp; time</Label>
+          <Input id="performed" type="datetime-local" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="ropo">RO / PO {perJob ? <span className="text-destructive">*</span> : <span className="normal-case tracking-normal text-muted-foreground/70">(optional)</span>}</Label>
+          <Input id="ropo" value={roPo} onChange={(e) => setRoPo(e.target.value.toUpperCase())} autoCapitalize="characters" placeholder="RO / PO #" required={perJob} />
+        </div>
+      </div>
+
       {/* Dealership + detailer */}
       <div className={cn("grid gap-3", isAdmin && detailers.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
         <div className="grid gap-1.5">
@@ -427,36 +438,10 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
         <PhotoPicker photos={photos} onChange={setPhotos} />
       </div>
 
-      {/* Details */}
-      <div className="rounded-xl border border-border">
-        <button
-          type="button"
-          onClick={() => setShowDetails((s) => !s)}
-          className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium"
-          aria-expanded={showDetails || perJob}
-        >
-          <span>
-            Date, RO/PO &amp; notes
-            {perJob && <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-xs text-warning">RO/PO required</span>}
-          </span>
-          <ChevronDownIcon className={cn("size-4 transition-transform", (showDetails || perJob) && "rotate-180")} />
-        </button>
-        {(showDetails || perJob) && (
-          <div className="grid gap-4 border-t border-border p-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="performed">Date &amp; time</Label>
-              <Input id="performed" type="datetime-local" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="ropo">RO / PO number {perJob && <span className="text-destructive">*</span>}</Label>
-              <Input id="ropo" value={roPo} onChange={(e) => setRoPo(e.target.value.toUpperCase())} autoCapitalize="characters" placeholder="Repair order or purchase order" required={perJob} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Scratches noted, customer waiting, etc." className="min-h-20" />
-            </div>
-          </div>
-        )}
+      {/* Notes */}
+      <div className="grid gap-1.5">
+        <Label htmlFor="notes">Notes (optional)</Label>
+        <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Scratches noted, customer waiting, etc." className="min-h-20" />
       </div>
 
       {/* Sticky action bar */}
