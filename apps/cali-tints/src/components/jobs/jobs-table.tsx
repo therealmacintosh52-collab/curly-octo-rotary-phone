@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, ClipboardListIcon, PlusIcon } from "lucide-react";
 import type { JobListRow } from "@/lib/jobs/query";
 import { formatMoney, sumPrices } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StaggerItem } from "@/components/motion/primitives";
 import { cn } from "@/lib/utils";
 
 export function vehicleLabel(j: { year: number | null; make: string | null; model: string | null }): string {
@@ -40,7 +42,7 @@ function PageLinks({ page, pages }: { page: number; pages: number }) {
         Page {page} of {pages}
       </span>
       <div className="flex gap-1">
-        <Button asChild variant="outline" size="sm" disabled={page <= 1}>
+        <Button asChild variant="outline" size="sm">
           <Link href={link(page - 1)} aria-disabled={page <= 1} className={cn(page <= 1 && "pointer-events-none opacity-50")}>
             <ChevronLeftIcon /> Prev
           </Link>
@@ -59,13 +61,18 @@ function PageLinks({ page, pages }: { page: number; pages: number }) {
 export function JobsTable({ rows, page, pages, isAdmin }: { rows: JobListRow[]; page: number; pages: number; isAdmin: boolean }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-        No jobs match. Try clearing filters, or{" "}
-        <Link href="/jobs/new" className="text-primary underline-offset-4 hover:underline">
-          log one
-        </Link>
-        .
-      </div>
+      <EmptyState
+        icon={ClipboardListIcon}
+        title="No jobs match"
+        description="Try a different search or clear the filters. Every car you log shows up here."
+        action={
+          <Button asChild>
+            <Link href="/jobs/new">
+              <PlusIcon /> Log a job
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 
@@ -73,35 +80,28 @@ export function JobsTable({ rows, page, pages, isAdmin }: { rows: JobListRow[]; 
     <div className="flex flex-col gap-3">
       {/* Mobile cards */}
       <ul className="flex flex-col gap-2 md:hidden">
-        {rows.map((r) => {
+        {rows.map((r, i) => {
           const total = sumPrices(r.job_services);
           return (
-            <li key={r.id}>
-              <Link href={`/jobs/${r.id}`} className="block rounded-xl border border-border bg-card p-4 active:bg-accent">
+            <StaggerItem key={r.id} index={i} as="li">
+              <Link href={`/jobs/${r.id}`} className="group block rounded-xl border border-border bg-card p-4 surface-raised transition-[border-color,background-color] duration-150 hover:border-border-strong active:bg-accent">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-semibold tracking-wide">{r.tag_number}</span>
                       <JobStatusBadge row={r} />
                     </div>
-                    <div className="truncate text-sm">{vehicleLabel(r)}</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {r.job_services.map((s) => s.service?.name).filter(Boolean).join(", ") || "No services"}
-                    </div>
+                    <div className="mt-0.5 truncate text-sm">{vehicleLabel(r)}</div>
+                    <div className="truncate text-caption text-muted-foreground">{r.job_services.map((s) => s.service?.name).filter(Boolean).join(", ") || "No services"}</div>
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="font-semibold tabular-nums">{formatMoney(total)}</div>
-                    <div className="text-xs text-muted-foreground">{formatDate(r.performed_at, "MMM d")}</div>
+                    <div className="text-caption text-muted-foreground">{formatDate(r.performed_at, "MMM d")}</div>
                   </div>
                 </div>
-                {isAdmin && (
-                  <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                    <span>{r.detailer?.full_name}</span>
-                    <span>{r.dealership?.name}</span>
-                  </div>
-                )}
+                {isAdmin && r.dealership?.name && <div className="mt-2 truncate text-caption text-subtle">{r.dealership.name}</div>}
               </Link>
-            </li>
+            </StaggerItem>
           );
         })}
       </ul>
@@ -111,15 +111,18 @@ export function JobsTable({ rows, page, pages, isAdmin }: { rows: JobListRow[]; 
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead>Date</TableHead>
-              <TableHead>Tag</TableHead>
-              <TableHead>Vehicle</TableHead>
-              <TableHead className="hidden xl:table-cell">VIN</TableHead>
-              <TableHead>Services</TableHead>
-              {isAdmin && <TableHead>Detailer</TableHead>}
-              {isAdmin && <TableHead>Dealership</TableHead>}
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total</TableHead>
+              <TableHead scope="col">Date</TableHead>
+              <TableHead scope="col">Tag</TableHead>
+              <TableHead scope="col">Vehicle</TableHead>
+              <TableHead scope="col" className="hidden xl:table-cell">
+                VIN
+              </TableHead>
+              <TableHead scope="col">Services</TableHead>
+              {isAdmin && <TableHead scope="col">Dealership</TableHead>}
+              <TableHead scope="col">Status</TableHead>
+              <TableHead scope="col" className="text-right">
+                Total
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -134,7 +137,6 @@ export function JobsTable({ rows, page, pages, isAdmin }: { rows: JobListRow[]; 
                 <TableCell>{vehicleLabel(r)}</TableCell>
                 <TableCell className="hidden font-mono text-xs text-muted-foreground xl:table-cell">{r.vin ?? "—"}</TableCell>
                 <TableCell className="max-w-64 truncate">{r.job_services.map((s) => s.service?.name).filter(Boolean).join(", ")}</TableCell>
-                {isAdmin && <TableCell>{r.detailer?.full_name}</TableCell>}
                 {isAdmin && <TableCell className="text-muted-foreground">{r.dealership?.name}</TableCell>}
                 <TableCell>
                   <JobStatusBadge row={r} />

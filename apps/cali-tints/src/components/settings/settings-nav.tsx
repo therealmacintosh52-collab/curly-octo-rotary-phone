@@ -1,36 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { Segmented } from "@/components/ui/segmented";
 
 const ITEMS = [
-  { href: "/settings", label: "Company" },
-  { href: "/settings/dealerships", label: "Dealerships" },
-  { href: "/settings/services", label: "Services & prices" },
-  { href: "/settings/users", label: "Users" },
-  { href: "/settings/export", label: "Export" },
+  { value: "/settings", label: "Company", href: "/settings" },
+  { value: "/settings/dealerships", label: "Dealerships", href: "/settings/dealerships" },
+  { value: "/settings/services", label: "Services & prices", href: "/settings/services" },
+  { value: "/settings/users", label: "Users", href: "/settings/users" },
+  { value: "/settings/export", label: "Export", href: "/settings/export" },
 ];
 
 export function SettingsNav() {
   const pathname = usePathname();
-  return (
-    <nav className="flex gap-1 overflow-x-auto rounded-lg bg-muted p-1">
-      {ITEMS.map((i) => {
-        const active = i.href === "/settings" ? pathname === "/settings" : pathname.startsWith(i.href);
-        return (
-          <Link
-            key={i.href}
-            href={i.href}
-            className={cn(
-              "shrink-0 rounded-md px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors",
-              active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {i.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  const active = ITEMS.filter((i) => (i.value === "/settings" ? pathname === "/settings" : pathname.startsWith(i.value))).at(-1)?.value ?? "/settings";
+  return <Segmented aria-label="Settings sections" items={ITEMS} value={active} className="w-full lg:w-auto" />;
 }

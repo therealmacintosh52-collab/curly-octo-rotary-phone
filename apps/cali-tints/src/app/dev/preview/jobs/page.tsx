@@ -7,12 +7,13 @@ import { JobsFilters } from "@/components/jobs/jobs-filters";
 import { JobsTable } from "@/components/jobs/jobs-table";
 import { AuditTimeline } from "@/components/jobs/audit-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { JobListRow } from "@/lib/jobs/query";
+import { parseJobFilters, type JobListRow } from "@/lib/jobs/query";
 import type { AuditLog, Company, Profile } from "@/lib/db/types";
 import { isoDaysAgo } from "@/lib/dates";
 
-/** Dev-only fixture preview of the job list + audit timeline. 404 in production. */
-export default function DevJobsPreview() {
+/** Fixture preview of the job list + audit timeline (guest demo in production). Filters come from the URL so chips and the sheet behave like the real page. */
+export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs">) {
+  const filters = parseJobFilters(await props.searchParams);
 
   const company = { id: "c1", name: "Cali Tints", payment_terms: "Net 30", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles" } as Company;
   const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
@@ -53,9 +54,8 @@ export default function DevJobsPreview() {
             <div className="mt-5 flex flex-col gap-4">
               <Suspense>
                 <JobsFilters
-                  filters={{ status: "all", page: 1 }}
+                  filters={filters}
                   services={[{ id: "s1", name: "Used" }, { id: "s2", name: "PDI" }, { id: "s3", name: "Service Loaner Detail" }, { id: "s4", name: "Sold" }]}
-                  detailers={[{ id: "u2", full_name: "Marco R." }]}
                   dealerships={[{ id: "d1", name: "Mercedes-Benz of Anaheim" }, { id: "d2", name: "Mercedes-Benz of Irvine" }]}
                   isAdmin
                 />

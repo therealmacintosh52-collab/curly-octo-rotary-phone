@@ -22,7 +22,7 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
   const [result, { data: services }, { data: detailers }, { data: dealerships }, { data: summary }] = await Promise.all([
     queryJobs(filters),
     supabase.from("services").select("id, name").order("sort_order"),
-    session.isAdmin ? supabase.from("profiles").select("id, full_name").order("full_name") : Promise.resolve({ data: [] }),
+    filters.detailer && session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("id", filters.detailer) : Promise.resolve({ data: [] }),
     supabase.from("dealerships").select("id, name").order("name"),
     supabase.rpc("jobs_filter_summary", {
       p_q: filters.q ?? null,
@@ -57,7 +57,7 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
         }
       />
       <div className="mt-5 flex flex-col gap-4">
-        <JobsFilters filters={filters} services={services ?? []} detailers={detailers ?? []} dealerships={dealerships ?? []} isAdmin={session.isAdmin} />
+        <JobsFilters filters={filters} services={services ?? []} dealerships={dealerships ?? []} isAdmin={session.isAdmin} />
         <JobsTable rows={result.rows} page={result.page} pages={result.pages} isAdmin={session.isAdmin} />
       </div>
     </Page>

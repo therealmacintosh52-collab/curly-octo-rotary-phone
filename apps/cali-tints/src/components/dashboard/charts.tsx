@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useReducedMotion } from "motion/react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatMoney } from "@/lib/money";
 import { formatDateOnly } from "@/lib/dates";
@@ -23,13 +24,13 @@ function ChartTooltip({ active, payload, label, money }: { active?: boolean; pay
   const p = payload[0];
   const jobs = p.payload.jobs as number | undefined;
   return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-xl">
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-popover">
       <div className="font-medium text-foreground">{label}</div>
       <div className="text-muted-foreground">
         {money ? formatMoney(p.value) : p.value}
         {jobs !== undefined && money ? ` · ${jobs} job${jobs === 1 ? "" : "s"}` : ""}
       </div>
-      <div className="mt-1 text-[10px] text-primary">Click to see the jobs</div>
+      <div className="mt-1 text-[11px] text-primary">Tap to see the jobs</div>
     </div>
   );
 }
@@ -47,6 +48,7 @@ function barRow<T>(item: unknown): T | undefined {
 /** Revenue per day as columns; empty days are filled in so the axis is continuous. Click a day → that day's jobs. */
 export function RevenueByDayChart({ data, start, end }: { data: { day: string; jobs: number; revenue: number }[]; start: string; end: string }) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const byDay = new Map(data.map((d) => [d.day, d]));
   const last = new Date(end + "T00:00:00");
   let first = new Date(start + "T00:00:00");
@@ -94,7 +96,7 @@ export function RevenueByDayChart({ data, start, end }: { data: { day: string; j
           <XAxis dataKey="label" tick={{ fill: TICK, fontSize: 11 }} axisLine={{ stroke: GRID }} tickLine={false} interval={step - 1} />
           <YAxis tick={{ fill: TICK, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={compact} width={44} />
           <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} content={<ChartTooltip money />} />
-          <Bar dataKey="revenue" fill={ACCENT} radius={[4, 4, 0, 0]} maxBarSize={24} style={{ cursor: "pointer" }} onClick={(item) => { const row = barRow<{ day: string }>(item); if (row) open(row.day); }} />
+          <Bar dataKey="revenue" fill={ACCENT} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={!reduce} animationDuration={400} animationEasing="ease-out" style={{ cursor: "pointer" }} onClick={(item) => { const row = barRow<{ day: string }>(item); if (row) open(row.day); }} />
         </BarChart>
       </ResponsiveContainer>
       {grouping !== "day" && <p className="mt-1 text-center text-[11px] text-muted-foreground">Grouped by {grouping} for this range</p>}
@@ -117,6 +119,7 @@ export function HorizontalBars({
   range: { start: string; end: string } | null;
 }) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   if (data.length === 0) return <p className="py-8 text-center text-sm text-muted-foreground">No data for this range.</p>;
   const rows = data.slice(0, 8).map((d) => ({ ...d, revenue: Number(d.revenue), value: money ? Number(d.revenue) : d.jobs }));
   const height = Math.max(120, rows.length * 34 + 16);
@@ -129,7 +132,7 @@ export function HorizontalBars({
           <XAxis type="number" hide />
           <YAxis type="category" dataKey="name" width={140} tick={{ fill: TICK, fontSize: 12 }} axisLine={false} tickLine={false} />
           <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} content={<ChartTooltip money={money} />} />
-          <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={20} style={{ cursor: "pointer" }} onClick={(item) => { const row = barRow<{ id: string }>(item); if (row) open(row.id); }}>
+          <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={20} isAnimationActive={!reduce} animationDuration={400} animationEasing="ease-out" style={{ cursor: "pointer" }} onClick={(item) => { const row = barRow<{ id: string }>(item); if (row) open(row.id); }}>
             {rows.map((_, i) => (
               <Cell key={i} fill={i === 0 ? ACCENT : ACCENT_DIM} />
             ))}
