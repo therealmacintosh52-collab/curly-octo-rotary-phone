@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CheckIcon, PencilLineIcon } from "lucide-react";
+import { CheckIcon, PencilLineIcon, SparklesIcon } from "lucide-react";
+import { AnimatePresence, m } from "motion/react";
 import type { PriceListRow } from "@/lib/db/types";
 import { SERVICE_CATEGORIES } from "@/lib/services";
 import { formatMoney } from "@/lib/money";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Textarea } from "@/components/ui/textarea";
 
 export interface SelectedService {
@@ -78,7 +80,7 @@ export function ServicePicker({
   }
 
   if (priceList.length === 0) {
-    return <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">No active services. Add some in Settings → Services.</p>;
+    return <EmptyState icon={SparklesIcon} title="No services yet" description="Add your menu in Settings → Services and it shows up here as tappable chips." className="py-8" />;
   }
 
   const groups = SERVICE_CATEGORIES.map((c) => ({ ...c, rows: priceList.filter((r) => (r.category ?? "addon") === c.value) })).filter((g) => g.rows.length > 0);
@@ -89,18 +91,20 @@ export function ServicePicker({
       <div className="flex flex-col gap-4">
         {groups.map((g) => (
           <div key={g.value} className="flex flex-col gap-2">
-            {showHeaders && <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">{g.label}</div>}
+            {showHeaders && <div className="text-caption font-medium text-subtle">{g.label}</div>}
             <div className="grid grid-cols-2 gap-2.5">
               {g.rows.map((row) => {
                 const selected = value.find((s) => s.service_id === row.service_id);
                 const overridden = selected && selected.price !== selected.list_price;
                 const ranged = row.price_min !== null && row.price_max !== null;
                 return (
-                  <div
+                  <m.div
                     key={row.service_id}
+                    whileTap={disabled ? undefined : { scale: 0.98 }}
+                    transition={{ duration: 0.12 }}
                     className={cn(
-                      "relative flex min-h-[4.25rem] items-stretch overflow-hidden rounded-xl border text-left transition-colors",
-                      selected ? "border-primary/70 bg-primary/10" : "border-border bg-card hover:bg-accent/60",
+                      "relative flex min-h-[4.25rem] items-stretch overflow-hidden rounded-xl border text-left transition-[border-color,background-color,box-shadow] duration-150",
+                      selected ? "border-primary/70 bg-accent-soft shadow-[inset_0_0_0_1px_rgba(130,217,85,0.25)]" : "border-border bg-card surface-raised hover:border-border-strong hover:bg-accent/50",
                       disabled && "pointer-events-none opacity-60",
                     )}
                   >
@@ -108,13 +112,19 @@ export function ServicePicker({
                       type="button"
                       onClick={() => toggle(row)}
                       aria-pressed={!!selected}
-                      className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3.5 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3.5 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
                     >
                       <span className="flex items-center gap-1.5 text-sm font-medium leading-tight">
-                        {selected && <CheckIcon className="size-4 shrink-0 text-primary" strokeWidth={3} />}
+                        <AnimatePresence initial={false}>
+                          {selected && (
+                            <m.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 600, damping: 30 }} className="flex">
+                              <CheckIcon className="size-4 shrink-0 text-primary" strokeWidth={3} />
+                            </m.span>
+                          )}
+                        </AnimatePresence>
                         <span className="truncate">{row.name}</span>
                       </span>
-                      <span className={cn("text-xs tabular-nums", overridden ? "text-warning" : "text-muted-foreground")}>
+                      <span className={cn("text-caption tabular-nums", overridden ? "text-warning" : "text-muted-foreground")}>
                         {selected ? formatMoney(selected.price) : priceLabel(Number(row.price), row.price_min === null ? null : Number(row.price_min), row.price_max === null ? null : Number(row.price_max))}
                         {overridden && !ranged && <span className="ml-1 line-through opacity-60">{formatMoney(selected.list_price)}</span>}
                       </span>
@@ -124,12 +134,12 @@ export function ServicePicker({
                         type="button"
                         onClick={() => setEditing(selected)}
                         aria-label={`Change price for ${row.name}`}
-                        className="flex w-11 items-center justify-center border-l border-primary/30 text-primary/80 hover:bg-primary/15"
+                        className="flex w-11 items-center justify-center border-l border-primary/30 text-primary/80 transition-colors hover:bg-primary/15"
                       >
                         <PencilLineIcon className="size-4" />
                       </button>
                     )}
-                  </div>
+                  </m.div>
                 );
               })}
             </div>

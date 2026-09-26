@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { CheckIcon, LoaderCircleIcon, ScanLineIcon, XIcon } from "lucide-react";
+import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import type { Dealership, JobPayload, PriceListRow } from "@/lib/db/types";
 import { createClient } from "@/lib/supabase/client";
@@ -18,11 +20,13 @@ import { formatMoney, sumPrices } from "@/lib/money";
 import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Hint, Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ServicePicker, type SelectedService } from "./service-picker";
-import { VinScanner } from "./vin-scanner";
+import { CountUp } from "@/components/motion/primitives";
+// The barcode engine (ZXing) is ~200 KB; it only loads the first time the scanner opens.
+const VinScanner = dynamic(() => import("./vin-scanner").then((mod) => mod.VinScanner), { ssr: false });
 import { ModelCombobox } from "./model-combobox";
 import { DuplicateDialog, type DuplicateHit } from "./duplicate-dialog";
 
@@ -58,6 +62,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const [performedAt, setPerformedAt] = useState(() => toDateInput(new Date()));
   const [notes, setNotes] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerMounted, setScannerMounted] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateHit[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
@@ -258,170 +263,193 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const modelOptions = make === DEFAULT_MAKE || make.startsWith("Mercedes") ? MERCEDES_MODELS : [];
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-32 sm:px-6">
-      {/* Date first so it is never missed */}
-      <div className="grid gap-1.5">
-        <Label htmlFor="performed">Date</Label>
-        <Input id="performed" type="date" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
-      </div>
-
-      {/* Dealership (the job is logged under the signed-in user) */}
-      <div className="grid gap-1.5">
-        <Label htmlFor="dealership">Dealership</Label>
-        <Select value={dealershipId} onValueChange={changeDealership}>
-          <SelectTrigger id="dealership">
-            <SelectValue placeholder="Pick a dealership" />
-          </SelectTrigger>
-          <SelectContent>
-            {dealerships.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {d.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Tag */}
-      <div className="grid gap-1.5">
-        <Label htmlFor="tag">Key tag number</Label>
-        <Input
-          ref={tagRef}
-          id="tag"
-          value={tag}
-          onChange={(e) => setTag(e.target.value.toUpperCase())}
-          autoFocus
-          autoCapitalize="characters"
-          autoComplete="off"
-          enterKeyHint="next"
-          placeholder="e.g. 4821"
-          className="h-16 text-2xl font-semibold tracking-wider"
-          required
-        />
-      </div>
-
-      {/* VIN */}
-      <div className="grid gap-1.5">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="vin">VIN (optional)</Label>
-          {vinState === "warn" && <span className="text-xs text-warning">Check digit does not match — double-check</span>}
-          {vinState === "invalid" && <span className="text-xs text-destructive">17 characters, no I / O / Q</span>}
+    <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-7 px-4 pt-5 pb-36 sm:px-6">
+      {/* Title row */}
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h1 className="text-title">Log job</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Tag first, then services. Save &amp; next clears the form for the next car.</p>
         </div>
-        <div className="flex gap-2">
-          <Input
-            id="vin"
-            value={vin}
-            onChange={(e) => onVinChange(e.target.value)}
-            autoCapitalize="characters"
-            autoComplete="off"
-            spellCheck={false}
-            maxLength={17}
-            placeholder="Scan or type 17 characters"
-            className={cn("font-mono tracking-wide uppercase placeholder:font-sans placeholder:normal-case placeholder:tracking-normal", vinState === "valid" && "border-success/60")}
-            aria-invalid={vinState === "invalid"}
-          />
-          <Button type="button" variant="secondary" size="icon" className="h-12 w-14 shrink-0" onClick={() => setScannerOpen(true)} aria-label="Scan VIN barcode">
-            {decoding ? <LoaderCircleIcon className="animate-spin" /> : <ScanLineIcon className="size-5" />}
-          </Button>
-        </div>
-        {decodedLabel && (
-          <div className="flex items-center gap-1.5 text-sm text-success">
-            <CheckIcon className="size-4" /> Decoded: {decodedLabel}
-          </div>
-        )}
+        <AnimatePresence>
+          {savedCount > 0 && (
+            <m.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="shrink-0 rounded-full bg-accent-soft px-3 py-1 text-caption font-medium text-primary">
+              {savedCount} logged
+            </m.span>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Where and when */}
+      <section className="grid gap-3 sm:grid-cols-[2fr_3fr]">
+        <div className="grid gap-1.5">
+          <Label htmlFor="performed">Date</Label>
+          <Input id="performed" type="date" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="dealership">Dealership</Label>
+          <Select value={dealershipId} onValueChange={changeDealership}>
+            <SelectTrigger id="dealership" aria-label="Dealership">
+              <SelectValue placeholder="Pick a dealership" />
+            </SelectTrigger>
+            <SelectContent>
+              {dealerships.map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
 
       {/* Vehicle */}
-      <div className="grid grid-cols-2 gap-3">
+      <section className="flex flex-col gap-4">
+        <h2 className="text-label text-subtle">Vehicle</h2>
         <div className="grid gap-1.5">
-          <Label htmlFor="year">Year</Label>
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger id="year">
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {yearOptions().map((y) => (
-                <SelectItem key={y} value={String(y)}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="tag">Key tag number</Label>
+          <Input
+            ref={tagRef}
+            id="tag"
+            value={tag}
+            onChange={(e) => setTag(e.target.value.toUpperCase())}
+            autoFocus
+            autoCapitalize="characters"
+            autoComplete="off"
+            enterKeyHint="next"
+            placeholder="e.g. 4821"
+            className="h-16 rounded-xl text-[1.75rem] font-semibold tracking-wider placeholder:text-xl placeholder:font-medium placeholder:tracking-normal focus-visible:glow-primary"
+            required
+          />
         </div>
+
         <div className="grid gap-1.5">
-          <Label htmlFor="make">Make</Label>
-          <Select value={MAKES.includes(make as (typeof MAKES)[number]) ? make : "Other"} onValueChange={(v) => setMake(v)}>
-            <SelectTrigger id="make">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MAKES.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {m}
-                </SelectItem>
-              ))}
-              {!MAKES.includes(make as (typeof MAKES)[number]) && make && <SelectItem value={make}>{make}</SelectItem>}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="vin">VIN (optional)</Label>
+            {vinState === "warn" && <Hint tone="warning">Check digit does not match</Hint>}
+            {vinState === "invalid" && <Hint tone="error">17 characters, no I / O / Q</Hint>}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              id="vin"
+              value={vin}
+              onChange={(e) => onVinChange(e.target.value)}
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={17}
+              placeholder="Scan or type 17 characters"
+              className={cn("font-mono tracking-wide uppercase placeholder:font-sans placeholder:normal-case placeholder:tracking-normal", vinState === "valid" && "border-success/60")}
+              aria-invalid={vinState === "invalid"}
+            />
+            <Button type="button" variant="secondary" size="icon" className="w-14 shrink-0" onClick={() => { setScannerMounted(true); setScannerOpen(true); }} aria-label="Scan VIN barcode">
+              {decoding ? <LoaderCircleIcon className="animate-spin" /> : <ScanLineIcon className="size-5" />}
+            </Button>
+          </div>
+          <AnimatePresence>
+            {decodedLabel && (
+              <m.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 text-sm text-success">
+                <CheckIcon className="size-4" /> Decoded: {decodedLabel}
+              </m.div>
+            )}
+          </AnimatePresence>
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="model">Model</Label>
-          <ModelCombobox id="model" value={model} onChange={setModel} options={modelOptions} placeholder="e.g. GLE 450" />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor="year">Year</Label>
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger id="year" aria-label="Year">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions().map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="make">Make</Label>
+            <Select value={MAKES.includes(make as (typeof MAKES)[number]) ? make : "Other"} onValueChange={(v) => setMake(v)}>
+              <SelectTrigger id="make" aria-label="Make">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MAKES.map((mk) => (
+                  <SelectItem key={mk} value={mk}>
+                    {mk}
+                  </SelectItem>
+                ))}
+                {!MAKES.includes(make as (typeof MAKES)[number]) && make && <SelectItem value={make}>{make}</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="model">Model</Label>
+            <ModelCombobox id="model" value={model} onChange={setModel} options={modelOptions} placeholder="e.g. GLE 450" />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="color">Color</Label>
+            <Select value={color} onValueChange={setColor}>
+              <SelectTrigger id="color" aria-label="Color">
+                <SelectValue placeholder="Color" />
+              </SelectTrigger>
+              <SelectContent>
+                {COLORS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="color">Color</Label>
-          <Select value={color} onValueChange={setColor}>
-            <SelectTrigger id="color">
-              <SelectValue placeholder="Color" />
-            </SelectTrigger>
-            <SelectContent>
-              {COLORS.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      </section>
 
       {/* Services */}
-      <div className="grid gap-2">
+      <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <Label>Services</Label>
-          {services.length > 0 && (
-            <button type="button" onClick={() => setServices([])} className="flex items-center gap-1 text-xs text-muted-foreground">
-              <XIcon className="size-3" /> clear
-            </button>
-          )}
+          <h2 className="text-label text-subtle">Services</h2>
+          <AnimatePresence>
+            {services.length > 0 && (
+              <m.button
+                type="button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setServices([])}
+                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-caption text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <XIcon className="size-3" /> Clear
+              </m.button>
+            )}
+          </AnimatePresence>
         </div>
         <ServicePicker priceList={priceList} value={services} onChange={setServices} />
-      </div>
+      </section>
 
       {/* Notes */}
-      <div className="grid gap-1.5">
+      <section className="grid gap-1.5">
         <Label htmlFor="notes">Notes (optional)</Label>
         <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Scratches noted, customer waiting, etc." className="min-h-20" />
-      </div>
+      </section>
 
       {/* Sticky action bar */}
-      <div className="pb-safe fixed inset-x-0 bottom-16 z-20 border-t border-border/70 bg-background/90 px-4 py-3 backdrop-blur md:bottom-0 md:left-60">
+      <div className="pb-safe fixed inset-x-0 bottom-16 z-20 border-t border-border/70 bg-background/85 px-4 py-3 backdrop-blur-md md:bottom-0 md:left-60">
         <div className="mx-auto flex max-w-2xl items-center gap-3 sm:px-2">
           <div className="min-w-0 flex-1">
-            <div className="text-xs text-muted-foreground">
-              {services.length === 0 ? "No services" : `${services.length} service${services.length > 1 ? "s" : ""}`}
-              {savedCount > 0 && <span className="ml-2 text-success">· {savedCount} logged this session</span>}
-            </div>
-            <div className="text-xl font-semibold tabular-nums">{formatMoney(total)}</div>
+            <div className="text-caption text-muted-foreground">{services.length === 0 ? "No services selected" : `${services.length} service${services.length > 1 ? "s" : ""}`}</div>
+            <CountUp value={total} format={formatMoney} className="text-stat block" />
           </div>
-          <Button type="submit" size="lg" disabled={saving} className="min-w-40">
-            {saving ? <LoaderCircleIcon className="animate-spin" /> : null}
+          <Button type="submit" size="lg" loading={saving} className="min-w-40 glow-primary">
             Save &amp; next
           </Button>
         </div>
       </div>
 
-      <VinScanner open={scannerOpen} onOpenChange={setScannerOpen} onDetected={onScanned} />
+      {scannerMounted && <VinScanner open={scannerOpen} onOpenChange={setScannerOpen} onDetected={onScanned} />}
       <DuplicateDialog
         hits={duplicates}
         onCancel={() => setDuplicates(null)}
