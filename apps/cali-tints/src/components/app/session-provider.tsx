@@ -9,6 +9,8 @@ export interface ClientSession {
   profile: Profile;
   company: Company;
   isAdmin: boolean;
+  /** Guest preview: fixture data, no database. Saves are simulated. */
+  demo?: boolean;
 }
 
 const SessionContext = createContext<ClientSession | null>(null);

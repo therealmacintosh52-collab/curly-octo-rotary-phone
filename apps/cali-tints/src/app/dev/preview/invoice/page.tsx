@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
@@ -16,13 +15,12 @@ import type { Profile } from "@/lib/db/types";
 
 /** Dev-only fixture preview of the invoice detail widgets and the builder. 404 in production. */
 export default function DevInvoicePreview() {
-  if (process.env.NODE_ENV === "production") notFound();
   const b = invoiceBundleFixture();
   const profile = { id: "u1", company_id: b.company.id, role: "owner", full_name: "Mike (preview)", email: null, active: true } as Profile;
   const balance = Number(b.invoice.total) - Number(b.invoice.amount_paid);
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company: b.company, isAdmin: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company: b.company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <Page>

@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
@@ -12,7 +11,6 @@ import type { Profile, Service } from "@/lib/db/types";
 
 /** Dev-only settings preview with fixtures. 404 in production. */
 export default function DevSettingsPreview() {
-  if (process.env.NODE_ENV === "production") notFound();
   const { company, dealership } = invoiceBundleFixture();
   const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike (preview)", email: "mike@example.com", active: true, created_at: "", updated_at: "" } as Profile;
   const svc = (id: string, name: string, category: Service["category"], price: number, sort: number, active = true): Service => ({
@@ -23,7 +21,7 @@ export default function DevSettingsPreview() {
   const users: Profile[] = [profile, { ...profile, id: "u2", role: "detailer", full_name: "Marco R.", email: "marco@example.com" }, { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com", active: false }];
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: true }}>
+    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <Page>

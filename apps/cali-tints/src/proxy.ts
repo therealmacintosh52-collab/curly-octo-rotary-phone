@@ -1,18 +1,68 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabasePublicKey, supabaseUrl } from "@/lib/supabase/env";
+import { DEMO_COOKIE, DEMO_COOKIE_MAX_AGE, demoKey, demoRewriteTarget, isDemoCookieValid, safeEqual } from "@/lib/demo";
 
 /** Paths that never require a session. */
-const PUBLIC_PATHS = ["/login", "/offline", "/manifest.webmanifest", "/sw.js", "/auth/callback", "/auth/reset"];
+const PUBLIC_PATHS = ["/login", "/offline", "/manifest.webmanifest", "/sw.js", "/auth/callback", "/auth/reset", "/demo"];
+
+function hasSupabaseEnv() {
+  return !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
 
 /**
- * Refreshes the Supabase session cookie on every request and gates the app:
- * signed-out users go to /login, signed-in users skip /login.
+ * 1. Guest demo mode (secret link, no login, fixture data) when DEMO_ACCESS_KEY is set.
+ * 2. Otherwise refresh the Supabase session cookie and gate the app:
+ *    signed-out users go to /login, signed-in users skip /login.
  * Role checks happen in the (app) layout and per page, not here.
  */
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const { pathname, searchParams } = request.nextUrl;
+  const key = demoKey();
 
+  // --- Guest demo mode -------------------------------------------------------
+  if (key) {
+    // Secret link: /demo?key=… sets the cookie and lands on the dashboard preview.
+    if (pathname === "/demo" && searchParams.get("key")) {
+      const url = request.nextUrl.clone();
+      url.search = "";
+      if (safeEqual(searchParams.get("key") ?? "", key)) {
+        url.pathname = "/";
+        const res = NextResponse.redirect(url);
+        res.cookies.set(DEMO_COOKIE, key, { httpOnly: true, sameSite: "lax", secure: request.nextUrl.protocol === "https:", path: "/", maxAge: DEMO_COOKIE_MAX_AGE });
+        return res;
+      }
+      url.pathname = "/demo";
+      url.searchParams.set("error", "1");
+      return NextResponse.redirect(url);
+    }
+
+    const guest = isDemoCookieValid(request.cookies.get(DEMO_COOKIE)?.value);
+    if (guest) {
+      const target = demoRewriteTarget(pathname);
+      const res = target ? NextResponse.rewrite(new URL(target, request.url)) : NextResponse.next({ request });
+      res.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return res;
+    }
+    // Not a guest: previews and app routes are off limits; only the key page (and the real login if configured) remain.
+    if (pathname.startsWith("/dev/")) {
+      return NextResponse.redirect(new URL("/demo", request.url));
+    }
+    if (!hasSupabaseEnv() && pathname !== "/demo" && pathname !== "/offline") {
+      return NextResponse.redirect(new URL("/demo", request.url));
+    }
+  } else if (process.env.NODE_ENV !== "production" && pathname.startsWith("/dev/")) {
+    // Local development: fixture previews are always open.
+    return NextResponse.next({ request });
+  }
+
+  // --- Real app --------------------------------------------------------------
+  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  if (!hasSupabaseEnv()) {
+    return isPublic ? NextResponse.next({ request }) : NextResponse.redirect(new URL("/login?error=Supabase+is+not+configured", request.url));
+  }
+
+  let response = NextResponse.next({ request });
   const supabase = createServerClient(supabaseUrl(), supabasePublicKey(), {
     cookies: {
       getAll() {
@@ -30,12 +80,6 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
-  const isPublic =
-    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
-    // Fixture-driven UI previews; the page itself 404s in production.
-    (process.env.NODE_ENV !== "production" && pathname.startsWith("/dev/"));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

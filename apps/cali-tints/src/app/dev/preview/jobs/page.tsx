@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
@@ -14,7 +13,6 @@ import { isoDaysAgo } from "@/lib/dates";
 
 /** Dev-only fixture preview of the job list + audit timeline. 404 in production. */
 export default function DevJobsPreview() {
-  if (process.env.NODE_ENV === "production") notFound();
 
   const company = { id: "c1", name: "Cali Tints", payment_terms: "Net 30", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles" } as Company;
   const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Mike (preview)", email: null, active: true } as Profile;
@@ -47,7 +45,7 @@ export default function DevJobsPreview() {
   ];
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <Page>

@@ -53,6 +53,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     try {
       const r = await syncOutbox();
       if (r.synced > 0) toast.success(r.synced === 1 ? "1 job synced" : `${r.synced} jobs synced`);
+    } catch (err) {
+      // e.g. Supabase not configured (guest preview): leave items queued, never crash the UI.
+      console.warn("sync failed", err);
     } finally {
       setSyncing(false);
       await refreshCount();

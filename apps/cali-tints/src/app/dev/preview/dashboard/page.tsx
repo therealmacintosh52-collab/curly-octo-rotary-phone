@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
@@ -8,7 +7,6 @@ import { invoiceBundleFixture } from "@/test/fixtures";
 
 /** Dev-only dashboard with fixture stats. 404 in production. */
 export default function DevDashboardPreview() {
-  if (process.env.NODE_ENV === "production") notFound();
   const { company } = invoiceBundleFixture();
   const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike (preview)", email: null, active: true } as Profile;
 
@@ -53,7 +51,7 @@ export default function DevDashboardPreview() {
   };
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <Dashboard stats={stats} range={{ preset: "this_month", start: "2026-09-01", end: "2026-09-26" }} companyName={company.name} />

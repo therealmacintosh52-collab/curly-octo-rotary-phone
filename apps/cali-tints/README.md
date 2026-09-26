@@ -16,7 +16,8 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 3. [Local setup](#local-setup)
 4. [Supabase setup](#supabase-setup)
 5. [First sign-in and demo data](#first-sign-in-and-demo-data)
-6. [Email (Resend)](#email-resend)
+6. [Guest preview](#guest-preview-share-a-link-no-login)
+7. [Email (Resend)](#email-resend)
 7. [Deploy to Vercel](#deploy-to-vercel)
 8. [PWA & offline](#pwa--offline)
 9. [Data model & security](#data-model--security)
@@ -106,6 +107,12 @@ Create the owner in *Supabase → Authentication → Users → Add user* (email 
 
 - **Set a password** — for detailers without email access on the lot; you hand them the credentials.
 - **Email an invite** — Supabase sends a link; they choose a password at `/auth/reset`.
+
+## Guest preview (share a link, no login)
+
+Set `DEMO_ACCESS_KEY` to a long random string (`openssl rand -hex 24`) on a deployment and share `https://<host>/demo?key=<that-string>`. Whoever opens it gets a 30-day cookie and sees the whole app — dashboard, job entry (VIN scan works), history, invoices, settings — running on **sample data with no database and no login**. Nothing is saved, pages are `noindex`, and without the key the deployment shows only the "enter access key" page. Every app URL is rewritten to its fixture twin, so navigation feels real.
+
+Safest setup: a separate Vercel project for the demo with only `DEMO_ACCESS_KEY` set (no Supabase keys at all), and the real deployment without `DEMO_ACCESS_KEY`. Rotate the key to revoke every shared link at once.
 
 ## Email (Resend)
 

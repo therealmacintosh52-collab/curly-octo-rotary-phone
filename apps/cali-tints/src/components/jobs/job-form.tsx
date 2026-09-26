@@ -41,7 +41,7 @@ interface Props {
  * outbox and returns immediately; the sync loop pushes it to Supabase.
  */
 export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Props) {
-  const { profile, company, isAdmin } = useSession();
+  const { profile, company, isAdmin, demo } = useSession();
   const { online } = useSync();
   const tagRef = useRef<HTMLInputElement>(null);
 
@@ -150,7 +150,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   async function checkDuplicates(): Promise<DuplicateHit[]> {
     const local = await findLocalDuplicates(tag, vin || null).catch(() => [] as RecentJob[]);
     let remote: DuplicateHit[] = [];
-    if (navigator.onLine) {
+    if (navigator.onLine && !demo) {
       try {
         const { data } = await createClient().rpc("find_duplicate_jobs", { p_tag_number: tag.trim(), p_vin: vin || null, p_dealership_id: null });
         remote = (data ?? []).map((d) => ({ ...d, detailer_name: d.detailer_name }));
@@ -216,6 +216,14 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       synced_at: null,
       job_id: null,
     };
+
+    if (demo) {
+      // Guest preview: nothing is persisted.
+      toast.success(`Saved ${payload.tag_number}${payload.model ? ` · ${payload.model}` : ""}`, { description: "Guest preview — not actually saved" });
+      setSavedCount((c) => c + 1);
+      resetForNext();
+      return;
+    }
 
     try {
       await enqueueJob(item); // sync loop picks it up immediately

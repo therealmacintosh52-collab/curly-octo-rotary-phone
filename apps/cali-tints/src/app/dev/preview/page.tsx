@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
@@ -11,7 +10,6 @@ import type { Company, Dealership, PriceListRow, Profile } from "@/lib/db/types"
  * Returns 404 in production builds.
  */
 export default function DevPreviewPage() {
-  if (process.env.NODE_ENV === "production") notFound();
 
   const company: Company = {
     id: "00000000-0000-4000-8000-000000000001",
@@ -100,7 +98,7 @@ export default function DevPreviewPage() {
   ];
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: true }}>
+    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <JobForm
