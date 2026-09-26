@@ -122,6 +122,8 @@ const serviceSchema = z.object({
   description: optionalText(200),
   category: z.enum(["new", "used", "service", "addon"]),
   default_price: z.number().min(0),
+  price_min: z.number().min(0).nullable(),
+  price_max: z.number().min(0).nullable(),
   sort_order: z.number().int().min(0).max(9999),
   active: z.boolean(),
 });
@@ -132,6 +134,8 @@ export async function saveServiceAction(input: ServiceInput): Promise<ActionResu
   const parsed = serviceSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { id, ...data } = parsed.data;
+  if ((data.price_min === null) !== (data.price_max === null)) return { ok: false, error: "Set both ends of the price range, or neither" };
+  if (data.price_min !== null && data.price_max !== null && data.price_min > data.price_max) return { ok: false, error: "Range minimum is above the maximum" };
   const supabase = await createClient();
   if (id) {
     const { error } = await supabase.from("services").update(data).eq("id", id);

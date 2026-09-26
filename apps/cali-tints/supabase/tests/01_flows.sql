@@ -66,6 +66,20 @@ begin
     raise exception 'expected override rejection';
   exception when sqlstate '22023' then null; end;
 
+  -- price range: inside the range no reason needed; outside it is required
+  begin
+    j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'TU1',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 35))));
+    assert (select price from public.job_services where job_id = j2.id) = 35.00 and (select override_reason from public.job_services where job_id = j2.id) is null, 'in-range price accepted without reason';
+    raise exception 'rollback fixture' using errcode = 'P0999';   -- keep later counts unchanged
+  exception when sqlstate 'P0999' then null; end;
+  begin
+    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'TU2',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 55))));
+    raise exception 'expected out-of-range rejection';
+  exception when sqlstate '22023' then null; end;
+  assert (select price_max from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Touch Up Detail') = 40.00, 'price list range';
+
   -- per-job dealership requires RO/PO
   begin
     perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'B2',

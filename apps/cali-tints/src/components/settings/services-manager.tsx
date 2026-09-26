@@ -19,8 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-type Draft = { id?: string; name: string; description: string; category: ServiceCategory; default_price: string; sort_order: string; active: boolean };
-const empty: Draft = { name: "", description: "", category: "addon", default_price: "", sort_order: "100", active: true };
+type Draft = { id?: string; name: string; description: string; category: ServiceCategory; default_price: string; price_min: string; price_max: string; sort_order: string; active: boolean };
+const empty: Draft = { name: "", description: "", category: "addon", default_price: "", price_min: "", price_max: "", sort_order: "100", active: true };
 
 export function ServicesManager({
   services,
@@ -69,7 +69,14 @@ export function ServicesManager({
                     </div>
                     {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatMoney(s.default_price)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatMoney(s.default_price)}
+                    {s.price_min !== null && s.price_max !== null && (
+                      <div className="text-xs text-muted-foreground">
+                        {formatMoney(s.price_min)}–{formatMoney(s.price_max)} no reason needed
+                      </div>
+                    )}
+                  </TableCell>
                   {dealerships.map((d) => (
                     <TableCell key={d.id} className="text-right">
                       <PriceCell dealershipId={d.id} serviceId={s.id} value={priceMap.get(`${d.id}:${s.id}`) ?? null} fallback={Number(s.default_price)} />
@@ -81,7 +88,7 @@ export function ServicesManager({
                       variant="ghost"
                       aria-label="Edit"
                       onClick={() =>
-                        setEditing({ id: s.id, name: s.name, description: s.description ?? "", category: s.category ?? "addon", default_price: String(s.default_price), sort_order: String(s.sort_order), active: s.active })
+                        setEditing({ id: s.id, name: s.name, description: s.description ?? "", category: s.category ?? "addon", default_price: String(s.default_price), price_min: s.price_min === null ? "" : String(s.price_min), price_max: s.price_max === null ? "" : String(s.price_max), sort_order: String(s.sort_order), active: s.active })
                       }
                     >
                       <PencilIcon />
@@ -154,7 +161,17 @@ function ServiceDialog({ draft, onClose }: { draft: Draft; onClose: () => void }
         onSubmit={(e) => {
           e.preventDefault();
           start(async () => {
-            const r = await saveServiceAction({ id: f.id, name: f.name, description: f.description, category: f.category, default_price: Number(f.default_price), sort_order: Number(f.sort_order), active: f.active });
+            const r = await saveServiceAction({
+              id: f.id,
+              name: f.name,
+              description: f.description,
+              category: f.category,
+              default_price: Number(f.default_price),
+              price_min: f.price_min.trim() === "" ? null : Number(f.price_min),
+              price_max: f.price_max.trim() === "" ? null : Number(f.price_max),
+              sort_order: Number(f.sort_order),
+              active: f.active,
+            });
             if (r.ok) {
               toast.success("Service saved");
               onClose();
@@ -200,6 +217,14 @@ function ServiceDialog({ draft, onClose }: { draft: Draft; onClose: () => void }
             <Label htmlFor="s-sort">Sort order</Label>
             <Input id="s-sort" type="number" min="0" value={f.sort_order} onChange={(e) => setF({ ...f, sort_order: e.target.value })} />
           </div>
+        </div>
+        <div className="grid gap-1.5">
+          <Label>Quoted range (optional)</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <Input type="number" step="0.01" min="0" inputMode="decimal" placeholder="Min, e.g. 20" value={f.price_min} onChange={(e) => setF({ ...f, price_min: e.target.value })} aria-label="Range minimum" />
+            <Input type="number" step="0.01" min="0" inputMode="decimal" placeholder="Max, e.g. 40" value={f.price_max} onChange={(e) => setF({ ...f, price_max: e.target.value })} aria-label="Range maximum" />
+          </div>
+          <p className="text-xs text-muted-foreground">For work quoted as a range (touch-up $20–40): any price inside it is accepted without a reason.</p>
         </div>
         <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
           <div className="text-sm font-medium">Active</div>

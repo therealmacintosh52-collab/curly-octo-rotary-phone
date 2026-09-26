@@ -87,10 +87,13 @@ export default function DevPreviewPage() {
     },
   ];
   const list: PriceListRow[] = [
-    { service_id: "s1", name: "PDI", description: "New car pre-delivery inspection prep", category: "new", price: 60, is_override: false, sort_order: 10 },
-    { service_id: "s2", name: "Sold", description: "Delivery clean on a sold unit", category: "new", price: 20, is_override: false, sort_order: 20 },
-    { service_id: "s3", name: "Used", description: "Used car full detail", category: "used", price: 200, is_override: false, sort_order: 30 },
-    { service_id: "s4", name: "Service Loaner Detail", description: "Full detail on a service loaner", category: "service", price: 125, is_override: false, sort_order: 40 },
+    { service_id: "s1", name: "PDI", description: "New car pre-delivery inspection prep", category: "new", price: 60, price_min: null, price_max: null, is_override: false, sort_order: 10 },
+    { service_id: "s2", name: "Sold", description: "Delivery clean on a sold unit", category: "new", price: 20, price_min: null, price_max: null, is_override: false, sort_order: 20 },
+    { service_id: "s3", name: "Used", description: "Used car full detail", category: "used", price: 200, price_min: null, price_max: null, is_override: false, sort_order: 30 },
+    { service_id: "s4", name: "Service Loaner Detail", description: "Full detail on a service loaner", category: "service", price: 125, price_min: null, price_max: null, is_override: false, sort_order: 40 },
+    { service_id: "s5", name: "Touch Up Detail", description: "$20–40 by condition", category: "addon", price: 30, price_min: 20, price_max: 40, is_override: false, sort_order: 50 },
+    { service_id: "s6", name: "Tint Removal", description: "Strip old tint on a used unit", category: "addon", price: 40, price_min: null, price_max: null, is_override: false, sort_order: 60 },
+    { service_id: "s7", name: "Paint Correction (1-step)", description: "Single-stage machine polish", category: "addon", price: 250, price_min: null, price_max: null, is_override: false, sort_order: 70 },
   ];
 
   return (

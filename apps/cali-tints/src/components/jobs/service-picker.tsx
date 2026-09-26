@@ -16,8 +16,22 @@ export interface SelectedService {
   service_id: string;
   name: string;
   list_price: number;
+  /** Quoted range from the service; inside it no reason is needed. */
+  price_min: number | null;
+  price_max: number | null;
   price: number;
   override_reason: string | null;
+}
+
+/** True when a price needs no written reason (matches price_within_policy() in SQL). */
+export function priceWithinPolicy(s: { list_price: number; price_min: number | null; price_max: number | null }, price: number): boolean {
+  if (price === s.list_price) return true;
+  return s.price_min !== null && s.price_max !== null && price >= s.price_min && price <= s.price_max;
+}
+
+export function priceLabel(price: number, min: number | null, max: number | null): string {
+  if (min !== null && max !== null && min !== max) return `${formatMoney(min)}–${formatMoney(max)}`;
+  return formatMoney(price);
 }
 
 /**
@@ -43,7 +57,18 @@ export function ServicePicker({
     if (existing) {
       onChange(value.filter((s) => s.service_id !== row.service_id));
     } else {
-      onChange([...value, { service_id: row.service_id, name: row.name, list_price: Number(row.price), price: Number(row.price), override_reason: null }]);
+      onChange([
+        ...value,
+        {
+          service_id: row.service_id,
+          name: row.name,
+          list_price: Number(row.price),
+          price_min: row.price_min === null ? null : Number(row.price_min),
+          price_max: row.price_max === null ? null : Number(row.price_max),
+          price: Number(row.price),
+          override_reason: null,
+        },
+      ]);
     }
   }
 
@@ -69,6 +94,7 @@ export function ServicePicker({
               {g.rows.map((row) => {
                 const selected = value.find((s) => s.service_id === row.service_id);
                 const overridden = selected && selected.price !== selected.list_price;
+                const ranged = row.price_min !== null && row.price_max !== null;
                 return (
                   <div
                     key={row.service_id}
@@ -89,8 +115,8 @@ export function ServicePicker({
                         <span className="truncate">{row.name}</span>
                       </span>
                       <span className={cn("text-xs tabular-nums", overridden ? "text-warning" : "text-muted-foreground")}>
-                        {formatMoney(selected ? selected.price : row.price)}
-                        {overridden && <span className="ml-1 line-through opacity-60">{formatMoney(selected.list_price)}</span>}
+                        {selected ? formatMoney(selected.price) : priceLabel(Number(row.price), row.price_min === null ? null : Number(row.price_min), row.price_max === null ? null : Number(row.price_max))}
+                        {overridden && !ranged && <span className="ml-1 line-through opacity-60">{formatMoney(selected.list_price)}</span>}
                       </span>
                     </button>
                     {selected && (
@@ -139,15 +165,20 @@ function OverrideDialog({
 
   const parsed = Number(price);
   const changed = Number.isFinite(parsed) && parsed !== service?.list_price;
-  const valid = Number.isFinite(parsed) && parsed >= 0 && (!changed || reason.trim().length > 0);
+  const needsReason = !!service && Number.isFinite(parsed) && !priceWithinPolicy(service, parsed);
+  const valid = Number.isFinite(parsed) && parsed >= 0 && (!needsReason || reason.trim().length > 0);
+  const ranged = !!service && service.price_min !== null && service.price_max !== null;
 
   return (
     <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Override price</DialogTitle>
+          <DialogTitle>{ranged ? "Set price" : "Override price"}</DialogTitle>
           <DialogDescription>
-            {service?.name} · list price {formatMoney(service?.list_price)}. A reason is required when the price differs.
+            {service?.name} ·{" "}
+            {ranged
+              ? `quoted ${formatMoney(service?.price_min)}–${formatMoney(service?.price_max)}. Pick any price in that range; outside it a reason is required.`
+              : `list price ${formatMoney(service?.list_price)}. A reason is required when the price differs.`}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
@@ -156,7 +187,7 @@ function OverrideDialog({
             <Input id="override-price" inputMode="decimal" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="override-reason">Reason {changed && <span className="text-destructive">*</span>}</Label>
+            <Label htmlFor="override-reason">Reason {needsReason && <span className="text-destructive">*</span>}</Label>
             <Textarea
               id="override-reason"
               placeholder="e.g. Manager approved discount, heavy soil surcharge"
@@ -172,7 +203,7 @@ function OverrideDialog({
           </Button>
           <Button
             disabled={!valid}
-            onClick={() => service && onApply({ ...service, price: Math.round(parsed * 100) / 100, override_reason: changed ? reason.trim() : null })}
+            onClick={() => service && onApply({ ...service, price: Math.round(parsed * 100) / 100, override_reason: changed && reason.trim() ? reason.trim() : null })}
           >
             Apply
           </Button>

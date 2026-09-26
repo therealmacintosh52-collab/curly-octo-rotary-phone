@@ -13,10 +13,10 @@ import type { Profile, Service } from "@/lib/db/types";
 export default function DevSettingsPreview() {
   const { company, dealership } = invoiceBundleFixture();
   const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike (preview)", email: "mike@example.com", active: true, created_at: "", updated_at: "" } as Profile;
-  const svc = (id: string, name: string, category: Service["category"], price: number, sort: number, active = true): Service => ({
-    id, company_id: company.id, name, description: null, category, default_price: price, active, sort_order: sort, created_at: "", updated_at: "",
+  const svc = (id: string, name: string, category: Service["category"], price: number, sort: number, range: [number, number] | null = null, active = true): Service => ({
+    id, company_id: company.id, name, description: null, category, default_price: price, price_min: range?.[0] ?? null, price_max: range?.[1] ?? null, active, sort_order: sort, created_at: "", updated_at: "",
   });
-  const services = [svc("s1", "PDI", "new", 60, 10), svc("s2", "Sold", "new", 20, 20), svc("s3", "Used", "used", 200, 30), svc("s4", "Service Loaner Detail", "service", 125, 40)];
+  const services = [svc("s1", "PDI", "new", 60, 10), svc("s2", "Sold", "new", 20, 20), svc("s3", "Used", "used", 200, 30), svc("s4", "Service Loaner Detail", "service", 125, 40), svc("s5", "Touch Up Detail", "addon", 30, 50, [20, 40]), svc("s6", "Tint Removal", "addon", 40, 60), svc("s7", "Paint Correction (1-step)", "addon", 250, 70)];
   const dealerships = [dealership, { ...dealership, id: "d2", name: "Mercedes-Benz of Irvine", invoice_mode: "per_job" as const, submission_method: "portal" as const, ap_emails: [], payment_terms: "Net 45" }];
   const users: Profile[] = [profile, { ...profile, id: "u2", role: "detailer", full_name: "Marco R.", email: "marco@example.com" }, { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com", active: false }];
 

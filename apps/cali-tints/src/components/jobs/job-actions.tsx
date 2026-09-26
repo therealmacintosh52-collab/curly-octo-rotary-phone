@@ -149,7 +149,9 @@ function EditSheet({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const listPrice = (id: string) => Number(priceList.find((p) => p.service_id === id)?.price ?? 0);
+  const listRow = (id: string) => priceList.find((p) => p.service_id === id);
+  const listPrice = (id: string) => Number(listRow(id)?.price ?? 0);
+  const num = (v: number | null | undefined) => (v === null || v === undefined ? null : Number(v));
 
   const [tag, setTag] = useState(job.tag_number);
   const [vin, setVin] = useState(job.vin ?? "");
@@ -162,7 +164,15 @@ function EditSheet({
   const [notes, setNotes] = useState(job.notes ?? "");
   const [detailerId, setDetailerId] = useState(job.detailer_id);
   const [services, setServices] = useState<SelectedService[]>(
-    job.services.map((s) => ({ service_id: s.service_id, name: s.name, list_price: listPrice(s.service_id), price: s.price, override_reason: s.override_reason })),
+    job.services.map((s) => ({
+      service_id: s.service_id,
+      name: s.name,
+      list_price: listPrice(s.service_id),
+      price_min: num(listRow(s.service_id)?.price_min),
+      price_max: num(listRow(s.service_id)?.price_max),
+      price: s.price,
+      override_reason: s.override_reason,
+    })),
   );
 
   function submit() {

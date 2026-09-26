@@ -79,6 +79,9 @@ export type Service = {
   description: string | null;
   category: ServiceCategory;
   default_price: number;
+  /** Optional quoted range; a price inside it needs no override reason. */
+  price_min: number | null;
+  price_max: number | null;
   active: boolean;
   sort_order: number;
   created_at: string;
@@ -253,6 +256,8 @@ export type PriceListRow = {
   description: string | null;
   category: ServiceCategory;
   price: number;
+  price_min: number | null;
+  price_max: number | null;
   is_override: boolean;
   sort_order: number;
 }
