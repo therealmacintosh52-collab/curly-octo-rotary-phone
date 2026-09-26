@@ -47,7 +47,7 @@ is Netlify (base directory `sites/cali-tints`, build `npm run build`, publish `d
 ## Where things are
 
 ```
-src/data/site.json      all business facts: 12 services, 5 guides, 3 reviews,
+src/data/site.json      all business facts: 11 services, 5 guides, 3 reviews,
                         6 FAQs, 10 areas, the three home pillars, profile URLs
 src/lib/seo.ts          schema builders. @type = LocalBusiness + knowsAbout
 src/layouts/Base.astro  head, preloads, JSON-LD, chrome
@@ -92,7 +92,7 @@ owner, outside this public repository (`marketing/`, `seo/` and `perf/` are giti
 | 3 | **Hours: Monday – Friday 10:00 AM – 6:00 PM, Saturday 10:00 AM – 4:00 PM, closed Sunday** | Owner's choice; matches Google "closes 6 PM" and two directories. **Yelp says Monday – Friday 10:00 AM – 7:00 PM, Saturday 11:00 AM – 5:00 PM.** | Confirm; fix whichever listing is wrong |
 | 4 | 4.9 from 48 Google reviews | The Google card, read 2026-09-25 | Re-read before launch; update `rating` / `review_count` / `rating_checked` |
 | 5 | Three quoted reviews | The three snippets on the Google card, verbatim, reviewer names as shown | Add a fourth; the blueprint asks for four |
-| 6 | Twelve services | Owner's 11-category list + the Google listing's service list | Confirm "inspections & mechanical" is work the shop wants to advertise |
+| 6 | Eleven services | Owner's 11-category list + the Google listing's service list, minus dent removal (dropped 2026-09-26 at the owner's request) | Confirm "inspections & mechanical" is work the shop wants to advertise |
 | 7 | Domain `calitintsca.com` | Search result; the site could not be crawled from here | Confirm, and whether `www` is canonical |
 | 8 | Redirects | Old page list unknown | **Fill `public/_redirects` from Search Console before launch** |
 | 9 | Instagram | The Google card links one; URL not visible | Add to `profiles` in `site.json` |
@@ -119,7 +119,7 @@ owner, outside this public repository (`marketing/`, `seo/` and `perf/` are giti
    was not built and the schema declares `knowsLanguage: ['en']`.
 5. **A `pillars` block in `site.json`.** The owner supplied three paragraphs
    (Tints / Wraps-PPF / Detail-Ceramic). They became a three-card section on the
-   home page above the twelve-service grid, driven from data like everything else.
+   home page above the eleven-service grid, driven from data like everything else.
 
 ---
 
@@ -224,7 +224,7 @@ Inherited from the reference, unchanged:
 1. Supply the email, then click the one-time FormSubmit confirmation link.
 2. Confirm the hours and fix whichever of Google or Yelp is wrong.
 3. Export the old site's URLs and fill the redirect map.
-4. Update the Google Business Profile — categories, all twelve services, photos,
+4. Update the Google Business Profile — categories, all eleven services, photos,
    website link — and make name/address/phone/hours match this site exactly.
 5. Supply photos and, when convenient, a real clip of the bay.
 6. Name the films installed and their warranty terms.

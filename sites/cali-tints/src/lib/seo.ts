@@ -47,7 +47,7 @@ export function localBusiness() {
       'Window tinting, vinyl wraps, paint protection film, ceramic coating and detailing shop ' +
       'on Fulton Avenue in Sacramento, California. Ceramic and carbon film installed to the ' +
       'California legal limit, colour-change and commercial wraps, paint correction, ' +
-      'customization, dent removal, upholstery and inspections for cars, trucks, SUVs, ' +
+      'customization, upholstery and inspections for cars, trucks, SUVs, ' +
       'motorcycles and fleets.',
     knowsAbout: [
       ...data.services.map((s) => s.nav),

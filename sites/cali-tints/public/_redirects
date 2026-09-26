@@ -10,6 +10,10 @@
 # Format:  /old-path    /new-path/    301!
 # Example: /services    /services/    301!
 
+# Service retired 2026-09-26; the page had already been published once.
+/services/dent-removal         /services/                               301!
+/services/dent-removal/        /services/                               301!
+
 /index.html                    /                                        301!
 /home                          /                                        301!
 /home/                         /                                        301!
