@@ -1,0 +1,53 @@
+# Lint, typecheck, unit tests, SQL tests (against a throwaway Postgres 16)
+# and a production build for apps/cali-tints.
+name: Cali Tints CI
+
+on:
+  push:
+    paths: ["apps/cali-tints/**", ".github/workflows/cali-tints-ci.yml"]
+  pull_request:
+    paths: ["apps/cali-tints/**", ".github/workflows/cali-tints-ci.yml"]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/cali-tints
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports: ["54329:5432"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/cali-tints/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: SQL tests
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "54329"
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: bash supabase/tests/run.sh
+      - name: Build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+        run: pnpm build
