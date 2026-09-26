@@ -2,43 +2,56 @@
 @import "tw-animate-css";
 
 /*
-  Cali Tints design tokens.
-  Dark is the only theme: the app is used on a lot at night and in bright sun,
-  where a high-contrast dark UI with a single lime accent reads best.
+  Cali Tints design tokens — the single source of truth.
+
+  Dark is the default (the app is used on a lot at night and in bright sun,
+  where a high-contrast dark UI with one lime accent reads best). A light set
+  is defined under [data-theme="light"] with the same token names so any
+  component works in both.
+
   Brand green sampled from the logo: #82D955.
 */
 :root {
-  --radius: 0.75rem;
+  color-scheme: dark;
+
+  /* radius: 8 controls · 12 cards · 16 sheets/dialogs */
+  --radius: 0.5rem;
 
   --background: #0b0d0f;
   --foreground: #f2f4f5;
 
-  --card: #121517;
+  --card: #131619;
   --card-foreground: #f2f4f5;
-  --popover: #15191c;
+  --popover: #181c20;
   --popover-foreground: #f2f4f5;
 
-  --primary: #82d955;
-  --primary-foreground: #06120a;
+  --surface-2: #1a1e22;
 
-  --secondary: #1b2024;
+  --primary: #82d955;
+  --primary-hover: #93e36a;
+  --primary-foreground: #06120a;
+  --accent-soft: rgba(130, 217, 85, 0.14);
+
+  --secondary: #1a1e22;
   --secondary-foreground: #e6e9eb;
 
-  --muted: #171b1e;
-  --muted-foreground: #8a939b;
+  --muted: #171b1f;
+  --muted-foreground: #a7b0b8;
+  --subtle: #6f7a83;
 
-  --accent: #1f272c;
+  --accent: #1f252a;
   --accent-foreground: #f2f4f5;
 
-  --destructive: #ef5350;
+  --destructive: #f0625f;
   --destructive-foreground: #ffffff;
 
   --warning: #f5b544;
   --success: #82d955;
   --info: #5aa9ff;
 
-  --border: #232a2f;
-  --input: #1a1f23;
+  --border: #22282d;
+  --border-strong: #2f373d;
+  --input: #1a1e22;
   --ring: #82d955;
 
   --chart-1: #82d955;
@@ -50,6 +63,64 @@
   --sidebar: #0e1113;
   --sidebar-foreground: #e6e9eb;
   --sidebar-border: #1c2226;
+
+  --shadow-popover: 0 12px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-raised: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+
+  /* motion */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --background: #f6f7f8;
+  --foreground: #0e1215;
+
+  --card: #ffffff;
+  --card-foreground: #0e1215;
+  --popover: #ffffff;
+  --popover-foreground: #0e1215;
+
+  --surface-2: #f1f3f5;
+
+  --primary: #3f9a1e;
+  --primary-hover: #348017;
+  --primary-foreground: #ffffff;
+  --accent-soft: rgba(63, 154, 30, 0.12);
+
+  --secondary: #f1f3f5;
+  --secondary-foreground: #0e1215;
+
+  --muted: #f1f3f5;
+  --muted-foreground: #4b555e;
+  --subtle: #6f7a83;
+
+  --accent: #e9ecef;
+  --accent-foreground: #0e1215;
+
+  --destructive: #d93b3b;
+  --destructive-foreground: #ffffff;
+
+  --warning: #b7791f;
+  --success: #2e8b57;
+  --info: #2b6cb0;
+
+  --border: #e4e7ea;
+  --border-strong: #cbd1d6;
+  --input: #f1f3f5;
+  --ring: #3f9a1e;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0e1215;
+  --sidebar-border: #e4e7ea;
+
+  --shadow-popover: 0 12px 32px -12px rgba(14, 18, 21, 0.25), 0 0 0 1px rgba(14, 18, 21, 0.06);
+  --shadow-raised: 0 1px 2px rgba(14, 18, 21, 0.06);
 }
 
 @theme inline {
@@ -59,12 +130,16 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-surface-2: var(--surface-2);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-accent-soft: var(--accent-soft);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -73,6 +148,7 @@
   --color-success: var(--success);
   --color-info: var(--info);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
@@ -84,14 +160,77 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+
+  --shadow-popover: var(--shadow-popover);
+  --shadow-raised: var(--shadow-raised);
+
+  --ease-out: var(--ease-out);
+  --ease-in: var(--ease-in);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-rise: rise var(--duration-base) var(--ease-out) both;
+
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Type scale — one utility per role so screens never invent sizes. */
+@utility text-display {
+  font-size: 2.5rem;
+  line-height: 2.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+@utility text-title {
+  font-size: 1.75rem;
+  line-height: 2.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+@utility text-heading {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+@utility text-body {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+@utility text-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+@utility text-label {
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+@utility text-caption {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+@utility text-stat {
+  font-size: 1.75rem;
+  line-height: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 @layer base {
@@ -99,7 +238,6 @@
     @apply border-border outline-ring/50;
   }
   html {
-    color-scheme: dark;
     -webkit-text-size-adjust: 100%;
   }
   body {
@@ -114,15 +252,40 @@
   ::selection {
     background: color-mix(in oklab, var(--primary) 35%, transparent);
   }
+  /* Every interactive element gets the same visible focus ring. */
+  :where(a, button, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Motion is a courtesy, never a requirement. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
-@layer utilities {
-  /* Numeric columns line up. */
-  .tabular-nums { font-variant-numeric: tabular-nums; }
-  /* Safe-area padding for installed PWAs on phones with a home indicator. */
-  .pb-safe { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
-  .pt-safe { padding-top: env(safe-area-inset-top); }
-  /* Subtle brand glow used on primary surfaces. */
-  .glow-primary { box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent), 0 8px 30px -12px color-mix(in oklab, var(--primary) 45%, transparent); }
-  .surface-gradient { background-image: linear-gradient(180deg, color-mix(in oklab, var(--card) 92%, white) 0%, var(--card) 100%); }
+/* Utilities defined with @utility so they accept variants (hover:, data-[…]:, md:). */
+@utility tabular-nums { font-variant-numeric: tabular-nums; }
+/* Safe-area padding for installed PWAs on phones with a home indicator. */
+@utility pb-safe { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+@utility pt-safe { padding-top: env(safe-area-inset-top); }
+/* Raised surface: 1px inner highlight on dark, soft shadow on light. */
+@utility surface-raised { box-shadow: var(--shadow-raised); }
+/* Subtle brand glow used on the one primary surface per screen. */
+@utility glow-primary { box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent), 0 8px 30px -12px color-mix(in oklab, var(--primary) 45%, transparent); }
+@utility surface-gradient { background-image: linear-gradient(180deg, color-mix(in oklab, var(--card) 94%, white) 0%, var(--card) 100%); }
+/* Skeleton shimmer band. */
+@utility shimmer {
+  background: linear-gradient(90deg, var(--muted) 0%, var(--accent) 50%, var(--muted) 100%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+/* Hide scrollbars on horizontal chip rows without losing scroll. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }

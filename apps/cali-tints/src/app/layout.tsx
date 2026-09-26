@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Toaster } from "@/components/ui/sonner";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import "./globals.css";
 
@@ -22,16 +23,18 @@ export const viewport: Viewport = {
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // No maximum-scale: pinch-zoom stays available (WCAG 1.4.4). iOS input zoom is prevented by 16px+ inputs instead.
   viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} dark h-full`}>
+    <html lang="en" data-theme="dark" className={`${GeistSans.variable} ${GeistMono.variable} dark h-full`}>
       <body className="flex min-h-full flex-col">
-        {children}
-        <Toaster />
+        <MotionProvider>
+          {children}
+          <Toaster />
+        </MotionProvider>
         <ServiceWorkerRegistration />
       </body>
     </html>
