@@ -80,12 +80,13 @@ begin
   exception when sqlstate '22023' then null; end;
   assert (select price_max from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Touch Up Detail') = 40.00, 'price list range';
 
-  -- per-job dealership requires RO/PO
+  -- per-job dealership no longer requires an RO/PO (0008); rolled back so later counts hold
   begin
-    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'B2',
-      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-    raise exception 'expected RO/PO rejection';
-  exception when sqlstate '22023' then null; end;
+    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'B0',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+    assert (select ro_po_number from public.jobs where tag_number = 'B0') is null, 'job saved without RO/PO';
+    raise exception 'rollback' using errcode = 'P0999';
+  exception when sqlstate 'P0999' then null; end;
 
   -- dealership price override resolves (Irvine full detail = 165)
   j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'B2', 'ro_po_number', 'RO-77',

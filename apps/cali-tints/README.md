@@ -31,7 +31,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 
 | Area | What it does |
 |---|---|
-| Quick job entry `/jobs/new` | Big tag input, VIN camera scan (Code 39/128, QR, DataMatrix, PDF417) → NHTSA decode with cache, Mercedes model list + free text, service chips with priced overrides (reason required), before/after photos compressed on-device, 7-day duplicate warning, Save & next |
+| Quick job entry `/jobs/new` | Big tag input, VIN camera scan (Code 39/128, QR, DataMatrix, PDF417) → NHTSA decode with cache, Mercedes model list + free text, service chips with priced overrides (reason required), 7-day duplicate warning, Save & next |
 | Offline | Jobs queue in IndexedDB and sync when online (idempotent on a client id, so retries never duplicate). `/jobs/outbox` shows the queue with retry/discard. App shell is cached by a service worker |
 | Job history `/jobs` | Search tag/VIN/model/RO, filter by service, dealership, detailer, dates, invoiced status; detail page with photos, edit sheet, soft delete/restore and a per-field audit timeline |
 | Double-billing guard | At entry, the 7-day duplicate prompt says if the earlier job is already on an invoice. At invoice time every candidate job is checked for the same VIN (or tag at that dealer) within 30 days, against live invoices and the batch itself, with a red flag when the service is the same; the owner excludes it or marks it OK with a note that is audited and stops future flags |
@@ -145,7 +145,7 @@ Deviations from the brief and why:
 - `invoice_items` is an **immutable snapshot** of every billed line. Editing or voiding a job later can never change an invoice that was sent. PDFs/CSVs re-render from this table, so any past invoice can be re-downloaded identically.
 - `invoice_payments` (partial payments; a trigger rolls up `amount_paid`, `paid_at`, status `partial`/`paid`) and `invoice_submissions` (email attempts with message ids, portal/paper confirmations) replace single columns.
 - `jobs.client_id` = offline idempotency key. `jobs` are soft-deleted only; a trigger rejects hard deletes and locks any job that is on a non-void invoice.
-- `dealerships` carry AP contact/emails, `submission_method`, `invoice_mode` (`batch` | `per_job`), and optional terms/tax overrides. Per-job mode makes RO/PO required at entry (enforced in `create_job`).
+- `dealerships` carry AP contact/emails, `submission_method`, `invoice_mode` (`batch` | `per_job`), and optional terms/tax overrides. In per-job mode each job gets its own invoice; jobs that share an RO/PO number are grouped (RO/PO is optional at entry).
 - `services.category` (`new` | `used` | `service` | `addon`) groups the price list the way the dealer buys the work; `jobs.dup_reviewed_*` records an owner's "OK to bill" decision on a flagged job; `find_invoice_conflicts()` powers the guard and `generate_*` accept `p_exclude`.
 - `vin_cache` shares NHTSA decodes; `audit_log` is written by triggers on every business table (who/what/when + changed columns).
 - Invoice numbers come from `companies.next_invoice_number` under a row lock inside `generate_invoice` / `generate_per_job_invoices`, so they are gap-free and never collide.
@@ -162,7 +162,7 @@ pnpm db:test       # migrations + RLS/RPC/trigger tests on a local Postgres 16 (
 pnpm build
 ```
 
-`supabase/tests/run.sh` creates a throwaway database, installs a small stub of Supabase's `auth`/`storage` schemas, applies the migrations and seed, then runs `tests/01_flows.sql`, which asserts detailer isolation, idempotent `create_job`, price override rules, per-job RO/PO enforcement, invoice generation/locking, payment status transitions, void/unlock, per-job grouping, dashboard stats and storage path policies. CI (`.github/workflows/cali-tints-ci.yml`) runs all of the above.
+`supabase/tests/run.sh` creates a throwaway database, installs a small stub of Supabase's `auth`/`storage` schemas, applies the migrations and seed, then runs `tests/01_flows.sql`, which asserts detailer isolation, idempotent `create_job`, price override rules, invoice generation/locking, payment status transitions, void/unlock, per-job grouping, dashboard stats and storage path policies. CI (`.github/workflows/cali-tints-ci.yml`) runs all of the above.
 
 ## CSV / DMS integration contract
 

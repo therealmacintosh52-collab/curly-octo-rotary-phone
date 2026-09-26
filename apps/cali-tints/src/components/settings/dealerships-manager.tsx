@@ -225,7 +225,7 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
                 </Select>
               </div>
             </div>
-            {f.invoice_mode === "per_job" && <p className="text-xs text-warning">Per-job mode makes the RO/PO number required when logging jobs for this dealership.</p>}
+            {f.invoice_mode === "per_job" && <p className="text-xs text-muted-foreground">Per-job mode creates one invoice per job (jobs that share an RO/PO number are grouped).</p>}
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="d-terms">Payment terms</Label>

@@ -160,7 +160,6 @@ function EditSheet({
   const [model, setModel] = useState(job.model ?? "");
   const [color, setColor] = useState(job.color ?? "");
   const [performedAt, setPerformedAt] = useState(toDateInput(new Date(job.performed_at)));
-  const [roPo, setRoPo] = useState(job.ro_po_number ?? "");
   const [notes, setNotes] = useState(job.notes ?? "");
   const [detailerId, setDetailerId] = useState(job.detailer_id);
   const [services, setServices] = useState<SelectedService[]>(
@@ -179,7 +178,6 @@ function EditSheet({
     if (!tag.trim()) return toast.error("Tag number is required");
     if (vin && vinStatus(vin) === "invalid") return toast.error("VIN must be 17 characters");
     if (services.length === 0) return toast.error("Select at least one service");
-    if (job.per_job && !roPo.trim()) return toast.error("RO/PO number is required for this dealership");
     start(async () => {
       const r = await updateJobAction({
         id: job.id,
@@ -192,7 +190,7 @@ function EditSheet({
         color: color || null,
         // Unchanged date keeps the original timestamp; a new date is stored per dateInputToIso.
         performed_at: performedAt === toDateInput(new Date(job.performed_at)) ? job.performed_at : dateInputToIso(performedAt),
-        ro_po_number: roPo.trim() || null,
+        ro_po_number: job.ro_po_number ?? null,
         notes: notes.trim() || null,
         services: services.map((s) => ({ service_id: s.service_id, price: s.price, override_reason: s.override_reason })),
       });
@@ -277,10 +275,6 @@ function EditSheet({
             <div className="grid gap-1.5">
               <Label htmlFor="e-date">Date</Label>
               <Input id="e-date" type="date" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="e-ropo">RO / PO {job.per_job && <span className="text-destructive">*</span>}</Label>
-              <Input id="e-ropo" value={roPo} onChange={(e) => setRoPo(e.target.value.toUpperCase())} />
             </div>
             {isAdmin && detailers.length > 1 && (
               <div className="col-span-2 grid gap-1.5">

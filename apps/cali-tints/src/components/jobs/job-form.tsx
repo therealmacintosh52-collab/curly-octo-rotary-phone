@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ServicePicker, type SelectedService } from "./service-picker";
 import { VinScanner } from "./vin-scanner";
-import { PhotoPicker, type PendingPhoto } from "./photo-picker";
 import { ModelCombobox } from "./model-combobox";
 import { DuplicateDialog, type DuplicateHit } from "./duplicate-dialog";
 
@@ -56,9 +55,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const [model, setModel] = useState("");
   const [color, setColor] = useState("");
   const [services, setServices] = useState<SelectedService[]>([]);
-  const [photos, setPhotos] = useState<PendingPhoto[]>([]);
   const [performedAt, setPerformedAt] = useState(() => toDateInput(new Date()));
-  const [roPo, setRoPo] = useState("");
   const [notes, setNotes] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateHit[] | null>(null);
@@ -67,7 +64,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
 
   const dealership = dealerships.find((d) => d.id === dealershipId) ?? null;
   const priceList = priceLists[dealershipId] ?? [];
-  const perJob = dealership?.invoice_mode === "per_job";
   const total = useMemo(() => sumPrices(services), [services]);
   const vinState = vinStatus(vin);
 
@@ -139,7 +135,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     if (!tag.trim()) return "Key tag number is required";
     if (vin && vinState === "invalid") return "VIN must be 17 characters (no I, O or Q)";
     if (services.length === 0) return "Select at least one service";
-    if (perJob && !roPo.trim()) return `${dealership?.name} invoices per RO/PO — enter the RO/PO number`;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performedAt)) return "Date is invalid";
     return null;
   }
@@ -192,7 +187,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       model: model.trim() || null,
       color: color === "Other" ? null : color || null,
       performed_at: dateInputToIso(performedAt),
-      ro_po_number: roPo.trim() || null,
+      ro_po_number: null,
       notes: notes.trim() || null,
       services: services.map((s) => ({
         service_id: s.service_id,
@@ -204,7 +199,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       client_id: clientId,
       company_id: company.id,
       payload,
-      photos: photos.map((p) => ({ kind: p.kind, blob: p.blob, name: p.name })),
+      photos: [],
       summary: { tag_number: payload.tag_number, model: payload.model ?? null, dealership_name: dealership?.name ?? "", total },
       status: "pending",
       attempts: 0,
@@ -250,9 +245,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     setModel("");
     setColor("");
     setServices([]);
-    setPhotos([]);
     setPerformedAt(toDateInput(new Date()));
-    setRoPo("");
     setNotes("");
     setDuplicates(null);
     requestAnimationFrame(() => {
@@ -266,16 +259,10 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
 
   return (
     <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-32 sm:px-6">
-      {/* Date + RO/PO, first so they are never missed */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid gap-1.5">
-          <Label htmlFor="performed">Date</Label>
-          <Input id="performed" type="date" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="ropo">RO / PO {perJob ? <span className="text-destructive">*</span> : <span className="normal-case tracking-normal text-muted-foreground/70">(optional)</span>}</Label>
-          <Input id="ropo" value={roPo} onChange={(e) => setRoPo(e.target.value.toUpperCase())} autoCapitalize="characters" placeholder="RO / PO #" required={perJob} />
-        </div>
+      {/* Date first so it is never missed */}
+      <div className="grid gap-1.5">
+        <Label htmlFor="performed">Date</Label>
+        <Input id="performed" type="date" value={performedAt} onChange={(e) => setPerformedAt(e.target.value)} />
       </div>
 
       {/* Dealership (the job is logged under the signed-in user) */}
@@ -409,12 +396,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
           )}
         </div>
         <ServicePicker priceList={priceList} value={services} onChange={setServices} />
-      </div>
-
-      {/* Photos */}
-      <div className="grid gap-2">
-        <Label>Photos (optional)</Label>
-        <PhotoPicker photos={photos} onChange={setPhotos} />
       </div>
 
       {/* Notes */}
