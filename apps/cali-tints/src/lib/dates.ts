@@ -1,4 +1,4 @@
-import { addDays, endOfMonth, format, startOfMonth, startOfWeek, subDays, subMonths } from "date-fns";
+import { addDays, endOfMonth, endOfQuarter, endOfYear, format, startOfMonth, startOfQuarter, startOfWeek, startOfYear, subDays, subMonths, subQuarters, subYears } from "date-fns";
 
 /** yyyy-MM-dd for <input type="date"> and SQL date params. */
 export function toDateInput(d: Date): string {
@@ -31,7 +31,20 @@ export function formatDateOnly(s: string | null | undefined, pattern = "MMM d, y
   return format(parseDateOnly(s), pattern);
 }
 
-export type RangePreset = "this_week" | "last_week" | "last_2_weeks" | "this_month" | "last_month" | "last_30" | "custom";
+export type RangePreset =
+  | "this_week"
+  | "last_week"
+  | "last_2_weeks"
+  | "this_month"
+  | "last_month"
+  | "last_30"
+  | "this_quarter"
+  | "last_quarter"
+  | "last_90"
+  | "ytd"
+  | "last_year"
+  | "all"
+  | "custom";
 
 export const RANGE_PRESETS: { value: RangePreset; label: string }[] = [
   { value: "this_week", label: "This week" },
@@ -40,6 +53,12 @@ export const RANGE_PRESETS: { value: RangePreset; label: string }[] = [
   { value: "this_month", label: "This month" },
   { value: "last_month", label: "Last month" },
   { value: "last_30", label: "Last 30 days" },
+  { value: "this_quarter", label: "This quarter" },
+  { value: "last_quarter", label: "Last quarter" },
+  { value: "last_90", label: "Last 90 days" },
+  { value: "ytd", label: "Year to date" },
+  { value: "last_year", label: "Last year" },
+  { value: "all", label: "All time" },
   { value: "custom", label: "Custom" },
 ];
 
@@ -65,6 +84,22 @@ export function presetRange(preset: RangePreset, today = new Date()): { start: s
     }
     case "last_30":
       return { start: toDateInput(subDays(today, 30)), end: toDateInput(today) };
+    case "this_quarter":
+      return { start: toDateInput(startOfQuarter(today)), end: toDateInput(today) };
+    case "last_quarter": {
+      const q = subQuarters(today, 1);
+      return { start: toDateInput(startOfQuarter(q)), end: toDateInput(endOfQuarter(q)) };
+    }
+    case "last_90":
+      return { start: toDateInput(subDays(today, 90)), end: toDateInput(today) };
+    case "ytd":
+      return { start: toDateInput(startOfYear(today)), end: toDateInput(today) };
+    case "last_year": {
+      const y = subYears(today, 1);
+      return { start: toDateInput(startOfYear(y)), end: toDateInput(endOfYear(y)) };
+    }
+    case "all":
+      return { start: "2000-01-01", end: toDateInput(today) };
     default:
       return { start: toDateInput(startOfMonth(today)), end: toDateInput(today) };
   }

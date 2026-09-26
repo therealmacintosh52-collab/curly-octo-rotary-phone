@@ -1,12 +1,13 @@
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
-import { Dashboard } from "@/components/dashboard/dashboard";
+import { Dashboard, resolveRange } from "@/components/dashboard/dashboard";
 import type { DashboardStats, Profile } from "@/lib/db/types";
 import { invoiceBundleFixture } from "@/test/fixtures";
 
-/** Dev-only dashboard with fixture stats. 404 in production. */
-export default function DevDashboardPreview() {
+/** Dev-only dashboard with fixture stats (guest preview in production). The range picker works; the sample numbers stay the same. */
+export default async function DevDashboardPreview(props: PageProps<"/dev/preview/dashboard">) {
+  const range = resolveRange(await props.searchParams);
   const { company } = invoiceBundleFixture();
   const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike (preview)", email: null, active: true } as Profile;
 
@@ -18,7 +19,7 @@ export default function DevDashboardPreview() {
   }).filter((d) => d.jobs > 0);
 
   const stats: DashboardStats = {
-    range: { start: "2026-09-01", end: "2026-09-26" },
+    range: { start: range.start, end: range.end },
     week: { jobs: 23, revenue: 3185 },
     month: { jobs: 118, revenue: 15940 },
     uninvoiced_total: 6420,
@@ -29,15 +30,15 @@ export default function DevDashboardPreview() {
     avg_days_to_pay: 27.4,
     paid_last_90: 21870,
     by_service: [
-      { name: "Used", jobs: 41, revenue: 8200 },
-      { name: "Service Loaner Detail", jobs: 28, revenue: 3500 },
-      { name: "PDI", jobs: 38, revenue: 2280 },
-      { name: "Sold", jobs: 33, revenue: 660 },
+      { service_id: "s3", name: "Used", jobs: 41, revenue: 8200 },
+      { service_id: "s4", name: "Service Loaner Detail", jobs: 28, revenue: 3500 },
+      { service_id: "s1", name: "PDI", jobs: 38, revenue: 2280 },
+      { service_id: "s2", name: "Sold", jobs: 33, revenue: 660 },
     ],
     by_detailer: [
-      { name: "Marco R.", jobs: 52, revenue: 7010 },
-      { name: "Dee One", jobs: 39, revenue: 5120 },
-      { name: "Dee Two", jobs: 27, revenue: 3810 },
+      { detailer_id: "u2", name: "Marco R.", jobs: 52, revenue: 7010 },
+      { detailer_id: "u3", name: "Dee One", jobs: 39, revenue: 5120 },
+      { detailer_id: "u4", name: "Dee Two", jobs: 27, revenue: 3810 },
     ],
     by_day: days,
     overdue: [
@@ -51,7 +52,7 @@ export default function DevDashboardPreview() {
     <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
-          <Dashboard stats={stats} range={{ preset: "this_month", start: "2026-09-01", end: "2026-09-26" }} companyName={company.name} />
+          <Dashboard stats={stats} range={range} companyName={company.name} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

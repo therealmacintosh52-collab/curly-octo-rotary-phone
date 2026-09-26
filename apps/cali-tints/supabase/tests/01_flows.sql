@@ -234,6 +234,10 @@ begin
   assert stats ? 'week' and stats ? 'month' and stats ? 'by_service' and stats ? 'by_detailer' and stats ? 'overdue', 'stats keys';
   assert (stats -> 'month' ->> 'jobs')::int >= 1, 'month jobs';
   assert (stats ->> 'reminder_days')::int = 30, 'reminder default';
+  assert (stats -> 'by_service' -> 0) ? 'service_id' and (stats -> 'by_detailer' -> 0) ? 'detailer_id', 'breakdown rows carry ids';
+  assert (public.jobs_filter_summary() ->> 'jobs')::int >= 3, 'filter summary counts';
+  assert (public.jobs_filter_summary(null, '00000000-0000-4000-8000-000000000201') ->> 'jobs')::int >= 1, 'filter summary by service';
+  assert (public.jobs_filter_summary(null, null, null, null, null, null, 'invoiced') ->> 'revenue')::numeric > 0, 'filter summary invoiced revenue';
 
   -- price list resolution
   assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000102') where name = 'Used') = 215.00, 'price list override';

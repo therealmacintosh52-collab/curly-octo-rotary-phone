@@ -303,8 +303,8 @@ export type DashboardStats = {
   draft_total: number;
   avg_days_to_pay: number | null;
   paid_last_90: number;
-  by_service: { name: string; jobs: number; revenue: number }[];
-  by_detailer: { name: string; jobs: number; revenue: number }[];
+  by_service: { service_id: string; name: string; jobs: number; revenue: number }[];
+  by_detailer: { detailer_id: string; name: string; jobs: number; revenue: number }[];
   by_day: { day: string; jobs: number; revenue: number }[];
   overdue: {
     id: string;
@@ -402,6 +402,18 @@ export type Database = {
         Returns: string;
       };
       dashboard_stats: { Args: { p_start?: string | null; p_end?: string | null }; Returns: DashboardStats };
+      jobs_filter_summary: {
+        Args: {
+          p_q?: string | null;
+          p_service?: string | null;
+          p_detailer?: string | null;
+          p_dealership?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_status?: string;
+        };
+        Returns: { jobs: number; revenue: number };
+      };
     };
     Enums: {
       user_role: UserRole;

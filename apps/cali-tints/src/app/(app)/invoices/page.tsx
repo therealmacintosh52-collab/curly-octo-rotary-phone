@@ -15,13 +15,15 @@ import { BulkDownloadBanner } from "@/components/invoices/bulk-download-banner";
 
 export const metadata: Metadata = { title: "Invoices" };
 
-const STATUSES: InvoiceStatus[] = ["draft", "submitted", "partial", "paid", "void"];
+const STATUSES = ["draft", "submitted", "partial", "paid", "void", "outstanding", "overdue"] as const;
+type StatusFilter = (typeof STATUSES)[number];
 
 export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const sp = await props.searchParams;
   const session = await requireAdmin();
   const supabase = await createClient();
-  const status = typeof sp.status === "string" && (STATUSES as string[]).includes(sp.status) ? (sp.status as InvoiceStatus) : undefined;
+  const status = typeof sp.status === "string" && (STATUSES as readonly string[]).includes(sp.status) ? (sp.status as StatusFilter) : undefined;
+  const reminderMs = session.company.reminder_days * 86400000;
   const created = typeof sp.created === "string" ? sp.created.split(",").filter(Boolean) : [];
 
   let q = supabase
@@ -29,11 +31,12 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     .select("id, display_number, period_start, period_end, ro_po_number, total, amount_paid, status, submitted_at, paid_at, created_at, dealership:dealerships(name)")
     .order("number", { ascending: false })
     .limit(200);
-  if (status) q = q.eq("status", status);
+  if (status === "outstanding") q = q.in("status", ["submitted", "partial"]);
+  else if (status === "overdue") q = q.in("status", ["submitted", "partial"]).lt("submitted_at", new Date(nowMs() - reminderMs).toISOString());
+  else if (status) q = q.eq("status", status);
   else q = q.neq("status", "void");
   const { data: invoices } = await q;
 
-  const reminderMs = session.company.reminder_days * 86400000;
   const isOverdue = (i: { status: InvoiceStatus; submitted_at: string | null }) =>
     (i.status === "submitted" || i.status === "partial") && !!i.submitted_at && nowMs() - new Date(i.submitted_at).getTime() > reminderMs;
 
@@ -41,7 +44,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     <Page>
       <PageHeader
         title="Invoices"
-        description="Generate, send and track payment."
+        description={status === "outstanding" ? "Submitted or partially paid, not yet settled." : status === "overdue" ? `Submitted more than ${session.company.reminder_days} days ago and still unpaid.` : "Generate, send and track payment."}
         actions={
           <Button asChild>
             <Link href="/invoices/new">

@@ -40,7 +40,10 @@ export async function proxy(request: NextRequest) {
     const guest = isDemoCookieValid(request.cookies.get(DEMO_COOKIE)?.value);
     if (guest) {
       const target = demoRewriteTarget(pathname);
-      const res = target ? NextResponse.rewrite(new URL(target, request.url)) : NextResponse.next({ request });
+      // Keep the query string so filters, date ranges and status tabs work in the preview too.
+      const rewriteUrl = request.nextUrl.clone();
+      if (target) rewriteUrl.pathname = target;
+      const res = target ? NextResponse.rewrite(rewriteUrl) : NextResponse.next({ request });
       res.headers.set("X-Robots-Tag", "noindex, nofollow");
       return res;
     }
