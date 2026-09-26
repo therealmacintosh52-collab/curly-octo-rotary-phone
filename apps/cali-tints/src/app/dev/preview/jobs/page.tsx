@@ -15,7 +15,7 @@ import { isoDaysAgo } from "@/lib/dates";
 export default function DevJobsPreview() {
 
   const company = { id: "c1", name: "Cali Tints", payment_terms: "Net 30", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles" } as Company;
-  const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Mike (preview)", email: null, active: true } as Profile;
+  const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
 
   const rows: JobListRow[] = [
     {
@@ -63,7 +63,7 @@ export default function DevJobsPreview() {
               <JobsTable rows={rows} page={1} pages={1} isAdmin />
               <Card>
                 <CardHeader><CardTitle>History</CardTitle></CardHeader>
-                <CardContent><AuditTimeline entries={audit} actorNames={{ u1: "Mike", u2: "Marco R." }} /></CardContent>
+                <CardContent><AuditTimeline entries={audit} actorNames={{ u1: "Owner", u2: "Marco R." }} /></CardContent>
               </Card>
             </div>
           </Page>

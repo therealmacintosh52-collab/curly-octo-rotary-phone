@@ -16,7 +16,7 @@ import type { Profile } from "@/lib/db/types";
 /** Dev-only fixture preview of the invoice detail widgets and the builder. 404 in production. */
 export default function DevInvoicePreview() {
   const b = invoiceBundleFixture();
-  const profile = { id: "u1", company_id: b.company.id, role: "owner", full_name: "Mike (preview)", email: null, active: true } as Profile;
+  const profile = { id: "u1", company_id: b.company.id, role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
   const balance = Number(b.invoice.total) - Number(b.invoice.amount_paid);
 
   return (
@@ -50,8 +50,8 @@ export default function DevInvoicePreview() {
                 <SubmissionsCard
                   submittedAt={b.invoice.submitted_at}
                   submissions={[
-                    { id: "s1", company_id: b.company.id, invoice_id: b.invoice.id, method: "email", status: "sent", recipients: ["ap@mbanaheim.example"], cc: ["billing@calitints.example"], provider: "resend", message_id: "3f1c2b0e-9d8a-4b1e-8c5a-1a2b3c4d5e6f", error: null, note: null, confirmation_path: null, created_by: "u1", created_at: isoDaysAgo(3), created_by_name: "Mike", confirmation_url: null },
-                    { id: "s2", company_id: b.company.id, invoice_id: b.invoice.id, method: "email", status: "failed", recipients: ["ap@mbanaheim.example"], cc: [], provider: "resend", message_id: null, error: "Email is not configured: set RESEND_API_KEY and EMAIL_FROM", note: null, confirmation_path: null, created_by: "u1", created_at: isoDaysAgo(4), created_by_name: "Mike", confirmation_url: null },
+                    { id: "s1", company_id: b.company.id, invoice_id: b.invoice.id, method: "email", status: "sent", recipients: ["ap@mbanaheim.example"], cc: ["billing@calitints.example"], provider: "resend", message_id: "3f1c2b0e-9d8a-4b1e-8c5a-1a2b3c4d5e6f", error: null, note: null, confirmation_path: null, created_by: "u1", created_at: isoDaysAgo(3), created_by_name: "Owner", confirmation_url: null },
+                    { id: "s2", company_id: b.company.id, invoice_id: b.invoice.id, method: "email", status: "failed", recipients: ["ap@mbanaheim.example"], cc: [], provider: "resend", message_id: null, error: "Email is not configured: set RESEND_API_KEY and EMAIL_FROM", note: null, confirmation_path: null, created_by: "u1", created_at: isoDaysAgo(4), created_by_name: "Owner", confirmation_url: null },
                   ]}
                 />
               </div>

@@ -9,7 +9,7 @@ import { invoiceBundleFixture } from "@/test/fixtures";
 export default async function DevDashboardPreview(props: PageProps<"/dev/preview/dashboard">) {
   const range = resolveRange(await props.searchParams);
   const { company } = invoiceBundleFixture();
-  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike (preview)", email: null, active: true } as Profile;
+  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
 
   const days = Array.from({ length: 26 }, (_, i) => {
     const d = new Date(2026, 8, i + 1);

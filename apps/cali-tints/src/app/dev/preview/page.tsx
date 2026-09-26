@@ -36,7 +36,7 @@ export default function DevPreviewPage() {
     id: "10000000-0000-4000-8000-000000000001",
     company_id: company.id,
     role: "owner",
-    full_name: "Mike (preview)",
+    full_name: "Owner (preview)",
     email: "owner@example.com",
     active: true,
     created_at: "",

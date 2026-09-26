@@ -84,11 +84,11 @@ async function main() {
   if (!company) throw new Error("Company not found. Apply supabase/migrations/*.sql and supabase/seed.sql first.");
 
   // --- users --------------------------------------------------------------
-  const ownerId = await ensureUser(OWNER_EMAIL, OWNER_PASSWORD, { company_id: COMPANY_ID, role: "owner", full_name: "Mike" });
+  const ownerId = await ensureUser(OWNER_EMAIL, OWNER_PASSWORD, { company_id: COMPANY_ID, role: "owner", full_name: "Owner" });
   const detailerIds = [];
   for (const d of DETAILERS) detailerIds.push(await ensureUser(d.email, DETAILER_PASSWORD, { company_id: COMPANY_ID, role: "detailer", full_name: d.full_name }));
   // Make sure roles are what we expect even if the users pre-existed.
-  await admin.from("profiles").update({ role: "owner", active: true, full_name: "Mike" }).eq("id", ownerId);
+  await admin.from("profiles").update({ role: "owner", active: true, full_name: "Owner" }).eq("id", ownerId);
   console.log(`Users ready: owner ${OWNER_EMAIL}, detailers ${DETAILERS.map((d) => d.email).join(", ")}`);
 
   // --- sign in as the owner and use the real RPCs ---------------------------
