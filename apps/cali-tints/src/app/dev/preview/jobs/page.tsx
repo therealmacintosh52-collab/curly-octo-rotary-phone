@@ -10,6 +10,7 @@ import { AuditTimeline } from "@/components/jobs/audit-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { JobListRow } from "@/lib/jobs/query";
 import type { AuditLog, Company, Profile } from "@/lib/db/types";
+import { isoDaysAgo } from "@/lib/dates";
 
 /** Dev-only fixture preview of the job list + audit timeline. 404 in production. */
 export default function DevJobsPreview() {
@@ -21,28 +22,28 @@ export default function DevJobsPreview() {
   const rows: JobListRow[] = [
     {
       id: "j1", tag_number: "4821", vin: "W1KZF8DB3NA123456", year: 2024, make: "Mercedes-Benz", model: "GLE 450", color: "Obsidian Black",
-      performed_at: new Date().toISOString(), ro_po_number: null, status: "logged", invoice_id: null, deleted_at: null,
+      performed_at: isoDaysAgo(0), ro_po_number: null, status: "logged", invoice_id: null, deleted_at: null,
       dealership: { name: "Mercedes-Benz of Anaheim" }, detailer: { full_name: "Marco R." }, invoice: null,
       job_services: [{ price: 150, service: { name: "Full Detail" } }, { price: 35, service: { name: "Delivery Prep" } }],
     },
     {
       id: "j2", tag_number: "K-118", vin: null, year: 2023, make: "Mercedes-Benz", model: "C 300", color: "Polar White",
-      performed_at: new Date(Date.now() - 86400000 * 2).toISOString(), ro_po_number: "RO-55821", status: "invoiced", invoice_id: "i1", deleted_at: null,
+      performed_at: isoDaysAgo(2), ro_po_number: "RO-55821", status: "invoiced", invoice_id: "i1", deleted_at: null,
       dealership: { name: "Mercedes-Benz of Irvine" }, detailer: { full_name: "Dee One" }, invoice: { display_number: "INV-000012", status: "submitted" },
       job_services: [{ price: 399, service: { name: "Window Tint (Full)" } }],
     },
     {
       id: "j3", tag_number: "7702", vin: "WDDGF4HB3CR227845", year: 2012, make: "Mercedes-Benz", model: "C-Class", color: null,
-      performed_at: new Date(Date.now() - 86400000 * 9).toISOString(), ro_po_number: null, status: "invoiced", invoice_id: "i0", deleted_at: null,
+      performed_at: isoDaysAgo(9), ro_po_number: null, status: "invoiced", invoice_id: "i0", deleted_at: null,
       dealership: { name: "Mercedes-Benz of Anaheim" }, detailer: { full_name: "Marco R." }, invoice: { display_number: "INV-000009", status: "paid" },
       job_services: [{ price: 45, service: { name: "Exterior Wash & Wax" } }, { price: 85, service: { name: "Interior Detail" } }],
     },
   ];
 
   const audit: AuditLog[] = [
-    { id: 3, company_id: "c1", actor_id: "u1", table_name: "jobs", row_id: "j1", action: "update", old_data: { color: null, notes: null }, new_data: { color: "Obsidian Black", notes: "Curb rash rear left" }, changed: ["color", "notes"], created_at: new Date().toISOString() },
-    { id: 2, company_id: "c1", actor_id: "u2", table_name: "job_services", row_id: "s1", action: "insert", old_data: null, new_data: { price: 150 }, changed: null, created_at: new Date(Date.now() - 3600000).toISOString() },
-    { id: 1, company_id: "c1", actor_id: "u2", table_name: "jobs", row_id: "j1", action: "insert", old_data: null, new_data: {}, changed: null, created_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: 3, company_id: "c1", actor_id: "u1", table_name: "jobs", row_id: "j1", action: "update", old_data: { color: null, notes: null }, new_data: { color: "Obsidian Black", notes: "Curb rash rear left" }, changed: ["color", "notes"], created_at: isoDaysAgo(0) },
+    { id: 2, company_id: "c1", actor_id: "u2", table_name: "job_services", row_id: "s1", action: "insert", old_data: null, new_data: { price: 150 }, changed: null, created_at: isoDaysAgo(1) },
+    { id: 1, company_id: "c1", actor_id: "u2", table_name: "jobs", row_id: "j1", action: "insert", old_data: null, new_data: {}, changed: null, created_at: isoDaysAgo(1) },
   ];
 
   return (
