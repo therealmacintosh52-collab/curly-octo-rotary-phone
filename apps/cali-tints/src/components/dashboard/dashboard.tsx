@@ -138,24 +138,14 @@ export function Dashboard({ stats, range, companyName }: { stats: DashboardStats
             <RevenueByDayChart data={stats.by_day} start={range.start} end={range.end} />
           </CardContent>
         </Card>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue by service</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <HorizontalBars data={stats.by_service.map((s) => ({ id: s.service_id, name: s.name, jobs: s.jobs, revenue: s.revenue }))} money linkParam="service" range={drill} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Cars by detailer</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <HorizontalBars data={stats.by_detailer.map((d) => ({ id: d.detailer_id, name: d.name, jobs: d.jobs, revenue: d.revenue }))} linkParam="detailer" range={drill} />
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue by service</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HorizontalBars data={stats.by_service.map((s) => ({ id: s.service_id, name: s.name, jobs: s.jobs, revenue: s.revenue }))} money linkParam="service" range={drill} />
+          </CardContent>
+        </Card>
       </div>
     </Page>
   );
