@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { AuditLog, Job, JobPhoto, PriceListRow } from "@/lib/db/types";
+import type { Job, JobPhoto, PriceListRow } from "@/lib/db/types";
 import { formatMoney, sumPrices } from "@/lib/money";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { Page } from "@/components/app/page-header";
@@ -14,7 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JobStatusBadge, vehicleLabel } from "@/components/jobs/jobs-table";
 import { JobActions } from "@/components/jobs/job-actions";
 import { JobPhotos } from "@/components/jobs/job-photos";
-import { AuditTimeline } from "@/components/jobs/audit-timeline";
 
 export const metadata: Metadata = { title: "Job" };
 
@@ -41,17 +40,9 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[id]">) {
   const job = data as unknown as JobDetail | null;
   if (!job) notFound();
 
-  const [{ data: photos }, priceListRes, auditRes, { data: detailers }] = await Promise.all([
+  const [{ data: photos }, priceListRes, { data: detailers }] = await Promise.all([
     supabase.from("job_photos").select("*").eq("job_id", id).order("created_at"),
     supabase.rpc("dealership_price_list", { p_dealership_id: job.dealership_id }),
-    session.isAdmin
-      ? supabase
-          .from("audit_log")
-          .select("*")
-          .or(`row_id.eq.${id},and(table_name.eq.job_services,row_id.in.(${job.job_services.map((s) => s.id).join(",") || "00000000-0000-0000-0000-000000000000"}))`)
-          .order("created_at", { ascending: false })
-          .limit(100)
-      : Promise.resolve({ data: [] as AuditLog[] }),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [] }),
   ]);
 
@@ -62,12 +53,6 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[id]">) {
       return { ...p, url: s?.signedUrl ?? null };
     }),
   );
-
-  // Resolve actor names for the audit trail in one query.
-  const audit = (auditRes.data ?? []) as AuditLog[];
-  const actorIds = Array.from(new Set(audit.map((a) => a.actor_id).filter((x): x is string => !!x)));
-  const { data: actors } = actorIds.length ? await supabase.from("profiles").select("id, full_name").in("id", actorIds) : { data: [] };
-  const actorNames = Object.fromEntries((actors ?? []).map((a) => [a.id, a.full_name]));
 
   const total = sumPrices(job.job_services);
   const locked = !!job.invoice_id && job.invoice?.status !== "void";
@@ -205,16 +190,6 @@ export default async function JobDetailPage(props: PageProps<"/jobs/[id]">) {
           </CardContent>
         </Card>
 
-        {session.isAdmin && (
-          <Card>
-            <CardHeader>
-              <CardTitle>History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AuditTimeline entries={audit} actorNames={actorNames} />
-            </CardContent>
-          </Card>
-        )}
       </div>
 
       {!canEdit && !job.deleted_at && locked && (

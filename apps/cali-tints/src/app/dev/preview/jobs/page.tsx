@@ -5,14 +5,12 @@ import { AppShell } from "@/components/app/app-shell";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { JobsFilters } from "@/components/jobs/jobs-filters";
 import { JobsTable } from "@/components/jobs/jobs-table";
-import { AuditTimeline } from "@/components/jobs/audit-timeline";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseJobFilters, type JobListRow } from "@/lib/jobs/query";
-import type { AuditLog, Company, Profile } from "@/lib/db/types";
+import type { Company, Profile } from "@/lib/db/types";
 import { isoDaysAgo } from "@/lib/dates";
 
-/** Fixture preview of the job list + audit timeline (guest demo in production). Filters come from the URL so chips and the sheet behave like the real page. */
+/** Fixture preview of the job list (guest demo in production). Filters come from the URL so chips and the sheet behave like the real page. */
 export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs">) {
   const filters = parseJobFilters(await props.searchParams);
 
@@ -40,12 +38,6 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
     },
   ];
 
-  const audit: AuditLog[] = [
-    { id: 3, company_id: "c1", actor_id: "u1", table_name: "jobs", row_id: "j1", action: "update", old_data: { color: null, notes: null }, new_data: { color: "Obsidian Black", notes: "Curb rash rear left" }, changed: ["color", "notes"], created_at: isoDaysAgo(0) },
-    { id: 2, company_id: "c1", actor_id: "u2", table_name: "job_services", row_id: "s1", action: "insert", old_data: null, new_data: { price: 200 }, changed: null, created_at: isoDaysAgo(1) },
-    { id: 1, company_id: "c1", actor_id: "u2", table_name: "jobs", row_id: "j1", action: "insert", old_data: null, new_data: {}, changed: null, created_at: isoDaysAgo(1) },
-  ];
-
   return (
     <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
@@ -70,10 +62,6 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
                 />
               </Suspense>
               <JobsTable rows={rows} page={1} pages={1} isAdmin />
-              <Card>
-                <CardHeader><CardTitle>History</CardTitle></CardHeader>
-                <CardContent><AuditTimeline entries={audit} actorNames={{ u1: "Owner", u2: "Marco R." }} /></CardContent>
-              </Card>
             </div>
           </Page>
         </AppShell>
