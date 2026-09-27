@@ -58,3 +58,25 @@ export function StatTile({
     <div className={classes}>{body}</div>
   );
 }
+
+/** Compact list of secondary numbers: label + hint on the left, value on the right, each row a link. */
+export function StatList({ rows, className }: { rows: { label: string; hint?: string; value: string; tone?: "warning" | "accent"; href: string }[]; className?: string }) {
+  return (
+    <ul className={cn("divide-y divide-border rounded-xl border border-border bg-card surface-raised", className)}>
+      {rows.map((r) => (
+        <li key={r.label}>
+          <Link href={r.href} className="group flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40 first:rounded-t-xl last:rounded-b-xl">
+            <div className="min-w-0">
+              <div className="text-sm font-medium">{r.label}</div>
+              {r.hint ? <div className="text-caption text-subtle">{r.hint}</div> : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className={cn("text-base font-semibold tabular-nums", r.tone === "warning" && "text-warning", r.tone === "accent" && "text-primary")}>{r.value}</span>
+              <ChevronRightIcon className="size-4 text-subtle transition-[transform,color] duration-150 group-hover:translate-x-0.5 group-hover:text-primary" />
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}

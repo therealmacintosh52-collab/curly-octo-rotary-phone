@@ -7,7 +7,7 @@ import { Page, PageHeader, SectionHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StaggerItem } from "@/components/motion/primitives";
-import { StatTile } from "./stat-tile";
+import { StatList, StatTile } from "./stat-tile";
 import { HorizontalBars, RevenueByDayChart } from "./charts-lazy";
 import { RangePicker } from "./range-picker";
 
@@ -62,26 +62,39 @@ export function Dashboard({ stats, range, companyName }: { stats: DashboardStats
         }
       />
 
-      {/* Primary KPIs */}
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)}`} href={`/jobs?from=${week.start}&to=${week.end}`} />
-        <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/jobs?from=${month.start}&to=${month.end}`} />
-        <StatTile label="Ready to bill" value={formatMoney(stats.uninvoiced_total)} sub={`${plural(stats.uninvoiced_jobs, "uninvoiced job", "uninvoiced jobs")}`} tone="accent" href="/jobs?status=uninvoiced" />
-        <StatTile
-          label="Owed to you"
-          value={formatMoney(stats.outstanding_total)}
-          sub={`${plural(stats.outstanding_invoices, "invoice", "invoices")} submitted, unpaid`}
-          tone={stats.outstanding_total > 0 ? "warning" : undefined}
-          href="/invoices?status=outstanding"
-        />
-      </div>
+      {/* Three groups: what was done, what is ready to bill, what is being paid. One headline number each; the rest in compact rows. */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-3 lg:gap-5">
+        <section className="flex flex-col gap-3">
+          <h2 className="text-label text-subtle">Cars detailed</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)}`} href={`/jobs?from=${week.start}&to=${week.end}`} />
+            <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/jobs?from=${month.start}&to=${month.end}`} />
+          </div>
+        </section>
 
-      {/* Supporting KPIs */}
-      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile size="sm" label="Avg days to payment" value={stats.avg_days_to_pay === null ? "—" : `${stats.avg_days_to_pay}`} sub="submitted → paid, all time" href="/invoices?status=paid" />
-        <StatTile size="sm" label="Collected, 90 days" value={formatMoney(stats.paid_last_90)} href="/invoices?status=paid" />
-        <StatTile size="sm" label="Draft invoices" value={formatMoney(stats.draft_total)} sub="generated, not sent" href="/invoices?status=draft" />
-        <StatTile size="sm" label="Overdue" value={String(stats.overdue.length)} sub={`unpaid > ${stats.reminder_days} days`} tone={stats.overdue.length ? "warning" : undefined} href="/invoices?status=overdue" />
+        <section className="flex flex-col gap-3">
+          <h2 className="text-label text-subtle">To bill</h2>
+          <StatTile label="Ready to bill" value={formatMoney(stats.uninvoiced_total)} sub={`${plural(stats.uninvoiced_jobs, "uninvoiced job", "uninvoiced jobs")}`} tone="accent" href="/jobs?status=uninvoiced" />
+          <StatList rows={[{ label: "Draft invoices", hint: "generated, not sent", value: formatMoney(stats.draft_total), href: "/invoices?status=draft" }]} />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-label text-subtle">Getting paid</h2>
+          <StatTile
+            label="Owed to you"
+            value={formatMoney(stats.outstanding_total)}
+            sub={`${plural(stats.outstanding_invoices, "invoice", "invoices")} submitted, unpaid`}
+            tone={stats.outstanding_total > 0 ? "warning" : undefined}
+            href="/invoices?status=outstanding"
+          />
+          <StatList
+            rows={[
+              { label: "Overdue", hint: `unpaid > ${stats.reminder_days} days`, value: String(stats.overdue.length), tone: stats.overdue.length ? "warning" : undefined, href: "/invoices?status=overdue" },
+              { label: "Collected", hint: "last 90 days", value: formatMoney(stats.paid_last_90), href: "/invoices?status=paid" },
+              { label: "Avg days to payment", hint: "submitted → paid", value: stats.avg_days_to_pay === null ? "—" : `${stats.avg_days_to_pay}`, href: "/invoices?status=paid" },
+            ]}
+          />
+        </section>
       </div>
 
       {/* Overdue reminders */}
