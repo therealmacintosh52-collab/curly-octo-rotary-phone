@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreditCardIcon, PlusIcon, TabletSmartphoneIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { InvoicePayment, InvoiceStatus, PaymentMethod } from "@/lib/db/types";
-import { deletePaymentAction, recordPaymentAction } from "@/app/(app)/invoices/actions";
+import { chargeCardAction, deletePaymentAction, payOnDeviceAction, recordPaymentAction } from "@/app/(app)/invoices/actions";
 import { formatMoney } from "@/lib/money";
 import { formatDateOnly, toDateInput } from "@/lib/dates";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -114,12 +114,12 @@ export function PaymentsCard({
       </Dialog>
       {cloverDevice && (
         <Dialog open={deviceOpen} onOpenChange={setDeviceOpen}>
-          {deviceOpen && <PayOnDeviceDialog invoiceId={invoiceId} invoiceNumber={invoiceNumber ?? ""} balance={balance} onDone={() => setDeviceOpen(false)} />}
+          {deviceOpen && <PayOnDeviceDialog subtitle={`${invoiceNumber ?? "Invoice"} · balance ${formatMoney(balance)}`} balance={balance} onDone={() => setDeviceOpen(false)} send={(i) => payOnDeviceAction({ invoiceId, ...i })} />}
         </Dialog>
       )}
       {cloverCard && (
         <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
-          {chargeOpen && <ChargeCardDialog invoiceId={invoiceId} invoiceNumber={invoiceNumber ?? ""} balance={balance} config={cloverCard} onDone={() => setChargeOpen(false)} />}
+          {chargeOpen && <ChargeCardDialog subtitle={`${invoiceNumber ?? "Invoice"} · balance ${formatMoney(balance)}`} balance={balance} config={cloverCard} onDone={() => setChargeOpen(false)} charge={(i) => chargeCardAction({ invoiceId, ...i })} />}
         </Dialog>
       )}
     </Card>

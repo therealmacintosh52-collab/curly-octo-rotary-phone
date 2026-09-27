@@ -189,6 +189,41 @@ export async function createCheckout(ctx: CloverContext, input: { customer: { em
   });
 }
 
+export interface CloverRefund {
+  id: string;
+  amount?: number;
+  status?: string;
+  failure_message?: string;
+}
+
+/*
+  Refund endpoints. Both are used only from the Terminal tab; the paths live
+  here so a sandbox correction is a one-line change.
+    REST: refund (part of) a payment taken on the device / register.
+    Ecom: refund (part of) a card-not-present charge made with createCharge.
+*/
+const REST_REFUND_PATH = (ctx: CloverContext) => `${CLOVER_HOSTS[ctx.env].api}/v3/merchants/${ctx.merchantId}/refunds`;
+const ECOM_REFUND_PATH = (ctx: CloverContext) => `${CLOVER_HOSTS[ctx.env].ecom}/v1/refunds`;
+
+/** Refund part or all of a payment taken on the terminal (REST Pay Display / register). */
+export async function refundPayment(ctx: CloverContext, input: { paymentId: string; amountCents: number }): Promise<CloverRefund> {
+  return call<CloverRefund>(REST_REFUND_PATH(ctx), {
+    method: "POST",
+    token: apiToken(),
+    body: JSON.stringify({ payment: { id: input.paymentId }, amount: input.amountCents }),
+  });
+}
+
+/** Refund part or all of a card charge made through the Ecommerce API. */
+export async function refundCharge(ctx: CloverContext, input: { chargeId: string; amountCents: number; idempotencyKey: string }): Promise<CloverRefund> {
+  return call<CloverRefund>(ECOM_REFUND_PATH(ctx), {
+    method: "POST",
+    token: ecomToken(),
+    headers: { "idempotency-key": input.idempotencyKey },
+    body: JSON.stringify({ charge: input.chargeId, amount: input.amountCents }),
+  });
+}
+
 /** Deep link into the merchant dashboard for an order. */
 export function orderDashboardUrl(ctx: CloverContext, orderId: string): string {
   return `${CLOVER_HOSTS[ctx.env].dashboard}/orders/m/${ctx.merchantId}/${orderId}`;
@@ -207,14 +242,17 @@ export interface DevicePaymentResult {
   message?: string;
 }
 
+/** Pages that call payOnDevice set `maxDuration = 60`; give up before the function does. */
+const DEVICE_WAIT_MS = 55_000;
+
 /**
  * Ask the Clover terminal to take a payment. The call stays open while the
- * customer taps or inserts a card (Clover caps this around 90 s), so callers
- * run it from a route/action with a raised maxDuration.
+ * customer taps or inserts a card, so callers run it from a page with a
+ * raised maxDuration (see DEVICE_WAIT_MS).
  */
 export async function payOnDevice(ctx: CloverContext, device: DeviceTarget, input: { amountCents: number; externalPaymentId: string; externalReferenceId: string }): Promise<DevicePaymentResult> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 85_000);
+  const timer = setTimeout(() => controller.abort(), DEVICE_WAIT_MS);
   try {
     return await call<DevicePaymentResult>(`${CLOVER_HOSTS[ctx.env].api}/connect/v1/payments`, {
       method: "POST",

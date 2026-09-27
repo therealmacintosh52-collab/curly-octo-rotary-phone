@@ -36,6 +36,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 | Job history `/jobs` | Search tag/VIN/model/RO, filter by service, dealership, detailer, dates, invoiced status; detail page with photos, edit sheet, soft delete/restore and a per-field audit timeline |
 | Double-billing guard | At entry, the 7-day duplicate prompt says if the earlier job is already on an invoice. At invoice time every candidate job is checked for the same VIN (or tag at that dealer) within 30 days, against live invoices and the batch itself, with a red flag when the service is the same; the owner excludes it or marks it OK with a note that is audited and stops future flags |
 | Invoicing `/invoices` | Batch (date range) or per-job (one invoice per RO/PO, bulk zip) modes; auto-numbered; branded and print-ready PDF, CSV, Excel; submit by email (Resend) with full send history; manual mark-as-submitted with confirmation upload; partial payments; void |
+| Terminal `/terminal` | Point of sale from any phone or laptop: amount keypad, quick sale or open invoice, paid by card (in app), card on the Clover device, cash, check or ACH; refunds (full/partial, back to the same card); email and print receipts; the day's transactions with totals |
 | Dashboard `/` | Cars detailed (week/month), ready to bill, owed, overdue reminders (configurable), and **Income** for any date range: total received, revenue logged, average per car, still to collect, income received per day, revenue logged per day, revenue by service |
 | Settings `/settings` | Company profile + logo, invoicing defaults, dealerships (AP contacts, submission method, invoice mode, terms/tax overrides), services grouped by category (seeded with the real menu: PDI $60, Sold $20, Used $200, Service Loaner Detail $125, Touch Up Detail $20–40, Tint Removal $40, Paint Correction $250; a service can carry a quoted range inside which no override reason is needed) + per-dealership price grid, users (password or email invite, roles, reset), full CSV export |
 | Roles | **Owner/Admin**: everything. **Detailer**: log and view own jobs only, no pricing edits, no invoices. Enforced by Postgres RLS, not just the UI |
@@ -185,6 +186,17 @@ Setup (sandbox first, then production):
 5. In the app, **Settings → Clover**: enable, pick sandbox or production, paste the merchant ID, **Test connection**.
 
 Limits: hosted checkout cannot refund or void through the API, so refunds are done in Clover; a refunded card payment is removed from the invoice by deleting the payment row (it returns to the match queue). Secrets never touch the database; only the merchant id and toggles are stored.
+
+## Terminal (point of sale)
+
+The **Terminal** tab does what the Clover terminal does, from the app:
+
+| Take | Card typed in the app (Clover iframe), card on the physical Clover device, cash, check, ACH/other. Either a **quick sale** (description, customer name, email) or an **open invoice** (search by number or dealership; the balance fills in, partial payments allowed). |
+| Refund | Any sale, full or partial. Card refunds go back to the same card through Clover; invoice-linked refunds shrink or remove the invoice payment and the invoice goes back to partial/unpaid. Pay-by-card-link (hosted checkout) payments are refunded from the Clover dashboard. |
+| Receipts | Email (Resend, same env as invoice emails) or print (only the receipt prints). |
+| The day | Every transaction for the chosen day, including payments recorded on invoice pages or matched from Clover, with sales / refunds / net and per-method totals. Counter sales count toward dashboard income. |
+
+Ledger: `terminal_sales` (migration `0011`). Refund bookkeeping is one RPC, `refund_terminal_sale`; the day list is `terminal_transactions`. Not included: tips, SMS receipts, cash-drawer or printer hardware.
 
 ## Tests
 

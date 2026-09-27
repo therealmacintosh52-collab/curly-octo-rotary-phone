@@ -228,6 +228,61 @@ export type InvoicePayment = {
   created_at: string;
 }
 
+export type TerminalKind = "sale" | "refund";
+export type TerminalStatus = "captured" | "partially_refunded" | "refunded";
+
+/** One row of the Terminal ledger (a sale or a refund). */
+export type TerminalSale = {
+  id: string;
+  company_id: string;
+  kind: TerminalKind;
+  status: TerminalStatus;
+  amount: number;
+  refunded_amount: number;
+  method: PaymentMethod;
+  source: PaymentSource;
+  invoice_id: string | null;
+  payment_id: string | null;
+  refund_of: string | null;
+  description: string | null;
+  customer_name: string | null;
+  customer_email: string | null;
+  reference: string | null;
+  card_brand: string | null;
+  last4: string | null;
+  clover_payment_id: string | null;
+  clover_charge_id: string | null;
+  clover_refund_id: string | null;
+  receipt_sent_at: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+/** A row of terminal_transactions(): ledger rows plus invoice payments recorded elsewhere. */
+export type TerminalTransaction = {
+  id: string;
+  kind: TerminalKind;
+  status: TerminalStatus;
+  amount: number;
+  refunded_amount: number;
+  method: PaymentMethod;
+  source: PaymentSource;
+  invoice_id: string | null;
+  invoice_number: string | null;
+  dealership: string | null;
+  payment_id: string | null;
+  refund_of: string | null;
+  description: string | null;
+  customer_name: string | null;
+  customer_email: string | null;
+  reference: string | null;
+  card_brand: string | null;
+  last4: string | null;
+  clover_payment_id: string | null;
+  receipt_sent_at: string | null;
+  at: string;
+}
+
 export type CloverPaymentRow = {
   id: string;
   company_id: string;
@@ -401,6 +456,7 @@ export type Database = {
       invoice_payments: Table<InvoicePayment>;
       invoice_submissions: Table<InvoiceSubmission>;
       clover_payments: Table<CloverPaymentRow>;
+      terminal_sales: Table<TerminalSale>;
       vin_cache: Table<VinCache>;
       audit_log: Table<AuditLog>;
     };
@@ -432,6 +488,8 @@ export type Database = {
       apply_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_invoice_id: string; p_matched_by?: CloverMatchedBy }; Returns: string };
       ignore_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_ignore?: boolean }; Returns: undefined };
       clover_unmatched_count: { Args: Record<string, never>; Returns: number };
+      refund_terminal_sale: { Args: { p_sale_id: string | null; p_payment_id: string | null; p_amount: number; p_clover_refund_id?: string | null }; Returns: string };
+      terminal_transactions: { Args: { p_start?: string | null; p_end?: string | null }; Returns: TerminalTransaction[] };
       record_payment: {
         Args: {
           p_invoice_id: string;

@@ -38,6 +38,7 @@ const DEMO_REWRITES: [prefix: string, target: string][] = [
   ["/jobs", "/dev/preview/jobs"],
   ["/invoices", "/dev/preview/invoice"],
   ["/settings", "/dev/preview/settings"],
+  ["/terminal", "/dev/preview/terminal"],
   ["/login", "/dev/preview/dashboard"],
   ["/", "/dev/preview/dashboard"],
 ];

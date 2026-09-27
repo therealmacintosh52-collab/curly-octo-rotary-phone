@@ -290,3 +290,21 @@
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }
+
+/* Printing a receipt: only the element marked data-print-root is visible. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  [data-print-root],
+  [data-print-root] * {
+    visibility: visible;
+  }
+  [data-print-root] {
+    position: fixed;
+    inset: 0;
+    padding: 24px;
+    background: #fff;
+    color: #111;
+  }
+}

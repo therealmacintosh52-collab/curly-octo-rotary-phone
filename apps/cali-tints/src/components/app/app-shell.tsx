@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardListIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon } from "lucide-react";
+import { ClipboardListIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, TabletSmartphoneIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 interface NavItem {
   href: string;
   label: string;
+  /** Shorter label for the phone tab bar (six tabs share 390px). */
+  short?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
   /** Match nested routes too. */
@@ -22,9 +24,10 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon, adminOnly: true },
-  { href: "/jobs/new", label: "Make invoice", icon: PlusCircleIcon },
+  { href: "/jobs/new", label: "Make invoice", short: "New", icon: PlusCircleIcon },
   { href: "/jobs", label: "Jobs", icon: ClipboardListIcon, prefix: true },
   { href: "/invoices", label: "Invoices", icon: FileTextIcon, adminOnly: true, prefix: true },
+  { href: "/terminal", label: "Terminal", icon: TabletSmartphoneIcon, adminOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, prefix: true },
 ];
 
@@ -55,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh w-full">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar px-3 py-5 md:flex">
+      <aside className="print:hidden sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar px-3 py-5 md:flex">
         <Link href={home} className="mb-6 flex items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-accent/60">
           <Logo size={36} />
           <div className="min-w-0">
@@ -92,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile header */}
-        <header className="pt-safe sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/70 bg-background/85 px-4 backdrop-blur-md md:hidden">
+        <header className="print:hidden pt-safe sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/70 bg-background/85 px-4 backdrop-blur-md md:hidden">
           <Link href={home} className="flex items-center gap-2.5">
             <Logo size={30} />
             <span className="text-sm font-semibold">{company.name}</span>
@@ -106,7 +109,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav
           ref={tabRef}
           aria-label="Main"
-          className="pb-safe fixed inset-x-0 bottom-0 z-30 grid border-t border-border/70 bg-background/90 backdrop-blur-md md:hidden"
+          className="print:hidden pb-safe fixed inset-x-0 bottom-0 z-30 grid border-t border-border/70 bg-background/90 backdrop-blur-md md:hidden"
           style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
         >
           <SlidingIndicator containerRef={tabRef} watch={pathname} className="rounded-full bg-accent-soft" />
@@ -118,13 +121,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={cn("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors duration-150", active ? "text-primary" : "text-muted-foreground")}
+                className={cn("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium whitespace-nowrap transition-colors duration-150", active ? "text-primary" : "text-muted-foreground")}
               >
                 {/* The measured target is the icon pill, not the whole column. */}
                 <span data-active={active} className={cn("relative flex h-7 w-12 items-center justify-center rounded-full", active && !ready && "bg-accent-soft")}>
                   <item.icon className={cn("relative size-6", primary && !active && "text-foreground")} />
                 </span>
-                {item.label}
+                {item.short ?? item.label}
               </Link>
             );
           })}

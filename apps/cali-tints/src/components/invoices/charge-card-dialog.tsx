@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CreditCardIcon, LockIcon } from "lucide-react";
 import { toast } from "sonner";
-import { chargeCardAction } from "@/app/(app)/invoices/actions";
+import type { ActionResult } from "@/app/(app)/jobs/actions";
+import type { CardResult } from "./pay-on-device-dialog";
 import { useSession } from "@/components/app/session-provider";
 import { formatMoney } from "@/lib/money";
 import { Button } from "@/components/ui/button";
@@ -63,10 +64,26 @@ const FIELD_STYLES = {
 
 /**
  * Charge a card on the spot. Card data never touches our servers: Clover's
- * iframe fields tokenise it and only the single-use token is sent to the
- * server action that creates the charge.
+ * iframe fields tokenise it and only the single-use token is sent to
+ * `charge`, which runs the server action (invoice payment or terminal sale).
  */
-export function ChargeCardDialog({ invoiceId, invoiceNumber, balance, config, onDone }: { invoiceId: string; invoiceNumber: string; balance: number; config: CloverCardConfig; onDone: () => void }) {
+export function ChargeCardDialog({
+  subtitle,
+  balance,
+  lockAmount = false,
+  config,
+  onDone,
+  charge,
+}: {
+  subtitle: string;
+  /** Maximum (and default) amount. */
+  balance: number;
+  /** Amount was entered elsewhere (the Terminal keypad): no amount field. */
+  lockAmount?: boolean;
+  config: CloverCardConfig;
+  onDone: (r: CardResult) => void;
+  charge: (input: { token: string; amount: number }) => Promise<ActionResult<CardResult>>;
+}) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -105,12 +122,13 @@ export function ChargeCardDialog({ invoiceId, invoiceNumber, balance, config, on
     };
   }, [config.sdkUrl, config.publicKey, config.merchantId, demo]);
 
-  function charge(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!valid) return;
+    const rounded = Math.round(n * 100) / 100;
     if (demo) {
-      toast.success(`Charged ${formatMoney(n)} to card ending 4242`, { description: "Guest preview — not actually charged" });
-      onDone();
+      toast.success(`Charged ${formatMoney(rounded)} to card ending 4242`, { description: "Guest preview — not actually charged" });
+      onDone({ amount: rounded, last4: "4242" });
       return;
     }
     start(async () => {
@@ -125,10 +143,10 @@ export function ChargeCardDialog({ invoiceId, invoiceNumber, balance, config, on
         toast.error(first ?? "Check the card details");
         return;
       }
-      const r = await chargeCardAction({ invoiceId, token: result.token, amount: Math.round(n * 100) / 100 });
+      const r = await charge({ token: result.token, amount: rounded });
       if (r.ok) {
         toast.success(`Charged ${formatMoney(r.data.amount)}${r.data.last4 ? ` to card ending ${r.data.last4}` : ""}`);
-        onDone();
+        onDone(r.data);
         router.refresh();
       } else toast.error(r.error);
     });
@@ -138,21 +156,23 @@ export function ChargeCardDialog({ invoiceId, invoiceNumber, balance, config, on
 
   return (
     <DialogContent>
-      <form onSubmit={charge} className="grid gap-4">
+      <form onSubmit={submit} className="grid gap-4">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCardIcon className="size-5 text-primary" /> Charge a card
           </DialogTitle>
-          <DialogDescription>
-            {invoiceNumber} · balance {formatMoney(balance)}. Card details go straight to Clover; only the result is recorded here.
-          </DialogDescription>
+          <DialogDescription>{subtitle}. Card details go straight to Clover; only the result is recorded here.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-1.5">
-          <Label htmlFor="charge-amount">Amount</Label>
-          <Input id="charge-amount" inputMode="decimal" type="number" step="0.01" min="0.01" max={balance} value={amount} onChange={(e) => setAmount(e.target.value)} />
-          {n > 0 && n < balance && <Hint tone="warning">Partial payment; {formatMoney(balance - n)} stays open.</Hint>}
-        </div>
+        {lockAmount ? (
+          <div className="rounded-xl border border-border bg-surface-2 px-4 py-3 text-center text-2xl font-semibold tabular-nums">{formatMoney(n)}</div>
+        ) : (
+          <div className="grid gap-1.5">
+            <Label htmlFor="charge-amount">Amount</Label>
+            <Input id="charge-amount" inputMode="decimal" type="number" step="0.01" min="0.01" max={balance} value={amount} onChange={(e) => setAmount(e.target.value)} />
+            {n > 0 && n < balance && <Hint tone="warning">Partial payment; {formatMoney(balance - n)} stays open.</Hint>}
+          </div>
+        )}
 
         {ready === "error" ? (
           <Hint tone="error">{loadError}</Hint>

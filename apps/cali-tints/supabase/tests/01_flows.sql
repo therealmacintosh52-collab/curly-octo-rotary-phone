@@ -371,6 +371,68 @@ begin
     raise exception 'expected clover apply rejection';
   exception when sqlstate '42501' then null; end;
 end $$;
+-- Terminal (counter sales and refunds) -------------------------------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_before numeric; v_sale uuid; v_ref uuid; v_pay uuid; v_inv uuid; v_paid numeric; n int; tx jsonb;
+begin
+  select (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric into v_before;
+
+  -- Stand-alone cash sale counts as income; a partial refund nets it down.
+  insert into public.terminal_sales (company_id, amount, method, source, description, customer_name)
+  values (public.current_company_id(), 50, 'cash', 'manual', 'Counter sale', 'Walk-in') returning id into v_sale;
+  assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before + 50, 'counter sale adds to income';
+  v_ref := public.refund_terminal_sale(v_sale, null, 20);
+  assert (select status from public.terminal_sales where id = v_sale) = 'partially_refunded', 'partial refund status';
+  assert (select refunded_amount from public.terminal_sales where id = v_sale) = 20, 'refunded amount';
+  assert (select refund_of from public.terminal_sales where id = v_ref) = v_sale and (select kind from public.terminal_sales where id = v_ref) = 'refund', 'refund row';
+  assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before + 30, 'refund nets income';
+  begin
+    perform public.refund_terminal_sale(v_sale, null, 31);
+    raise exception 'expected over-refund rejection';
+  exception when sqlstate '22023' then null; end;
+  perform public.refund_terminal_sale(v_sale, null, 30);
+  assert (select status from public.terminal_sales where id = v_sale) = 'refunded', 'fully refunded';
+  assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before, 'full refund back to baseline';
+
+  -- Refund a Clover payment that was recorded on the invoice page (no ledger row yet):
+  -- partial shrinks the invoice payment, full removes it and parks the Clover row as ignored (not re-queued).
+  select p.id, p.invoice_id into v_pay, v_inv from public.invoice_payments p where p.clover_payment_id = 'CLV-PAY-1';
+  assert v_pay is not null, 'clover payment to refund';
+  assert (select status from public.invoices where id = v_inv) = 'paid', 'invoice paid before refund';
+  select amount_paid into v_paid from public.invoices where id = v_inv;
+  v_ref := public.refund_terminal_sale(null, v_pay, 20);
+  select id into v_sale from public.terminal_sales where payment_id = v_pay and kind = 'sale';
+  assert v_sale is not null, 'ledger row backfilled for the invoice payment';
+  assert (select amount from public.invoice_payments where id = v_pay) = 100, 'invoice payment shrunk by the partial refund';
+  assert (select amount_paid from public.invoices where id = v_inv) = v_paid - 20, 'invoice amount_paid reduced';
+  assert (select status from public.invoices where id = v_inv) = 'partial', 'invoice back to partial';
+  perform public.refund_terminal_sale(v_sale, null, 100);
+  select count(*) into n from public.invoice_payments where id = v_pay; assert n = 0, 'invoice payment removed on full refund';
+  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'ignored', 'refunded clover payment is ignored, not re-queued';
+  assert public.clover_unmatched_count() = 0, 'queue still empty after refund';
+  assert (select status from public.terminal_sales where id = v_sale) = 'refunded', 'linked sale fully refunded';
+  -- linked sales never double count: income unchanged by the ledger rows themselves
+  assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before - 120, 'income reflects the refunded invoice payment once';
+
+  -- The day list shows ledger rows and the remaining invoice payment (recorded elsewhere) together.
+  tx := public.terminal_transactions(current_date - 1, current_date);
+  assert jsonb_array_length(tx) >= 4, 'transactions listed: ' || jsonb_array_length(tx);
+  select count(*) into n from jsonb_array_elements(tx) e where e ->> 'clover_payment_id' = 'CLV-PAY-2' and e ->> 'kind' = 'sale' and (e ->> 'payment_id') is not null;
+  assert n = 1, 'unlinked invoice payment appears once';
+  select count(*) into n from jsonb_array_elements(tx) e where e ->> 'kind' = 'refund'; assert n >= 3, 'refund rows listed';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000003');
+do $$
+declare n int;
+begin
+  select count(*) into n from public.terminal_sales; assert n = 0, 'detailer cannot see terminal sales';
+  begin
+    perform public.refund_terminal_sale(gen_random_uuid(), null, 1);
+    raise exception 'expected terminal refund rejection';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
 -- Back to the owner for the storage checks below.
 select pg_temp.login('10000000-0000-4000-8000-000000000001');
 

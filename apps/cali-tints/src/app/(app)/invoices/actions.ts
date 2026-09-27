@@ -12,9 +12,9 @@ import { sendInvoiceEmail } from "@/lib/invoices/email";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { cloverContext, createInvoiceCheckout, pushInvoiceOrder } from "@/lib/clover/invoices";
 import { syncCloverPayments, type SyncResult } from "@/lib/clover/sync";
-import { cancelDevice, createCharge, payOnDevice } from "@/lib/clover/client";
+import { cancelDevice } from "@/lib/clover/client";
+import { chargeCardToQueue, deviceToQueue } from "@/lib/clover/charges";
 import { cloverSecrets } from "@/lib/clover/env";
-import { fromCents, toCents } from "@/lib/clover/money";
 import type { InvoiceBundle } from "@/lib/invoices/load";
 import type { Company } from "@/lib/db/types";
 
@@ -337,37 +337,21 @@ export async function chargeCardAction(input: { invoiceId: string; token: string
   if (bundle.invoice.status === "void" || balance <= 0) return { ok: false, error: "Nothing left to pay on this invoice" };
   const amount = Math.min(Math.round(parsed.data.amount * 100) / 100, balance);
   try {
-    const charge = await createCharge(ctx, {
-      amountCents: toCents(amount),
-      source: parsed.data.token,
-      description: `${bundle.invoice.display_number} · ${bundle.dealership.name}`,
-      externalReferenceId: bundle.invoice.display_number,
-      idempotencyKey: `${bundle.invoice.id}:${parsed.data.token}`,
-    });
-    if (charge.status && !/succeeded|paid|approved/i.test(charge.status)) return { ok: false, error: charge.failure_message ?? `Card declined (${charge.status})` };
     const supabase = await createClient();
-    const paymentId = `charge_${charge.id}`;
-    await supabase.from("clover_payments").upsert(
-      {
-        company_id: session.company.id,
-        clover_payment_id: paymentId,
-        source: "clover_card",
-        amount: fromCents(charge.amount ?? toCents(amount)),
-        paid_at: new Date().toISOString(),
-        card_brand: charge.source?.brand ?? null,
-        last4: charge.source?.last4 ?? null,
-        reference: `${bundle.invoice.display_number} · in app`,
-        raw: charge as never,
-        status: "unmatched",
-      },
-      { onConflict: "company_id,clover_payment_id", ignoreDuplicates: true },
-    );
-    const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: paymentId, p_invoice_id: bundle.invoice.id, p_matched_by: "card" });
-    if (error) return { ok: false, error: `Card charged (${charge.id}) but the payment could not be recorded: ${error.message}. Use Sync Clover or match it from the queue.` };
+    const take = await chargeCardToQueue(ctx, supabase, session.company.id, {
+      token: parsed.data.token,
+      amount,
+      description: `${bundle.invoice.display_number} · ${bundle.dealership.name}`,
+      reference: `${bundle.invoice.display_number} · in app`,
+      idempotencyKey: `${bundle.invoice.id}:${parsed.data.token}`,
+      status: "unmatched",
+    });
+    const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: take.cloverPaymentId, p_invoice_id: bundle.invoice.id, p_matched_by: "card" });
+    if (error) return { ok: false, error: `Card charged (${take.chargeId}) but the payment could not be recorded: ${error.message}. Use Sync Clover or match it from the queue.` };
     revalidatePath(`/invoices/${bundle.invoice.id}`);
     revalidatePath("/invoices");
     revalidatePath("/");
-    return { ok: true, data: { amount, last4: charge.source?.last4 ?? null } };
+    return { ok: true, data: { amount: take.amount, last4: take.last4 } };
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }
@@ -388,36 +372,20 @@ export async function payOnDeviceAction(input: { invoiceId: string; amount: numb
   const amount = Math.min(Math.round(parsed.data.amount * 100) / 100, balance);
   const device = { deviceId: session.company.clover_device_id, posId: session.company.clover_pos_id || "Cali Tints app" };
   try {
-    const res = await payOnDevice(ctx, device, { amountCents: toCents(amount), externalPaymentId: `${bundle.invoice.id.slice(0, 8)}-${Date.now()}`, externalReferenceId: bundle.invoice.display_number });
-    const payment = res.payment;
-    if (!payment || (payment.result && payment.result !== "SUCCESS")) {
-      const msg = typeof res.error === "string" ? res.error : res.error?.message ?? res.message ?? (payment?.result ? `Terminal reported ${payment.result}` : "The terminal did not complete the payment");
-      return { ok: false, error: msg };
-    }
     const supabase = await createClient();
-    await supabase.from("clover_payments").upsert(
-      {
-        company_id: session.company.id,
-        clover_payment_id: payment.id,
-        clover_order_id: payment.order?.id ?? bundle.invoice.clover_order_id,
-        source: "clover_pos",
-        amount: fromCents(payment.amount ?? toCents(amount)),
-        tip: fromCents(payment.tipAmount ?? 0),
-        paid_at: new Date(payment.createdTime ?? Date.now()).toISOString(),
-        card_brand: payment.cardTransaction?.cardType ?? null,
-        last4: payment.cardTransaction?.last4 ?? null,
-        reference: `${bundle.invoice.display_number} · terminal`,
-        raw: payment as never,
-        status: "unmatched",
-      },
-      { onConflict: "company_id,clover_payment_id", ignoreDuplicates: true },
-    );
-    const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: payment.id, p_invoice_id: bundle.invoice.id, p_matched_by: "device" });
-    if (error) return { ok: false, error: `The terminal took the payment (${payment.id}) but it could not be recorded: ${error.message}. Use Sync Clover or match it from the queue.` };
+    const take = await deviceToQueue(ctx, device, supabase, session.company.id, {
+      amount,
+      reference: `${bundle.invoice.display_number} · terminal`,
+      externalPaymentId: `${bundle.invoice.id.slice(0, 8)}-${Date.now()}`,
+      orderId: bundle.invoice.clover_order_id,
+      status: "unmatched",
+    });
+    const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: take.cloverPaymentId, p_invoice_id: bundle.invoice.id, p_matched_by: "device" });
+    if (error) return { ok: false, error: `The terminal took the payment (${take.cloverPaymentId}) but it could not be recorded: ${error.message}. Use Sync Clover or match it from the queue.` };
     revalidatePath(`/invoices/${bundle.invoice.id}`);
     revalidatePath("/invoices");
     revalidatePath("/");
-    return { ok: true, data: { amount: fromCents(payment.amount ?? toCents(amount)), last4: payment.cardTransaction?.last4 ?? null } };
+    return { ok: true, data: { amount: take.amount, last4: take.last4 } };
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }
