@@ -8,10 +8,12 @@
  * Job data itself is queued in IndexedDB by the app (see src/lib/offline);
  * this worker only handles static assets and page shells.
  */
-const VERSION = "v1";
+const VERSION = "v2"; // bump to purge every cache on the next visit
 const SHELL_CACHE = `shell-${VERSION}`;
 const STATIC_CACHE = `static-${VERSION}`;
-const NAV_TIMEOUT_MS = 4000;
+// Only fall back to the cached shell when the network is truly gone, not merely slow: a stale
+// page after a deploy is worse than a slower first paint.
+const NAV_TIMEOUT_MS = 12000;
 
 const PRECACHE = ["/offline", "/jobs/new", "/jobs/outbox", "/manifest.webmanifest", "/brand/logo.png", "/icons/icon-192.png", "/icons/icon-512.png"];
 
