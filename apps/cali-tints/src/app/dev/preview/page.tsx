@@ -27,7 +27,7 @@ export default function DevPreviewPage() {
     invoice_prefix: "INV-",
     next_invoice_number: 1,
     reminder_days: 30,
-    timezone: "America/Los_Angeles",
+    timezone: "America/Los_Angeles", clover_enabled: false, clover_env: "sandbox", clover_merchant_id: null, clover_push_orders: true, clover_hosted_checkout: true, clover_last_sync_at: null,
     logo_path: null,
     created_at: "",
     updated_at: "",

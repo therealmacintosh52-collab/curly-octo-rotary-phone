@@ -12,6 +12,10 @@ export type SubmissionMethod = "email" | "portal" | "paper";
 export type SubmissionStatus = "sent" | "failed";
 export type PhotoKind = "before" | "after";
 export type PaymentMethod = "check" | "ach" | "card" | "cash" | "other";
+export type PaymentSource = "manual" | "clover_pos" | "clover_checkout" | "clover_card";
+export type CloverEnv = "sandbox" | "production";
+export type CloverPaymentStatus = "unmatched" | "matched" | "ignored";
+export type CloverMatchedBy = "order" | "reference" | "amount" | "manual" | "checkout" | "card";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -33,6 +37,12 @@ export type Company = {
   reminder_days: number;
   timezone: string;
   logo_path: string | null;
+  clover_enabled: boolean;
+  clover_env: CloverEnv;
+  clover_merchant_id: string | null;
+  clover_push_orders: boolean;
+  clover_hosted_checkout: boolean;
+  clover_last_sync_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -171,6 +181,11 @@ export type Invoice = {
   voided_at: string | null;
   void_reason: string | null;
   created_by: string | null;
+  clover_order_id: string | null;
+  clover_pushed_at: string | null;
+  clover_checkout_session_id: string | null;
+  clover_checkout_url: string | null;
+  clover_checkout_expires_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -205,6 +220,28 @@ export type InvoicePayment = {
   reference: string | null;
   note: string | null;
   created_by: string | null;
+  source: PaymentSource;
+  clover_payment_id: string | null;
+  clover_charge_id: string | null;
+  created_at: string;
+}
+
+export type CloverPaymentRow = {
+  id: string;
+  company_id: string;
+  clover_payment_id: string;
+  clover_order_id: string | null;
+  source: Exclude<PaymentSource, "manual">;
+  amount: number;
+  tip: number;
+  paid_at: string;
+  card_brand: string | null;
+  last4: string | null;
+  reference: string | null;
+  raw: Json | null;
+  invoice_id: string | null;
+  status: CloverPaymentStatus;
+  matched_by: CloverMatchedBy | null;
   created_at: string;
 }
 
@@ -358,6 +395,7 @@ export type Database = {
       invoice_items: Table<InvoiceItem>;
       invoice_payments: Table<InvoicePayment>;
       invoice_submissions: Table<InvoiceSubmission>;
+      clover_payments: Table<CloverPaymentRow>;
       vin_cache: Table<VinCache>;
       audit_log: Table<AuditLog>;
     };
@@ -386,6 +424,9 @@ export type Database = {
       find_invoice_conflicts: { Args: { p_job_ids: string[]; p_days?: number }; Returns: InvoiceConflictRow[] };
       review_job_duplicate: { Args: { p_id: string; p_note?: string | null }; Returns: undefined };
       void_invoice: { Args: { p_id: string; p_reason?: string | null }; Returns: undefined };
+      apply_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_invoice_id: string; p_matched_by?: CloverMatchedBy }; Returns: string };
+      ignore_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_ignore?: boolean }; Returns: undefined };
+      clover_unmatched_count: { Args: Record<string, never>; Returns: number };
       record_payment: {
         Args: {
           p_invoice_id: string;

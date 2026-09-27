@@ -298,6 +298,75 @@ begin
   assert v_ids is null or array_length(v_ids, 1) >= 0, 'per-job generation with empty exclude list';
 end $$;
 
+-- Clover payments ------------------------------------------------------------
+-- Uses the draft invoice for El Dorado Hills created in the double-billing block.
+select pg_temp.logout();
+select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
+do $$
+declare v_inv uuid; v_total numeric; v_pay uuid; v_pay2 uuid; n int;
+begin
+  select id, total into v_inv, v_total from public.invoices
+   where company_id = '00000000-0000-4000-8000-000000000001' and dealership_id = '00000000-0000-4000-8000-000000000101' and status = 'draft'
+   order by created_at desc limit 1;
+  assert v_inv is not null and v_total > 120, 'draft invoice for the clover test';
+
+  -- The sync (service role) queues two Clover payments: 120 now, the rest later.
+  insert into public.clover_payments (company_id, clover_payment_id, clover_order_id, amount, paid_at, card_brand, last4, reference)
+  values ('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', 'ORD-1', 120.00, now(), 'VISA', '4242', null),
+         ('00000000-0000-4000-8000-000000000001', 'CLV-PAY-2', null, v_total - 120, now(), 'MC', '1111', 'INV ref');
+
+  -- Service role applies the first: invoice goes partial, queue row matched.
+  v_pay := public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', v_inv, 'order');
+  assert (select status from public.invoices where id = v_inv) = 'partial', 'partial after first clover payment';
+  assert (select amount_paid from public.invoices where id = v_inv) = 120, 'amount_paid 120';
+  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'matched', 'queue row matched';
+  assert (select source from public.invoice_payments where id = v_pay) = 'clover_pos', 'payment source recorded';
+
+  -- Applying the same Clover payment again is a no-op returning the same id.
+  v_pay2 := public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', v_inv, 'order');
+  assert v_pay2 = v_pay, 'idempotent apply';
+  select count(*) into n from public.invoice_payments where invoice_id = v_inv; assert n = 1, 'no duplicate payment rows';
+
+  -- Second payment settles it.
+  perform public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-2', v_inv, 'amount');
+  assert (select status from public.invoices where id = v_inv) = 'paid', 'paid after second clover payment';
+
+  -- Deleting the invoice payment sends the Clover payment back to the queue.
+  delete from public.invoice_payments where id = v_pay;
+  assert (select status from public.invoices where id = v_inv) = 'partial', 'partial again after unlink';
+  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'unmatched', 'queue row back to unmatched';
+
+  -- Ignore / un-ignore.
+  perform public.ignore_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', true);
+  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'ignored', 'ignored';
+  perform public.ignore_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', false);
+  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'unmatched', 'un-ignored';
+end $$;
+
+-- Admin can see the queue and apply; detailer cannot see it at all.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare n int; v_inv uuid;
+begin
+  assert public.clover_unmatched_count() = 1, 'one unmatched for the owner';
+  select invoice_id into v_inv from public.clover_payments where clover_payment_id = 'CLV-PAY-2';
+  perform public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', v_inv, 'manual');
+  assert (select status from public.invoices where id = v_inv) = 'paid', 'owner matched it by hand';
+  assert public.clover_unmatched_count() = 0, 'queue empty';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000003');
+do $$
+declare n int;
+begin
+  select count(*) into n from public.clover_payments; assert n = 0, 'detailer cannot see clover payments';
+  begin
+    perform public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-2', gen_random_uuid(), 'manual');
+    raise exception 'expected clover apply rejection';
+  exception when sqlstate '42501' then null; end;
+end $$;
+-- Back to the owner for the storage checks below.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+
 -- Storage policies: path scoping ---------------------------------------------
 do $$
 declare n int;
