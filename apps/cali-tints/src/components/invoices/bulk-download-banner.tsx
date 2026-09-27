@@ -1,4 +1,5 @@
-import { DownloadIcon, CheckCircle2Icon } from "lucide-react";
+import Link from "next/link";
+import { DownloadIcon, CheckCircle2Icon, WalletIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +14,14 @@ export function BulkDownloadBanner({ ids }: { ids: string[] }) {
       </AlertTitle>
       <AlertDescription className="w-full">
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button asChild size="sm">
+          {ids.length === 1 && (
+            <Button asChild size="sm">
+              <Link href={`/terminal?invoice=${ids[0]}`}>
+                <WalletIcon /> Collect payment
+              </Link>
+            </Button>
+          )}
+          <Button asChild size="sm" variant={ids.length === 1 ? "outline" : "default"}>
             <a href={`/api/invoices/bulk.zip?ids=${q}&csv=1`}>
               <DownloadIcon /> Download all PDFs + CSVs (.zip)
             </a>

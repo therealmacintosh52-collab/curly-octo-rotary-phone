@@ -88,6 +88,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
           invoice={{ id: invoice.id, status: invoice.status, display_number: invoice.display_number, amount_paid: Number(invoice.amount_paid), total: Number(invoice.total), notes: invoice.notes }}
           dealership={{ name: dealership.name, ap_emails: dealership.ap_emails, submission_method: dealership.submission_method }}
           companyEmail={company.email}
+          collect={{ device: !!(clover && company.clover_device_id), card: !!cloverCard, payLink: !!(clover && company.clover_hosted_checkout) }}
         />
       </div>
 

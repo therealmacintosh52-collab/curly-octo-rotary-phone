@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CompanyForm } from "@/components/settings/company-form";
 import { CloverCard } from "@/components/settings/clover-card";
 import { cloverEnvStatus } from "@/lib/clover/env";
+import { CloverSetupChecklist, cloverSetupSteps } from "@/components/clover/setup-checklist";
 
 export const metadata: Metadata = { title: "Company settings" };
 
@@ -18,6 +19,7 @@ export default async function CompanySettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <CompanyForm company={session.company} logoUrl={logoUrl} />
+      <CloverSetupChecklist steps={cloverSetupSteps(session.company, cloverEnvStatus(), process.env.NEXT_PUBLIC_APP_URL ?? null)} />
       <CloverCard company={session.company} envStatus={cloverEnvStatus()} />
     </div>
   );

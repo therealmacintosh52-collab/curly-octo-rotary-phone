@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cloverContext } from "@/lib/clover/invoices";
-import { CLOVER_HOSTS, cloverSecrets } from "@/lib/clover/env";
+import { CLOVER_HOSTS, cloverEnvStatus, cloverSecrets } from "@/lib/clover/env";
+import { CloverSetupChecklist, cloverSetupSteps } from "@/components/clover/setup-checklist";
 import type { TerminalTransaction } from "@/lib/db/types";
 import { Terminal } from "@/components/terminal/terminal";
 import type { OpenInvoiceOption } from "@/components/invoices/clover-queue";
@@ -29,19 +30,32 @@ export default async function TerminalPage(props: PageProps<"/terminal">) {
   const supabase = await createClient();
   const [{ data: txs }, { data: invoices }] = await Promise.all([
     supabase.rpc("terminal_transactions", { p_start: date, p_end: date }),
-    supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200),
+    supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name, ap_emails)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200),
   ]);
   const openInvoices: OpenInvoiceOption[] = (invoices ?? [])
-    .map((i) => ({ id: i.id, display_number: i.display_number, dealership: (i.dealership as unknown as { name: string } | null)?.name ?? "", balance: Number(i.total) - Number(i.amount_paid) }))
+    .map((i) => {
+      const d = i.dealership as unknown as { name: string; ap_emails: string[] } | null;
+      return { id: i.id, display_number: i.display_number, dealership: d?.name ?? "", balance: Number(i.total) - Number(i.amount_paid), email: d?.ap_emails?.[0] ?? null };
+    })
     .filter((i) => i.balance > 0);
+  // Deep link from "Save & charge" / "Collect payment": ?invoice=<id>&method=card|device
+  const initialInvoiceId = typeof sp.invoice === "string" && openInvoices.some((i) => i.id === sp.invoice) ? sp.invoice : null;
+  const initialMethod = sp.method === "card" || sp.method === "device" ? sp.method : null;
+  const missingInvoice = typeof sp.invoice === "string" && !initialInvoiceId ? sp.invoice : null;
 
   const clover = cloverContext(session.company);
   const ecomPublicKey = cloverSecrets().ecomPublicKey;
   const cloverCard = clover && ecomPublicKey ? { publicKey: ecomPublicKey, merchantId: clover.merchantId, sdkUrl: CLOVER_HOSTS[clover.env].sdk } : null;
 
+  const checklist = cloverSetupSteps(session.company, cloverEnvStatus(), process.env.NEXT_PUBLIC_APP_URL ?? null);
+
   return (
     <Terminal
       date={date}
+      initialInvoiceId={initialInvoiceId}
+      initialMethod={initialMethod}
+      missingInvoice={missingInvoice}
+      checklist={<CloverSetupChecklist steps={checklist} className="mt-6" />}
       today={today}
       transactions={(txs ?? []) as TerminalTransaction[]}
       openInvoices={openInvoices}

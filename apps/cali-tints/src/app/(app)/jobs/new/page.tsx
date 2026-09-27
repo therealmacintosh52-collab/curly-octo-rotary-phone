@@ -50,5 +50,5 @@ export default async function NewJobPage() {
     detailer_name: (j.detailer as unknown as { full_name: string } | null)?.full_name ?? "",
   }));
 
-  return <JobForm dealerships={dealerships ?? []} priceLists={priceLists} detailers={detailers ?? []} recentJobs={recentJobs} />;
+  return <JobForm dealerships={dealerships ?? []} priceLists={priceLists} detailers={detailers ?? []} recentJobs={recentJobs} isAdmin={session.isAdmin} />;
 }

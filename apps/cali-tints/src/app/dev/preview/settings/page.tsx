@@ -7,6 +7,7 @@ import { ServicesManager } from "@/components/settings/services-manager";
 import { DealershipsManager } from "@/components/settings/dealerships-manager";
 import { UsersManager } from "@/components/settings/users-manager";
 import { CloverCard } from "@/components/settings/clover-card";
+import { CloverSetupChecklist, cloverSetupSteps } from "@/components/clover/setup-checklist";
 import { invoiceBundleFixture } from "@/test/fixtures";
 import type { Profile, Service } from "@/lib/db/types";
 
@@ -19,6 +20,13 @@ export default function DevSettingsPreview() {
   });
   const services = [svc("s1", "PDI", "new", 60, 10), svc("s2", "Sold", "new", 20, 20), svc("s3", "Used", "used", 200, 30), svc("s4", "Service Loaner Detail", "service", 125, 40), svc("s5", "Touch Up Detail", "addon", 30, 50, [20, 40]), svc("s6", "Tint Removal", "addon", 40, 60), svc("s7", "Paint Correction (1-step)", "addon", 250, 70), svc("s8", "Other", "addon", 0, 80, [0, 100000])];
   const dealerships = [dealership, { ...dealership, id: "d2", name: "Mercedes-Benz of Sacramento", invoice_mode: "per_job" as const, submission_method: "portal" as const, ap_emails: [], payment_terms: "Net 45" }];
+  const demoCompany = { ...company, clover_enabled: true, clover_env: "sandbox" as const, clover_merchant_id: "7G9V9DP834ZY2", clover_last_sync_at: null, clover_verified_at: null, clover_device_id: "C030UQ12345678", clover_pos_id: "Cali Tints app" };
+  const demoEnv = [
+    { key: "CLOVER_API_TOKEN", set: true, purpose: "orders and payment sync" },
+    { key: "CLOVER_ECOM_PRIVATE_TOKEN", set: true, purpose: "pay links and card charges" },
+    { key: "CLOVER_ECOM_PUBLIC_KEY", set: false, purpose: "card entry in the app" },
+    { key: "CLOVER_WEBHOOK_SECRET", set: false, purpose: "pay-link confirmations" },
+  ];
   const users: Profile[] = [profile, { ...profile, id: "u2", role: "detailer", full_name: "Marco R.", email: "marco@example.com" }, { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com", active: false }];
 
   return (
@@ -34,15 +42,8 @@ export default function DevSettingsPreview() {
               <ServicesManager services={services} dealerships={dealerships.map((d) => ({ id: d.id, name: d.name }))} prices={[{ dealership_id: "d2", service_id: "s3", price: 215 }]} />
               <DealershipsManager dealerships={dealerships} />
               <UsersManager users={users} currentUserId="u1" currentRole="owner" emailConfigured />
-              <CloverCard
-                company={{ ...company, clover_enabled: true, clover_env: "sandbox", clover_merchant_id: "7G9V9DP834ZY2", clover_last_sync_at: null, clover_device_id: "C030UQ12345678", clover_pos_id: "Cali Tints app" }}
-                envStatus={[
-                  { key: "CLOVER_API_TOKEN", set: true, purpose: "orders and payment sync" },
-                  { key: "CLOVER_ECOM_PRIVATE_TOKEN", set: true, purpose: "pay links and card charges" },
-                  { key: "CLOVER_ECOM_PUBLIC_KEY", set: false, purpose: "card entry in the app" },
-                  { key: "CLOVER_WEBHOOK_SECRET", set: false, purpose: "pay-link confirmations" },
-                ]}
-              />
+              <CloverSetupChecklist steps={cloverSetupSteps(demoCompany, demoEnv, "https://cali-tints-demo.vercel.app")} />
+              <CloverCard company={demoCompany} envStatus={demoEnv} />
             </div>
           </Page>
         </AppShell>

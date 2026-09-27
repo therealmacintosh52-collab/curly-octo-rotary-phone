@@ -48,6 +48,7 @@ export default function DevInvoicePreview() {
                 invoice={{ id: b.invoice.id, status: b.invoice.status, display_number: b.invoice.display_number, amount_paid: 500, total: Number(b.invoice.total), notes: null }}
                 dealership={{ name: b.dealership.name, ap_emails: b.dealership.ap_emails, submission_method: "email" }}
                 companyEmail={b.company.email}
+                collect={{ device: true, card: true, payLink: true }}
               />
             </div>
             <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_360px]">

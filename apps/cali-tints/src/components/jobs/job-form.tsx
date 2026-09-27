@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { CheckIcon, LoaderCircleIcon, ScanLineIcon, XIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckIcon, CreditCardIcon, LoaderCircleIcon, ScanLineIcon, XIcon } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import type { Dealership, JobPayload, PriceListRow } from "@/lib/db/types";
 import { useSession } from "@/components/app/session-provider";
 import { useSync } from "@/components/offline/sync-provider";
 import { enqueueJob, findLocalDuplicates, saveRecentJobs, saveReference } from "@/lib/offline/outbox";
+import { invoiceJobAction } from "@/app/(app)/invoices/actions";
 import type { OutboxItem, RecentJob } from "@/lib/offline/db";
 import { decodeVin } from "@/lib/vin-client";
 import { normalizeVin, vinStatus } from "@/lib/vin";
@@ -35,13 +37,20 @@ interface Props {
   priceLists: Record<string, PriceListRow[]>;
   detailers: { id: string; full_name: string }[];
   recentJobs: RecentJob[];
+  /** Admins also get "Save & charge": invoice this car now and open the Terminal. */
+  isAdmin?: boolean;
 }
+
+type SaveIntent = "next" | "charge";
 
 /**
  * Quick Job Entry. Optimistic by design: "Save & next" writes to the local
  * outbox and returns immediately; the sync loop pushes it to Supabase.
+ * "Save & charge" (admins, online) saves straight to the server, invoices the
+ * car and opens the Terminal with the invoice ready to pay.
  */
-export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Props) {
+export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmin = false }: Props) {
+  const router = useRouter();
   const { company, demo } = useSession();
   const { online } = useSync();
   const tagRef = useRef<HTMLInputElement>(null);
@@ -63,6 +72,8 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const [scannerMounted, setScannerMounted] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateHit[] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [charging, setCharging] = useState(false);
+  const [intent, setIntent] = useState<SaveIntent>("next");
   const [savedCount, setSavedCount] = useState(0);
 
   const dealership = dealerships.find((d) => d.id === dealershipId) ?? null;
@@ -159,27 +170,29 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     return [...remote, ...local.filter((l) => !seen.has(l.id))];
   }
 
-  async function onSubmit(e?: React.FormEvent) {
+  async function onSubmit(e?: React.FormEvent, how: SaveIntent = "next") {
     e?.preventDefault();
     const problem = validate();
     if (problem) {
       toast.error(problem);
       return;
     }
-    setSaving(true);
+    setIntent(how);
+    const busy = how === "charge" ? setCharging : setSaving;
+    busy(true);
     try {
       const hits = await checkDuplicates();
       if (hits.length > 0) {
         setDuplicates(hits);
         return;
       }
-      await save();
+      await save(how);
     } finally {
-      setSaving(false);
+      busy(false);
     }
   }
 
-  async function save() {
+  async function save(how: SaveIntent = "next") {
     const clientId = crypto.randomUUID();
     const payload: JobPayload = {
       client_id: clientId,
@@ -217,7 +230,33 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       // Guest preview: nothing is persisted.
       toast.success(`Saved ${payload.tag_number}${payload.model ? ` · ${payload.model}` : ""}`, { description: "Guest preview — not actually saved" });
       setSavedCount((c) => c + 1);
+      if (how === "charge") {
+        router.push("/terminal?invoice=demo&method=device");
+        return;
+      }
       resetForNext();
+      return;
+    }
+
+    if (how === "charge") {
+      // Straight to the server so we have the job id, then invoice it and go collect.
+      let jobId: string;
+      try {
+        const { createJobDirect } = await import("@/lib/offline/sync");
+        jobId = await createJobDirect(item);
+      } catch (err) {
+        toast.error(errorMessage(err, "Could not save the job"));
+        return;
+      }
+      setSavedCount((c) => c + 1);
+      const r = await invoiceJobAction(jobId);
+      if (!r.ok) {
+        toast.error(`Saved ${payload.tag_number}, but the invoice failed: ${r.error}`, { description: "The job is logged; make the invoice from Invoices → New." });
+        resetForNext();
+        return;
+      }
+      toast.success(`Saved ${payload.tag_number} · invoice ready to charge`);
+      router.push(`/terminal?invoice=${r.data}`);
       return;
     }
 
@@ -443,7 +482,12 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
             <div className="text-caption text-muted-foreground">{services.length === 0 ? "No services selected" : `${services.length} service${services.length > 1 ? "s" : ""}`}</div>
             <CountUp value={total} format={formatMoney} className="text-stat block" />
           </div>
-          <Button type="submit" size="lg" loading={saving} className="min-w-40 glow-primary">
+          {isAdmin && (
+            <Button type="button" size="lg" variant="secondary" loading={charging} disabled={saving || !online} aria-label="Save & charge" title={online ? "Save, invoice this car and open the Terminal to charge it" : "Charge when back online"} onClick={() => onSubmit(undefined, "charge")} className="shrink-0 px-4">
+              <CreditCardIcon /> <span className="hidden sm:inline">Save &amp; charge</span>
+            </Button>
+          )}
+          <Button type="submit" size="lg" loading={saving} disabled={charging} className="min-w-32 shrink-0 glow-primary sm:min-w-40">
             Save &amp; next
           </Button>
         </div>
@@ -455,11 +499,12 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
         onCancel={() => setDuplicates(null)}
         onContinue={async () => {
           setDuplicates(null);
-          setSaving(true);
+          const busy = intent === "charge" ? setCharging : setSaving;
+          busy(true);
           try {
-            await save();
+            await save(intent);
           } finally {
-            setSaving(false);
+            busy(false);
           }
         }}
       />

@@ -273,11 +273,15 @@ export async function updateCloverSettingsAction(input: CloverSettingsInput): Pr
 
 /** Calls GET /v3/merchants/{id} with the stored API token; proves the token, env and merchant id agree. */
 export async function testCloverConnectionAction(input: { clover_env: "sandbox" | "production"; clover_merchant_id: string }): Promise<ActionResult<{ name: string }>> {
-  await requireAdmin();
+  const session = await requireAdmin();
   const parsed = z.object({ clover_env: z.enum(["sandbox", "production"]), clover_merchant_id: z.string().trim().min(1).max(40) }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Enter the merchant ID" };
   try {
     const m = await getMerchant({ env: parsed.data.clover_env, merchantId: parsed.data.clover_merchant_id });
+    // Remember that the token, environment and merchant id agree (setup checklist).
+    const supabase = await createClient();
+    await supabase.from("companies").update({ clover_verified_at: new Date().toISOString() }).eq("id", session.company.id);
+    revalidatePath("/", "layout");
     return { ok: true, data: { name: m.name } };
   } catch (err) {
     return { ok: false, error: errorMessage(err) };

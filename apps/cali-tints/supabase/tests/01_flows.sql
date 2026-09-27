@@ -305,6 +305,39 @@ begin
   assert v_ids is null or array_length(v_ids, 1) >= 0, 'per-job generation with empty exclude list';
 end $$;
 
+-- One-tap billing: invoice_job ------------------------------------------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare j public.jobs; k public.jobs; v_inv uuid; n int;
+begin
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ONE1',
+        'performed_at', now(), 'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  k := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ONE2',
+        'performed_at', now(), 'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  v_inv := public.invoice_job(j.id, 'charged at the till');
+  select count(*) into n from public.invoice_items where invoice_id = v_inv; assert n = 1, 'one-job invoice has one line';
+  assert (select invoice_id from public.jobs where id = j.id) = v_inv, 'job linked to its invoice';
+  assert (select invoice_id from public.jobs where id = k.id) is null, 'other job of the same day left alone';
+  assert (select total from public.invoices where id = v_inv) = (select sum(price) from public.job_services where job_id = j.id), 'total = job services';
+  assert (select notes from public.invoices where id = v_inv) = 'charged at the till', 'notes stored';
+  begin
+    perform public.invoice_job(j.id);
+    raise exception 'expected already-invoiced rejection';
+  exception when sqlstate '22023' then null; end;
+  begin
+    perform public.invoice_job(gen_random_uuid());
+    raise exception 'expected missing-job rejection';
+  exception when sqlstate 'P0002' then null; end;
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000003');
+do $$
+begin
+  begin
+    perform public.invoice_job(gen_random_uuid());
+    raise exception 'expected detailer rejection';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
 -- Clover payments ------------------------------------------------------------
 -- Uses the draft invoice for El Dorado Hills created in the double-billing block.
 select pg_temp.logout();

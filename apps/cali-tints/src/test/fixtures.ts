@@ -28,7 +28,7 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
       clover_merchant_id: null,
       clover_push_orders: true,
       clover_hosted_checkout: true,
-      clover_last_sync_at: null, clover_device_id: null, clover_pos_id: "Cali Tints app",
+      clover_last_sync_at: null, clover_verified_at: null, clover_device_id: null, clover_pos_id: "Cali Tints app",
       logo_path: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileTextIcon, PlusIcon } from "lucide-react";
+import { FileTextIcon, PlusIcon, WalletIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceStatus } from "@/lib/db/types";
@@ -56,6 +56,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     balance: Number(i.total) - Number(i.amount_paid),
   }));
 
+  const collectable = (i: { status: InvoiceStatus; total: number; amount_paid: number }) => i.status !== "void" && i.status !== "paid" && Number(i.total) - Number(i.amount_paid) > 0;
   const isOverdue = (i: { status: InvoiceStatus; submitted_at: string | null }) =>
     (i.status === "submitted" || i.status === "partial") && !!i.submitted_at && nowMs() - new Date(i.submitted_at).getTime() > reminderMs;
 
@@ -102,10 +103,13 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
             <ul className="flex flex-col gap-2 md:hidden">
               {(invoices ?? []).map((i, idx) => (
                 <StaggerItem key={i.id} index={idx} as="li">
-                  <Link href={`/invoices/${i.id}`} className="block rounded-xl border border-border bg-card p-4 surface-raised transition-[border-color] duration-150 hover:border-border-strong active:bg-accent">
+                  {/* Stretched link: the card opens the invoice; "Collect" sits above it. */}
+                  <div className="relative rounded-xl border border-border bg-card p-4 surface-raised transition-[border-color] duration-150 hover:border-border-strong">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-semibold">{i.display_number}</div>
+                        <Link href={`/invoices/${i.id}`} className="font-semibold after:absolute after:inset-0 after:rounded-xl">
+                          {i.display_number}
+                        </Link>
                         <div className="truncate text-sm text-muted-foreground">{(i.dealership as unknown as { name: string } | null)?.name}</div>
                         <div className="text-caption text-subtle">
                           {formatDateOnly(i.period_start, "MMM d")} – {formatDateOnly(i.period_end, "MMM d, yyyy")}
@@ -119,7 +123,14 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
                         </div>
                       </div>
                     </div>
-                  </Link>
+                    {collectable(i) && (
+                      <Button asChild size="sm" variant="soft" className="relative z-10 mt-3 w-full">
+                        <Link href={`/terminal?invoice=${i.id}`}>
+                          <WalletIcon /> Collect {formatMoney(Number(i.total) - Number(i.amount_paid))}
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </StaggerItem>
               ))}
             </ul>
@@ -136,6 +147,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
                     <TableHead scope="col">Status</TableHead>
                     <TableHead scope="col" className="text-right">Paid</TableHead>
                     <TableHead scope="col" className="text-right">Total</TableHead>
+                    <TableHead scope="col" className="w-28"><span className="sr-only">Collect</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -158,6 +170,15 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">{Number(i.amount_paid) > 0 ? formatMoney(i.amount_paid) : "—"}</TableCell>
                       <TableCell className="text-right font-medium tabular-nums">{formatMoney(i.total)}</TableCell>
+                      <TableCell className="text-right">
+                        {collectable(i) && (
+                          <Button asChild size="sm" variant="soft">
+                            <Link href={`/terminal?invoice=${i.id}`}>
+                              <WalletIcon /> Collect
+                            </Link>
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

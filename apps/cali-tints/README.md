@@ -187,6 +187,14 @@ Setup (sandbox first, then production):
 
 Limits: hosted checkout cannot refund or void through the API, so refunds are done in Clover; a refunded card payment is removed from the invoice by deleting the payment row (it returns to the match queue). Secrets never touch the database; only the merchant id and toggles are stored.
 
+## Charge a customer in three taps
+
+1. **Make invoice** → log the car → **Save & charge** (admins, online). The job is saved, invoiced on its own and mirrored to Clover as an order.
+2. The **Terminal** opens with that invoice selected and the balance on the keypad. Tap **Terminal** (the Clover device), **Card**, or **Cash / Check / ACH**.
+3. The customer taps their card. The payment lands on the invoice, the receipt is one tap from the dealership's AP email or the printer.
+
+Also: **Collect** on every open invoice (invoice page and list) opens the Terminal with that invoice ready; the invoice page's **Collect** menu offers the terminal, card in the app, cash/check, or emailing the invoice with a pay-by-card link. A **Clover setup** checklist sits on the Terminal and Settings until every piece (tokens, merchant ID, connection test, device serial, card keys, webhook) is in place.
+
 ## Terminal (point of sale)
 
 The **Terminal** tab does what the Clover terminal does, from the app:

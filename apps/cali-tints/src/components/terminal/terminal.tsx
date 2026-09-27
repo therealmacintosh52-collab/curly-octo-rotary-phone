@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BanknoteIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, MoreHorizontalIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon } from "lucide-react";
+import { BanknoteIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, MoreHorizontalIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { PaymentMethod, TerminalTransaction } from "@/lib/db/types";
 import { takeSaleAction, type SaleInput } from "@/app/(app)/terminal/actions";
@@ -46,6 +46,10 @@ export function Terminal({
   cloverDevice,
   cloverEnabled,
   company,
+  initialInvoiceId = null,
+  initialMethod = null,
+  missingInvoice = null,
+  checklist = null,
 }: {
   date: string;
   today: string;
@@ -55,26 +59,41 @@ export function Terminal({
   cloverDevice: boolean;
   cloverEnabled: boolean;
   company: ReceiptCompany;
+  /** Deep link (?invoice=): start with this invoice selected and its balance on the keypad. */
+  initialInvoiceId?: string | null;
+  /** Deep link (?method=): open this payment dialog right away when it is available. */
+  initialMethod?: "card" | "device" | null;
+  /** ?invoice= pointed at an invoice with no open balance. */
+  missingInvoice?: string | null;
+  /** Server-rendered Clover setup checklist (null when complete). */
+  checklist?: React.ReactNode;
 }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
 
+  const initialInvoice = initialInvoiceId ? (openInvoices.find((i) => i.id === initialInvoiceId) ?? null) : null;
   // Amount is kept in cents so the keypad behaves like a register (typing 1 2 5 0 → $12.50).
-  const [cents, setCents] = useState(0);
-  const [mode, setMode] = useState<"sale" | "invoice">("sale");
-  const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  const [cents, setCents] = useState(initialInvoice ? Math.round(initialInvoice.balance * 100) : 0);
+  const [mode, setMode] = useState<"sale" | "invoice">(initialInvoice ? "invoice" : "sale");
+  const [invoiceId, setInvoiceId] = useState<string | null>(initialInvoice?.id ?? null);
   const [query, setQuery] = useState("");
   const [description, setDescription] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [reference, setReference] = useState("");
-  const [dialog, setDialog] = useState<Dialog>(null);
+  const [dialog, setDialog] = useState<Dialog>(() => (initialInvoice && initialMethod === "card" && cloverCard ? "card" : initialInvoice && initialMethod === "device" && cloverDevice ? "device" : null));
   const [receipt, setReceipt] = useState<TerminalTransaction | null>(null);
   const [viewing, setViewing] = useState<TerminalTransaction | null>(null);
   const [refunding, setRefunding] = useState<TerminalTransaction | null>(null);
   // Guest preview keeps its own additions; the real app refreshes from the server.
   const [local, setLocal] = useState<TerminalTransaction[]>([]);
+
+  useEffect(() => {
+    if (missingInvoice) toast.info("That invoice has nothing left to pay", { description: "Pick another invoice or take a quick sale." });
+    // One-time notice for the deep link only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const amount = cents / 100;
   const invoice = invoiceId ? (openInvoices.find((i) => i.id === invoiceId) ?? null) : null;
@@ -122,6 +141,7 @@ export function Terminal({
 
   function pickInvoice(i: OpenInvoiceOption) {
     setInvoiceId(i.id);
+    setMode("invoice");
     setCents(Math.round(i.balance * 100));
   }
 
@@ -140,8 +160,8 @@ export function Terminal({
     method: "cash",
     invoiceId: invoice?.id,
     description: invoice ? undefined : description.trim() || undefined,
-    customerName: customerName.trim() || undefined,
-    customerEmail: customerEmail.trim() || undefined,
+    customerName: customerName.trim() || (invoice ? invoice.dealership : undefined),
+    customerEmail: customerEmail.trim() || (invoice ? (invoice.email ?? undefined) : undefined),
     reference: reference.trim() || undefined,
   });
 
@@ -211,14 +231,28 @@ export function Terminal({
   return (
     <Page>
       <PageHeader eyebrow="Point of sale" title="Terminal" description="Take a payment for an invoice or a quick sale, then email or print the receipt." />
+      {checklist}
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,440px)_1fr] lg:items-start">
         {/* ---- Take a payment ---- */}
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Take a payment</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
+            {invoice && (
+              <div className="flex min-w-0 items-center justify-between gap-3 overflow-hidden rounded-lg border border-primary/30 bg-accent-soft px-3 py-2 text-sm" data-testid="paying-invoice">
+                <span className="flex min-w-0 flex-1 items-center gap-2">
+                  <FileTextIcon className="size-4 shrink-0 text-primary" />
+                  <span className="min-w-0 truncate">
+                    Paying <strong>{invoice.display_number}</strong> · {invoice.dealership}
+                  </span>
+                </span>
+                <button type="button" aria-label="Clear invoice" className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => { setInvoiceId(null); setCents(0); }}>
+                  <XIcon className="size-4" />
+                </button>
+              </div>
+            )}
             <div
               role="textbox"
               tabIndex={0}

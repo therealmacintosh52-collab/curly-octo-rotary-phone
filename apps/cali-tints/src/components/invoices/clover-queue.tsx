@@ -18,6 +18,8 @@ export interface OpenInvoiceOption {
   display_number: string;
   dealership: string;
   balance: number;
+  /** Dealership AP email, for one-tap receipts from the Terminal. */
+  email?: string | null;
 }
 
 /**

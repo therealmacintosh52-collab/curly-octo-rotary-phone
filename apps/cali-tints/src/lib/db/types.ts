@@ -43,6 +43,7 @@ export type Company = {
   clover_push_orders: boolean;
   clover_hosted_checkout: boolean;
   clover_last_sync_at: string | null;
+  clover_verified_at: string | null;
   clover_device_id: string | null;
   clover_pos_id: string;
   created_at: string;
@@ -488,6 +489,7 @@ export type Database = {
       apply_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_invoice_id: string; p_matched_by?: CloverMatchedBy }; Returns: string };
       ignore_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_ignore?: boolean }; Returns: undefined };
       clover_unmatched_count: { Args: Record<string, never>; Returns: number };
+      invoice_job: { Args: { p_job_id: string; p_notes?: string | null }; Returns: string };
       refund_terminal_sale: { Args: { p_sale_id: string | null; p_payment_id: string | null; p_amount: number; p_clover_refund_id?: string | null }; Returns: string };
       terminal_transactions: { Args: { p_start?: string | null; p_end?: string | null }; Returns: TerminalTransaction[] };
       record_payment: {

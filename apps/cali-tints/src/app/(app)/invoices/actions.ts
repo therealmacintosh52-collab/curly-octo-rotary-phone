@@ -20,6 +20,22 @@ import type { Company } from "@/lib/db/types";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use yyyy-mm-dd");
 
+/** One-tap billing: invoice a single job (the "Save & charge" path), mirror it to Clover, return the invoice id. */
+export async function invoiceJobAction(jobId: string): Promise<ActionResult<string>> {
+  const session = await requireAdmin();
+  const parsed = z.uuid().safeParse(jobId);
+  if (!parsed.success) return { ok: false, error: "Invalid job" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("invoice_job", { p_job_id: parsed.data });
+  if (error || !data) return { ok: false, error: error ? errorMessage(error) : "Could not create the invoice" };
+  await autoPushToClover([data], session.company);
+  revalidatePath("/invoices");
+  revalidatePath("/jobs");
+  revalidatePath("/terminal");
+  revalidatePath("/");
+  return { ok: true, data };
+}
+
 /** Batch mode: one invoice for a date range. Returns the new invoice id. */
 export async function generateInvoiceAction(input: { dealership_id: string; start: string; end: string; notes?: string; exclude?: string[] }): Promise<ActionResult<string>> {
   const session = await requireAdmin();
