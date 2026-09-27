@@ -60,7 +60,7 @@ export default function DevInvoicePreview() {
                 </CardContent>
               </Card>
               <div className="flex flex-col gap-4">
-                <PaymentsCard invoiceId={b.invoice.id} invoiceNumber={b.invoice.display_number} payments={b.payments} balance={balance} status={b.invoice.status} cloverCard={{ publicKey: "demo", merchantId: "7G9V9DP834ZY2", sdkUrl: "about:blank" }} />
+                <PaymentsCard invoiceId={b.invoice.id} invoiceNumber={b.invoice.display_number} payments={b.payments} balance={balance} status={b.invoice.status} cloverCard={{ publicKey: "demo", merchantId: "7G9V9DP834ZY2", sdkUrl: "about:blank" }} cloverDevice />
                 <CloverPanel
                   enabled
                   hostedCheckout

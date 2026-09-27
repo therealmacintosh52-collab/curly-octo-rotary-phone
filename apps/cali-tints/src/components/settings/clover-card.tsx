@@ -25,7 +25,7 @@ export interface CloverEnvStatus {
  * stored; the tokens live in the hosting environment and are shown here as
  * present / missing so the owner knows what still needs pasting.
  */
-export function CloverCard({ company, envStatus }: { company: Pick<Company, "clover_enabled" | "clover_env" | "clover_merchant_id" | "clover_push_orders" | "clover_hosted_checkout" | "clover_last_sync_at">; envStatus: CloverEnvStatus[] }) {
+export function CloverCard({ company, envStatus }: { company: Pick<Company, "clover_enabled" | "clover_env" | "clover_merchant_id" | "clover_push_orders" | "clover_hosted_checkout" | "clover_last_sync_at" | "clover_device_id" | "clover_pos_id">; envStatus: CloverEnvStatus[] }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -36,6 +36,8 @@ export function CloverCard({ company, envStatus }: { company: Pick<Company, "clo
     clover_merchant_id: company.clover_merchant_id ?? "",
     clover_push_orders: company.clover_push_orders,
     clover_hosted_checkout: company.clover_hosted_checkout,
+    clover_device_id: company.clover_device_id ?? "",
+    clover_pos_id: company.clover_pos_id || "Cali Tints app",
   });
   const allSet = envStatus.every((e) => e.set);
 
@@ -115,6 +117,18 @@ export function CloverCard({ company, envStatus }: { company: Pick<Company, "clo
               </span>
               <Switch checked={f.clover_hosted_checkout} onCheckedChange={(v) => setF((s) => ({ ...s, clover_hosted_checkout: v }))} aria-label="Pay-by-card link in invoice emails" />
             </label>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="clover-device">Clover device serial (optional)</Label>
+              <Input id="clover-device" value={f.clover_device_id} onChange={(e) => setF((s) => ({ ...s, clover_device_id: e.target.value.trim() }))} placeholder="e.g. C030UQ12345678" autoCapitalize="characters" spellCheck={false} />
+              <Hint>Turns on &ldquo;Pay on terminal&rdquo;: the amount is sent to this device and the customer taps their card. Needs the Cloud Pay Display app installed on it (Clover dashboard → Settings → Devices shows the serial).</Hint>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="clover-pos">Name shown on the device</Label>
+              <Input id="clover-pos" value={f.clover_pos_id} onChange={(e) => setF((s) => ({ ...s, clover_pos_id: e.target.value }))} />
+            </div>
           </div>
 
           <div className="rounded-lg border border-border p-4">

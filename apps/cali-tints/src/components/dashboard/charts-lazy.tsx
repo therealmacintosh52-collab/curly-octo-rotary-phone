@@ -11,7 +11,7 @@ import { InView } from "@/components/motion/in-view";
   only when scrolled near the viewport, behind same-height skeletons so the
   page never shifts.
 */
-const RevenueByDayChartImpl = dynamic(() => import("./charts").then((mod) => mod.RevenueByDayChart), {
+const DailyBarsChartImpl = dynamic(() => import("./charts").then((mod) => mod.DailyBarsChart), {
   ssr: false,
   loading: () => <Skeleton className="h-56 w-full rounded-lg" />,
 });
@@ -21,10 +21,10 @@ const HorizontalBarsImpl = dynamic(() => import("./charts").then((mod) => mod.Ho
   loading: () => <Skeleton className="h-[152px] w-full rounded-lg" />,
 });
 
-export function RevenueByDayChart(props: ComponentProps<typeof RevenueByDayChartImpl>) {
+export function DailyBarsChart(props: ComponentProps<typeof DailyBarsChartImpl>) {
   return (
     <InView placeholder={<Skeleton className="h-56 w-full rounded-lg" />}>
-      <RevenueByDayChartImpl {...props} />
+      <DailyBarsChartImpl {...props} />
     </InView>
   );
 }

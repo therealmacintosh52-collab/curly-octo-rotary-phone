@@ -36,7 +36,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 | Job history `/jobs` | Search tag/VIN/model/RO, filter by service, dealership, detailer, dates, invoiced status; detail page with photos, edit sheet, soft delete/restore and a per-field audit timeline |
 | Double-billing guard | At entry, the 7-day duplicate prompt says if the earlier job is already on an invoice. At invoice time every candidate job is checked for the same VIN (or tag at that dealer) within 30 days, against live invoices and the batch itself, with a red flag when the service is the same; the owner excludes it or marks it OK with a note that is audited and stops future flags |
 | Invoicing `/invoices` | Batch (date range) or per-job (one invoice per RO/PO, bulk zip) modes; auto-numbered; branded and print-ready PDF, CSV, Excel; submit by email (Resend) with full send history; manual mark-as-submitted with confirmation upload; partial payments; void |
-| Dashboard `/` | Week/month cars & revenue, uninvoiced, outstanding, average days to payment, overdue reminders (configurable), revenue per day, by service, by detailer |
+| Dashboard `/` | Cars detailed (week/month), ready to bill, owed, overdue reminders (configurable), and **Income** for any date range: total received, revenue logged, average per car, still to collect, income received per day, revenue logged per day, revenue by service |
 | Settings `/settings` | Company profile + logo, invoicing defaults, dealerships (AP contacts, submission method, invoice mode, terms/tax overrides), services grouped by category (seeded with the real menu: PDI $60, Sold $20, Used $200, Service Loaner Detail $125, Touch Up Detail $20–40, Tint Removal $40, Paint Correction $250; a service can carry a quoted range inside which no override reason is needed) + per-dealership price grid, users (password or email invite, roles, reset), full CSV export |
 | Roles | **Owner/Admin**: everything. **Detailer**: log and view own jobs only, no pricing edits, no invoices. Enforced by Postgres RLS, not just the UI |
 
@@ -173,6 +173,7 @@ Optional. With Clover on, the app and your Clover account stay in step:
 | Clover payments land on invoices | Every 15 minutes (Vercel Cron) and on **Sync Clover**, payments are pulled and matched: by the order above, then by an invoice number in the payment reference, then by an exact open balance. Anything else waits in **Clover payments to match** on the Invoices page, where you pick the invoice or ignore it. |
 | Pay-by-card link in invoice emails | Hosted Checkout: a "Pay by card" button under the total. The dealership pays on Clover's page; the webhook marks the invoice paid. |
 | Charge a card in the app | Invoice → Payments → **Charge card**. Clover's iframe fields tokenise the card; card numbers never reach this app. |
+| Pay on the Clover terminal | Invoice → Payments → **Pay on terminal** sends the amount to the physical Clover device (REST Pay Display); the customer taps or inserts their card on the device and the payment lands on the invoice. Needs the device serial in Settings → Clover and the **Cloud Pay Display** app installed on the device. |
 
 Setup (sandbox first, then production):
 

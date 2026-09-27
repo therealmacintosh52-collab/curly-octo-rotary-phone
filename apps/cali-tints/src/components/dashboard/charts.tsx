@@ -19,18 +19,18 @@ const ACCENT_DIM = "#4d7f34";
 const GRID = "#232a2f";
 const TICK = "#8a939b";
 
-function ChartTooltip({ active, payload, label, money }: { active?: boolean; payload?: { value: number; name: string; payload: Record<string, unknown> }[]; label?: string; money?: boolean }) {
+function ChartTooltip({ active, payload, label, money, countNoun = "job", hint = "Tap to see the jobs" }: { active?: boolean; payload?: { value: number; name: string; payload: Record<string, unknown> }[]; label?: string; money?: boolean; countNoun?: string; hint?: string }) {
   if (!active || !payload?.length) return null;
   const p = payload[0];
-  const jobs = p.payload.jobs as number | undefined;
+  const count = (p.payload.count ?? p.payload.jobs) as number | undefined;
   return (
     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-popover">
       <div className="font-medium text-foreground">{label}</div>
       <div className="text-muted-foreground">
         {money ? formatMoney(p.value) : p.value}
-        {jobs !== undefined && money ? ` · ${jobs} job${jobs === 1 ? "" : "s"}` : ""}
+        {count !== undefined && money ? ` · ${count} ${countNoun}${count === 1 ? "" : "s"}` : ""}
       </div>
-      <div className="mt-1 text-[11px] text-primary">Tap to see the jobs</div>
+      <div className="mt-1 text-[11px] text-primary">{hint}</div>
     </div>
   );
 }
@@ -45,8 +45,26 @@ function barRow<T>(item: unknown): T | undefined {
   return (item as { payload?: T } | null | undefined)?.payload;
 }
 
-/** Revenue per day as columns; empty days are filled in so the axis is continuous. Click a day → that day's jobs. */
-export function RevenueByDayChart({ data, start, end }: { data: { day: string; jobs: number; revenue: number }[]; start: string; end: string }) {
+/**
+ * A money amount per day as columns; empty days are filled in so the axis is
+ * continuous and long ranges are grouped by week or month. Click a column →
+ * `href(from, to)` for that bucket. Used for revenue logged (jobs) and income
+ * collected (payments).
+ */
+export function DailyBarsChart({
+  data,
+  start,
+  end,
+  drill = "jobs",
+}: {
+  data: { day: string; value: number; count: number }[];
+  start: string;
+  end: string;
+  /** Where a click goes: that bucket's jobs, or the paid invoices list (serialisable so a server component can pass it). */
+  drill?: "jobs" | "paid";
+}) {
+  const countNoun = drill === "paid" ? "payment" : "job";
+  const hint = drill === "paid" ? "Tap to see paid invoices" : "Tap to see the jobs";
   const router = useRouter();
   const reduce = useReducedMotion();
   const byDay = new Map(data.map((d) => [d.day, d]));
@@ -62,30 +80,30 @@ export function RevenueByDayChart({ data, start, end }: { data: { day: string; j
   // Cap the number of columns so long ranges stay readable.
   const grouping: "day" | "week" | "month" = spanDays > 400 ? "month" : spanDays > 120 ? "week" : "day";
 
-  const series: { day: string; label: string; revenue: number; jobs: number }[] = [];
+  const series: { day: string; label: string; value: number; count: number }[] = [];
   const cursor = new Date(first);
   while (cursor <= last) {
     const bucketStart = new Date(cursor);
-    let revenue = 0;
-    let jobs = 0;
+    let value = 0;
+    let count = 0;
     const inBucket = () => (grouping === "day" ? cursor.getTime() === bucketStart.getTime() : grouping === "week" ? cursor.getTime() - bucketStart.getTime() < 7 * 86400000 : cursor.getMonth() === bucketStart.getMonth() && cursor.getFullYear() === bucketStart.getFullYear());
     do {
       const d = byDay.get(ymd(cursor));
-      revenue += Number(d?.revenue ?? 0);
-      jobs += d?.jobs ?? 0;
+      value += Number(d?.value ?? 0);
+      count += Number(d?.count ?? 0);
       cursor.setDate(cursor.getDate() + 1);
     } while (cursor <= last && inBucket());
     const bucketEnd = new Date(cursor);
     bucketEnd.setDate(bucketEnd.getDate() - 1);
     const from = ymd(bucketStart);
     const to = ymd(bucketEnd);
-    series.push({ day: from === to ? from : `${from}|${to}`, label: formatDateOnly(from, grouping === "month" ? "MMM yy" : "MMM d"), revenue, jobs });
+    series.push({ day: from === to ? from : `${from}|${to}`, label: formatDateOnly(from, grouping === "month" ? "MMM yy" : "MMM d"), value, count });
   }
   const step = series.length > 20 ? Math.ceil(series.length / 8) : series.length > 10 ? 2 : 1;
 
   function open(day: string) {
     const [from, to] = day.includes("|") ? day.split("|") : [day, day];
-    router.push(`/jobs?from=${from}&to=${to}`);
+    router.push(drill === "paid" ? "/invoices?status=paid" : `/jobs?from=${from}&to=${to}`);
   }
 
   return (
@@ -95,8 +113,8 @@ export function RevenueByDayChart({ data, start, end }: { data: { day: string; j
           <CartesianGrid vertical={false} stroke={GRID} strokeWidth={1} />
           <XAxis dataKey="label" tick={{ fill: TICK, fontSize: 11 }} axisLine={{ stroke: GRID }} tickLine={false} interval={step - 1} />
           <YAxis tick={{ fill: TICK, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={compact} width={44} />
-          <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} content={<ChartTooltip money />} />
-          <Bar dataKey="revenue" fill={ACCENT} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={!reduce} animationDuration={400} animationEasing="ease-out" style={{ cursor: "pointer" }} onClick={(item) => { const row = barRow<{ day: string }>(item); if (row) open(row.day); }} />
+          <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} content={<ChartTooltip money countNoun={countNoun} hint={hint} />} />
+          <Bar dataKey="value" fill={ACCENT} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={!reduce} animationDuration={400} animationEasing="ease-out" style={{ cursor: "pointer" }} onClick={(item) => { const row = barRow<{ day: string }>(item); if (row) open(row.day); }} />
         </BarChart>
       </ResponsiveContainer>
       {grouping !== "day" && <p className="mt-1 text-center text-[11px] text-muted-foreground">Grouped by {grouping} for this range</p>}

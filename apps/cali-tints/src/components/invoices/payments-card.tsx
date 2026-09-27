@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCardIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { CreditCardIcon, PlusIcon, TabletSmartphoneIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { InvoicePayment, InvoiceStatus, PaymentMethod } from "@/lib/db/types";
 import { deletePaymentAction, recordPaymentAction } from "@/app/(app)/invoices/actions";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChargeCardDialog, type CloverCardConfig } from "./charge-card-dialog";
+import { PayOnDeviceDialog } from "./pay-on-device-dialog";
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "check", label: "Check" },
@@ -31,6 +32,7 @@ export function PaymentsCard({
   balance,
   status,
   cloverCard = null,
+  cloverDevice = false,
 }: {
   invoiceId: string;
   invoiceNumber?: string;
@@ -39,17 +41,25 @@ export function PaymentsCard({
   status: InvoiceStatus;
   /** When set, a "Charge card" button opens the Clover card form. */
   cloverCard?: CloverCardConfig | null;
+  /** When true, a "Pay on terminal" button sends the amount to the Clover device. */
+  cloverDevice?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [chargeOpen, setChargeOpen] = useState(false);
+  const [deviceOpen, setDeviceOpen] = useState(false);
   const [pending, start] = useTransition();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Payments</CardTitle>
-        <CardAction className="flex gap-2">
+        <CardAction className="flex flex-wrap justify-end gap-2">
+          {status !== "void" && balance > 0 && cloverDevice && (
+            <Button size="sm" variant="outline" onClick={() => setDeviceOpen(true)}>
+              <TabletSmartphoneIcon /> Pay on terminal
+            </Button>
+          )}
           {status !== "void" && balance > 0 && cloverCard && (
             <Button size="sm" variant="outline" onClick={() => setChargeOpen(true)}>
               <CreditCardIcon /> Charge card
@@ -102,6 +112,11 @@ export function PaymentsCard({
       <Dialog open={open} onOpenChange={setOpen}>
         <PaymentDialog invoiceId={invoiceId} balance={balance} onDone={() => setOpen(false)} />
       </Dialog>
+      {cloverDevice && (
+        <Dialog open={deviceOpen} onOpenChange={setDeviceOpen}>
+          {deviceOpen && <PayOnDeviceDialog invoiceId={invoiceId} invoiceNumber={invoiceNumber ?? ""} balance={balance} onDone={() => setDeviceOpen(false)} />}
+        </Dialog>
+      )}
       {cloverCard && (
         <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
           {chargeOpen && <ChargeCardDialog invoiceId={invoiceId} invoiceNumber={invoiceNumber ?? ""} balance={balance} config={cloverCard} onDone={() => setChargeOpen(false)} />}

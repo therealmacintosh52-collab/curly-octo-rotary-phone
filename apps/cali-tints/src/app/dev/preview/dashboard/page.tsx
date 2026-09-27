@@ -22,6 +22,13 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
     range: { start: range.start, end: range.end },
     week: { jobs: 23, revenue: 3185 },
     month: { jobs: 118, revenue: 15940 },
+    income: { jobs: days.reduce((s, d) => s + d.jobs, 0), revenue: days.reduce((s, d) => s + d.revenue, 0), collected: 12640, payments: 6, avg_per_car: 135.08 },
+    collected_by_day: [
+      { day: "2026-09-03", payments: 1, amount: 4210 },
+      { day: "2026-09-10", payments: 2, amount: 2380 },
+      { day: "2026-09-16", payments: 1, amount: 1875.5 },
+      { day: "2026-09-22", payments: 2, amount: 4174.5 },
+    ],
     uninvoiced_total: 6420,
     uninvoiced_jobs: 47,
     outstanding_total: 9385.5,

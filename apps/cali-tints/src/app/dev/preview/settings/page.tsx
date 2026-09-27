@@ -35,7 +35,7 @@ export default function DevSettingsPreview() {
               <DealershipsManager dealerships={dealerships} />
               <UsersManager users={users} currentUserId="u1" currentRole="owner" emailConfigured />
               <CloverCard
-                company={{ ...company, clover_enabled: true, clover_env: "sandbox", clover_merchant_id: "7G9V9DP834ZY2", clover_last_sync_at: null }}
+                company={{ ...company, clover_enabled: true, clover_env: "sandbox", clover_merchant_id: "7G9V9DP834ZY2", clover_last_sync_at: null, clover_device_id: "C030UQ12345678", clover_pos_id: "Cali Tints app" }}
                 envStatus={[
                   { key: "CLOVER_API_TOKEN", set: true, purpose: "orders and payment sync" },
                   { key: "CLOVER_ECOM_PRIVATE_TOKEN", set: true, purpose: "pay links and card charges" },

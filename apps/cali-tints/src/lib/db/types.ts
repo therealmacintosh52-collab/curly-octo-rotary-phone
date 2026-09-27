@@ -15,7 +15,7 @@ export type PaymentMethod = "check" | "ach" | "card" | "cash" | "other";
 export type PaymentSource = "manual" | "clover_pos" | "clover_checkout" | "clover_card";
 export type CloverEnv = "sandbox" | "production";
 export type CloverPaymentStatus = "unmatched" | "matched" | "ignored";
-export type CloverMatchedBy = "order" | "reference" | "amount" | "manual" | "checkout" | "card";
+export type CloverMatchedBy = "order" | "reference" | "amount" | "manual" | "checkout" | "card" | "device";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -43,6 +43,8 @@ export type Company = {
   clover_push_orders: boolean;
   clover_hosted_checkout: boolean;
   clover_last_sync_at: string | null;
+  clover_device_id: string | null;
+  clover_pos_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -333,6 +335,9 @@ export type DashboardStats = {
   range: { start: string; end: string };
   week: { jobs: number; revenue: number };
   month: { jobs: number; revenue: number };
+  /** Totals for the selected range. */
+  income: { jobs: number; revenue: number; collected: number; payments: number; avg_per_car: number };
+  collected_by_day: { day: string; payments: number; amount: number }[];
   uninvoiced_total: number;
   uninvoiced_jobs: number;
   outstanding_total: number;

@@ -193,3 +193,59 @@ export async function createCheckout(ctx: CloverContext, input: { customer: { em
 export function orderDashboardUrl(ctx: CloverContext, orderId: string): string {
   return `${CLOVER_HOSTS[ctx.env].dashboard}/orders/m/${ctx.merchantId}/${orderId}`;
 }
+
+// --- Device: REST Pay Display (Cloud Pay Display app on the terminal) ---------
+
+export interface DeviceTarget {
+  deviceId: string; // device serial number
+  posId: string;    // shown on the device while the request is active
+}
+
+export interface DevicePaymentResult {
+  payment?: CloverPayment & { externalPaymentId?: string };
+  error?: { message?: string } | string;
+  message?: string;
+}
+
+/**
+ * Ask the Clover terminal to take a payment. The call stays open while the
+ * customer taps or inserts a card (Clover caps this around 90 s), so callers
+ * run it from a route/action with a raised maxDuration.
+ */
+export async function payOnDevice(ctx: CloverContext, device: DeviceTarget, input: { amountCents: number; externalPaymentId: string; externalReferenceId: string }): Promise<DevicePaymentResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 85_000);
+  try {
+    return await call<DevicePaymentResult>(`${CLOVER_HOSTS[ctx.env].api}/connect/v1/payments`, {
+      method: "POST",
+      token: apiToken(),
+      headers: { "X-Clover-Device-Id": device.deviceId, "X-POS-ID": device.posId, "Idempotency-Key": input.externalPaymentId },
+      body: JSON.stringify({
+        amount: input.amountCents,
+        final: true,
+        capture: true,
+        externalPaymentId: input.externalPaymentId,
+        externalReferenceId: input.externalReferenceId,
+        tipMode: "NO_TIP",
+        signatureEntryLocation: "NONE",
+        receiptOptions: { deliveryMode: "ON_DEVICE" },
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") throw new CloverError("The terminal did not answer in time. Cancel on the device and try again.", 504, null);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Cancel whatever the terminal is currently prompting for. */
+export async function cancelDevice(ctx: CloverContext, device: DeviceTarget): Promise<void> {
+  await call<unknown>(`${CLOVER_HOSTS[ctx.env].api}/connect/v1/device/cancel`, {
+    method: "POST",
+    token: apiToken(),
+    headers: { "X-Clover-Device-Id": device.deviceId, "X-POS-ID": device.posId },
+    body: "{}",
+  });
+}

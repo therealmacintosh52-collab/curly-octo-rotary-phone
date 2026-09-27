@@ -12,7 +12,7 @@ import { sendInvoiceEmail } from "@/lib/invoices/email";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { cloverContext, createInvoiceCheckout, pushInvoiceOrder } from "@/lib/clover/invoices";
 import { syncCloverPayments, type SyncResult } from "@/lib/clover/sync";
-import { createCharge } from "@/lib/clover/client";
+import { cancelDevice, createCharge, payOnDevice } from "@/lib/clover/client";
 import { cloverSecrets } from "@/lib/clover/env";
 import { fromCents, toCents } from "@/lib/clover/money";
 import type { InvoiceBundle } from "@/lib/invoices/load";
@@ -368,6 +368,68 @@ export async function chargeCardAction(input: { invoiceId: string; token: string
     revalidatePath("/invoices");
     revalidatePath("/");
     return { ok: true, data: { amount, last4: charge.source?.last4 ?? null } };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+/** Send the amount to the Clover terminal and record the payment when the device answers. */
+export async function payOnDeviceAction(input: { invoiceId: string; amount: number }): Promise<ActionResult<{ amount: number; last4: string | null }>> {
+  const session = await requireAdmin();
+  const ctx = cloverContext(session.company);
+  if (!ctx) return { ok: false, error: "Clover is not enabled (Settings → Clover)" };
+  if (!session.company.clover_device_id) return { ok: false, error: "Add the Clover device serial in Settings → Clover first" };
+  const parsed = z.object({ invoiceId: z.uuid(), amount: z.number().positive().max(1_000_000) }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Enter an amount" };
+  const bundle = await loadInvoiceBundle(parsed.data.invoiceId);
+  if (!bundle) return { ok: false, error: "Invoice not found" };
+  const balance = Number(bundle.invoice.total) - Number(bundle.invoice.amount_paid);
+  if (bundle.invoice.status === "void" || balance <= 0) return { ok: false, error: "Nothing left to pay on this invoice" };
+  const amount = Math.min(Math.round(parsed.data.amount * 100) / 100, balance);
+  const device = { deviceId: session.company.clover_device_id, posId: session.company.clover_pos_id || "Cali Tints app" };
+  try {
+    const res = await payOnDevice(ctx, device, { amountCents: toCents(amount), externalPaymentId: `${bundle.invoice.id.slice(0, 8)}-${Date.now()}`, externalReferenceId: bundle.invoice.display_number });
+    const payment = res.payment;
+    if (!payment || (payment.result && payment.result !== "SUCCESS")) {
+      const msg = typeof res.error === "string" ? res.error : res.error?.message ?? res.message ?? (payment?.result ? `Terminal reported ${payment.result}` : "The terminal did not complete the payment");
+      return { ok: false, error: msg };
+    }
+    const supabase = await createClient();
+    await supabase.from("clover_payments").upsert(
+      {
+        company_id: session.company.id,
+        clover_payment_id: payment.id,
+        clover_order_id: payment.order?.id ?? bundle.invoice.clover_order_id,
+        source: "clover_pos",
+        amount: fromCents(payment.amount ?? toCents(amount)),
+        tip: fromCents(payment.tipAmount ?? 0),
+        paid_at: new Date(payment.createdTime ?? Date.now()).toISOString(),
+        card_brand: payment.cardTransaction?.cardType ?? null,
+        last4: payment.cardTransaction?.last4 ?? null,
+        reference: `${bundle.invoice.display_number} · terminal`,
+        raw: payment as never,
+        status: "unmatched",
+      },
+      { onConflict: "company_id,clover_payment_id", ignoreDuplicates: true },
+    );
+    const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: payment.id, p_invoice_id: bundle.invoice.id, p_matched_by: "device" });
+    if (error) return { ok: false, error: `The terminal took the payment (${payment.id}) but it could not be recorded: ${error.message}. Use Sync Clover or match it from the queue.` };
+    revalidatePath(`/invoices/${bundle.invoice.id}`);
+    revalidatePath("/invoices");
+    revalidatePath("/");
+    return { ok: true, data: { amount: fromCents(payment.amount ?? toCents(amount)), last4: payment.cardTransaction?.last4 ?? null } };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+export async function cancelDevicePaymentAction(): Promise<ActionResult> {
+  const session = await requireAdmin();
+  const ctx = cloverContext(session.company);
+  if (!ctx || !session.company.clover_device_id) return { ok: false, error: "No Clover device configured" };
+  try {
+    await cancelDevice(ctx, { deviceId: session.company.clover_device_id, posId: session.company.clover_pos_id || "Cali Tints app" });
+    return { ok: true, data: undefined };
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }

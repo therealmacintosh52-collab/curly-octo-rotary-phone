@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangleIcon, PlusIcon } from "lucide-react";
+import { AlertTriangleIcon, PlusIcon, WalletIcon } from "lucide-react";
 import type { DashboardStats } from "@/lib/db/types";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatDateOnly, presetRange, RANGE_PRESETS, type RangePreset } from "@/lib/dates";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StaggerItem } from "@/components/motion/primitives";
 import { StatList, StatTile } from "./stat-tile";
-import { HorizontalBars, RevenueByDayChart } from "./charts-lazy";
+import { DailyBarsChart, HorizontalBars } from "./charts-lazy";
 import { RangePicker } from "./range-picker";
 
 export interface DashboardRange {
@@ -130,28 +130,56 @@ export function Dashboard({ stats, range, companyName, cloverUnmatched = 0 }: { 
         </Card>
       )}
 
-      {/* Breakdowns */}
+      {/* Income for the selected range: what was logged vs what actually came in, with the range picker. */}
       <SectionHeader
         className="mt-8"
         title={
-          <>
-            Breakdown ·{" "}
-            <Link href={rangeQ ? `/jobs?${rangeQ}` : "/jobs"} className="text-primary underline-offset-4 hover:underline">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              <WalletIcon className="size-4 text-primary" /> Income
+            </span>
+            <Link href={rangeQ ? `/jobs?${rangeQ}` : "/jobs"} className="whitespace-nowrap text-primary underline-offset-4 hover:underline">
               {rangeLabel}
             </Link>
-          </>
+          </span>
         }
         aside={<RangePicker preset={range.preset} start={range.start} end={range.end} />}
       />
-      <div className="mt-4 grid gap-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile label="Total income" value={formatMoney(stats.income.collected)} sub={`${plural(stats.income.payments, "payment", "payments")} received`} tone="accent" href="/invoices?status=paid" />
+        <StatTile label="Revenue logged" value={formatMoney(stats.income.revenue)} sub={`${plural(stats.income.jobs, "car", "cars")} detailed`} href={rangeQ ? `/jobs?${rangeQ}` : "/jobs"} />
+        <StatTile label="Avg per car" value={formatMoney(stats.income.avg_per_car)} sub="revenue ÷ cars" size="sm" href={rangeQ ? `/jobs?${rangeQ}` : "/jobs"} />
+        <StatTile
+          label="Still to collect"
+          value={formatMoney(Math.max(0, stats.income.revenue - stats.income.collected))}
+          sub={stats.income.collected > stats.income.revenue ? "collected more than logged (older invoices paid)" : "logged, not yet received"}
+          size="sm"
+          tone={stats.income.revenue - stats.income.collected > 0 ? "warning" : undefined}
+          href="/invoices?status=outstanding"
+        />
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Income received per day</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DailyBarsChart data={stats.collected_by_day.map((d) => ({ day: d.day, value: Number(d.amount), count: d.payments }))} start={range.start} end={range.end} drill="paid" />
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Revenue logged per day</CardTitle>
           </CardHeader>
           <CardContent>
-            <RevenueByDayChart data={stats.by_day} start={range.start} end={range.end} />
+            <DailyBarsChart data={stats.by_day.map((d) => ({ day: d.day, value: Number(d.revenue), count: d.jobs }))} start={range.start} end={range.end} />
           </CardContent>
         </Card>
+      </div>
+
+      {/* Breakdowns */}
+      <SectionHeader className="mt-8" title="Breakdown" />
+      <div className="mt-4 grid gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Revenue by service</CardTitle>

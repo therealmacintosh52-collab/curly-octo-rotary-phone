@@ -236,6 +236,13 @@ begin
   assert (stats -> 'month' ->> 'jobs')::int >= 1, 'month jobs';
   assert (stats ->> 'reminder_days')::int = 30, 'reminder default';
   assert (stats -> 'by_service' -> 0) ? 'service_id' and (stats -> 'by_detailer' -> 0) ? 'detailer_id', 'breakdown rows carry ids';
+  -- income for the range: revenue logged and cash collected (payments recorded above) both present
+  assert stats ? 'income' and stats ? 'collected_by_day', 'income keys';
+  assert (stats -> 'income' ->> 'revenue')::numeric > 0 and (stats -> 'income' ->> 'jobs')::int >= 1, 'income revenue';
+  assert (stats -> 'income' ->> 'avg_per_car')::numeric > 0, 'income avg per car';
+  assert (select (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric)
+         = (select coalesce(sum(amount), 0) from public.invoice_payments where company_id = public.current_company_id()), 'income collected = payments';
+  assert jsonb_array_length(public.dashboard_stats('2000-01-01', current_date) -> 'collected_by_day') >= 1, 'collected by day rows';
   assert (public.jobs_filter_summary() ->> 'jobs')::int >= 3, 'filter summary counts';
   assert (public.jobs_filter_summary(null, '00000000-0000-4000-8000-000000000201') ->> 'jobs')::int >= 1, 'filter summary by service';
   assert (public.jobs_filter_summary(null, null, null, null, null, null, 'invoiced') ->> 'revenue')::numeric > 0, 'filter summary invoiced revenue';

@@ -22,6 +22,8 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Invoice" };
+// "Pay on terminal" waits for the customer to tap; give server actions from this page up to 60 s.
+export const maxDuration = 60;
 
 export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]">) {
   const { id } = await props.params;
@@ -157,7 +159,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          <PaymentsCard invoiceId={invoice.id} invoiceNumber={invoice.display_number} payments={payments} balance={balance} status={invoice.status} cloverCard={cloverCard} />
+          <PaymentsCard invoiceId={invoice.id} invoiceNumber={invoice.display_number} payments={payments} balance={balance} status={invoice.status} cloverCard={cloverCard} cloverDevice={!!(clover && company.clover_device_id)} />
           <CloverPanel
             enabled={!!clover}
             hostedCheckout={company.clover_hosted_checkout}

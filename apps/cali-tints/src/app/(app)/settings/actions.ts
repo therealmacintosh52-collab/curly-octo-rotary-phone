@@ -254,6 +254,8 @@ const cloverSettingsSchema = z.object({
   clover_merchant_id: z.string().trim().max(40).transform((s) => s || null),
   clover_push_orders: z.boolean(),
   clover_hosted_checkout: z.boolean(),
+  clover_device_id: z.string().trim().max(40).transform((s) => s || null),
+  clover_pos_id: z.string().trim().min(1).max(40).default("Cali Tints app"),
 });
 export type CloverSettingsInput = z.input<typeof cloverSettingsSchema>;
 
