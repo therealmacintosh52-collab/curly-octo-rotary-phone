@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { InvoiceStatusTabs } from "@/components/invoices/invoice-status-tabs";
 import { BulkDownloadBanner } from "@/components/invoices/bulk-download-banner";
+import { CloverQueue, CloverSyncButton, type OpenInvoiceOption } from "@/components/invoices/clover-queue";
+import { cloverContext } from "@/lib/clover/invoices";
 
 export const metadata: Metadata = { title: "Invoices" };
 
@@ -39,6 +41,21 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
   else q = q.neq("status", "void");
   const { data: invoices } = await q;
 
+  // Clover: payments waiting to be matched, and the open invoices they could belong to.
+  const clover = cloverContext(session.company);
+  const [{ data: queue }, { data: openInvoices }] = clover
+    ? await Promise.all([
+        supabase.from("clover_payments").select("id, clover_payment_id, amount, tip, paid_at, card_brand, last4, reference").eq("status", "unmatched").order("paid_at", { ascending: false }).limit(50),
+        supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const openOptions: OpenInvoiceOption[] = (openInvoices ?? []).map((i) => ({
+    id: i.id,
+    display_number: i.display_number,
+    dealership: (i.dealership as unknown as { name: string } | null)?.name ?? "",
+    balance: Number(i.total) - Number(i.amount_paid),
+  }));
+
   const isOverdue = (i: { status: InvoiceStatus; submitted_at: string | null }) =>
     (i.status === "submitted" || i.status === "partial") && !!i.submitted_at && nowMs() - new Date(i.submitted_at).getTime() > reminderMs;
 
@@ -48,14 +65,22 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         title="Invoices"
         description={status === "outstanding" ? "Submitted or partially paid, not yet settled." : status === "overdue" ? `Submitted more than ${session.company.reminder_days} days ago and still unpaid.` : "Generate, send and track payment."}
         actions={
-          <Button asChild>
-            <Link href="/invoices/new">
-              <PlusIcon /> New invoice
-            </Link>
-          </Button>
+          <>
+            {clover && <CloverSyncButton lastSyncAt={session.company.clover_last_sync_at} />}
+            <Button asChild>
+              <Link href="/invoices/new">
+                <PlusIcon /> New invoice
+              </Link>
+            </Button>
+          </>
         }
       />
       {created.length > 0 && <BulkDownloadBanner ids={created} />}
+      {clover && (queue ?? []).length > 0 && (
+        <div className="mt-5">
+          <CloverQueue payments={queue ?? []} invoices={openOptions} />
+        </div>
+      )}
       <div className="mt-5 flex flex-col gap-4">
         <InvoiceStatusTabs value={status ?? "all"} />
 

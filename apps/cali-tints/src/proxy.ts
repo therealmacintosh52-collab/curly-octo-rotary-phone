@@ -4,7 +4,7 @@ import { supabasePublicKey, supabaseUrl } from "@/lib/supabase/env";
 import { DEMO_COOKIE, DEMO_COOKIE_MAX_AGE, demoKey, demoRewriteTarget, isDemoCookieValid, safeEqual } from "@/lib/demo";
 
 /** Paths that never require a session. */
-const PUBLIC_PATHS = ["/login", "/offline", "/manifest.webmanifest", "/sw.js", "/auth/callback", "/auth/reset", "/demo"];
+const PUBLIC_PATHS = ["/login", "/offline", "/manifest.webmanifest", "/sw.js", "/auth/callback", "/auth/reset", "/demo", "/api/cron", "/api/clover", "/pay"];
 
 function hasSupabaseEnv() {
   return !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);

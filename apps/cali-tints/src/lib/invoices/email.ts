@@ -23,7 +23,7 @@ function escapeHtml(s: string) {
 }
 
 /** Branded, table-based HTML that renders in Outlook/Gmail; dark header with the lime accent. */
-export function invoiceEmailHtml(b: InvoiceBundle, appUrl: string | null): string {
+export function invoiceEmailHtml(b: InvoiceBundle, appUrl: string | null, payUrl: string | null = null): string {
   const { invoice, company, dealership } = b;
   const e = escapeHtml;
   const period = `${formatDateOnly(invoice.period_start)} – ${formatDateOnly(invoice.period_end)}`;
@@ -46,6 +46,12 @@ export function invoiceEmailHtml(b: InvoiceBundle, appUrl: string | null): strin
       <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #e5e7eb">Payment terms</td><td style="padding:10px 14px;text-align:right;border-bottom:1px solid #e5e7eb">${e(invoice.payment_terms)}</td></tr>
       <tr><td style="padding:12px 14px;font-weight:700">Total due</td><td style="padding:12px 14px;text-align:right;font-weight:700;font-size:18px">${formatMoney(invoice.total)}</td></tr>
     </table>
+    ${
+      payUrl
+        ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:18px auto 0"><tr><td style="background:#82d955;border-radius:8px"><a href="${e(payUrl)}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:700;color:#06120a;text-decoration:none">Pay by card</a></td></tr></table>
+    <p style="margin:8px 0 0;text-align:center;font-size:12px;color:#6b7280">Secure checkout by Clover. Check and ACH are still welcome.</p>`
+        : ""
+    }
     <p style="margin:18px 0 0;font-size:13px;line-height:1.5;color:#374151">Please reference <strong>${e(invoice.display_number)}</strong> on your remittance${company.email ? ` and send remittance advice to <a href="mailto:${e(company.email)}" style="color:#3f8f1f">${e(company.email)}</a>` : ""}. Reply to this email with any questions.</p>
     <p style="margin:22px 0 0;font-size:14px">Thank you,<br><strong>${e(company.name)}</strong>${company.phone ? `<br><span style="color:#6b7280">${e(company.phone)}</span>` : ""}</p>
   </td></tr>
@@ -55,7 +61,7 @@ export function invoiceEmailHtml(b: InvoiceBundle, appUrl: string | null): strin
 </body></html>`;
 }
 
-export function invoiceEmailText(b: InvoiceBundle): string {
+export function invoiceEmailText(b: InvoiceBundle, payUrl: string | null = null): string {
   const { invoice, company, dealership } = b;
   return [
     `Invoice ${invoice.display_number} from ${company.name}`,
@@ -65,6 +71,7 @@ export function invoiceEmailText(b: InvoiceBundle): string {
     invoice.ro_po_number ? `RO/PO: ${invoice.ro_po_number}` : null,
     `Payment terms: ${invoice.payment_terms}`,
     `Total due: ${formatMoney(invoice.total)}`,
+    payUrl ? `Pay by card (secure Clover checkout): ${payUrl}` : null,
     ``,
     `The PDF invoice and a CSV of line items are attached. Please reference ${invoice.display_number} on remittance.`,
     ``,
@@ -80,7 +87,7 @@ export function invoiceEmailText(b: InvoiceBundle): string {
  * company. Requires RESEND_API_KEY and EMAIL_FROM; returns a clear failure
  * otherwise so the caller can record it.
  */
-export async function sendInvoiceEmail(b: InvoiceBundle, attachments: { pdf: Buffer; csv: string }): Promise<SendResult | SendFailure> {
+export async function sendInvoiceEmail(b: InvoiceBundle, attachments: { pdf: Buffer; csv: string }, opts: { payUrl?: string | null } = {}): Promise<SendResult | SendFailure> {
   const to = b.dealership.ap_emails.map((e) => e.trim()).filter(Boolean);
   const cc = b.company.email ? [b.company.email] : [];
   if (to.length === 0) return { ok: false, error: `${b.dealership.name} has no AP email on file (Settings → Dealerships)`, to, cc };
@@ -97,8 +104,8 @@ export async function sendInvoiceEmail(b: InvoiceBundle, attachments: { pdf: Buf
     cc: cc.length ? cc : undefined,
     replyTo: b.company.email ?? undefined,
     subject: `Invoice ${b.invoice.display_number} — ${b.company.name} — ${formatMoney(b.invoice.total)}`,
-    html: invoiceEmailHtml(b, process.env.NEXT_PUBLIC_APP_URL ?? null),
-    text: invoiceEmailText(b),
+    html: invoiceEmailHtml(b, process.env.NEXT_PUBLIC_APP_URL ?? null, opts.payUrl ?? null),
+    text: invoiceEmailText(b, opts.payUrl ?? null),
     attachments: [
       { filename: `${stem}.pdf`, content: attachments.pdf, contentType: "application/pdf" },
       { filename: `${stem}.csv`, content: Buffer.from(attachments.csv, "utf8"), contentType: "text/csv" },

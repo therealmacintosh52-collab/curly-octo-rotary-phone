@@ -17,6 +17,7 @@ import { SubmissionsCard } from "@/components/invoices/submissions-card";
 import { CloverPanel } from "@/components/invoices/clover-panel";
 import { cloverContext } from "@/lib/clover/invoices";
 import { orderDashboardUrl } from "@/lib/clover/client";
+import { CLOVER_HOSTS, cloverSecrets } from "@/lib/clover/env";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,8 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
 
   const balance = Number(invoice.total) - Number(invoice.amount_paid);
   const clover = cloverContext(company);
+  const ecomPublicKey = cloverSecrets().ecomPublicKey;
+  const cloverCard = clover && ecomPublicKey ? { publicKey: ecomPublicKey, merchantId: clover.merchantId, sdkUrl: CLOVER_HOSTS[clover.env].sdk } : null;
   const overdue =
     (invoice.status === "submitted" || invoice.status === "partial") &&
     !!invoice.submitted_at &&
@@ -154,7 +157,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          <PaymentsCard invoiceId={invoice.id} payments={payments} balance={balance} status={invoice.status} />
+          <PaymentsCard invoiceId={invoice.id} invoiceNumber={invoice.display_number} payments={payments} balance={balance} status={invoice.status} cloverCard={cloverCard} />
           <CloverPanel
             enabled={!!clover}
             hostedCheckout={company.clover_hosted_checkout}

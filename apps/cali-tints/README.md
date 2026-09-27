@@ -163,6 +163,27 @@ One source of truth: `src/app/globals.css`.
 - **States**: every route group has `loading.tsx` skeletons and an `error.tsx`; lists use `EmptyState`.
 - **Performance rules**: recharts and the VIN scanner load on demand; the Supabase SDK loads only when syncing, saving or signing out; Geist Sans is the only web font (mono is the system stack).
 
+## Clover (Fiserv) payments
+
+Optional. With Clover on, the app and your Clover account stay in step:
+
+| What | How |
+|---|---|
+| Invoices show up in Clover | Every generated invoice becomes an open Clover order (custom line items, one per job service). Pay it on the Clover device like any order. |
+| Clover payments land on invoices | Every 15 minutes (Vercel Cron) and on **Sync Clover**, payments are pulled and matched: by the order above, then by an invoice number in the payment reference, then by an exact open balance. Anything else waits in **Clover payments to match** on the Invoices page, where you pick the invoice or ignore it. |
+| Pay-by-card link in invoice emails | Hosted Checkout: a "Pay by card" button under the total. The dealership pays on Clover's page; the webhook marks the invoice paid. |
+| Charge a card in the app | Invoice → Payments → **Charge card**. Clover's iframe fields tokenise the card; card numbers never reach this app. |
+
+Setup (sandbox first, then production):
+
+1. In the Clover merchant dashboard create **Settings → API tokens** with Orders (read/write) and Payments (read) → `CLOVER_API_TOKEN`.
+2. **Ecommerce API tokens** → "Hosted iFrame + API/SDK" → `CLOVER_ECOM_PRIVATE_TOKEN` (private) and `CLOVER_ECOM_PUBLIC_KEY` (public / PAKMS).
+3. Pick any long random string for `CLOVER_WEBHOOK_SECRET` and one for `CRON_SECRET`; set all five in Vercel → Environment Variables and redeploy.
+4. In Clover's Hosted Checkout settings set the webhook URL to `https://<your-app>/api/clover/webhook?secret=<CLOVER_WEBHOOK_SECRET>` and the redirect URLs to `https://<your-app>/pay/done?ok=1` (success) and `…/pay/done?ok=0` (failure/cancel).
+5. In the app, **Settings → Clover**: enable, pick sandbox or production, paste the merchant ID, **Test connection**.
+
+Limits: hosted checkout cannot refund or void through the API, so refunds are done in Clover; a refunded card payment is removed from the invoice by deleting the payment row (it returns to the match queue). Secrets never touch the database; only the merchant id and toggles are stored.
+
 ## Tests
 
 ```bash

@@ -13,9 +13,9 @@ import "server-only";
  */
 export type CloverEnv = "sandbox" | "production";
 
-export const CLOVER_HOSTS: Record<CloverEnv, { api: string; ecom: string; dashboard: string }> = {
-  sandbox: { api: "https://sandbox.dev.clover.com", ecom: "https://scl-sandbox.dev.clover.com", dashboard: "https://sandbox.dev.clover.com" },
-  production: { api: "https://api.clover.com", ecom: "https://scl.clover.com", dashboard: "https://www.clover.com" },
+export const CLOVER_HOSTS: Record<CloverEnv, { api: string; ecom: string; dashboard: string; sdk: string }> = {
+  sandbox: { api: "https://sandbox.dev.clover.com", ecom: "https://scl-sandbox.dev.clover.com", dashboard: "https://sandbox.dev.clover.com", sdk: "https://checkout.sandbox.dev.clover.com/sdk.js" },
+  production: { api: "https://api.clover.com", ecom: "https://scl.clover.com", dashboard: "https://www.clover.com", sdk: "https://checkout.clover.com/sdk.js" },
 };
 
 export interface CloverSecrets {

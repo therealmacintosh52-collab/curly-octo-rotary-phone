@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { CreditCardIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { InvoicePayment, InvoiceStatus, PaymentMethod } from "@/lib/db/types";
 import { deletePaymentAction, recordPaymentAction } from "@/app/(app)/invoices/actions";
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChargeCardDialog, type CloverCardConfig } from "./charge-card-dialog";
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "check", label: "Check" },
@@ -23,16 +24,37 @@ const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-export function PaymentsCard({ invoiceId, payments, balance, status }: { invoiceId: string; payments: InvoicePayment[]; balance: number; status: InvoiceStatus }) {
+export function PaymentsCard({
+  invoiceId,
+  invoiceNumber,
+  payments,
+  balance,
+  status,
+  cloverCard = null,
+}: {
+  invoiceId: string;
+  invoiceNumber?: string;
+  payments: InvoicePayment[];
+  balance: number;
+  status: InvoiceStatus;
+  /** When set, a "Charge card" button opens the Clover card form. */
+  cloverCard?: CloverCardConfig | null;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [chargeOpen, setChargeOpen] = useState(false);
   const [pending, start] = useTransition();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Payments</CardTitle>
-        <CardAction>
+        <CardAction className="flex gap-2">
+          {status !== "void" && balance > 0 && cloverCard && (
+            <Button size="sm" variant="outline" onClick={() => setChargeOpen(true)}>
+              <CreditCardIcon /> Charge card
+            </Button>
+          )}
           {status !== "void" && balance > 0 && (
             <Button size="sm" onClick={() => setOpen(true)}>
               <PlusIcon /> Record
@@ -50,7 +72,7 @@ export function PaymentsCard({ invoiceId, payments, balance, status }: { invoice
                 <div>
                   <div className="font-medium tabular-nums">{formatMoney(p.amount)}</div>
                   <div className="text-xs text-muted-foreground">
-                    {formatDateOnly(p.paid_at)} · {METHODS.find((m) => m.value === p.method)?.label}
+                    {formatDateOnly(p.paid_at)} · {p.source && p.source !== "manual" ? "Clover" : METHODS.find((m) => m.value === p.method)?.label}
                     {p.reference ? ` #${p.reference}` : ""}
                     {p.note ? ` · ${p.note}` : ""}
                   </div>
@@ -80,6 +102,11 @@ export function PaymentsCard({ invoiceId, payments, balance, status }: { invoice
       <Dialog open={open} onOpenChange={setOpen}>
         <PaymentDialog invoiceId={invoiceId} balance={balance} onDone={() => setOpen(false)} />
       </Dialog>
+      {cloverCard && (
+        <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
+          {chargeOpen && <ChargeCardDialog invoiceId={invoiceId} invoiceNumber={invoiceNumber ?? ""} balance={balance} config={cloverCard} onDone={() => setChargeOpen(false)} />}
+        </Dialog>
+      )}
     </Card>
   );
 }

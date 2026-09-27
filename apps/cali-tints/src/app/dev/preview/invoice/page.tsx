@@ -6,6 +6,7 @@ import { InvoiceActions } from "@/components/invoices/invoice-actions";
 import { PaymentsCard } from "@/components/invoices/payments-card";
 import { SubmissionsCard } from "@/components/invoices/submissions-card";
 import { CloverPanel } from "@/components/invoices/clover-panel";
+import { CloverQueue, CloverSyncButton } from "@/components/invoices/clover-queue";
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { InvoiceBuilder } from "@/components/invoices/invoice-builder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,8 +26,20 @@ export default function DevInvoicePreview() {
       <SyncProvider>
         <AppShell>
           <Page>
+            <div className="mb-5 flex flex-col gap-3">
+              <div className="flex justify-end">
+                <CloverSyncButton lastSyncAt={isoDaysAgo(0)} />
+              </div>
+              <CloverQueue
+                payments={[{ id: "q1", clover_payment_id: "CLV-DEMO-1", amount: 1875.5, tip: 0, paid_at: isoDaysAgo(1), card_brand: "VISA", last4: "4242", reference: null }]}
+                invoices={[
+                  { id: b.invoice.id, display_number: b.invoice.display_number, dealership: b.dealership.name, balance },
+                  { id: "i9", display_number: "INV-000011", dealership: "Mercedes-Benz of Sacramento", balance: 1875.5 },
+                ]}
+              />
+            </div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-semibold tracking-tight">{b.invoice.display_number}</h1>
+              <h1 className="text-title">{b.invoice.display_number}</h1>
               <InvoiceStatusBadge status={b.invoice.status} overdue />
             </div>
             <p className="mt-1 text-lg">{b.dealership.name}</p>
@@ -47,7 +60,7 @@ export default function DevInvoicePreview() {
                 </CardContent>
               </Card>
               <div className="flex flex-col gap-4">
-                <PaymentsCard invoiceId={b.invoice.id} payments={b.payments} balance={balance} status={b.invoice.status} />
+                <PaymentsCard invoiceId={b.invoice.id} invoiceNumber={b.invoice.display_number} payments={b.payments} balance={balance} status={b.invoice.status} cloverCard={{ publicKey: "demo", merchantId: "7G9V9DP834ZY2", sdkUrl: "about:blank" }} />
                 <CloverPanel
                   enabled
                   hostedCheckout

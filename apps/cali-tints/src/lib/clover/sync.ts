@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CloverMatchedBy, Company, Database } from "@/lib/db/types";
-import { listPaymentsSince, type CloverContext, type CloverPayment } from "./client";
+import { listPaymentsSince, type CloverPayment } from "./client";
 import { cloverContext } from "./invoices";
 import { matchPayment, type OpenInvoice } from "./matcher";
 import { fromCents } from "./money";
@@ -35,7 +35,8 @@ export async function syncCloverPayments(supabase: SupabaseClient<Database>, com
   const rows = successful.map((p) => toQueueRow(company.id, p));
   let queued = 0;
   if (rows.length) {
-    const { data: existing } = await supabase.from("clover_payments").select("clover_payment_id").eq("company_id", company.id).in("clover_payment_id", rows.map((r) => r.clover_payment_id));
+    const ids = rows.map((r) => r.clover_payment_id);
+    const { data: existing } = await supabase.from("clover_payments").select("clover_payment_id").eq("company_id", company.id).in("clover_payment_id", ids);
     const known = new Set((existing ?? []).map((e) => e.clover_payment_id));
     const fresh = rows.filter((r) => !known.has(r.clover_payment_id));
     if (fresh.length) {
@@ -45,13 +46,13 @@ export async function syncCloverPayments(supabase: SupabaseClient<Database>, com
     }
   }
 
-  const { matched, unmatched } = await matchQueue(supabase, company.id, ctx);
+  const { matched, unmatched } = await matchQueue(supabase, company.id);
   await supabase.from("companies").update({ clover_last_sync_at: new Date().toISOString() }).eq("id", company.id);
   return { pulled: payments.length, queued, matched, unmatched };
 }
 
 /** Try to match every unmatched queue row against open invoices. */
-export async function matchQueue(supabase: SupabaseClient<Database>, companyId: string, _ctx?: CloverContext): Promise<{ matched: number; unmatched: number }> {
+export async function matchQueue(supabase: SupabaseClient<Database>, companyId: string): Promise<{ matched: number; unmatched: number }> {
   const [{ data: queue }, { data: invoices }] = await Promise.all([
     supabase.from("clover_payments").select("*").eq("company_id", companyId).eq("status", "unmatched").order("paid_at"),
     supabase.from("invoices").select("id, display_number, clover_order_id, total, amount_paid").eq("company_id", companyId).in("status", ["draft", "submitted", "partial"]),
@@ -79,7 +80,9 @@ export async function matchQueue(supabase: SupabaseClient<Database>, companyId: 
   return { matched, unmatched };
 }
 
-function toQueueRow(companyId: string, p: CloverPayment): Database["public"]["Tables"]["clover_payments"]["Insert"] {
+type QueueInsert = Database["public"]["Tables"]["clover_payments"]["Insert"] & { clover_payment_id: string };
+
+function toQueueRow(companyId: string, p: CloverPayment): QueueInsert {
   return {
     company_id: companyId,
     clover_payment_id: p.id,
@@ -91,7 +94,7 @@ function toQueueRow(companyId: string, p: CloverPayment): Database["public"]["Ta
     card_brand: p.cardTransaction?.cardType ?? null,
     last4: p.cardTransaction?.last4 ?? null,
     reference: p.externalReferenceId ?? p.note ?? null,
-    raw: p as unknown as Database["public"]["Tables"]["clover_payments"]["Insert"]["raw"],
+    raw: p as unknown as QueueInsert["raw"],
     status: "unmatched",
   };
 }

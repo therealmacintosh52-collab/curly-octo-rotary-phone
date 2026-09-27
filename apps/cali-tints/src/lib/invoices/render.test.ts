@@ -46,7 +46,12 @@ describe("invoice renderers", () => {
     expect(html).toContain("INV-000012");
     expect(html).toContain("$790.00");
     expect(invoiceEmailText(b)).toContain("Total due: $790.00");
-    if (OUT) writeFileSync(`${OUT}/invoice-email.html`, html);
+    expect(html).not.toContain("Pay by card");
+    const withPay = invoiceEmailHtml(b, "https://app.example.com", "https://checkout.example/pay/abc");
+    expect(withPay).toContain("Pay by card");
+    expect(withPay).toContain('href="https://checkout.example/pay/abc"');
+    expect(invoiceEmailText(b, "https://checkout.example/pay/abc")).toContain("Pay by card (secure Clover checkout): https://checkout.example/pay/abc");
+    if (OUT) writeFileSync(`${OUT}/invoice-email.html`, withPay);
   });
 
   it("helpers", () => {

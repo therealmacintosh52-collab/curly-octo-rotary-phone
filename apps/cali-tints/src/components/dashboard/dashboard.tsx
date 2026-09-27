@@ -39,7 +39,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * Hierarchy: the primary row is what the owner checks daily (this week, this
  * month, what is ready to bill, what is owed). The second row is context.
  */
-export function Dashboard({ stats, range, companyName }: { stats: DashboardStats; range: DashboardRange; companyName: string }) {
+export function Dashboard({ stats, range, companyName, cloverUnmatched = 0 }: { stats: DashboardStats; range: DashboardRange; companyName: string; cloverUnmatched?: number }) {
   const rangeLabel = range.preset === "all" ? "All time" : `${formatDateOnly(range.start, "MMM d")} – ${formatDateOnly(range.end, "MMM d, yyyy")}`;
   const week = presetRange("this_week");
   const month = presetRange("this_month");
@@ -89,6 +89,7 @@ export function Dashboard({ stats, range, companyName }: { stats: DashboardStats
           />
           <StatList
             rows={[
+              ...(cloverUnmatched > 0 ? [{ label: "Clover payments to match", hint: "card payments not yet on an invoice", value: String(cloverUnmatched), tone: "warning" as const, href: "/invoices" }] : []),
               { label: "Overdue", hint: `unpaid > ${stats.reminder_days} days`, value: String(stats.overdue.length), tone: stats.overdue.length ? "warning" : undefined, href: "/invoices?status=overdue" },
               { label: "Collected", hint: "last 90 days", value: formatMoney(stats.paid_last_90), href: "/invoices?status=paid" },
               { label: "Avg days to payment", hint: "submitted → paid", value: stats.avg_days_to_pay === null ? "—" : `${stats.avg_days_to_pay}`, href: "/invoices?status=paid" },
