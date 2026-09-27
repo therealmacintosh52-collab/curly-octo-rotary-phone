@@ -3,12 +3,13 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BanIcon, BanknoteIcon, ChevronDownIcon, CreditCardIcon, DownloadIcon, FileCheckIcon, MailIcon, MoreHorizontalIcon, PrinterIcon, SendIcon, TabletSmartphoneIcon, WalletIcon } from "lucide-react";
+import { BanIcon, BanknoteIcon, ChevronDownIcon, CreditCardIcon, DownloadIcon, FileCheckIcon, ListTreeIcon, MailIcon, MoreHorizontalIcon, PrinterIcon, SendIcon, TabletSmartphoneIcon, WalletIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { InvoiceStatus, SubmissionMethod } from "@/lib/db/types";
 import { markSubmittedAction, submitInvoiceByEmailAction, voidInvoiceAction } from "@/app/(app)/invoices/actions";
 import { useSession } from "@/components/app/session-provider";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, formatTaxRate } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,19 +18,32 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+/** How the balance is made up: every car and service, tax, and every payment so far. */
+export interface BalanceBreakdown {
+  cars: { tag: string; vehicle: string; date: string; services: { name: string; amount: number }[] }[];
+  subtotal: number;
+  tax: number;
+  taxRate: number;
+  total: number;
+  payments: { label: string; sub: string; amount: number }[];
+}
+
 interface Props {
   invoice: { id: string; status: InvoiceStatus; display_number: string; amount_paid: number; total: number; notes: string | null };
   dealership: { name: string; ap_emails: string[]; submission_method: SubmissionMethod };
   companyEmail: string | null;
   /** Which Clover routes are ready; drives the "Collect payment" menu. */
   collect?: { device: boolean; card: boolean; payLink: boolean };
+  /** Enables "See breakdown" in the Collect menu. */
+  breakdown?: BalanceBreakdown | null;
 }
 
-export function InvoiceActions({ invoice, dealership, companyEmail, collect = { device: false, card: false, payLink: false } }: Props) {
+export function InvoiceActions({ invoice, dealership, companyEmail, collect = { device: false, card: false, payLink: false }, breakdown = null }: Props) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
   const [emailOpen, setEmailOpen] = useState(false);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const isVoid = invoice.status === "void";
@@ -99,6 +113,14 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-72">
+            {breakdown && (
+              <>
+                <DropdownMenuItem onSelect={() => setBreakdownOpen(true)}>
+                  <ListTreeIcon /> See what makes up {formatMoney(balance)}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuLabel>Charge now</DropdownMenuLabel>
             <DropdownMenuItem asChild disabled={!collect.device}>
               <Link href={collectHref("device")}>
@@ -177,6 +199,13 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
         <Button variant="ghost" className="hidden text-destructive sm:inline-flex" onClick={() => setVoidOpen(true)}>
           <BanIcon /> Void
         </Button>
+      )}
+
+      {/* Balance breakdown */}
+      {breakdown && (
+        <Dialog open={breakdownOpen} onOpenChange={setBreakdownOpen}>
+          <BreakdownDialog number={invoice.display_number} b={breakdown} balance={balance} />
+        </Dialog>
       )}
 
       {/* Email confirm */}
@@ -315,6 +344,73 @@ function VoidDialog({ onConfirm, pending }: { onConfirm: (reason: string) => voi
           Void invoice
         </Button>
       </DialogFooter>
+    </DialogContent>
+  );
+}
+
+/** Cars and services → subtotal, tax, total → payments → balance due. Same numbers as the page, just in one column. */
+function Row({ label, sub, amount, strong, tone }: { label: string; sub?: string; amount: string; strong?: boolean; tone?: "muted" | "warning" | "accent" }) {
+  return (
+    <div className={cn("flex items-baseline justify-between gap-4 py-1.5", strong && "text-base font-semibold")}>
+      <div className="min-w-0">
+        <div className={cn("truncate", tone === "muted" && "text-muted-foreground")}>{label}</div>
+        {sub && <div className="truncate text-caption text-subtle">{sub}</div>}
+      </div>
+      <div className={cn("shrink-0 tabular-nums", tone === "warning" && "text-warning", tone === "accent" && "text-primary")}>{amount}</div>
+    </div>
+  );
+}
+
+function BreakdownDialog({ number, b, balance }: { number: string; b: BalanceBreakdown; balance: number }) {
+  return (
+    <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>What makes up {formatMoney(balance)}</DialogTitle>
+        <DialogDescription>{number} · every car and service, what has been paid, and what is left.</DialogDescription>
+      </DialogHeader>
+      <div className="text-sm">
+        <div className="text-label text-muted-foreground">Cars detailed</div>
+        <ul className="mt-1 divide-y divide-border">
+          {b.cars.map((c) => (
+            <li key={c.tag + c.date} className="py-2">
+              <div className="flex items-baseline justify-between gap-4">
+                <div className="min-w-0">
+                  <span className="font-semibold">{c.tag}</span>
+                  <span className="text-muted-foreground"> · {c.vehicle}</span>
+                  <div className="text-caption text-subtle">{c.date}</div>
+                </div>
+                <div className="shrink-0 font-medium tabular-nums">{formatMoney(c.services.reduce((s, x) => s + x.amount, 0))}</div>
+              </div>
+              <ul className="mt-1 grid gap-0.5 pl-3 text-caption text-muted-foreground">
+                {c.services.map((sv, i) => (
+                  <li key={i} className="flex justify-between gap-4">
+                    <span className="truncate">{sv.name}</span>
+                    <span className="shrink-0 tabular-nums">{formatMoney(sv.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 border-t border-border pt-1">
+          <Row label="Subtotal" amount={formatMoney(b.subtotal)} tone="muted" />
+          <Row label={`Tax (${formatTaxRate(b.taxRate)})`} amount={formatMoney(b.tax)} tone="muted" />
+          <Row label="Invoice total" amount={formatMoney(b.total)} strong />
+        </div>
+        <div className="mt-3 text-label text-muted-foreground">Paid so far</div>
+        {b.payments.length === 0 ? (
+          <p className="py-1.5 text-muted-foreground">Nothing yet.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {b.payments.map((p, i) => (
+              <Row key={i} label={p.label} sub={p.sub} amount={`-${formatMoney(p.amount)}`} />
+            ))}
+          </div>
+        )}
+        <div className="mt-2 border-t-2 border-border pt-1">
+          <Row label="Balance due" amount={formatMoney(balance)} strong tone={balance > 0 ? "warning" : "accent"} />
+        </div>
+      </div>
     </DialogContent>
   );
 }

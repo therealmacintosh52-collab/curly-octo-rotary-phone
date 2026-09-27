@@ -3,6 +3,7 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { Page } from "@/components/app/page-header";
 import { InvoiceActions } from "@/components/invoices/invoice-actions";
+import { balanceBreakdown } from "@/lib/invoices/breakdown";
 import { PaymentsCard } from "@/components/invoices/payments-card";
 import { SubmissionsCard } from "@/components/invoices/submissions-card";
 import { CloverPanel } from "@/components/invoices/clover-panel";
@@ -49,6 +50,7 @@ export default function DevInvoicePreview() {
                 dealership={{ name: b.dealership.name, ap_emails: b.dealership.ap_emails, submission_method: "email" }}
                 companyEmail={b.company.email}
                 collect={{ device: true, card: true, payLink: true }}
+                breakdown={balanceBreakdown({ ...b, invoice: { ...b.invoice, total: Number(b.invoice.total) }, payments: b.payments })}
               />
             </div>
             <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_360px]">

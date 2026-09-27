@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { InvoiceActions } from "@/components/invoices/invoice-actions";
+import { balanceBreakdown } from "@/lib/invoices/breakdown";
 import { PaymentsCard } from "@/components/invoices/payments-card";
 import { SubmissionsCard } from "@/components/invoices/submissions-card";
 import { CloverPanel } from "@/components/invoices/clover-panel";
@@ -89,6 +90,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
           dealership={{ name: dealership.name, ap_emails: dealership.ap_emails, submission_method: dealership.submission_method }}
           companyEmail={company.email}
           collect={{ device: !!(clover && company.clover_device_id), card: !!cloverCard, payLink: !!(clover && company.clover_hosted_checkout) }}
+          breakdown={balanceBreakdown({ invoice, items, payments })}
         />
       </div>
 
