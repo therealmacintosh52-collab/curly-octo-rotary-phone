@@ -23,19 +23,19 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
     {
       id: "j1", tag_number: "4821", vin: "W1KZF8DB3NA123456", year: 2024, make: "Mercedes-Benz", model: "GLE 450", color: "Obsidian Black",
       performed_at: isoDaysAgo(0), ro_po_number: null, status: "logged", invoice_id: null, deleted_at: null,
-      dealership: { name: "Mercedes-Benz of Anaheim" }, detailer: { full_name: "Marco R." }, invoice: null,
+      dealership: { name: "Mercedes-Benz of El Dorado Hills" }, detailer: { full_name: "Marco R." }, invoice: null,
       job_services: [{ price: 200, service: { name: "Used" } }],
     },
     {
       id: "j2", tag_number: "K-118", vin: null, year: 2023, make: "Mercedes-Benz", model: "C 300", color: "Polar White",
       performed_at: isoDaysAgo(2), ro_po_number: "RO-55821", status: "invoiced", invoice_id: "i1", deleted_at: null,
-      dealership: { name: "Mercedes-Benz of Irvine" }, detailer: { full_name: "Dee One" }, invoice: { display_number: "INV-000012", status: "submitted" },
+      dealership: { name: "Mercedes-Benz of Sacramento" }, detailer: { full_name: "Dee One" }, invoice: { display_number: "INV-000012", status: "submitted" },
       job_services: [{ price: 125, service: { name: "Service Loaner Detail" } }],
     },
     {
       id: "j3", tag_number: "7702", vin: "WDDGF4HB3CR227845", year: 2012, make: "Mercedes-Benz", model: "C-Class", color: null,
       performed_at: isoDaysAgo(9), ro_po_number: null, status: "invoiced", invoice_id: "i0", deleted_at: null,
-      dealership: { name: "Mercedes-Benz of Anaheim" }, detailer: { full_name: "Marco R." }, invoice: { display_number: "INV-000009", status: "paid" },
+      dealership: { name: "Mercedes-Benz of El Dorado Hills" }, detailer: { full_name: "Marco R." }, invoice: { display_number: "INV-000009", status: "paid" },
       job_services: [{ price: 60, service: { name: "PDI" } }, { price: 20, service: { name: "Sold" } }],
     },
   ];
@@ -65,7 +65,7 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
                 <JobsFilters
                   filters={filters}
                   services={[{ id: "s1", name: "Used" }, { id: "s2", name: "PDI" }, { id: "s3", name: "Service Loaner Detail" }, { id: "s4", name: "Sold" }]}
-                  dealerships={[{ id: "d1", name: "Mercedes-Benz of Anaheim" }, { id: "d2", name: "Mercedes-Benz of Irvine" }]}
+                  dealerships={[{ id: "d1", name: "Mercedes-Benz of El Dorado Hills" }, { id: "d2", name: "Mercedes-Benz of Sacramento" }]}
                   isAdmin
                 />
               </Suspense>

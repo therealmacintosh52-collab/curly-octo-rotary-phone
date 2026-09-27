@@ -42,8 +42,8 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
     ],
     by_day: days,
     overdue: [
-      { id: "i1", display_number: "INV-000009", dealership: "Mercedes-Benz of Anaheim", total: 4210, amount_paid: 0, submitted_at: "2026-08-02T17:00:00Z", days_outstanding: 55 },
-      { id: "i2", display_number: "INV-000011", dealership: "Mercedes-Benz of Irvine", total: 1875.5, amount_paid: 500, submitted_at: "2026-08-20T17:00:00Z", days_outstanding: 37 },
+      { id: "i1", display_number: "INV-000009", dealership: "Mercedes-Benz of El Dorado Hills", total: 4210, amount_paid: 0, submitted_at: "2026-08-02T17:00:00Z", days_outstanding: 55 },
+      { id: "i2", display_number: "INV-000011", dealership: "Mercedes-Benz of Sacramento", total: 1875.5, amount_paid: 500, submitted_at: "2026-08-20T17:00:00Z", days_outstanding: 37 },
     ],
     reminder_days: 30,
   };

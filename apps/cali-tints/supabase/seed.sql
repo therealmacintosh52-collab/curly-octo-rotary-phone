@@ -19,12 +19,12 @@ insert into public.dealerships (id, company_id, name, address_line1, city, state
                                 submission_method, invoice_mode, payment_terms)
 values
   ('00000000-0000-4000-8000-000000000101', '00000000-0000-4000-8000-000000000001',
-   'Mercedes-Benz of Anaheim', '6500 E Santa Ana Canyon Rd', 'Anaheim', 'CA', '92807',
-   'Service Manager', '(555) 200-3000', 'Accounts Payable', array['ap@mbanaheim.example'],
+   'Mercedes-Benz of El Dorado Hills', '1000 Mercedes Ln', 'El Dorado Hills', 'CA', '95762',
+   'Service Manager', '(555) 200-3000', 'Accounts Payable', array['ap@mbeldoradohills.example'],
    'email', 'batch', 'Net 30'),
   ('00000000-0000-4000-8000-000000000102', '00000000-0000-4000-8000-000000000001',
-   'Mercedes-Benz of Irvine', '9 Auto Center Dr', 'Irvine', 'CA', '92618',
-   'Fixed Ops Director', '(555) 200-4000', 'AP Desk', array['ap@mbirvine.example', 'controller@mbirvine.example'],
+   'Mercedes-Benz of Sacramento', '1810 Howe Ave', 'Sacramento', 'CA', '95825',
+   'Fixed Ops Director', '(555) 200-4000', 'AP Desk', array['ap@mbsacramento.example', 'controller@mbsacramento.example'],
    'portal', 'per_job', 'Net 45')
 on conflict (id) do nothing;
 
@@ -42,10 +42,11 @@ values
   ('00000000-0000-4000-8000-000000000202', '00000000-0000-4000-8000-000000000001', 'Service Loaner Detail', 'Full detail on a service loaner',            'service', 125.00, null, null, 40),
   ('00000000-0000-4000-8000-000000000210', '00000000-0000-4000-8000-000000000001', 'Touch Up Detail',       'Quick touch-up; $20–40 by condition',        'addon',   30.00, 20.00, 40.00, 50),
   ('00000000-0000-4000-8000-000000000211', '00000000-0000-4000-8000-000000000001', 'Tint Removal',          'Strip old tint on a used unit',              'addon',   40.00, null, null, 60),
-  ('00000000-0000-4000-8000-000000000207', '00000000-0000-4000-8000-000000000001', 'Paint Correction (1-step)', 'Single-stage machine polish',            'addon',  250.00, null, null, 70)
+  ('00000000-0000-4000-8000-000000000207', '00000000-0000-4000-8000-000000000001', 'Paint Correction (1-step)', 'Single-stage machine polish',            'addon',  250.00, null, null, 70),
+  ('00000000-0000-4000-8000-000000000212', '00000000-0000-4000-8000-000000000001', 'Other',                 'Anything not on the menu; set the amount',   'addon',    0.00,  0.00, 100000.00, 80)
 on conflict (id) do nothing;
 
--- Irvine negotiated a lower PDI rate and a higher used-car detail.
+-- Sacramento negotiated a lower PDI rate and a higher used-car detail.
 insert into public.dealership_service_prices (company_id, dealership_id, service_id, price)
 values
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000102', '00000000-0000-4000-8000-000000000204', 55.00),

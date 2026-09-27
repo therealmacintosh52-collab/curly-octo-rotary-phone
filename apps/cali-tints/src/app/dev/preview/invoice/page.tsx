@@ -50,8 +50,8 @@ export default function DevInvoicePreview() {
                 <SubmissionsCard
                   submittedAt={b.invoice.submitted_at}
                   submissions={[
-                    { id: "s1", company_id: b.company.id, invoice_id: b.invoice.id, method: "email", status: "sent", recipients: ["ap@mbanaheim.example"], cc: ["billing@calitints.example"], provider: "resend", message_id: "3f1c2b0e-9d8a-4b1e-8c5a-1a2b3c4d5e6f", error: null, note: null, confirmation_path: null, created_by: "u1", created_at: isoDaysAgo(3), created_by_name: "Owner", confirmation_url: null },
-                    { id: "s2", company_id: b.company.id, invoice_id: b.invoice.id, method: "email", status: "failed", recipients: ["ap@mbanaheim.example"], cc: [], provider: "resend", message_id: null, error: "Email is not configured: set RESEND_API_KEY and EMAIL_FROM", note: null, confirmation_path: null, created_by: "u1", created_at: isoDaysAgo(4), created_by_name: "Owner", confirmation_url: null },
+                    { id: "s1", company_id: b.company.id, invoice_id: b.invoice.id, method: "email", status: "sent", recipients: ["ap@mbeldoradohills.example"], cc: ["billing@calitints.example"], provider: "resend", message_id: "3f1c2b0e-9d8a-4b1e-8c5a-1a2b3c4d5e6f", error: null, note: null, confirmation_path: null, created_by: "u1", created_at: isoDaysAgo(3), created_by_name: "Owner", confirmation_url: null },
+                    { id: "s2", company_id: b.company.id, invoice_id: b.invoice.id, method: "email", status: "failed", recipients: ["ap@mbeldoradohills.example"], cc: [], provider: "resend", message_id: null, error: "Email is not configured: set RESEND_API_KEY and EMAIL_FROM", note: null, confirmation_path: null, created_by: "u1", created_at: isoDaysAgo(4), created_by_name: "Owner", confirmation_url: null },
                   ]}
                 />
               </div>
@@ -63,7 +63,7 @@ export default function DevInvoicePreview() {
                   { job_id: "j0", other_job_id: "x1", kind: "invoiced", other_tag: "4821", other_vin: "W1KZF8DB3NA123456", other_performed_at: "2026-08-20T18:00:00Z", other_invoice_number: "INV-000009", other_services: "Used", shared_services: "Used", match_on: "vin" },
                   { job_id: "j2", other_job_id: "x2", kind: "in_batch", other_tag: "K-118", other_vin: null, other_performed_at: "2026-09-04T18:00:00Z", other_invoice_number: null, other_services: "PDI", shared_services: null, match_on: "tag" },
                 ]}
-                dealerships={[b.dealership, { ...b.dealership, id: "d2", name: "Mercedes-Benz of Irvine", invoice_mode: "per_job" }]}
+                dealerships={[b.dealership, { ...b.dealership, id: "d2", name: "Mercedes-Benz of Sacramento", invoice_mode: "per_job" }]}
                 dealershipId={b.dealership.id}
                 from="2026-09-01"
                 to="2026-09-30"

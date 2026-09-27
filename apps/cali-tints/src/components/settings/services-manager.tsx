@@ -75,7 +75,7 @@ export function ServicesManager({
                     {formatMoney(s.default_price)}
                     {s.price_min !== null && s.price_max !== null && (
                       <div className="text-xs text-muted-foreground">
-                        {formatMoney(s.price_min)}–{formatMoney(s.price_max)} no reason needed
+                        {Number(s.price_min) === 0 && Number(s.price_max) >= 10000 ? "any amount, set per job" : `${formatMoney(s.price_min)}–${formatMoney(s.price_max)} no reason needed`}
                       </div>
                     )}
                   </TableCell>

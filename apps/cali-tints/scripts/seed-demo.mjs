@@ -156,7 +156,7 @@ async function main() {
   const d8 = new Date(today);
   d8.setDate(today.getDate() - 8);
 
-  // 1) Old Anaheim batch: submitted 45 days ago, paid in full 20 days ago.
+  // 1) Old El Dorado Hills batch: submitted 45 days ago, paid in full 20 days ago.
   const { data: inv1, error: e1 } = await owner.rpc("generate_invoice", { p_dealership_id: ANAHEIM, p_start: fmt(d60), p_end: fmt(d31), p_notes: "Demo: first batch" });
   if (e1) throw e1;
   await owner.rpc("mark_invoice_submitted", { p_invoice_id: inv1, p_method: "email", p_note: "Demo: emailed to AP" });
@@ -165,7 +165,7 @@ async function main() {
   // Backdate submitted_at so days-to-pay is realistic (service role bypasses RLS).
   await admin.from("invoices").update({ submitted_at: new Date(today.getTime() - 45 * 864e5).toISOString() }).eq("id", inv1);
 
-  // 2) Recent Anaheim batch: submitted 9 days ago, partially paid.
+  // 2) Recent El Dorado Hills batch: submitted 9 days ago, partially paid.
   const { data: inv2, error: e2 } = await owner.rpc("generate_invoice", { p_dealership_id: ANAHEIM, p_start: fmt(d30), p_end: fmt(d8), p_notes: "Demo: second batch" });
   if (e2) throw e2;
   await owner.rpc("mark_invoice_submitted", { p_invoice_id: inv2, p_method: "portal", p_note: "Demo: uploaded to dealer portal, ref 88213" });
@@ -173,7 +173,7 @@ async function main() {
   await owner.rpc("record_payment", { p_invoice_id: inv2, p_amount: Math.round(Number(total2.total) * 0.4 * 100) / 100, p_paid_at: fmt(new Date(today.getTime() - 2 * 864e5)), p_method: "ach", p_note: "Partial: dealer short-paid pending PO" });
   await admin.from("invoices").update({ submitted_at: new Date(today.getTime() - 9 * 864e5).toISOString() }).eq("id", inv2);
 
-  // 3) Irvine per-job invoices for everything older than 8 days: submitted 40 days ago → overdue.
+  // 3) Sacramento per-job invoices for everything older than 8 days: submitted 40 days ago → overdue.
   const { data: irvineIds, error: e3 } = await owner.rpc("generate_per_job_invoices", { p_dealership_id: IRVINE, p_notes: "Demo: per-RO" });
   if (e3) throw e3;
   for (const id of (irvineIds ?? []).slice(0, 3)) {

@@ -88,7 +88,7 @@ begin
     raise exception 'rollback' using errcode = 'P0999';
   exception when sqlstate 'P0999' then null; end;
 
-  -- dealership price override resolves (Irvine full detail = 165)
+  -- dealership price override resolves (Sacramento full detail = 165)
   j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'B2', 'ro_po_number', 'RO-77',
       'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
   assert (select price from public.job_services where job_id = j2.id) = 215.00, 'dealership price used';
@@ -138,7 +138,7 @@ begin
   select count(*) into n from public.jobs; assert n = 3, 'admin sees all jobs';
   select count(*) into n from public.audit_log where table_name = 'jobs'; assert n >= 3, 'audit rows written';
 
-  -- batch invoice for Anaheim (2 jobs: A123 @ 230 (200 + 30 override), C9 @ 125)
+  -- batch invoice for El Dorado Hills (2 jobs: A123 @ 230 (200 + 30 override), C9 @ 125)
   v_inv := public.generate_invoice('00000000-0000-4000-8000-000000000101', (current_date - 30), current_date + 1, 'September batch');
   select * into inv from public.invoices where id = v_inv;
   assert inv.display_number = 'INV-000001', 'first number: ' || inv.display_number;
@@ -195,7 +195,7 @@ begin
   select * into inv from public.invoices where id = v_inv;
   assert inv.status = 'partial' and inv.amount_paid = 255, 'payment removal recomputes';
 
-  -- per-job mode for Irvine: two jobs on RO-77, one on RO-88, one with none → 3 invoices
+  -- per-job mode for Sacramento: two jobs on RO-77, one on RO-88, one with none → 3 invoices
   perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'D1', 'ro_po_number', 'RO-77',
       'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000204'))));
   perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'D2', 'ro_po_number', 'RO-88',

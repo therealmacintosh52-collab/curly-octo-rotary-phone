@@ -31,7 +31,14 @@ export function priceWithinPolicy(s: { list_price: number; price_min: number | n
   return s.price_min !== null && s.price_max !== null && price >= s.price_min && price <= s.price_max;
 }
 
+/** True for open-ended services like "Other": no list price, any amount within a huge range. */
+export function isOpenAmount(s: { list_price?: number; price?: number | string; price_min: number | string | null; price_max: number | string | null }): boolean {
+  const list = Number(s.list_price ?? s.price ?? 0);
+  return list === 0 && s.price_min !== null && s.price_max !== null && Number(s.price_min) === 0 && Number(s.price_max) >= 10000;
+}
+
 export function priceLabel(price: number, min: number | null, max: number | null): string {
+  if (isOpenAmount({ list_price: price, price_min: min, price_max: max })) return "Any amount";
   if (min !== null && max !== null && min !== max) return `${formatMoney(min)}–${formatMoney(max)}`;
   return formatMoney(price);
 }
@@ -59,19 +66,25 @@ export function ServicePicker({
     if (existing) {
       onChange(value.filter((s) => s.service_id !== row.service_id));
     } else {
-      onChange([
-        ...value,
-        {
-          service_id: row.service_id,
-          name: row.name,
-          list_price: Number(row.price),
-          price_min: row.price_min === null ? null : Number(row.price_min),
-          price_max: row.price_max === null ? null : Number(row.price_max),
-          price: Number(row.price),
-          override_reason: null,
-        },
-      ]);
+      const next: SelectedService = {
+        service_id: row.service_id,
+        name: row.name,
+        list_price: Number(row.price),
+        price_min: row.price_min === null ? null : Number(row.price_min),
+        price_max: row.price_max === null ? null : Number(row.price_max),
+        price: Number(row.price),
+        override_reason: null,
+      };
+      onChange([...value, next]);
+      // Open-amount services ("Other") have no price until you type one.
+      if (isOpenAmount(next)) setEditing(next);
     }
+  }
+
+  function closeDialog() {
+    // Cancelling the amount on an open-amount service deselects it rather than leaving a $0 line.
+    if (editing && isOpenAmount(editing) && editing.price === 0) onChange(value.filter((s) => s.service_id !== editing.service_id));
+    setEditing(null);
   }
 
   function applyOverride(next: SelectedService) {
@@ -147,7 +160,7 @@ export function ServicePicker({
         ))}
       </div>
 
-      <OverrideDialog service={editing} onClose={() => setEditing(null)} onApply={applyOverride} />
+      <OverrideDialog service={editing} onClose={closeDialog} onApply={applyOverride} />
     </>
   );
 }
@@ -176,17 +189,20 @@ function OverrideDialog({
   const parsed = Number(price);
   const changed = Number.isFinite(parsed) && parsed !== service?.list_price;
   const needsReason = !!service && Number.isFinite(parsed) && !priceWithinPolicy(service, parsed);
-  const valid = Number.isFinite(parsed) && parsed >= 0 && (!needsReason || reason.trim().length > 0);
-  const ranged = !!service && service.price_min !== null && service.price_max !== null;
+  const open = !!service && isOpenAmount(service);
+  const valid = Number.isFinite(parsed) && (open ? parsed > 0 : parsed >= 0) && (!needsReason || reason.trim().length > 0);
+  const ranged = !!service && service.price_min !== null && service.price_max !== null && !open;
 
   return (
     <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{ranged ? "Set price" : "Override price"}</DialogTitle>
+          <DialogTitle>{open ? "Set amount" : ranged ? "Set price" : "Override price"}</DialogTitle>
           <DialogDescription>
             {service?.name} ·{" "}
-            {ranged
+            {open
+              ? "enter what this add-on costs. Use the notes for what was done."
+              : ranged
               ? `quoted ${formatMoney(service?.price_min)}–${formatMoney(service?.price_max)}. Pick any price in that range; outside it a reason is required.`
               : `list price ${formatMoney(service?.list_price)}. A reason is required when the price differs.`}
           </DialogDescription>
@@ -208,9 +224,11 @@ function OverrideDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => service && onApply({ ...service, price: service.list_price, override_reason: null })}>
-            Reset to list
-          </Button>
+          {!open && (
+            <Button variant="ghost" onClick={() => service && onApply({ ...service, price: service.list_price, override_reason: null })}>
+              Reset to list
+            </Button>
+          )}
           <Button
             disabled={!valid}
             onClick={() => service && onApply({ ...service, price: Math.round(parsed * 100) / 100, override_reason: changed && reason.trim() ? reason.trim() : null })}

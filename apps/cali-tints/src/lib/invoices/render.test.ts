@@ -53,6 +53,6 @@ describe("invoice renderers", () => {
     expect(netDays("Net 30")).toBe(30);
     expect(netDays("net45")).toBe(45);
     expect(netDays("Due on receipt")).toBeNull();
-    expect(invoiceFileStem(b)).toBe("INV-000012-Mercedes-Benz-of-Anaheim");
+    expect(invoiceFileStem(b)).toBe("INV-000012-Mercedes-Benz-of-El-Dorado-Hills");
   });
 });

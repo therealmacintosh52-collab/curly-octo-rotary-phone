@@ -70,7 +70,7 @@ export function formatAddress(a: { address_line1: string | null; address_line2: 
   return lines;
 }
 
-/** Safe file stem for downloads: INV-000012-Mercedes-Benz-of-Anaheim */
+/** Safe file stem for downloads: INV-000012-Mercedes-Benz-of-El-Dorado-Hills */
 export function invoiceFileStem(b: InvoiceBundle): string {
   const dealer = b.dealership.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return `${b.invoice.display_number}-${dealer}`;

@@ -46,7 +46,7 @@ export default function DevPreviewPage() {
     {
       id: "d1",
       company_id: company.id,
-      name: "Mercedes-Benz of Anaheim",
+      name: "Mercedes-Benz of El Dorado Hills",
       address_line1: null,
       address_line2: null,
       city: null,
@@ -67,7 +67,7 @@ export default function DevPreviewPage() {
     {
       id: "d2",
       company_id: company.id,
-      name: "Mercedes-Benz of Irvine",
+      name: "Mercedes-Benz of Sacramento",
       address_line1: null,
       address_line2: null,
       city: null,
@@ -94,6 +94,7 @@ export default function DevPreviewPage() {
     { service_id: "s5", name: "Touch Up Detail", description: "$20–40 by condition", category: "addon", price: 30, price_min: 20, price_max: 40, is_override: false, sort_order: 50 },
     { service_id: "s6", name: "Tint Removal", description: "Strip old tint on a used unit", category: "addon", price: 40, price_min: null, price_max: null, is_override: false, sort_order: 60 },
     { service_id: "s7", name: "Paint Correction (1-step)", description: "Single-stage machine polish", category: "addon", price: 250, price_min: null, price_max: null, is_override: false, sort_order: 70 },
+    { service_id: "s8", name: "Other", description: "Anything not on the menu; set the amount", category: "addon", price: 0, price_min: 0, price_max: 100000, is_override: false, sort_order: 80 },
   ];
 
   return (
