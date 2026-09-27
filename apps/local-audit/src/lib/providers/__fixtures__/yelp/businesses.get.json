@@ -1,0 +1,19 @@
+{
+  "request": { "idOrAlias": "test-plumbing-sacramento" },
+  "response": {
+    "id": "synthetic-yelp-id-0001",
+    "alias": "test-plumbing-sacramento",
+    "name": "Test Plumbing",
+    "rating": 4.5,
+    "review_count": 87,
+    "is_claimed": true,
+    "is_closed": false,
+    "categories": [{ "alias": "plumbing", "title": "Plumbing" }],
+    "phone": "+19165550100",
+    "url": "https://www.yelp.com/biz/test-plumbing-sacramento",
+    "photos": []
+  },
+  "cost_usd": 0.005,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

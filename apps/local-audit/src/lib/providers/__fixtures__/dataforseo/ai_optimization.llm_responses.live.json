@@ -1,0 +1,7 @@
+{
+  "request": { "llm": "chatgpt", "prompt": "Best plumber in Sacramento", "location_code": 1014221 },
+  "response": { "tasks": [ { "cost": 0.015, "status_code": 20000, "result": [ { "items": [ { "sections": [ { "text": "Well-reviewed options include Competitor One Plumbing and Competitor Two.", "annotations": [ { "url": "https://www.yelp.com/biz/competitor-one" } ] } ] } ] } ] } ] },
+  "cost_usd": 0.015,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

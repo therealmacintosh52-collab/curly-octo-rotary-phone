@@ -1,0 +1,12 @@
+{
+  "request": { "model": "claude-opus-5", "schema": "trust-signals-v1" },
+  "response": {
+    "data": { "phone_visible": true, "rating_badge": true, "owner_named": false, "team_photos": false, "licence_shown": true },
+    "stop_reason": "end_turn",
+    "refusal_category": null,
+    "usage": { "input_tokens": 1300, "output_tokens": 45, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0 }
+  },
+  "cost_usd": 0.007625,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

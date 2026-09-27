@@ -1,0 +1,24 @@
+{
+  "request": { "keyword": "plumber sacramento", "location_code": 1014221, "language_code": "en", "device": "mobile", "depth": 20 },
+  "response": {
+    "tasks": [
+      {
+        "cost": 0.002,
+        "status_code": 20000,
+        "result": [
+          {
+            "keyword": "plumber sacramento",
+            "items": [
+              { "type": "organic", "rank_group": 1, "rank_absolute": 4, "domain": "competitor-one.example", "url": "https://competitor-one.example/", "title": "Competitor One Plumbing" },
+              { "type": "organic", "rank_group": 2, "rank_absolute": 5, "domain": "competitor-two.example", "url": "https://competitor-two.example/sacramento", "title": "Competitor Two" },
+              { "type": "organic", "rank_group": 7, "rank_absolute": 11, "domain": "testplumbing.example", "url": "https://testplumbing.example/", "title": "Test Plumbing" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "cost_usd": 0.002,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

@@ -1,0 +1,57 @@
+# Lint, typecheck, unit tests, SQL access-control tests (against a throwaway
+# Postgres 16) and a production build for apps/local-audit.
+name: Local Audit CI
+
+on:
+  push:
+    paths: ["apps/local-audit/**", ".github/workflows/local-audit-ci.yml"]
+  pull_request:
+    paths: ["apps/local-audit/**", ".github/workflows/local-audit-ci.yml"]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/local-audit
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports: ["54329:5432"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/local-audit/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      # next typegen runs first: Next 16 generates PageProps/LayoutProps into .next/types.
+      - run: pnpm typecheck
+      - run: pnpm test
+        env:
+          PROVIDER_MODE: mock
+      - name: SQL tests
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "54329"
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: bash supabase/tests/run.sh
+      - name: Build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+          PROVIDER_MODE: mock
+        run: pnpm build

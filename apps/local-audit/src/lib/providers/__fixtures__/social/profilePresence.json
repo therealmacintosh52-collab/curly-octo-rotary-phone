@@ -1,0 +1,7 @@
+{
+  "request": { "network": "facebook", "urlOrHandle": "https://www.facebook.com/testplumbing" },
+  "response": { "network": "facebook", "url": "https://www.facebook.com/testplumbing", "exists": true, "last_activity_at": "2026-08-30T00:00:00Z", "followers": 412, "checked_at": "2026-09-27T00:00:00Z" },
+  "cost_usd": 0,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

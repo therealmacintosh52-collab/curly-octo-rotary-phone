@@ -1,0 +1,12 @@
+{
+  "request": { "model": "claude-opus-5", "messages": [{ "role": "user", "content": "Summarise the visible trust signals on this home page." }], "max_tokens": 16000 },
+  "response": {
+    "text": "The page shows a phone number in the header, a 4.6-star rating badge linking to Google, and a 'licensed and insured' line in the footer. No named owner, no photos of the team.",
+    "stop_reason": "end_turn",
+    "refusal_category": null,
+    "usage": { "input_tokens": 1200, "output_tokens": 60, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0 }
+  },
+  "cost_usd": 0.0075,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

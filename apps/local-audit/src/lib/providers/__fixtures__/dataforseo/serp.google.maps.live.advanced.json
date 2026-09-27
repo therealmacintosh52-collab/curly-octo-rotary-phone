@@ -1,0 +1,24 @@
+{
+  "request": { "keyword": "plumber near me", "location_coordinate": "38.5816,-121.4944,14z", "language_code": "en" },
+  "response": {
+    "tasks": [
+      {
+        "cost": 0.002,
+        "status_code": 20000,
+        "result": [
+          {
+            "keyword": "plumber near me",
+            "items": [
+              { "type": "maps_search", "rank_group": 1, "rank_absolute": 1, "domain": "competitor-one.example", "title": "Competitor One Plumbing" },
+              { "type": "maps_search", "rank_group": 2, "rank_absolute": 2, "domain": "competitor-two.example", "title": "Competitor Two" },
+              { "type": "maps_search", "rank_group": 6, "rank_absolute": 6, "domain": "testplumbing.example", "title": "Test Plumbing" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "cost_usd": 0.002,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

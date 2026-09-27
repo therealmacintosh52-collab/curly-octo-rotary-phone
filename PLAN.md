@@ -4,6 +4,10 @@ One plan for everything in this repository, in priority order. Written from the
 live state of GitHub Actions, Vercel and the branches on 2026-09-27; every fact
 below has a source, and anything unverified says so.
 
+## 0a. Added 2026-09-27: Local Audit app (`apps/local-audit`)
+
+A new product started the same day this plan was written: the Local Business Visibility & Revenue-Leak Auditor, built from `apps/local-audit/docs/MASTER_PLAN.md`. Phase 0 (schema + RLS, admin auth, provider adapters with mocks, Inngest skeleton, CI) is on this branch; its own plan, decisions and owner steps live in `apps/local-audit/docs/`. It now sits at the top of the priority list alongside §1.
+
 ## 0. Where things actually stand
 
 | Project | Where | State (verified) | Verdict |

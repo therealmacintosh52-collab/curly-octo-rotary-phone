@@ -1,0 +1,7 @@
+{
+  "request": { "phone": "+19165550100" },
+  "response": { "businesses": [ { "id": "synthetic-yelp-id-0001", "alias": "test-plumbing-sacramento", "name": "Test Plumbing", "rating": 4.5, "review_count": 87 } ], "total": 1 },
+  "cost_usd": 0.005,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

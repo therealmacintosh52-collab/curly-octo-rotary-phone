@@ -1,0 +1,7 @@
+{
+  "request": { "target": "testplumbing.example" },
+  "response": { "tasks": [ { "cost": 0.02003, "status_code": 20000, "result": [ { "target": "testplumbing.example", "backlinks": 143, "referring_domains": 38, "rank": 112 } ] } ] },
+  "cost_usd": 0.02003,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

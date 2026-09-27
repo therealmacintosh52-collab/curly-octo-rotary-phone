@@ -1,0 +1,7 @@
+{
+  "request": { "target": "testplumbing.example", "location_code": 2840, "language_code": "en", "limit": 100 },
+  "response": { "tasks": [ { "cost": 0.0101, "status_code": 20000, "result": [ { "items": [ { "keyword_data": { "keyword": "test plumbing sacramento", "keyword_info": { "search_volume": 90, "cpc": 12.4 } }, "ranked_serp_element": { "serp_item": { "rank_absolute": 1 } } } ] } ] } ] },
+  "cost_usd": 0.0101,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

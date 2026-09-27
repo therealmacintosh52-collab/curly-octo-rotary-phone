@@ -1,0 +1,7 @@
+{
+  "request": { "url": "http://www.testplumbing.example" },
+  "response": { "input": "http://www.testplumbing.example", "canonical_domain": "testplumbing.example", "canonical_url": "https://testplumbing.example/", "https": true, "redirect_chain": ["http://www.testplumbing.example/", "https://www.testplumbing.example/", "https://testplumbing.example/"] },
+  "cost_usd": 0,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

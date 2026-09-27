@@ -1,0 +1,18 @@
+{
+  "request": { "placeId": "ChIJsynthetic000000000001" },
+  "response": {
+    "id": "ChIJsynthetic000000000001",
+    "displayName": { "text": "Test Plumbing" },
+    "formattedAddress": "1 Main St, Sacramento, CA 95814, USA",
+    "nationalPhoneNumber": "(916) 555-0100",
+    "websiteUri": "https://testplumbing.example/",
+    "rating": 4.6,
+    "userRatingCount": 128,
+    "primaryType": "plumber",
+    "types": ["plumber", "point_of_interest", "establishment"],
+    "location": { "latitude": 38.5816, "longitude": -121.4944 }
+  },
+  "cost_usd": 0.02,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}
