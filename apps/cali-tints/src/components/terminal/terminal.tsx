@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BanknoteIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, MoreHorizontalIcon, PlugZapIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon, XIcon } from "lucide-react";
+import { BanknoteIcon, CheckIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, LayersIcon, MoreHorizontalIcon, PlugZapIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { PaymentMethod, TerminalTransaction } from "@/lib/db/types";
-import { takeSaleAction, type SaleInput } from "@/app/(app)/terminal/actions";
+import { takeSaleAction, type SaleInput, type SaleResult } from "@/app/(app)/terminal/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatDateOnly, nowMs } from "@/lib/dates";
-import { METHOD_LABELS, paidWith, receiptSubject, type ReceiptCompany } from "@/lib/terminal/receipt";
+import { METHOD_LABELS, paidWith, receiptSubject, receiptTotal, type ReceiptCompany } from "@/lib/terminal/receipt";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,7 @@ export function Terminal({
   cloverEnabled,
   company,
   initialInvoiceId = null,
+  initialInvoiceIds = null,
   initialMethod = null,
   missingInvoice = null,
   checklist = null,
@@ -64,6 +65,8 @@ export function Terminal({
   company: ReceiptCompany;
   /** Deep link (?invoice=): start with this invoice selected and its balance on the keypad. */
   initialInvoiceId?: string | null;
+  /** Deep link (?invoices=a,b,c | all): start with several selected, combined balance on the keypad. */
+  initialInvoiceIds?: string[] | null;
   /** Deep link (?method=): open this payment dialog right away when it is available. */
   initialMethod?: "card" | "device" | null;
   /** ?invoice= pointed at an invoice with no open balance. */
@@ -77,18 +80,23 @@ export function Terminal({
   const { demo } = useSession();
   const [pending, start] = useTransition();
 
-  const initialInvoice = initialInvoiceId ? (openInvoices.find((i) => i.id === initialInvoiceId) ?? null) : null;
+  const initialIds = useMemo(() => {
+    const want = new Set([...(initialInvoiceIds ?? []), ...(initialInvoiceId ? [initialInvoiceId] : [])]);
+    return openInvoices.filter((i) => want.has(i.id)).map((i) => i.id);
+  }, [openInvoices, initialInvoiceIds, initialInvoiceId]);
+  const initialCents = Math.round(openInvoices.filter((i) => initialIds.includes(i.id)).reduce((s, i) => s + i.balance, 0) * 100);
   // Amount is kept in cents so the keypad behaves like a register (typing 1 2 5 0 → $12.50).
-  const [cents, setCents] = useState(initialInvoice ? Math.round(initialInvoice.balance * 100) : 0);
-  const [mode, setMode] = useState<"sale" | "invoice">(initialInvoice ? "invoice" : "sale");
-  const [invoiceId, setInvoiceId] = useState<string | null>(initialInvoice?.id ?? null);
+  const [cents, setCents] = useState(initialCents);
+  const [mode, setMode] = useState<"sale" | "invoice">(initialIds.length ? "invoice" : "sale");
+  // One or many invoices; several are settled with one payment, oldest first.
+  const [selected, setSelected] = useState<string[]>(initialIds);
   const [query, setQuery] = useState("");
   const [description, setDescription] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [reference, setReference] = useState("");
-  const [dialog, setDialog] = useState<Dialog>(() => (initialInvoice && initialMethod === "card" && cloverCard ? "card" : initialInvoice && initialMethod === "device" && cloverDevice ? "device" : null));
-  const [receipt, setReceipt] = useState<TerminalTransaction | null>(null);
+  const [dialog, setDialog] = useState<Dialog>(() => (initialIds.length && initialMethod === "card" && cloverCard ? "card" : initialIds.length && initialMethod === "device" && cloverDevice ? "device" : null));
+  const [receipt, setReceipt] = useState<SaleResult | null>(null);
   const [viewing, setViewing] = useState<TerminalTransaction | null>(null);
   const [refunding, setRefunding] = useState<TerminalTransaction | null>(null);
   // Guest preview keeps its own additions; the real app refreshes from the server.
@@ -101,13 +109,30 @@ export function Terminal({
   }, []);
 
   const amount = cents / 100;
-  const invoice = invoiceId ? (openInvoices.find((i) => i.id === invoiceId) ?? null) : null;
-  const max = invoice ? invoice.balance : 1_000_000;
+  const selectedInvoices = useMemo(() => openInvoices.filter((i) => selected.includes(i.id)).sort((a, b) => a.display_number.localeCompare(b.display_number)), [openInvoices, selected]);
+  const invoice = selectedInvoices.length === 1 ? selectedInvoices[0] : null;
+  const many = selectedInvoices.length > 1;
+  const selectedBalance = Math.round(selectedInvoices.reduce((s, i) => s + i.balance, 0) * 100) / 100;
+  const max = selectedInvoices.length ? selectedBalance : 1_000_000;
   const valid = amount > 0 && amount <= max + 0.005;
   const filteredInvoices = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (q ? openInvoices.filter((i) => i.display_number.toLowerCase().includes(q) || i.dealership.toLowerCase().includes(q)) : openInvoices).slice(0, 8);
+    return q ? openInvoices.filter((i) => i.display_number.toLowerCase().includes(q) || i.dealership.toLowerCase().includes(q)) : openInvoices;
   }, [openInvoices, query]);
+  const filteredBalance = Math.round(filteredInvoices.reduce((s, i) => s + i.balance, 0) * 100) / 100;
+  const allFilteredSelected = filteredInvoices.length > 0 && filteredInvoices.every((i) => selected.includes(i.id));
+  /** For a partial batch: which invoices get paid, and where the money runs out (oldest first). */
+  const allocation = useMemo(
+    () =>
+      selectedInvoices.reduce<{ rows: (OpenInvoiceOption & { take: number })[]; left: number }>(
+        (acc, i) => {
+          const take = Math.min(i.balance, Math.max(0, acc.left));
+          return { rows: [...acc.rows, { ...i, take }], left: Math.round((acc.left - take) * 100) / 100 };
+        },
+        { rows: [], left: amount },
+      ).rows,
+    [selectedInvoices, amount],
+  );
 
   const list = useMemo(() => {
     const merged = [...local, ...transactions];
@@ -120,6 +145,20 @@ export function Terminal({
       return { ...t, refunded_amount: total, status: total >= Number(t.amount) - 0.004 ? "refunded" : "partially_refunded" } as TerminalTransaction;
     });
   }, [local, transactions]);
+  /** Sale rows of one combined payment collapse into a single entry; refunds stay separate. */
+  const entries = useMemo(() => {
+    const out: { tx: TerminalTransaction; group: TerminalTransaction[] | null }[] = [];
+    const seen = new Set<string>();
+    for (const t of list) {
+      if (t.kind === "sale" && t.group_id) {
+        if (seen.has(t.group_id)) continue;
+        seen.add(t.group_id);
+        const group = list.filter((g) => g.kind === "sale" && g.group_id === t.group_id);
+        out.push({ tx: t, group: group.length > 1 ? group : null });
+      } else out.push({ tx: t, group: null });
+    }
+    return out;
+  }, [list]);
   const totals = useMemo(() => {
     const sales = list.filter((t) => t.kind === "sale");
     const refunds = list.filter((t) => t.kind === "refund");
@@ -144,15 +183,21 @@ export function Terminal({
     e.preventDefault();
   }
 
-  function pickInvoice(i: OpenInvoiceOption) {
-    setInvoiceId(i.id);
+  function select(ids: string[]) {
+    setSelected(ids);
     setMode("invoice");
-    setCents(Math.round(i.balance * 100));
+    setCents(Math.round(openInvoices.filter((i) => ids.includes(i.id)).reduce((s, i) => s + i.balance, 0) * 100));
+  }
+  function toggleInvoice(i: OpenInvoiceOption) {
+    select(selected.includes(i.id) ? selected.filter((x) => x !== i.id) : [...selected, i.id]);
+  }
+  function toggleAll() {
+    select(allFilteredSelected ? selected.filter((id) => !filteredInvoices.some((i) => i.id === id)) : [...new Set([...selected, ...filteredInvoices.map((i) => i.id)])]);
   }
 
   function reset() {
     setCents(0);
-    setInvoiceId(null);
+    setSelected([]);
     setDescription("");
     setCustomerName("");
     setCustomerEmail("");
@@ -164,44 +209,52 @@ export function Terminal({
     amount: Math.round(cents) / 100,
     method: "cash",
     invoiceId: invoice?.id,
-    description: invoice ? undefined : description.trim() || undefined,
-    customerName: customerName.trim() || (invoice ? invoice.dealership : undefined),
-    customerEmail: customerEmail.trim() || (invoice ? (invoice.email ?? undefined) : undefined),
+    invoiceIds: many ? selectedInvoices.map((i) => i.id) : undefined,
+    description: selectedInvoices.length ? undefined : description.trim() || undefined,
+    customerName: customerName.trim() || (selectedInvoices[0] ? selectedInvoices[0].dealership : undefined),
+    customerEmail: customerEmail.trim() || (selectedInvoices[0] ? (selectedInvoices[0].email ?? undefined) : undefined),
     reference: reference.trim() || undefined,
   });
 
-  /** Guest preview: fabricate the ledger row a real sale would return. */
-  function demoTx(input: SaleInput, card?: CardResult): TerminalTransaction {
+  /** Guest preview: fabricate the ledger row(s) a real sale would return. */
+  function demoTx(input: SaleInput, card?: CardResult): SaleResult {
     const isCard = input.method === "card" || input.method === "device";
     const stamp = nowMs();
-    return {
-      // uuid-shaped so the receipt number (first 8 hex chars) looks real
-      id: `${stamp.toString(16).padStart(12, "0").slice(-8)}-0000-4000-8000-${stamp.toString().padStart(12, "0").slice(-12)}`,
+    const uuid = (n: number) => `${(stamp + n).toString(16).padStart(12, "0").slice(-8)}-0000-4000-8000-${(stamp + n).toString().padStart(12, "0").slice(-12)}`;
+    const row = (n: number, inv: OpenInvoiceOption | null, amt: number, groupId: string | null): TerminalTransaction => ({
+      id: uuid(n),
       kind: "sale",
       status: "captured",
-      amount: card?.amount ?? input.amount,
+      amount: amt,
       refunded_amount: 0,
       method: isCard ? "card" : (input.method as PaymentMethod),
       source: input.method === "card" ? "clover_card" : input.method === "device" ? "clover_pos" : "manual",
-      invoice_id: invoice?.id ?? null,
-      invoice_number: invoice?.display_number ?? null,
-      dealership: invoice?.dealership ?? null,
-      payment_id: invoice ? `demo-pay-${stamp}` : null,
+      invoice_id: inv?.id ?? null,
+      invoice_number: inv?.display_number ?? null,
+      dealership: inv?.dealership ?? null,
+      payment_id: inv ? `demo-pay-${stamp}-${n}` : null,
       refund_of: null,
-      description: invoice ? null : input.description || "Counter sale",
-      customer_name: input.customerName ?? null,
-      customer_email: input.customerEmail || null,
+      group_id: groupId,
+      description: inv ? null : input.description || "Counter sale",
+      customer_name: input.customerName ?? inv?.dealership ?? null,
+      customer_email: input.customerEmail || inv?.email || null,
       reference: input.reference ?? null,
       card_brand: isCard ? "VISA" : null,
       last4: isCard ? (card?.last4 ?? "4242") : null,
       clover_payment_id: isCard ? `demo-clv-${stamp}` : null,
       receipt_sent_at: null,
       at: new Date(stamp).toISOString(),
-    };
+    });
+    if (many) {
+      const groupId = uuid(99);
+      const group = allocation.filter((a) => a.take > 0).map((a, n) => row(n, a, a.take, groupId));
+      return { ...group[0], group };
+    }
+    return row(0, invoice, card?.amount ?? input.amount, null);
   }
 
-  function finish(tx: TerminalTransaction) {
-    if (demo) setLocal((l) => [tx, ...l]);
+  function finish(tx: SaleResult) {
+    if (demo) setLocal((l) => [...(tx.group ?? [tx]), ...l]);
     setReceipt(tx);
     reset();
     // The good part of the job.
@@ -219,15 +272,16 @@ export function Terminal({
     start(async () => {
       const r = await takeSaleAction(input);
       if (r.ok) {
-        toast.success(`${METHOD_LABELS[method]} payment of ${formatMoney(r.data.amount)} recorded`);
+        toast.success(`${METHOD_LABELS[method]} payment of ${formatMoney(receiptTotal(r.data, r.data.group))} recorded`);
         finish(r.data);
         router.refresh();
       } else toast.error(r.error);
     });
   }
 
-  const subtitle = invoice ? `${invoice.display_number} · balance ${formatMoney(invoice.balance)}` : description.trim() || "Counter sale";
-  const forLabel = invoice ? `${invoice.display_number} · ${invoice.dealership}` : "Quick sale";
+  const dealers = [...new Set(selectedInvoices.map((i) => i.dealership))];
+  const subtitle = many ? `${selectedInvoices.length} invoices · balance ${formatMoney(selectedBalance)}` : invoice ? `${invoice.display_number} · balance ${formatMoney(invoice.balance)}` : description.trim() || "Counter sale";
+  const forLabel = many ? `${selectedInvoices.length} invoices${dealers.length === 1 ? ` · ${dealers[0]}` : ""}` : invoice ? `${invoice.display_number} · ${invoice.dealership}` : "Quick sale";
 
   const methodButton = (label: string, Icon: React.ComponentType<{ className?: string }>, onClick: () => void, opts: { disabled?: boolean; hint?: string; primary?: boolean } = {}) => (
     <Button type="button" size="lg" variant={opts.primary ? "default" : "secondary"} className="h-14 flex-col gap-0.5 text-sm" disabled={!valid || opts.disabled || pending} onClick={onClick} title={opts.hint}>
@@ -253,15 +307,16 @@ export function Terminal({
             <CardTitle>Take a payment</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            {invoice && (
+            {selectedInvoices.length > 0 && (
               <div className="flex min-w-0 items-center justify-between gap-3 overflow-hidden rounded-lg border border-primary/30 bg-accent-soft px-3 py-2 text-sm" data-testid="paying-invoice">
                 <span className="flex min-w-0 flex-1 items-center gap-2">
-                  <FileTextIcon className="size-4 shrink-0 text-primary" />
+                  {many ? <LayersIcon className="size-4 shrink-0 text-primary" /> : <FileTextIcon className="size-4 shrink-0 text-primary" />}
                   <span className="min-w-0 truncate">
-                    Paying <strong>{invoice.display_number}</strong> · {invoice.dealership}
+                    Paying <strong>{many ? `${selectedInvoices.length} invoices` : invoice!.display_number}</strong> · {many ? (dealers.length === 1 ? dealers[0] : `${dealers.length} dealerships`) : invoice!.dealership}
+                    {many ? ` · ${formatMoney(selectedBalance)}` : ""}
                   </span>
                 </span>
-                <button type="button" aria-label="Clear invoice" className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => { setInvoiceId(null); setCents(0); }}>
+                <button type="button" aria-label="Clear invoices" className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => { setSelected([]); setCents(0); }}>
                   <XIcon className="size-4" />
                 </button>
               </div>
@@ -276,7 +331,7 @@ export function Terminal({
             >
               {formatMoney(amount)}
             </div>
-            {invoice && amount > invoice.balance + 0.004 && <Hint tone="error">More than the balance of {formatMoney(invoice.balance)}.</Hint>}
+            {selectedInvoices.length > 0 && amount > selectedBalance + 0.004 && <Hint tone="error">More than the balance of {formatMoney(selectedBalance)}.</Hint>}
             <div className="grid grid-cols-3 gap-2" aria-label="Keypad">
               {KEYS.map((k) => (
                 <Button key={k} type="button" variant="secondary" size="lg" className="h-13 text-lg" onClick={() => key(k)} aria-label={k === "⌫" ? "Backspace" : k}>
@@ -293,12 +348,15 @@ export function Terminal({
                   aria-label="What the payment is for"
                   items={[
                     { value: "sale", label: "Quick sale" },
-                    { value: "invoice", label: "Open invoice" },
+                    { value: "invoice", label: "Invoices" },
                   ]}
                   value={mode}
                   onValueChange={(v) => {
                     setMode(v as "sale" | "invoice");
-                    if (v === "sale") setInvoiceId(null);
+                    if (v === "sale") {
+                      setSelected([]);
+                      setCents(0);
+                    }
                   }}
                 />
               </div>
@@ -319,27 +377,50 @@ export function Terminal({
                   {filteredInvoices.length === 0 ? (
                     <p className="px-1 py-2 text-sm text-muted-foreground">No open invoices match.</p>
                   ) : (
-                    <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-lg border border-border" role="listbox" aria-label="Open invoices">
-                      {filteredInvoices.map((i) => (
-                        <li key={i.id}>
-                          <button
-                            type="button"
-                            role="option"
-                            aria-selected={i.id === invoiceId}
-                            onClick={() => pickInvoice(i)}
-                            className={cn("flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/50", i.id === invoiceId && "bg-accent-soft")}
-                          >
-                            <span className="min-w-0">
-                              <span className="font-semibold">{i.display_number}</span>
-                              <span className="block truncate text-caption text-muted-foreground">{i.dealership}</span>
-                            </span>
-                            <span className="shrink-0 tabular-nums">{formatMoney(i.balance)}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="overflow-hidden rounded-lg border border-border">
+                      <button
+                        type="button"
+                        onClick={toggleAll}
+                        aria-pressed={allFilteredSelected}
+                        className="flex w-full items-center justify-between gap-3 border-b border-border bg-surface-2 px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-accent/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className={cn("flex size-4 items-center justify-center rounded border", allFilteredSelected ? "border-primary bg-primary text-primary-foreground" : "border-border-strong")} aria-hidden>
+                            {allFilteredSelected && <CheckIcon className="size-3" />}
+                          </span>
+                          {allFilteredSelected ? "Clear selection" : `Select all unpaid${query.trim() ? " shown" : ""}`}
+                        </span>
+                        <span className="shrink-0 text-caption text-muted-foreground">
+                          {filteredInvoices.length} · {formatMoney(filteredBalance)}
+                        </span>
+                      </button>
+                      <ul className="max-h-56 divide-y divide-border overflow-y-auto" role="listbox" aria-label="Open invoices" aria-multiselectable="true">
+                        {filteredInvoices.map((i) => {
+                          const on = selected.includes(i.id);
+                          return (
+                            <li key={i.id}>
+                              <button type="button" role="option" aria-selected={on} onClick={() => toggleInvoice(i)} className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/50", on && "bg-accent-soft")}>
+                                <span className={cn("flex size-4 shrink-0 items-center justify-center rounded border", on ? "border-primary bg-primary text-primary-foreground" : "border-border-strong")} aria-hidden>
+                                  {on && <CheckIcon className="size-3" />}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="font-semibold">{i.display_number}</span>
+                                  <span className="block truncate text-caption text-muted-foreground">{i.dealership}</span>
+                                </span>
+                                <span className="shrink-0 tabular-nums">{formatMoney(i.balance)}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
                   )}
                   {invoice && amount > 0 && amount < invoice.balance - 0.004 && <Hint tone="warning">Partial payment; {formatMoney(invoice.balance - amount)} stays open on {invoice.display_number}.</Hint>}
+                  {many && amount > 0 && amount < selectedBalance - 0.004 && (
+                    <Hint tone="warning">
+                      Applied to the oldest invoices first: {allocation.filter((a) => a.take > 0).map((a) => `${a.display_number} ${formatMoney(a.take)}`).join(", ")}; {formatMoney(selectedBalance - amount)} stays open.
+                    </Hint>
+                  )}
                 </div>
               )}
             </div>
@@ -385,29 +466,29 @@ export function Terminal({
               <EmptyState icon={ReceiptTextIcon} title={date === today ? "Nothing taken yet today" : "No transactions that day"} description="Sales and refunds from the Terminal, the invoice pages and Clover all show up here." className="mt-4" />
             ) : (
               <ul className="mt-4 divide-y divide-border text-sm">
-                {list.map((t, i) => (
+                {entries.map(({ tx: t, group: g }, i) => (
                   <StaggerItem key={t.id} index={i} as="li">
                     <button type="button" onClick={() => setViewing(t)} className="-mx-2 flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-accent/50">
                       <span className="flex min-w-0 items-center gap-3">
                         <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full", t.kind === "refund" ? "bg-warning/12 text-warning" : "bg-accent-soft text-primary")}>
-                          {t.kind === "refund" ? <Undo2Icon className="size-4" /> : t.invoice_number ? <FileTextIcon className="size-4" /> : t.method === "card" ? <CreditCardIcon className="size-4" /> : <BanknoteIcon className="size-4" />}
+                          {t.kind === "refund" ? <Undo2Icon className="size-4" /> : g ? <LayersIcon className="size-4" /> : t.invoice_number ? <FileTextIcon className="size-4" /> : t.method === "card" ? <CreditCardIcon className="size-4" /> : <BanknoteIcon className="size-4" />}
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate font-medium">{receiptSubject(t)}</span>
+                          <span className="block truncate font-medium">{receiptSubject(t, g)}</span>
                           <span className="block truncate text-caption text-subtle">
                             {formatDate(t.at, "h:mm a")} · {paidWith(t)}
-                            {t.customer_name ? ` · ${t.customer_name}` : ""}
+                            {g ? ` · ${g.map((x) => x.invoice_number).join(", ")}` : t.customer_name ? ` · ${t.customer_name}` : ""}
                           </span>
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
                         <span className={cn("block font-semibold tabular-nums", t.kind === "refund" && "text-warning")}>
                           {t.kind === "refund" ? "-" : ""}
-                          {formatMoney(t.amount)}
+                          {formatMoney(receiptTotal(t, g))}
                         </span>
-                        {t.kind === "sale" && t.status !== "captured" && (
-                          <Badge variant={t.status === "refunded" ? "muted" : "warning"} className="mt-0.5">
-                            {t.status === "refunded" ? "Refunded" : "Partial refund"}
+                        {t.kind === "sale" && (g ? g.some((x) => x.status !== "captured") : t.status !== "captured") && (
+                          <Badge variant={!g && t.status === "refunded" ? "muted" : "warning"} className="mt-0.5">
+                            {!g && t.status === "refunded" ? "Refunded" : "Partial refund"}
                           </Badge>
                         )}
                       </span>
@@ -436,7 +517,7 @@ export function Terminal({
                 const r = await takeSaleAction({ ...base(), method: "card", token: i.token, amount: i.amount });
                 if (r.ok) {
                   finish(r.data);
-                  return { ok: true, data: { amount: r.data.amount, last4: r.data.last4 } };
+                  return { ok: true, data: { amount: receiptTotal(r.data, r.data.group), last4: r.data.last4 } };
                 }
                 return r;
               }}
@@ -458,7 +539,7 @@ export function Terminal({
                 const r = await takeSaleAction({ ...base(), method: "device", amount: i.amount });
                 if (r.ok) {
                   finish(r.data);
-                  return { ok: true, data: { amount: r.data.amount, last4: r.data.last4 } };
+                  return { ok: true, data: { amount: receiptTotal(r.data, r.data.group), last4: r.data.last4 } };
                 }
                 return r;
               }}
@@ -500,7 +581,7 @@ export function Terminal({
                 {totals.count} {totals.count === 1 ? "sale" : "sales"} today · {formatMoney(totals.net)} net. Email or print the receipt, or start the next one.
               </DialogDescription>
             </DialogHeader>
-            <ReceiptView tx={receipt} company={company} onNew={() => setReceipt(null)} />
+            <ReceiptView tx={receipt} group={receipt.group ?? null} company={company} onNew={() => setReceipt(null)} />
           </DialogContent>
         )}
       </Dialog>
@@ -510,10 +591,10 @@ export function Terminal({
         {viewing && (
           <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>{viewing.kind === "refund" ? "Refund" : "Sale"}</DialogTitle>
+              <DialogTitle>{viewing.kind === "refund" ? "Refund" : viewing.group_id ? "Combined payment" : "Sale"}</DialogTitle>
               <DialogDescription>{formatDate(viewing.at, "EEEE, MMM d · h:mm a")}</DialogDescription>
             </DialogHeader>
-            <ReceiptView tx={viewing} company={company} onRefund={() => setRefunding(viewing)} />
+            <ReceiptView tx={viewing} group={viewing.group_id ? list.filter((g) => g.kind === "sale" && g.group_id === viewing.group_id) : null} company={company} onRefund={(row) => setRefunding(row)} />
           </DialogContent>
         )}
       </Dialog>

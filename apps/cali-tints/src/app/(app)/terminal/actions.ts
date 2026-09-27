@@ -27,6 +27,8 @@ const saleSchema = z.object({
   method: z.enum(["card", "device", "cash", "check", "ach", "other"]),
   token: z.string().regex(/^clv_[A-Za-z0-9_-]+$/, "Card token is invalid").optional(),
   invoiceId: z.uuid().optional(),
+  /** Several unpaid invoices settled with one payment (oldest first). */
+  invoiceIds: z.array(z.uuid()).min(1).max(50).optional(),
   description: z.string().trim().max(200).optional(),
   customerName: z.string().trim().max(120).optional(),
   customerEmail: z.email().optional().or(z.literal("")),
@@ -62,6 +64,7 @@ function toTransaction(row: LedgerRow): TerminalTransaction {
     dealership: row.invoice?.dealership?.name ?? null,
     payment_id: row.payment_id,
     refund_of: row.refund_of,
+    group_id: row.group_id,
     description: row.description,
     customer_name: row.customer_name,
     customer_email: row.customer_email,
@@ -81,12 +84,18 @@ function revalidate(invoiceId?: string | null) {
   if (invoiceId) revalidatePath(`/invoices/${invoiceId}`);
 }
 
+/** A sale plus, for a combined payment, every per-invoice row it was split into. */
+export type SaleResult = TerminalTransaction & { group?: TerminalTransaction[] };
+
 /** Take a payment. Returns the ledger row for the receipt view. */
-export async function takeSaleAction(input: SaleInput): Promise<ActionResult<TerminalTransaction>> {
+export async function takeSaleAction(input: SaleInput): Promise<ActionResult<SaleResult>> {
   const session = await requireAdmin();
   const parsed = saleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const d = parsed.data;
+  const ids = [...new Set(d.invoiceIds ?? [])];
+  if (ids.length > 1) return takeBatch(session, { ...d, invoiceIds: ids });
+  if (ids.length === 1) d.invoiceId = ids[0];
   const supabase = await createClient();
   const company = session.company;
 
@@ -176,6 +185,97 @@ export async function takeSaleAction(input: SaleInput): Promise<ActionResult<Ter
     if (error || !row) return { ok: false, error: `Payment taken but the ledger row failed: ${error?.message ?? "unknown"}` };
     revalidate(invoice?.id);
     return { ok: true, data: toTransaction(row as unknown as LedgerRow) };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+/** One payment across several unpaid invoices: one Clover charge (or one check), split oldest first, one ledger row per invoice sharing a group id. */
+async function takeBatch(session: Awaited<ReturnType<typeof requireAdmin>>, d: z.output<typeof saleSchema> & { invoiceIds: string[] }): Promise<ActionResult<SaleResult>> {
+  const supabase = await createClient();
+  const company = session.company;
+  const { data: raw } = await supabase.from("invoices").select("id, number, display_number, total, amount_paid, status, dealership:dealerships(name, ap_emails)").in("id", d.invoiceIds);
+  const invoices = (raw ?? []) as unknown as { id: string; number: number; display_number: string; total: number; amount_paid: number; status: string; dealership: { name: string; ap_emails: string[] } | null }[];
+  const open = invoices.filter((i) => i.status !== "void" && Number(i.total) - Number(i.amount_paid) > 0).sort((a, b) => a.number - b.number);
+  if (open.length !== d.invoiceIds.length) return { ok: false, error: "One of the invoices is not open any more. Refresh and try again." };
+  const sum = round2(open.reduce((s, i) => s + Number(i.total) - Number(i.amount_paid), 0));
+  let amount = Math.min(round2(d.amount), sum);
+  const dealers = [...new Set(open.map((i) => i.dealership?.name).filter(Boolean))];
+  const label = `${open.length} invoices${dealers.length === 1 ? ` · ${dealers[0]}` : ""}`;
+  const reference = `${open.map((i) => i.display_number).join(", ")} · terminal`.slice(0, 80);
+
+  let source: PaymentSource = "manual";
+  let method: PaymentMethod = d.method === "device" ? "card" : d.method;
+  let brand: string | null = null;
+  let last4: string | null = null;
+  let cloverPaymentId: string | null = null;
+  let chargeId: string | null = null;
+
+  try {
+    if (d.method === "card" || d.method === "device") {
+      const ctx = cloverContext(company);
+      if (!ctx) return { ok: false, error: "Clover is not enabled (Settings → Clover)" };
+      // One Clover payment for the whole batch; parked as ignored so the sync never re-matches it to a single invoice.
+      if (d.method === "card") {
+        if (!d.token) return { ok: false, error: "Card details are missing" };
+        const take = await chargeCardToQueue(ctx, supabase, company.id, { token: d.token, amount, description: label, reference, idempotencyKey: `terminal:${d.token}`, status: "ignored" });
+        source = "clover_card";
+        ({ brand, last4, cloverPaymentId, chargeId } = take);
+        amount = take.amount;
+      } else {
+        if (!company.clover_device_id) return { ok: false, error: "Add the Clover device serial in Settings → Clover first" };
+        const device = { deviceId: company.clover_device_id, posId: company.clover_pos_id || "Cali Tints app" };
+        const take = await deviceToQueue(ctx, device, supabase, company.id, { amount, reference, externalPaymentId: `term-${Date.now()}`, orderId: null, status: "ignored" });
+        source = "clover_pos";
+        ({ brand, last4, cloverPaymentId } = take);
+        amount = take.amount;
+      }
+      method = "card";
+    }
+
+    const { data: split, error } = await supabase.rpc("record_batch_payment", {
+      p_invoice_ids: open.map((i) => i.id),
+      p_amount: amount,
+      p_method: method,
+      p_reference: cloverPaymentId ?? d.reference ?? null,
+      p_note: d.description || `Terminal · ${label}`,
+      p_source: source,
+    });
+    if (error || !split?.length) {
+      const taken = cloverPaymentId ? `The card was charged (${cloverPaymentId}) but ` : "";
+      return { ok: false, error: `${taken}the payment could not be recorded on the invoices: ${error?.message ?? "nothing allocated"}.${cloverPaymentId ? " Match it from the Clover queue on the Invoices page." : ""}` };
+    }
+
+    const groupId = crypto.randomUUID();
+    const byId = new Map(open.map((i) => [i.id, i]));
+    const rows = split.map((x) => {
+      const inv = byId.get(x.invoice_id);
+      return {
+        company_id: company.id,
+        kind: "sale" as const,
+        amount: Number(x.amount),
+        method,
+        source,
+        invoice_id: x.invoice_id,
+        payment_id: x.payment_id,
+        group_id: groupId,
+        description: null,
+        customer_name: d.customerName || inv?.dealership?.name || null,
+        customer_email: d.customerEmail || inv?.dealership?.ap_emails?.[0] || null,
+        reference: d.reference || null,
+        card_brand: brand,
+        last4,
+        clover_payment_id: cloverPaymentId,
+        clover_charge_id: chargeId,
+        created_by: session.userId,
+      };
+    });
+    const { data: inserted, error: insErr } = await supabase.from("terminal_sales").insert(rows).select(LEDGER_SELECT);
+    if (insErr || !inserted?.length) return { ok: false, error: `Payment recorded but the ledger rows failed: ${insErr?.message ?? "unknown"}` };
+    const group = (inserted as unknown as LedgerRow[]).map(toTransaction).sort((a, b) => split.findIndex((x) => x.payment_id === a.payment_id) - split.findIndex((x) => x.payment_id === b.payment_id));
+    for (const i of open) revalidatePath(`/invoices/${i.id}`);
+    revalidate();
+    return { ok: true, data: { ...group[0], group } };
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }
@@ -282,6 +382,7 @@ export async function emailReceiptAction(input: { id: string; to: string }): Pro
       dealership: p.invoice?.dealership?.name ?? null,
       payment_id: p.id,
       refund_of: null,
+      group_id: null,
       description: p.note,
       customer_name: null,
       customer_email: null,
@@ -293,7 +394,12 @@ export async function emailReceiptAction(input: { id: string; to: string }): Pro
       at: p.created_at,
     };
   }
-  const r = await sendReceiptEmail(tx, session.company, parsed.data.to);
+  let group: TerminalTransaction[] | null = null;
+  if (tx.group_id) {
+    const { data: rows } = await supabase.from("terminal_sales").select(LEDGER_SELECT).eq("group_id", tx.group_id).eq("kind", "sale").order("created_at");
+    group = ((rows ?? []) as unknown as LedgerRow[]).map(toTransaction);
+  }
+  const r = await sendReceiptEmail(tx, session.company, parsed.data.to, group);
   if (!r.ok) return { ok: false, error: r.error };
   if (row) await supabase.from("terminal_sales").update({ receipt_sent_at: new Date().toISOString(), customer_email: row.customer_email ?? parsed.data.to }).eq("id", row.id);
   revalidatePath("/terminal");

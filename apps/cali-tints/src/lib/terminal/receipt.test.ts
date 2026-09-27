@@ -17,6 +17,7 @@ const sale: TerminalTransaction = {
   dealership: null,
   payment_id: null,
   refund_of: null,
+  group_id: null,
   description: "Full detail <Sprinter> & tint",
   customer_name: 'Sam "Sammy" O\'Neil',
   customer_email: "sam@example.com",
@@ -55,6 +56,17 @@ describe("terminal receipt", () => {
     expect(r).toContain("-$45.00");
     expect(r).toContain("Refunded to");
     expect(r).toContain("5–10 business days");
+  });
+
+  it("describes a combined payment across invoices", () => {
+    const g = [
+      { ...sale, id: "a", invoice_number: "INV-000010", dealership: "MB of Sacramento", amount: 4210 },
+      { ...sale, id: "b", invoice_number: "INV-000011", dealership: "MB of Sacramento", amount: 1375.5 },
+    ];
+    const t = receiptText(g[0], company, g);
+    expect(t).toContain("For: 2 invoices · MB of Sacramento");
+    expect(t).toContain("Invoice INV-000011: $1,375.50");
+    expect(t).toContain("Total: $5,585.50");
   });
 
   it("shows earlier refunds on a sale receipt", () => {

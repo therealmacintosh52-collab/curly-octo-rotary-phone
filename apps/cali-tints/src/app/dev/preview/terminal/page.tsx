@@ -14,6 +14,7 @@ export default async function DevTerminalPreview(props: PageProps<"/dev/preview/
   const date = typeof sp.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : today;
   const balance = Number(b.invoice.total) - Number(b.invoice.amount_paid);
   const invoiceParam = typeof sp.invoice === "string" ? sp.invoice : null;
+  const invoicesParam = typeof sp.invoices === "string" ? sp.invoices : null;
   const method = sp.method === "card" || sp.method === "device" ? sp.method : null;
 
   return (
@@ -31,6 +32,7 @@ export default async function DevTerminalPreview(props: PageProps<"/dev/preview/
             ]}
             // Any ?invoice= in the guest preview lands on the sample invoice (ids from other preview pages are fixtures too).
             initialInvoiceId={invoiceParam ? b.invoice.id : null}
+            initialInvoiceIds={invoicesParam ? (invoicesParam === "all" ? [b.invoice.id, "30000000-0000-4000-8000-000000000002", "30000000-0000-4000-8000-000000000003"] : invoicesParam.split(",")) : null}
             initialMethod={method}
             connection={{ enabled: true, connected: true, healthy: true, needsReconnect: false, merchantName: "Cali Tints (sandbox)", device: true }}
             cloverCard={{ publicKey: "demo", merchantId: "7G9V9DP834ZY2", sdkUrl: "about:blank" }}

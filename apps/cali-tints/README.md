@@ -197,6 +197,10 @@ Limits: hosted checkout cannot refund or void through the API, so refunds are do
 
 Also: **Collect** on every open invoice (invoice page and list) opens the Terminal with that invoice ready; the invoice page's **Collect** menu offers the terminal, card in the app, cash/check, or emailing the invoice with a pay-by-card link. A **Clover setup** checklist sits on the Terminal and Settings until every piece (tokens, merchant ID, connection test, device serial, card keys, webhook) is in place.
 
+## Charge several invoices at once
+
+Terminal → **Invoices** → tick any set of open invoices, or **Select all unpaid** (the search box narrows it to one dealership). The keypad shows the combined balance; one card tap, one terminal payment or one check settles them all. Money is applied **oldest invoice first**: lowering the amount pays the older ones in full and leaves the newest partly open. One receipt lists every invoice; refunds are still per invoice. **Collect all unpaid** on the Invoices page opens the Terminal with everything selected; Collect on a row is the one-by-one path.
+
 ## Terminal (point of sale)
 
 The **Terminal** tab does what the Clover terminal does, from the app:

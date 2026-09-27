@@ -404,6 +404,68 @@ begin
     raise exception 'expected clover apply rejection';
   exception when sqlstate '42501' then null; end;
 end $$;
+-- Batch payments: one amount across several invoices, oldest first --------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare j public.jobs; a uuid; b uuid; c uuid; n int; v_sum numeric; v_first uuid; v_sale uuid; g uuid := gen_random_uuid();
+begin
+  -- three one-job invoices for Sacramento (per_job dealership), oldest first = a, b, c
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'BAT1', 'performed_at', now(),
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  a := public.invoice_job(j.id);
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'BAT2', 'performed_at', now(),
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  b := public.invoice_job(j.id);
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'BAT3', 'performed_at', now(),
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  c := public.invoice_job(j.id);
+  select sum(total) into v_sum from public.invoices where id in (a, b, c);
+
+  -- over-pay rejected
+  begin
+    perform * from public.record_batch_payment(array[a, b, c], v_sum + 1, 'check', '9001', 'batch');
+    raise exception 'expected over-pay rejection';
+  exception when sqlstate '22023' then null; end;
+
+  -- partial: pays a in full, half of b, nothing on c
+  select count(*) into n from public.record_batch_payment(array[a, b, c], (select total from public.invoices where id = a) + (select total / 2 from public.invoices where id = b), 'check', '9001', 'batch');
+  assert n = 2, 'two payment rows for a partial batch, got ' || n;
+  assert (select status from public.invoices where id = a) = 'paid', 'oldest paid first';
+  assert (select status from public.invoices where id = b) = 'partial', 'second partial';
+  assert (select status from public.invoices where id = c) = 'draft', 'third untouched';
+  assert (select amount_paid from public.invoices where id = b) = (select total / 2 from public.invoices where id = b), 'half of b';
+
+  -- the rest, tagged as a card batch; every row carries the source
+  select count(*) into n from public.record_batch_payment(array[b, c], (select sum(total - amount_paid) from public.invoices where id in (b, c)), 'card', 'charge_X', 'batch', 'clover_card');
+  assert n = 2, 'two rows for the remainder';
+  assert (select status from public.invoices where id = b) = 'paid' and (select status from public.invoices where id = c) = 'paid', 'all paid after the second batch';
+  assert (select count(*) from public.invoice_payments where invoice_id in (b, c) and source = 'clover_card') = 2, 'batch rows carry the source';
+
+  -- nothing open → rejected
+  begin
+    perform * from public.record_batch_payment(array[a], 1, 'cash');
+    raise exception 'expected closed-invoice rejection';
+  exception when sqlstate 'P0002' then null; end;
+
+  -- ledger rows for a group, and refunding one of them still works per invoice
+  select id into v_first from public.invoice_payments where invoice_id = c order by created_at desc limit 1;
+  insert into public.terminal_sales (company_id, amount, method, source, invoice_id, payment_id, group_id, clover_charge_id)
+  values (public.current_company_id(), (select amount from public.invoice_payments where id = v_first), 'card', 'clover_card', c, v_first, g, 'X') returning id into v_sale;
+  perform public.refund_terminal_sale(v_sale, null, (select amount from public.invoice_payments where id = v_first));
+  assert (select status from public.invoices where id = c) = 'submitted' or (select status from public.invoices where id = c) = 'draft', 'c reopened after refunding its share: ' || (select status from public.invoices where id = c);
+  assert (select status from public.invoices where id = b) = 'paid', 'b untouched by c refund';
+  assert jsonb_array_length(public.terminal_transactions(current_date, current_date)) >= 2, 'group rows listed';
+  assert (select count(*) from jsonb_array_elements(public.terminal_transactions(current_date, current_date)) e where e ->> 'group_id' = g::text) = 2, 'group id on both rows (sale + refund)';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000003');
+do $$
+begin
+  begin
+    perform * from public.record_batch_payment(array[gen_random_uuid()], 1, 'cash');
+    raise exception 'expected detailer rejection';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
 -- Terminal (counter sales and refunds) -------------------------------------
 select pg_temp.login('10000000-0000-4000-8000-000000000001');
 do $$

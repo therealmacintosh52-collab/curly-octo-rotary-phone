@@ -42,6 +42,8 @@ export default async function TerminalPage(props: PageProps<"/terminal">) {
     .filter((i) => i.balance > 0);
   // Deep link from "Save & charge" / "Collect payment": ?invoice=<id>&method=card|device
   const initialInvoiceId = typeof sp.invoice === "string" && openInvoices.some((i) => i.id === sp.invoice) ? sp.invoice : null;
+  // ?invoices=all or ?invoices=a,b,c: settle several with one payment
+  const initialInvoiceIds = typeof sp.invoices === "string" ? (sp.invoices === "all" ? openInvoices.map((i) => i.id) : sp.invoices.split(",").filter((id) => openInvoices.some((i) => i.id === id))) : null;
   const initialMethod = sp.method === "card" || sp.method === "device" ? sp.method : null;
   const missingInvoice = typeof sp.invoice === "string" && !initialInvoiceId ? sp.invoice : null;
 
@@ -56,6 +58,7 @@ export default async function TerminalPage(props: PageProps<"/terminal">) {
     <Terminal
       date={date}
       initialInvoiceId={initialInvoiceId}
+      initialInvoiceIds={initialInvoiceIds}
       initialMethod={initialMethod}
       missingInvoice={missingInvoice}
       checklist={<CloverSetupChecklist steps={checklist} className="mt-6" />}

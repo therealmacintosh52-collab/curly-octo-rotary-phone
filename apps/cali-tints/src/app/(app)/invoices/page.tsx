@@ -56,6 +56,10 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     balance: Number(i.total) - Number(i.amount_paid),
   }));
 
+  // Everything owed across all open invoices (not just this tab), for "Collect all unpaid".
+  const { data: owed } = await supabase.from("invoices").select("total, amount_paid").in("status", ["draft", "submitted", "partial"]);
+  const unpaid = (owed ?? []).map((i) => Number(i.total) - Number(i.amount_paid)).filter((b) => b > 0);
+  const unpaidTotal = unpaid.reduce((s, b) => s + b, 0);
   const collectable = (i: { status: InvoiceStatus; total: number; amount_paid: number }) => i.status !== "void" && i.status !== "paid" && Number(i.total) - Number(i.amount_paid) > 0;
   const isOverdue = (i: { status: InvoiceStatus; submitted_at: string | null }) =>
     (i.status === "submitted" || i.status === "partial") && !!i.submitted_at && nowMs() - new Date(i.submitted_at).getTime() > reminderMs;
@@ -68,6 +72,13 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         actions={
           <>
             {clover && <CloverSyncButton lastSyncAt={session.company.clover_last_sync_at} />}
+            {unpaid.length > 1 && (
+              <Button asChild variant="soft">
+                <Link href="/terminal?invoices=all">
+                  <WalletIcon /> Collect all unpaid · {formatMoney(unpaidTotal)}
+                </Link>
+              </Button>
+            )}
             <Button asChild>
               <Link href="/invoices/new">
                 <PlusIcon /> New invoice

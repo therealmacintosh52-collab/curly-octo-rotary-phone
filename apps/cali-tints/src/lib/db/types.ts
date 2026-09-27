@@ -247,6 +247,8 @@ export type TerminalSale = {
   invoice_id: string | null;
   payment_id: string | null;
   refund_of: string | null;
+  /** Rows of one combined payment across several invoices share a group id. */
+  group_id: string | null;
   description: string | null;
   customer_name: string | null;
   customer_email: string | null;
@@ -275,6 +277,7 @@ export type TerminalTransaction = {
   dealership: string | null;
   payment_id: string | null;
   refund_of: string | null;
+  group_id: string | null;
   description: string | null;
   customer_name: string | null;
   customer_email: string | null;
@@ -512,6 +515,10 @@ export type Database = {
       ignore_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_ignore?: boolean }; Returns: undefined };
       clover_unmatched_count: { Args: Record<string, never>; Returns: number };
       invoice_job: { Args: { p_job_id: string; p_notes?: string | null }; Returns: string };
+      record_batch_payment: {
+        Args: { p_invoice_ids: string[]; p_amount: number; p_method: PaymentMethod; p_reference?: string | null; p_note?: string | null; p_source?: PaymentSource };
+        Returns: { invoice_id: string; payment_id: string; amount: number }[];
+      };
       refund_terminal_sale: { Args: { p_sale_id: string | null; p_payment_id: string | null; p_amount: number; p_clover_refund_id?: string | null }; Returns: string };
       terminal_transactions: { Args: { p_start?: string | null; p_end?: string | null }; Returns: TerminalTransaction[] };
       record_payment: {

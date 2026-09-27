@@ -7,7 +7,7 @@ import type { TerminalTransaction } from "@/lib/db/types";
 import { emailReceiptAction } from "@/app/(app)/terminal/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatMoney } from "@/lib/money";
-import { companyAddress, receiptLines, receiptNumber, receiptTitle, type ReceiptCompany } from "@/lib/terminal/receipt";
+import { companyAddress, groupSales, receiptLines, receiptNumber, receiptTitle, receiptTotal, type ReceiptCompany } from "@/lib/terminal/receipt";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,14 +18,33 @@ import { cn } from "@/lib/utils";
  * around it: email, print, refund. `data-print-root` makes it the only thing
  * on the page when printing (see globals.css).
  */
-export function ReceiptView({ tx, company, onRefund, onNew, className }: { tx: TerminalTransaction; company: ReceiptCompany; onRefund?: () => void; onNew?: () => void; className?: string }) {
+export function ReceiptView({
+  tx,
+  group = null,
+  company,
+  onRefund,
+  onNew,
+  className,
+}: {
+  tx: TerminalTransaction;
+  /** Every per-invoice row of a combined payment (the receipt then lists them all). */
+  group?: TerminalTransaction[] | null;
+  company: ReceiptCompany;
+  /** Refund this row, or (for a combined payment) the given invoice row. */
+  onRefund?: (row: TerminalTransaction) => void;
+  onNew?: () => void;
+  className?: string;
+}) {
   const { demo } = useSession();
   const [sending, start] = useTransition();
   const [to, setTo] = useState(tx.customer_email ?? "");
   const [sent, setSent] = useState<string | null>(tx.receipt_sent_at ? (tx.customer_email ?? "sent") : null);
   const refund = tx.kind === "refund";
+  const sales = groupSales(group) as TerminalTransaction[];
+  const grouped = sales.length > 1;
   const remaining = Number(tx.amount) - Number(tx.refunded_amount);
-  const canRefund = !!onRefund && tx.kind === "sale" && remaining > 0.004 && tx.source !== "clover_checkout";
+  const refundable = (r: TerminalTransaction) => r.kind === "sale" && Number(r.amount) - Number(r.refunded_amount) > 0.004 && r.source !== "clover_checkout";
+  const canRefund = !!onRefund && !grouped && refundable(tx);
 
   function email(e: React.FormEvent) {
     e.preventDefault();
@@ -60,17 +79,26 @@ export function ReceiptView({ tx, company, onRefund, onNew, className }: { tx: T
         </div>
         <div className={cn("mt-5 text-[2rem] leading-9 font-semibold tracking-tight tabular-nums", refund && "text-warning")}>
           {refund ? "-" : ""}
-          {formatMoney(tx.amount)}
+          {formatMoney(receiptTotal(tx, group))}
         </div>
         <dl className="mt-4 grid gap-1.5 text-sm">
-          {receiptLines(tx, company).map((l) => (
+          {receiptLines(tx, company, group).map((l) => (
             <div key={l.label} className="flex justify-between gap-4">
               <dt className="text-muted-foreground">{l.label}</dt>
               <dd className="text-right">{l.value}</dd>
             </div>
           ))}
         </dl>
-        {tx.status !== "captured" && tx.kind === "sale" && (
+        {grouped && onRefund && sales.some(refundable) && (
+          <div className="mt-3 flex flex-wrap gap-1.5 print:hidden">
+            {sales.filter(refundable).map((r) => (
+              <Button key={r.id} type="button" size="sm" variant="outline" className="text-warning hover:text-warning" onClick={() => onRefund(r)}>
+                <Undo2Icon /> Refund {r.invoice_number}
+              </Button>
+            ))}
+          </div>
+        )}
+        {!grouped && tx.status !== "captured" && tx.kind === "sale" && (
           <Badge variant={tx.status === "refunded" ? "muted" : "warning"} className="mt-4">
             {tx.status === "refunded" ? "Refunded" : `Partially refunded · ${formatMoney(remaining)} left`}
           </Badge>
@@ -91,7 +119,7 @@ export function ReceiptView({ tx, company, onRefund, onNew, className }: { tx: T
           <PrinterIcon /> Print
         </Button>
         {canRefund && (
-          <Button type="button" variant="outline" className="text-warning hover:text-warning" onClick={onRefund}>
+          <Button type="button" variant="outline" className="text-warning hover:text-warning" onClick={() => onRefund?.(tx)}>
             <Undo2Icon /> Refund
           </Button>
         )}

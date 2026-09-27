@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { WalletIcon } from "lucide-react";
 import { SessionProvider } from "@/components/app/session-provider";
+import { Button } from "@/components/ui/button";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { Page } from "@/components/app/page-header";
@@ -28,7 +31,12 @@ export default function DevInvoicePreview() {
         <AppShell>
           <Page>
             <div className="mb-5 flex flex-col gap-3">
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button asChild variant="soft">
+                  <Link href="/terminal?invoices=all">
+                    <WalletIcon /> Collect all unpaid · {formatMoney(balance + 1375.5 + 4210)}
+                  </Link>
+                </Button>
                 <CloverSyncButton lastSyncAt={isoDaysAgo(0)} />
               </div>
               <CloverQueue
