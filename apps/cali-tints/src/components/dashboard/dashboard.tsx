@@ -56,7 +56,7 @@ export function Dashboard({ stats, range, companyName }: { stats: DashboardStats
         actions={
           <Button asChild>
             <Link href="/jobs/new">
-              <PlusIcon /> Log job
+              <PlusIcon /> Make invoice
             </Link>
           </Button>
         }

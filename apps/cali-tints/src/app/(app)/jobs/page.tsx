@@ -51,7 +51,7 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
         actions={
           <Button asChild>
             <Link href="/jobs/new">
-              <PlusIcon /> Log job
+              <PlusIcon /> Make invoice
             </Link>
           </Button>
         }

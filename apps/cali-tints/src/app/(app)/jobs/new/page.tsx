@@ -6,7 +6,7 @@ import { JobForm } from "@/components/jobs/job-form";
 import type { RecentJob } from "@/lib/offline/db";
 import { isoDaysAgo } from "@/lib/dates";
 
-export const metadata: Metadata = { title: "Log a job" };
+export const metadata: Metadata = { title: "Make invoice" };
 
 /**
  * Quick Job Entry. Reference data is loaded server-side so the page renders

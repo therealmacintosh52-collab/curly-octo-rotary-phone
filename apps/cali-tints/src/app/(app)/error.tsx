@@ -22,7 +22,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
           <div className="flex gap-2">
             <Button onClick={reset}>Try again</Button>
             <Button variant="outline" asChild>
-              <Link href="/jobs/new">Log a job</Link>
+              <Link href="/jobs/new">Make invoice</Link>
             </Button>
           </div>
         }

@@ -68,7 +68,7 @@ export function JobsTable({ rows, page, pages, isAdmin }: { rows: JobListRow[]; 
         action={
           <Button asChild>
             <Link href="/jobs/new">
-              <PlusIcon /> Log a job
+              <PlusIcon /> Make invoice
             </Link>
           </Button>
         }

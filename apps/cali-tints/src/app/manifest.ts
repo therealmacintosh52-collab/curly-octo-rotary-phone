@@ -19,7 +19,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Log a job", url: "/jobs/new", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Make invoice", url: "/jobs/new", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Job history", url: "/jobs" },
     ],
   };

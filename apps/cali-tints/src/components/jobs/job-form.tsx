@@ -267,7 +267,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       {/* Title row */}
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-title">Log job</h1>
+          <h1 className="text-title">Make invoice</h1>
           <p className="mt-1 text-sm text-muted-foreground">Tag first, then services. Save &amp; next clears the form for the next car.</p>
         </div>
         <AnimatePresence>

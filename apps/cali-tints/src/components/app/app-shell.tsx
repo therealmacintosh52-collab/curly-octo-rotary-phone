@@ -22,7 +22,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon, adminOnly: true },
-  { href: "/jobs/new", label: "Log job", icon: PlusCircleIcon },
+  { href: "/jobs/new", label: "Make invoice", icon: PlusCircleIcon },
   { href: "/jobs", label: "Jobs", icon: ClipboardListIcon, prefix: true },
   { href: "/invoices", label: "Invoices", icon: FileTextIcon, adminOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, prefix: true },
@@ -32,7 +32,7 @@ function isActive(pathname: string, item: NavItem) {
   if (item.href === "/") return pathname === "/";
   if (pathname === item.href) return true;
   if (item.prefix && pathname.startsWith(item.href + "/")) {
-    // /jobs/new belongs to "Log job", not "Jobs".
+    // /jobs/new belongs to "Make invoice", not "Jobs".
     return !(item.href === "/jobs" && pathname === "/jobs/new");
   }
   return false;
@@ -41,7 +41,7 @@ function isActive(pathname: string, item: NavItem) {
 /**
  * Responsive chrome: sidebar on desktop, bottom tab bar on phones. The active
  * item's highlight slides between destinations instead of blinking.
- * Detailers only see Log job + Jobs.
+ * Detailers only see Make invoice + Jobs.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
