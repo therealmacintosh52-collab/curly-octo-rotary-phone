@@ -172,7 +172,7 @@ Optional. With Clover on, the app and your Clover account stay in step:
 | What | How |
 |---|---|
 | Invoices show up in Clover | Every generated invoice becomes an open Clover order (custom line items, one per job service). Pay it on the Clover device like any order. |
-| Clover payments land on invoices | Every 15 minutes (Vercel Cron) and on **Sync Clover**, payments are pulled and matched: by the order above, then by an invoice number in the payment reference, then by an exact open balance. Anything else waits in **Clover payments to match** on the Invoices page, where you pick the invoice or ignore it. |
+| Clover payments land on invoices | Once a day (Vercel Cron, 7am Pacific; Hobby plans allow daily only, raise it in `vercel.json` on Pro) and on **Sync Clover**, payments are pulled and matched: by the order above, then by an invoice number in the payment reference, then by an exact open balance. Anything else waits in **Clover payments to match** on the Invoices page, where you pick the invoice or ignore it. |
 | Pay-by-card link in invoice emails | Hosted Checkout: a "Pay by card" button under the total. The dealership pays on Clover's page; the webhook marks the invoice paid. |
 | Charge a card in the app | Invoice → Payments → **Charge card**. Clover's iframe fields tokenise the card; card numbers never reach this app. |
 | Pay on the Clover terminal | Invoice → Payments → **Pay on terminal** sends the amount to the physical Clover device (REST Pay Display); the customer taps or inserts their card on the device and the payment lands on the invoice. Needs the device serial in Settings → Clover and the **Cloud Pay Display** app installed on the device. |
