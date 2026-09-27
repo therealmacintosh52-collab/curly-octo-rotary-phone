@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
+import { getMerchant } from "@/lib/clover/client";
 
 const optionalText = (max: number) => z.string().trim().max(max).transform((s) => s || null);
 
@@ -243,4 +244,40 @@ export async function resetUserPasswordAction(userId: string, password: string):
   const { error } = await admin.auth.admin.updateUserById(userId, { password });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: undefined };
+}
+
+// --- Clover -------------------------------------------------------------------
+
+const cloverSettingsSchema = z.object({
+  clover_enabled: z.boolean(),
+  clover_env: z.enum(["sandbox", "production"]),
+  clover_merchant_id: z.string().trim().max(40).transform((s) => s || null),
+  clover_push_orders: z.boolean(),
+  clover_hosted_checkout: z.boolean(),
+});
+export type CloverSettingsInput = z.input<typeof cloverSettingsSchema>;
+
+export async function updateCloverSettingsAction(input: CloverSettingsInput): Promise<ActionResult> {
+  const session = await requireAdmin();
+  const parsed = cloverSettingsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (parsed.data.clover_enabled && !parsed.data.clover_merchant_id) return { ok: false, error: "Enter the Clover merchant ID before enabling" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("companies").update(parsed.data).eq("id", session.company.id);
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Calls GET /v3/merchants/{id} with the stored API token; proves the token, env and merchant id agree. */
+export async function testCloverConnectionAction(input: { clover_env: "sandbox" | "production"; clover_merchant_id: string }): Promise<ActionResult<{ name: string }>> {
+  await requireAdmin();
+  const parsed = z.object({ clover_env: z.enum(["sandbox", "production"]), clover_merchant_id: z.string().trim().min(1).max(40) }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Enter the merchant ID" };
+  try {
+    const m = await getMerchant({ env: parsed.data.clover_env, merchantId: parsed.data.clover_merchant_id });
+    return { ok: true, data: { name: m.name } };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
 }

@@ -6,6 +6,7 @@ import { SettingsNav } from "@/components/settings/settings-nav";
 import { ServicesManager } from "@/components/settings/services-manager";
 import { DealershipsManager } from "@/components/settings/dealerships-manager";
 import { UsersManager } from "@/components/settings/users-manager";
+import { CloverCard } from "@/components/settings/clover-card";
 import { invoiceBundleFixture } from "@/test/fixtures";
 import type { Profile, Service } from "@/lib/db/types";
 
@@ -33,6 +34,15 @@ export default function DevSettingsPreview() {
               <ServicesManager services={services} dealerships={dealerships.map((d) => ({ id: d.id, name: d.name }))} prices={[{ dealership_id: "d2", service_id: "s3", price: 215 }]} />
               <DealershipsManager dealerships={dealerships} />
               <UsersManager users={users} currentUserId="u1" currentRole="owner" emailConfigured />
+              <CloverCard
+                company={{ ...company, clover_enabled: true, clover_env: "sandbox", clover_merchant_id: "7G9V9DP834ZY2", clover_last_sync_at: null }}
+                envStatus={[
+                  { key: "CLOVER_API_TOKEN", set: true, purpose: "orders and payment sync" },
+                  { key: "CLOVER_ECOM_PRIVATE_TOKEN", set: true, purpose: "pay links and card charges" },
+                  { key: "CLOVER_ECOM_PUBLIC_KEY", set: false, purpose: "card entry in the app" },
+                  { key: "CLOVER_WEBHOOK_SECRET", set: false, purpose: "pay-link confirmations" },
+                ]}
+              />
             </div>
           </Page>
         </AppShell>

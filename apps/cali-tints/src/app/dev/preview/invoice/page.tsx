@@ -5,6 +5,7 @@ import { Page } from "@/components/app/page-header";
 import { InvoiceActions } from "@/components/invoices/invoice-actions";
 import { PaymentsCard } from "@/components/invoices/payments-card";
 import { SubmissionsCard } from "@/components/invoices/submissions-card";
+import { CloverPanel } from "@/components/invoices/clover-panel";
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { InvoiceBuilder } from "@/components/invoices/invoice-builder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,12 @@ export default function DevInvoicePreview() {
               </Card>
               <div className="flex flex-col gap-4">
                 <PaymentsCard invoiceId={b.invoice.id} payments={b.payments} balance={balance} status={b.invoice.status} />
+                <CloverPanel
+                  enabled
+                  hostedCheckout
+                  orderUrl="https://sandbox.dev.clover.com/orders/m/7G9V9DP834ZY2/ABC123"
+                  invoice={{ id: b.invoice.id, status: b.invoice.status, balance, clover_order_id: "ABC123XYZ", clover_pushed_at: isoDaysAgo(3), clover_checkout_url: "https://checkout.sandbox.dev.clover.com/pay/example", clover_checkout_expires_at: null }}
+                />
                 <SubmissionsCard
                   submittedAt={b.invoice.submitted_at}
                   submissions={[

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CompanyForm } from "@/components/settings/company-form";
+import { CloverCard } from "@/components/settings/clover-card";
+import { cloverEnvStatus } from "@/lib/clover/env";
 
 export const metadata: Metadata = { title: "Company settings" };
 
@@ -13,5 +15,10 @@ export default async function CompanySettingsPage() {
     const { data } = await supabase.storage.from("logos").createSignedUrl(session.company.logo_path, 3600);
     logoUrl = data?.signedUrl ?? null;
   }
-  return <CompanyForm company={session.company} logoUrl={logoUrl} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <CompanyForm company={session.company} logoUrl={logoUrl} />
+      <CloverCard company={session.company} envStatus={cloverEnvStatus()} />
+    </div>
+  );
 }

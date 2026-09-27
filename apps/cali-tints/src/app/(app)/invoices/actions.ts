@@ -10,12 +10,14 @@ import { invoicePdf } from "@/lib/invoices/pdf";
 import { invoiceCsv } from "@/lib/invoices/csv";
 import { sendInvoiceEmail } from "@/lib/invoices/email";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
+import { cloverContext, createInvoiceCheckout, pushInvoiceOrder } from "@/lib/clover/invoices";
+import type { Company } from "@/lib/db/types";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use yyyy-mm-dd");
 
 /** Batch mode: one invoice for a date range. Returns the new invoice id. */
 export async function generateInvoiceAction(input: { dealership_id: string; start: string; end: string; notes?: string; exclude?: string[] }): Promise<ActionResult<string>> {
-  await requireAdmin();
+  const session = await requireAdmin();
   const parsed = z
     .object({ dealership_id: z.uuid(), start: dateStr, end: dateStr, notes: z.string().trim().max(1000).optional(), exclude: z.array(z.uuid()).max(500).optional() })
     .safeParse(input);
@@ -30,6 +32,7 @@ export async function generateInvoiceAction(input: { dealership_id: string; star
     p_exclude: parsed.data.exclude ?? [],
   });
   if (error) return { ok: false, error: errorMessage(error) };
+  await autoPushToClover([data], session.company);
   revalidatePath("/invoices");
   revalidatePath("/jobs");
   revalidatePath("/");
@@ -38,7 +41,7 @@ export async function generateInvoiceAction(input: { dealership_id: string; star
 
 /** Per-job mode: one invoice per RO/PO for every pending job. Returns the ids. */
 export async function generatePerJobInvoicesAction(input: { dealership_id: string; notes?: string; exclude?: string[] }): Promise<ActionResult<string[]>> {
-  await requireAdmin();
+  const session = await requireAdmin();
   const parsed = z.object({ dealership_id: z.uuid(), notes: z.string().trim().max(1000).optional(), exclude: z.array(z.uuid()).max(500).optional() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const supabase = await createClient();
@@ -48,10 +51,70 @@ export async function generatePerJobInvoicesAction(input: { dealership_id: strin
     p_exclude: parsed.data.exclude ?? [],
   });
   if (error) return { ok: false, error: errorMessage(error) };
+  await autoPushToClover(data ?? [], session.company);
   revalidatePath("/invoices");
   revalidatePath("/jobs");
   revalidatePath("/");
   return { ok: true, data: data ?? [] };
+}
+
+// --- Clover -------------------------------------------------------------------
+
+/** Best effort after generation: a Clover hiccup must never block invoicing. The invoice page offers a manual push. */
+async function autoPushToClover(ids: string[], company: Company) {
+  if (!company.clover_push_orders || !cloverContext(company)) return;
+  for (const id of ids) {
+    const r = await pushInvoiceToCloverAction(id);
+    if (!r.ok) console.warn(`Clover push for invoice ${id} failed: ${r.error}`);
+  }
+}
+
+/** Mirror the invoice as an open Clover order (idempotent: returns the existing order id). */
+export async function pushInvoiceToCloverAction(id: string): Promise<ActionResult<{ orderId: string }>> {
+  const session = await requireAdmin();
+  const ctx = cloverContext(session.company);
+  if (!ctx) return { ok: false, error: "Clover is not enabled (Settings → Clover)" };
+  const bundle = await loadInvoiceBundle(id);
+  if (!bundle) return { ok: false, error: "Invoice not found" };
+  if (bundle.invoice.status === "void") return { ok: false, error: "Invoice is void" };
+  if (bundle.invoice.clover_order_id) return { ok: true, data: { orderId: bundle.invoice.clover_order_id } };
+  try {
+    const orderId = await pushInvoiceOrder(ctx, bundle);
+    const supabase = await createClient();
+    const { error } = await supabase.from("invoices").update({ clover_order_id: orderId, clover_pushed_at: new Date().toISOString() }).eq("id", id);
+    if (error) return { ok: false, error: `Clover order ${orderId} created but not saved: ${error.message}` };
+    revalidatePath(`/invoices/${id}`);
+    return { ok: true, data: { orderId } };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+/** Create (or refresh an expired) hosted-checkout link for the open balance. */
+export async function createCheckoutLinkAction(id: string): Promise<ActionResult<{ url: string; expiresAt: string | null }>> {
+  const session = await requireAdmin();
+  const ctx = cloverContext(session.company);
+  if (!ctx) return { ok: false, error: "Clover is not enabled (Settings → Clover)" };
+  const bundle = await loadInvoiceBundle(id);
+  if (!bundle) return { ok: false, error: "Invoice not found" };
+  const balance = Number(bundle.invoice.total) - Number(bundle.invoice.amount_paid);
+  if (bundle.invoice.status === "void" || balance <= 0) return { ok: false, error: "Nothing left to pay on this invoice" };
+  const current = bundle.invoice;
+  const fresh = current.clover_checkout_url && (!current.clover_checkout_expires_at || new Date(current.clover_checkout_expires_at).getTime() > Date.now() + 3600_000);
+  if (fresh && current.clover_checkout_url) return { ok: true, data: { url: current.clover_checkout_url, expiresAt: current.clover_checkout_expires_at } };
+  try {
+    const link = await createInvoiceCheckout(ctx, bundle, process.env.NEXT_PUBLIC_APP_URL ?? null);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("invoices")
+      .update({ clover_checkout_session_id: link.sessionId, clover_checkout_url: link.url, clover_checkout_expires_at: link.expiresAt })
+      .eq("id", id);
+    if (error) return { ok: false, error: `Link created but not saved: ${error.message}` };
+    revalidatePath(`/invoices/${id}`);
+    return { ok: true, data: { url: link.url, expiresAt: link.expiresAt } };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
 }
 
 export async function voidInvoiceAction(id: string, reason: string): Promise<ActionResult> {
