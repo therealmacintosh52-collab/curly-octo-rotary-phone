@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:test": "bash supabase/tests/run.sh",
+    "db:push": "bash scripts/db-push.sh",
     "seed:demo": "node --env-file=.env.local scripts/seed-demo.mjs"
   },
   "dependencies": {

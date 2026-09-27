@@ -56,9 +56,11 @@ create index if not exists clover_payments_company_status_idx on public.clover_p
 
 grant select, insert, update, delete on public.clover_payments to authenticated, service_role;
 alter table public.clover_payments enable row level security;
+drop policy if exists clover_payments_admin on public.clover_payments;
 create policy clover_payments_admin on public.clover_payments for all to authenticated
   using (company_id = public.current_company_id() and public.is_admin())
   with check (company_id = public.current_company_id() and public.is_admin());
+drop trigger if exists audit on public.clover_payments;
 create trigger audit after insert or update or delete on public.clover_payments for each row execute function public.tg_audit();
 
 -- Callable by the service role (cron / webhook) or by an admin of that company.
