@@ -466,6 +466,22 @@ begin
   exception when sqlstate '42501' then null; end;
 end $$;
 
+-- Clover connections (OAuth tokens): invisible to app users, even admins ----
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+begin
+  begin
+    perform count(*) from public.clover_connections;
+    raise exception 'expected clover_connections to be off limits';
+  exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();
+select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
+insert into public.clover_connections (company_id, env, merchant_id, merchant_name, access_token_enc)
+values ('00000000-0000-4000-8000-000000000001', 'sandbox', '7G9V9DP834ZY2', 'Test merchant', 'v1.enc');
+update public.clover_connections set status = 'needs_reconnect', last_error = 'expired' where company_id = '00000000-0000-4000-8000-000000000001';
+delete from public.clover_connections where company_id = '00000000-0000-4000-8000-000000000001';
+
 -- Back to the owner for the storage checks below.
 select pg_temp.login('10000000-0000-4000-8000-000000000001');
 

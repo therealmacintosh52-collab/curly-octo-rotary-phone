@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BanknoteIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, MoreHorizontalIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon, XIcon } from "lucide-react";
+import Link from "next/link";
+import { BanknoteIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, MoreHorizontalIcon, PlugZapIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { PaymentMethod, TerminalTransaction } from "@/lib/db/types";
 import { takeSaleAction, type SaleInput } from "@/app/(app)/terminal/actions";
@@ -20,6 +21,7 @@ import { Hint, Label } from "@/components/ui/label";
 import { Segmented } from "@/components/ui/segmented";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StaggerItem } from "@/components/motion/primitives";
+import { fireConfetti, haptic } from "@/components/motion/confetti";
 import { ChargeCardDialog, type CloverCardConfig } from "@/components/invoices/charge-card-dialog";
 import { PayOnDeviceDialog, type CardResult } from "@/components/invoices/pay-on-device-dialog";
 import type { OpenInvoiceOption } from "@/components/invoices/clover-queue";
@@ -50,6 +52,7 @@ export function Terminal({
   initialMethod = null,
   missingInvoice = null,
   checklist = null,
+  connection = null,
 }: {
   date: string;
   today: string;
@@ -67,6 +70,8 @@ export function Terminal({
   missingInvoice?: string | null;
   /** Server-rendered Clover setup checklist (null when complete). */
   checklist?: React.ReactNode;
+  /** Live Clover state for the header pill. */
+  connection?: { enabled: boolean; connected: boolean; healthy: boolean; needsReconnect: boolean; merchantName: string | null; device: boolean } | null;
 }) {
   const router = useRouter();
   const { demo } = useSession();
@@ -199,6 +204,9 @@ export function Terminal({
     if (demo) setLocal((l) => [tx, ...l]);
     setReceipt(tx);
     reset();
+    // The good part of the job.
+    fireConfetti({ y: 0.4 });
+    haptic();
   }
 
   function takeManual(method: ManualMethod) {
@@ -230,7 +238,12 @@ export function Terminal({
 
   return (
     <Page>
-      <PageHeader eyebrow="Point of sale" title="Terminal" description="Take a payment for an invoice or a quick sale, then email or print the receipt." />
+      <PageHeader
+        eyebrow="Point of sale"
+        title="Terminal"
+        description="Take a payment for an invoice or a quick sale, then email or print the receipt."
+        actions={connection ? <ConnectionPill c={connection} /> : undefined}
+      />
       {checklist}
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,440px)_1fr] lg:items-start">
@@ -482,8 +495,10 @@ export function Terminal({
         {receipt && (
           <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Payment taken</DialogTitle>
-              <DialogDescription>Email or print the receipt, or start the next sale.</DialogDescription>
+              <DialogTitle>Paid! 🎉</DialogTitle>
+              <DialogDescription>
+                {totals.count} {totals.count === 1 ? "sale" : "sales"} today · {formatMoney(totals.net)} net. Email or print the receipt, or start the next one.
+              </DialogDescription>
             </DialogHeader>
             <ReceiptView tx={receipt} company={company} onNew={() => setReceipt(null)} />
           </DialogContent>
@@ -515,6 +530,27 @@ export function Terminal({
         )}
       </Dialog>
     </Page>
+  );
+}
+
+/** Header pill: is Clover ready to take a card right now? */
+function ConnectionPill({ c }: { c: NonNullable<React.ComponentProps<typeof Terminal>["connection"]> }) {
+  const tone = !c.enabled ? "muted" : c.needsReconnect ? "warning" : c.healthy ? "success" : "muted";
+  const label = !c.enabled ? "Set up Clover" : c.needsReconnect ? "Reconnect Clover" : c.healthy ? `Clover · ${c.merchantName ?? "connected"}${c.device ? " · terminal ready" : ""}` : "Clover · check connection";
+  return (
+    <Link
+      href="/settings#clover"
+      className={cn(
+        "inline-flex h-9 items-center gap-2 rounded-full border px-3 text-[13px] font-medium transition-colors",
+        tone === "success" && "border-success/30 bg-success/10 text-success hover:bg-success/15",
+        tone === "warning" && "border-warning/40 bg-warning/10 text-warning hover:bg-warning/15",
+        tone === "muted" && "border-border bg-surface-2 text-muted-foreground hover:text-foreground",
+      )}
+    >
+      <PlugZapIcon className="size-4" />
+      <span className={cn("size-2 rounded-full", tone === "success" && "bg-success", tone === "warning" && "bg-warning", tone === "muted" && "bg-subtle")} aria-hidden />
+      {label}
+    </Link>
   );
 }
 

@@ -6,9 +6,9 @@ import { createCheckout, createOrder, type CloverContext } from "./client";
 import { toCents } from "./money";
 
 /** Context for API calls from the company's stored settings; null when Clover is off or unconfigured. */
-export function cloverContext(company: Pick<Company, "clover_enabled" | "clover_env" | "clover_merchant_id">): CloverContext | null {
+export function cloverContext(company: Pick<Company, "id" | "clover_enabled" | "clover_env" | "clover_merchant_id">): CloverContext | null {
   if (!company.clover_enabled || !company.clover_merchant_id) return null;
-  return { env: company.clover_env, merchantId: company.clover_merchant_id };
+  return { env: company.clover_env, merchantId: company.clover_merchant_id, companyId: company.id };
 }
 
 /** Line items as Clover sees them: one per invoice line, price in cents, tag in the note. */

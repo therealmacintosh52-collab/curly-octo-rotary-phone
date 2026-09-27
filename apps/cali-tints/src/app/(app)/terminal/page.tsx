@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cloverContext } from "@/lib/clover/invoices";
-import { CLOVER_HOSTS, cloverEnvStatus, cloverSecrets } from "@/lib/clover/env";
+import { CLOVER_HOSTS } from "@/lib/clover/env";
+import { cloverPublicKey } from "@/lib/clover/client";
 import { CloverSetupChecklist, cloverSetupSteps } from "@/components/clover/setup-checklist";
+import { cloverStatus } from "@/lib/clover/status";
 import type { TerminalTransaction } from "@/lib/db/types";
 import { Terminal } from "@/components/terminal/terminal";
 import type { OpenInvoiceOption } from "@/components/invoices/clover-queue";
@@ -44,10 +46,11 @@ export default async function TerminalPage(props: PageProps<"/terminal">) {
   const missingInvoice = typeof sp.invoice === "string" && !initialInvoiceId ? sp.invoice : null;
 
   const clover = cloverContext(session.company);
-  const ecomPublicKey = cloverSecrets().ecomPublicKey;
+  const ecomPublicKey = clover ? await cloverPublicKey(clover) : null;
   const cloverCard = clover && ecomPublicKey ? { publicKey: ecomPublicKey, merchantId: clover.merchantId, sdkUrl: CLOVER_HOSTS[clover.env].sdk } : null;
 
-  const checklist = cloverSetupSteps(session.company, cloverEnvStatus(), process.env.NEXT_PUBLIC_APP_URL ?? null);
+  const status = await cloverStatus(session.company);
+  const checklist = cloverSetupSteps(session.company, status, process.env.NEXT_PUBLIC_APP_URL ?? null);
 
   return (
     <Terminal
@@ -56,6 +59,7 @@ export default async function TerminalPage(props: PageProps<"/terminal">) {
       initialMethod={initialMethod}
       missingInvoice={missingInvoice}
       checklist={<CloverSetupChecklist steps={checklist} className="mt-6" />}
+      connection={{ enabled: status.enabled, connected: status.connected, healthy: status.healthy, needsReconnect: status.needsReconnect, merchantName: status.merchantName, device: status.device }}
       today={today}
       transactions={(txs ?? []) as TerminalTransaction[]}
       openInvoices={openInvoices}

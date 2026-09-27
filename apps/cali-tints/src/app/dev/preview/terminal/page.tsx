@@ -32,6 +32,7 @@ export default async function DevTerminalPreview(props: PageProps<"/dev/preview/
             // Any ?invoice= in the guest preview lands on the sample invoice (ids from other preview pages are fixtures too).
             initialInvoiceId={invoiceParam ? b.invoice.id : null}
             initialMethod={method}
+            connection={{ enabled: true, connected: true, healthy: true, needsReconnect: false, merchantName: "Cali Tints (sandbox)", device: true }}
             cloverCard={{ publicKey: "demo", merchantId: "7G9V9DP834ZY2", sdkUrl: "about:blank" }}
             cloverDevice
             cloverEnabled

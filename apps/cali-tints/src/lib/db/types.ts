@@ -44,6 +44,8 @@ export type Company = {
   clover_hosted_checkout: boolean;
   clover_last_sync_at: string | null;
   clover_verified_at: string | null;
+  clover_connected_at: string | null;
+  clover_merchant_name: string | null;
   clover_device_id: string | null;
   clover_pos_id: string;
   created_at: string;
@@ -284,6 +286,25 @@ export type TerminalTransaction = {
   at: string;
 }
 
+/** Server-only row (service role): OAuth tokens are encrypted before they get here. */
+export type CloverConnection = {
+  company_id: string;
+  env: CloverEnv;
+  merchant_id: string;
+  merchant_name: string | null;
+  access_token_enc: string;
+  refresh_token_enc: string | null;
+  access_expires_at: string | null;
+  refresh_expires_at: string | null;
+  pakms_key: string | null;
+  status: "ok" | "needs_reconnect";
+  last_ok_at: string | null;
+  last_error: string | null;
+  connected_by: string | null;
+  connected_at: string;
+  updated_at: string;
+}
+
 export type CloverPaymentRow = {
   id: string;
   company_id: string;
@@ -458,6 +479,7 @@ export type Database = {
       invoice_submissions: Table<InvoiceSubmission>;
       clover_payments: Table<CloverPaymentRow>;
       terminal_sales: Table<TerminalSale>;
+      clover_connections: Table<CloverConnection>;
       vin_cache: Table<VinCache>;
       audit_log: Table<AuditLog>;
     };

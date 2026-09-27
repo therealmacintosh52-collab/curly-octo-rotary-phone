@@ -8,6 +8,8 @@ import { requireAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { getMerchant } from "@/lib/clover/client";
+import { cloverContext } from "@/lib/clover/invoices";
+import { disconnectClover, markConnection } from "@/lib/clover/connection";
 
 const optionalText = (max: number) => z.string().trim().max(max).transform((s) => s || null);
 
@@ -283,6 +285,36 @@ export async function testCloverConnectionAction(input: { clover_env: "sandbox" 
     await supabase.from("companies").update({ clover_verified_at: new Date().toISOString() }).eq("id", session.company.id);
     revalidatePath("/", "layout");
     return { ok: true, data: { name: m.name } };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+/** Ping Clover with whatever credentials the company has (sign-in or manual tokens) and record the result. */
+export async function checkCloverConnectionAction(): Promise<ActionResult<{ name: string; ms: number }>> {
+  const session = await requireAdmin();
+  const ctx = cloverContext(session.company);
+  if (!ctx) return { ok: false, error: "Clover is not enabled yet" };
+  const t0 = Date.now();
+  try {
+    const m = await getMerchant(ctx);
+    const supabase = await createClient();
+    await supabase.from("companies").update({ clover_verified_at: new Date().toISOString() }).eq("id", session.company.id);
+    await markConnection(session.company.id, true).catch(() => {});
+    revalidatePath("/", "layout");
+    return { ok: true, data: { name: m.name, ms: Date.now() - t0 } };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+/** Forget the Clover sign-in (tokens are deleted). Manual tokens in the environment, if any, still apply. */
+export async function disconnectCloverAction(): Promise<ActionResult> {
+  const session = await requireAdmin();
+  try {
+    await disconnectClover(session.company.id);
+    revalidatePath("/", "layout");
+    return { ok: true, data: undefined };
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }

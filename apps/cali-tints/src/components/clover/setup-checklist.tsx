@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2Icon, CircleDashedIcon, PlugZapIcon } from "lucide-react";
 import type { Company } from "@/lib/db/types";
+import type { CloverStatus } from "@/lib/clover/status";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -13,27 +14,41 @@ export interface CloverSetupStep {
   href?: string;
 }
 
-/** Work out the setup steps from the company row and which tokens are present (server side; names only). */
-export function cloverSetupSteps(company: Pick<Company, "clover_enabled" | "clover_merchant_id" | "clover_verified_at" | "clover_last_sync_at" | "clover_device_id" | "clover_hosted_checkout">, env: { key: string; set: boolean }[], appUrl: string | null): CloverSetupStep[] {
-  const has = (k: string) => env.some((e) => e.key === k && e.set);
-  const tokensMissing = env.filter((e) => !e.set).map((e) => e.key);
-  return [
-    { id: "tokens", label: "Clover tokens in Vercel", done: tokensMissing.length === 0, how: `Vercel → Project → Environment Variables: ${tokensMissing.join(", ") || "all set"}. Redeploy after adding.`, href: "/settings" },
-    { id: "merchant", label: "Clover turned on with the merchant ID", done: company.clover_enabled && !!company.clover_merchant_id, how: "Settings → Clover: enable, pick sandbox or production, paste the merchant ID.", href: "/settings" },
-    { id: "verified", label: "Connection tested", done: !!(company.clover_verified_at || company.clover_last_sync_at), how: "Settings → Clover → Test connection.", href: "/settings" },
-    { id: "device", label: "Terminal serial for Pay on terminal", done: !!company.clover_device_id, how: "Settings → Clover → device serial (Clover dashboard → Devices). Install Cloud Pay Display on the terminal.", href: "/settings" },
-    { id: "card", label: "Card entry in the app", done: has("CLOVER_ECOM_PUBLIC_KEY") && has("CLOVER_ECOM_PRIVATE_TOKEN"), how: "Needs CLOVER_ECOM_PUBLIC_KEY and CLOVER_ECOM_PRIVATE_TOKEN (Clover dashboard → Ecommerce API tokens).", href: "/settings" },
+/** The steps between "fresh install" and "charging customers", from the company row and the live Clover status. */
+export function cloverSetupSteps(company: Pick<Company, "name" | "address_line1" | "city" | "phone" | "email">, status: CloverStatus, appUrl: string | null): CloverSetupStep[] {
+  const detailsDone = !!(company.name && company.address_line1 && company.city && (company.phone || company.email));
+  const signedIn = status.connected || (status.manualTokens && status.enabled && !!status.merchantId);
+  const steps: CloverSetupStep[] = [
+    { id: "details", label: "Invoice details", done: detailsDone, how: "Business name, address and phone as they print on invoices and receipts.", href: "/settings#invoice-details" },
     {
+      id: "signin",
+      label: "Signed in to Clover",
+      done: signedIn,
+      how: status.signInAvailable ? "Settings → Clover → Sign in with Clover, log in with the Clover account, done." : "Vercel → Environment Variables: add CLOVER_APP_ID and CLOVER_APP_SECRET (README → Clover), redeploy, then Settings → Clover → Sign in with Clover.",
+      href: "/settings",
+    },
+    {
+      id: "healthy",
+      label: "Connection working",
+      done: signedIn && status.healthy,
+      how: status.needsReconnect ? `Clover rejected the sign-in${status.lastError ? ` (${status.lastError})` : ""}. Settings → Clover → Reconnect.` : "Settings → Clover → Check connection.",
+      href: "/settings",
+    },
+    { id: "device", label: "Terminal serial for Pay on terminal", done: status.device, how: "Settings → Clover → device serial (Clover dashboard → Devices). Install Cloud Pay Display on the terminal.", href: "/settings" },
+  ];
+  if (!status.cardEntry) steps.push({ id: "card", label: "Card entry in the app", done: false, how: status.connected ? "Clover did not hand back a card-entry key for this merchant. Reconnect, or set CLOVER_ECOM_PUBLIC_KEY + CLOVER_ECOM_PRIVATE_TOKEN." : "Sign in with Clover (automatic), or set CLOVER_ECOM_PUBLIC_KEY + CLOVER_ECOM_PRIVATE_TOKEN.", href: "/settings" });
+  if (status.hostedCheckout)
+    steps.push({
       id: "webhook",
       label: "Pay-by-card link confirmations",
-      done: !company.clover_hosted_checkout || has("CLOVER_WEBHOOK_SECRET"),
-      how: `Clover Hosted Checkout settings → webhook URL ${appUrl ? `${appUrl}/api/clover/webhook?secret=<CLOVER_WEBHOOK_SECRET>` : "https://<your-app>/api/clover/webhook?secret=<CLOVER_WEBHOOK_SECRET>"}; set CLOVER_WEBHOOK_SECRET in Vercel.`,
-    },
-  ];
+      done: status.webhook,
+      how: `Clover Hosted Checkout settings → webhook URL ${appUrl ? `${appUrl}/api/clover/webhook?secret=<CLOVER_WEBHOOK_SECRET>` : "https://<your-app>/api/clover/webhook?secret=<CLOVER_WEBHOOK_SECRET>"}; set CLOVER_WEBHOOK_SECRET in Vercel. Or turn the pay link off in Settings → Clover.`,
+    });
+  return steps;
 }
 
 /**
- * Shown until Clover is fully wired up; hidden once every step is done. Each
+ * Shown until everything is wired up; hidden once every step is done. Each
  * step says exactly where to click, so nothing is silently missing.
  */
 export function CloverSetupChecklist({ steps, className }: { steps: CloverSetupStep[]; className?: string }) {
@@ -44,7 +59,7 @@ export function CloverSetupChecklist({ steps, className }: { steps: CloverSetupS
     <Card className={cn("border-primary/30", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <PlugZapIcon className="size-4 text-primary" /> Clover setup · {done} of {steps.length} done
+          <PlugZapIcon className="size-4 text-primary" /> Getting set up · {done} of {steps.length} done
         </CardTitle>
         <CardDescription>Cash, check and ACH work now. Card and Pay on terminal switch on as these are completed.</CardDescription>
       </CardHeader>
@@ -62,7 +77,7 @@ export function CloverSetupChecklist({ steps, className }: { steps: CloverSetupS
                       <>
                         {" "}
                         <Link href={s.href} className="text-primary underline-offset-4 hover:underline">
-                          Open settings
+                          Open
                         </Link>
                       </>
                     )}

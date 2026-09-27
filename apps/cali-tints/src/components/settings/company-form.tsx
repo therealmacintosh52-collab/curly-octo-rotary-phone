@@ -65,10 +65,10 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
       <form onSubmit={save} className="grid gap-4">
-        <Card>
+        <Card id="invoice-details" className="scroll-mt-24">
           <CardHeader>
-            <CardTitle>Company profile</CardTitle>
-            <CardDescription>Shown on every invoice and in the email footer.</CardDescription>
+            <CardTitle>Invoice details</CardTitle>
+            <CardDescription>Your business name, address, phone, email and tax ID, exactly as they print on every invoice and receipt.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Field label="Company name" id="name">

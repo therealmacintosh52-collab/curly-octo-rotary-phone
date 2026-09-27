@@ -16,8 +16,8 @@ import { PaymentsCard } from "@/components/invoices/payments-card";
 import { SubmissionsCard } from "@/components/invoices/submissions-card";
 import { CloverPanel } from "@/components/invoices/clover-panel";
 import { cloverContext } from "@/lib/clover/invoices";
-import { orderDashboardUrl } from "@/lib/clover/client";
-import { CLOVER_HOSTS, cloverSecrets } from "@/lib/clover/env";
+import { cloverPublicKey, orderDashboardUrl } from "@/lib/clover/client";
+import { CLOVER_HOSTS } from "@/lib/clover/env";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
 
   const balance = Number(invoice.total) - Number(invoice.amount_paid);
   const clover = cloverContext(company);
-  const ecomPublicKey = cloverSecrets().ecomPublicKey;
+  const ecomPublicKey = clover ? await cloverPublicKey(clover) : null;
   const cloverCard = clover && ecomPublicKey ? { publicKey: ecomPublicKey, merchantId: clover.merchantId, sdkUrl: CLOVER_HOSTS[clover.env].sdk } : null;
   const overdue =
     (invoice.status === "submitted" || invoice.status === "partial") &&

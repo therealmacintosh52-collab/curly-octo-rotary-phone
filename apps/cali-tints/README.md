@@ -179,11 +179,13 @@ Optional. With Clover on, the app and your Clover account stay in step:
 
 Setup (sandbox first, then production):
 
-1. In the Clover merchant dashboard create **Settings → API tokens** with Orders (read/write) and Payments (read) → `CLOVER_API_TOKEN`.
-2. **Ecommerce API tokens** → "Hosted iFrame + API/SDK" → `CLOVER_ECOM_PRIVATE_TOKEN` (private) and `CLOVER_ECOM_PUBLIC_KEY` (public / PAKMS).
-3. Pick any long random string for `CLOVER_WEBHOOK_SECRET` and one for `CRON_SECRET`; set all five in Vercel → Environment Variables and redeploy.
+1. **Sign in with Clover (recommended).** Register one app in the [Clover developer dashboard](https://sandbox.dev.clover.com/developers) (and again in the production dashboard when going live): redirect URL `https://<your-app>/api/clover/callback`, permissions Merchant read, Orders read/write, Payments read/write, Online payments. Put its App ID and App secret in Vercel as `CLOVER_APP_ID` and `CLOVER_APP_SECRET`, redeploy, then **Settings → Clover → Sign in with Clover**. The merchant id, API access and the card-entry key all come back from Clover; tokens are stored encrypted (`clover_connections`, service role only) and refreshed before they expire. The Terminal shows a live connection pill; an expired sign-in turns into a one-click **Reconnect**.
+2. **Or manual tokens.** Merchant dashboard → **Settings → API tokens** (Orders read/write, Payments read/write) → `CLOVER_API_TOKEN`; **Ecommerce API tokens** ("Hosted iFrame + API/SDK") → `CLOVER_ECOM_PRIVATE_TOKEN` and `CLOVER_ECOM_PUBLIC_KEY`. Enter the merchant id under **Settings → Clover → Advanced**.
+3. `CRON_SECRET` (any long string) protects the daily payment sync; `CLOVER_WEBHOOK_SECRET` (any long string) protects the pay-by-card-link webhook.
 4. In Clover's Hosted Checkout settings set the webhook URL to `https://<your-app>/api/clover/webhook?secret=<CLOVER_WEBHOOK_SECRET>` and the redirect URLs to `https://<your-app>/pay/done?ok=1` (success) and `…/pay/done?ok=0` (failure/cancel).
-5. In the app, **Settings → Clover**: enable, pick sandbox or production, paste the merchant ID, **Test connection**.
+5. **Settings → Clover**: add the terminal serial for Pay on terminal. The **Getting set up** checklist on the Terminal and Settings pages lists anything still missing.
+
+Reliability: every Clover call has a 20 s timeout and retries transient failures (network, 429, 5xx) with backoff; the device wait is never replayed. Successful calls stamp the connection as healthy; a 401/403 flags it for **Reconnect** instead of surfacing a cryptic error.
 
 Limits: hosted checkout cannot refund or void through the API, so refunds are done in Clover; a refunded card payment is removed from the invoice by deleting the payment row (it returns to the match queue). Secrets never touch the database; only the merchant id and toggles are stored.
 
