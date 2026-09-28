@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BanknoteIcon, CheckIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, LayersIcon, MoreHorizontalIcon, PlugZapIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon, XIcon } from "lucide-react";
+import { BanknoteIcon, CheckIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, LayersIcon, PlugZapIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { PaymentMethod, TerminalTransaction } from "@/lib/db/types";
 import { takeSaleAction, type SaleInput, type SaleResult } from "@/app/(app)/terminal/actions";
@@ -29,7 +29,8 @@ import { ReceiptView } from "./receipt-view";
 import { RefundDialog } from "./refund-dialog";
 import { cn } from "@/lib/utils";
 
-type ManualMethod = Exclude<PaymentMethod, "card">;
+// "Other" is kept off the Terminal (the invoice page's Add payment still has it).
+type ManualMethod = Exclude<PaymentMethod, "card" | "other">;
 type Dialog = null | "card" | "device" | { manual: ManualMethod };
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0", "⌫"];
@@ -291,8 +292,8 @@ export function Terminal({
   // On the Invoices tab a payment has to belong to an invoice; nothing picked means nothing to take.
   const needsPick = mode === "invoice" && selectedInvoices.length === 0;
 
-  const methodButton = (label: string, Icon: React.ComponentType<{ className?: string }>, onClick: () => void, opts: { disabled?: boolean; hint?: string; primary?: boolean } = {}) => (
-    <Button type="button" size="lg" variant={opts.primary ? "default" : "secondary"} className="h-14 flex-col gap-0.5 text-sm" disabled={!valid || needsPick || opts.disabled || pending} onClick={onClick} title={opts.hint}>
+  const methodButton = (label: string, Icon: React.ComponentType<{ className?: string }>, onClick: () => void, opts: { disabled?: boolean; hint?: string; primary?: boolean; className?: string } = {}) => (
+    <Button type="button" size="lg" variant={opts.primary ? "default" : "secondary"} className={cn("h-14 flex-col gap-0.5 text-sm", opts.className)} disabled={!valid || needsPick || opts.disabled || pending} onClick={onClick} title={opts.hint}>
       <Icon className="size-5" />
       {label}
     </Button>
@@ -440,13 +441,13 @@ export function Terminal({
 
             <div className="grid gap-2">
               <Label>Paid with</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {methodButton("Card", CreditCardIcon, () => setDialog("card"), { primary: true, disabled: !cloverCard, hint: cloverCard ? undefined : cloverEnabled ? "Add CLOVER_ECOM_PUBLIC_KEY to take cards in the app" : "Turn on Clover in Settings to take cards" })}
-                {methodButton("Terminal", TabletSmartphoneIcon, () => setDialog("device"), { primary: true, disabled: !cloverDevice, hint: cloverDevice ? undefined : "Add the Clover device serial in Settings → Clover" })}
-                {methodButton("Cash", BanknoteIcon, () => setDialog({ manual: "cash" }))}
-                {methodButton("Check", ReceiptTextIcon, () => setDialog({ manual: "check" }))}
-                {methodButton("ACH", LandmarkIcon, () => setDialog({ manual: "ach" }))}
-                {methodButton("Other", MoreHorizontalIcon, () => setDialog({ manual: "other" }))}
+              {/* Three on the first row, two on the second, all the same width within a row. */}
+              <div className="grid grid-cols-6 gap-2">
+                {methodButton("Card", CreditCardIcon, () => setDialog("card"), { primary: true, className: "col-span-2", disabled: !cloverCard, hint: cloverCard ? undefined : cloverEnabled ? "Add CLOVER_ECOM_PUBLIC_KEY to take cards in the app" : "Turn on Clover in Settings to take cards" })}
+                {methodButton("Terminal", TabletSmartphoneIcon, () => setDialog("device"), { primary: true, className: "col-span-2", disabled: !cloverDevice, hint: cloverDevice ? undefined : "Add the Clover device serial in Settings → Clover" })}
+                {methodButton("Cash", BanknoteIcon, () => setDialog({ manual: "cash" }), { className: "col-span-2" })}
+                {methodButton("Check", ReceiptTextIcon, () => setDialog({ manual: "check" }), { className: "col-span-3" })}
+                {methodButton("ACH", LandmarkIcon, () => setDialog({ manual: "ach" }), { className: "col-span-3" })}
               </div>
               {!cloverEnabled && <Hint>Card and Terminal need Clover (Settings → Clover). Cash, check and ACH work now.</Hint>}
             </div>
@@ -569,7 +570,7 @@ export function Terminal({
                 {formatMoney(amount)} · {forLabel}
               </DialogDescription>
             </DialogHeader>
-            {(dialog.manual === "check" || dialog.manual === "ach" || dialog.manual === "other") && (
+            {(dialog.manual === "check" || dialog.manual === "ach") && (
               <div className="grid gap-1.5">
                 <Label htmlFor="manual-ref">{dialog.manual === "check" ? "Check number" : "Reference"}</Label>
                 <Input id="manual-ref" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={80} autoFocus />
