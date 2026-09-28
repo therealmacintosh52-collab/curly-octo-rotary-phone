@@ -15,6 +15,7 @@ import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { InvoiceList } from "@/components/invoices/invoice-list";
 import { BulkDownloadBanner } from "@/components/invoices/bulk-download-banner";
 import { CloverQueue, CloverSyncButton, type OpenInvoiceOption } from "@/components/invoices/clover-queue";
+import { SendInvoicesButton, type UnsentGroup } from "@/components/invoices/send-invoices-button";
 import { cloverContext } from "@/lib/clover/invoices";
 
 export const metadata: Metadata = { title: "Invoices" };
@@ -36,7 +37,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const created = typeof sp.created === "string" ? sp.created.split(",").filter(Boolean) : [];
   const clover = session.isAdmin ? cloverContext(session.company) : null;
 
-  const [{ data: list, error }, { data: services }, { data: dealerships }, { data: owed }, { data: queue }, { data: openInvoices }] = await Promise.all([
+  const [{ data: list, error }, { data: services }, { data: dealerships }, { data: owed }, { data: queue }, { data: openInvoices }, { data: unsent }] = await Promise.all([
     supabase.rpc("invoices_filtered", invoiceFilterArgs(filters)),
     supabase.from("services").select("id, name").order("sort_order"),
     supabase.from("dealerships").select("id, name").order("name"),
@@ -45,12 +46,24 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     // Clover: payments waiting to be matched, and the open invoices they could belong to.
     clover ? supabase.from("clover_payments").select("id, clover_payment_id, amount, tip, paid_at, card_brand, last4, reference").eq("status", "unmatched").order("paid_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
     clover ? supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200) : Promise.resolve({ data: [] }),
+    // Unsent invoices by dealership, for "Send invoices".
+    session.isAdmin ? supabase.from("invoices").select("id, total, dealership_id, dealership:dealerships(name, ap_emails)").eq("status", "draft").order("number").limit(200) : Promise.resolve({ data: [] }),
   ]);
   if (error) throw new Error(error.message);
   const result = (list as InvoiceListResult | null) ?? EMPTY_INVOICE_LIST;
 
   const unpaid = (owed ?? []).map((i) => Number(i.total) - Number(i.amount_paid)).filter((b) => b > 0);
   const unpaidTotal = unpaid.reduce((s, b) => s + b, 0);
+  const unsentGroups: UnsentGroup[] = Object.values(
+    (unsent ?? []).reduce<Record<string, UnsentGroup>>((acc, i) => {
+      const d = i.dealership as unknown as { name: string; ap_emails: string[] } | null;
+      const g = acc[i.dealership_id] ?? { dealership_id: i.dealership_id, name: d?.name ?? "", emails: d?.ap_emails ?? [], ids: [], total: 0 };
+      g.ids.push(i.id);
+      g.total += Number(i.total);
+      acc[i.dealership_id] = g;
+      return acc;
+    }, {}),
+  ).sort((a, b) => a.name.localeCompare(b.name));
   const openOptions: OpenInvoiceOption[] = (openInvoices ?? []).map((i) => ({
     id: i.id,
     display_number: i.display_number,
@@ -89,6 +102,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
                 </Link>
               </Button>
             )}
+            {session.isAdmin && <SendInvoicesButton groups={unsentGroups} />}
             <Button asChild>
               <Link href="/jobs/new">
                 <PlusIcon /> New invoice

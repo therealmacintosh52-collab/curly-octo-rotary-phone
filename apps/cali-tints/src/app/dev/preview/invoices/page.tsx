@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { InvoiceList } from "@/components/invoices/invoice-list";
 import { CloverSyncButton } from "@/components/invoices/clover-queue";
+import { SendInvoicesButton, type UnsentGroup } from "@/components/invoices/send-invoices-button";
 import { parseInvoiceFilters, resolveInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
 import { invoiceListFixture } from "@/test/fixtures";
 import type { Company, Profile } from "@/lib/db/types";
@@ -56,6 +57,17 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
   });
   const total = rows.reduce((s, r) => s + r.total, 0);
   const balance = rows.filter((r) => r.status !== "void" && r.status !== "paid").reduce((s, r) => s + r.balance, 0);
+  const unsentGroups: UnsentGroup[] = Object.values(
+    invoiceListFixture()
+      .filter((r) => r.status === "draft")
+      .reduce<Record<string, UnsentGroup>>((acc, r) => {
+        const g = acc[r.dealership_id] ?? { dealership_id: r.dealership_id, name: r.dealership, emails: r.dealership_id === "d1" ? ["ap@mbeldoradohills.example"] : ["ap@mbsacramento.example", "controller@mbsacramento.example"], ids: [], total: 0 };
+        g.ids.push(r.id);
+        g.total += r.total;
+        acc[r.dealership_id] = g;
+        return acc;
+      }, {}),
+  );
   const unpaidAll = invoiceListFixture().filter((r) => r.status !== "void" && r.status !== "paid").reduce((s, r) => s + r.balance, 0);
   const scope = [filters.status !== "all" ? STATUS_LABELS[filters.status] : null, filters.dealership ? DEALERSHIPS.find((d) => d.id === filters.dealership)?.name : null, filters.service ? SERVICES.find((s) => s.id === filters.service)?.name : null, filters.searchDate?.label ?? null].filter(Boolean);
   const filtered = scope.length > 0 || !!filters.q || !!filters.from || !!filters.to;
@@ -77,6 +89,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
                       <WalletIcon /> Collect all unpaid · {formatMoney(unpaidAll)}
                     </Link>
                   </Button>
+                  <SendInvoicesButton groups={unsentGroups} />
                   <Button asChild>
                     <Link href="/jobs/new">
                       <PlusIcon /> New invoice

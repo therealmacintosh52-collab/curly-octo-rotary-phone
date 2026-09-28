@@ -272,6 +272,25 @@ export async function submitInvoiceByEmailAction(id: string): Promise<ActionResu
   return { ok: true, data: { recipients: result.to } };
 }
 
+/** "Send invoices": email every chosen unsent invoice, one after another. Never throws for one bad address; the caller gets the list. */
+export async function sendInvoicesAction(ids: string[]): Promise<ActionResult<{ sent: number; failed: { id: string; number: string; error: string }[] }>> {
+  await requireAdmin();
+  const parsed = z.array(z.uuid()).min(1).max(200).safeParse(ids);
+  if (!parsed.success) return { ok: false, error: "Pick at least one invoice" };
+  const supabase = await createClient();
+  const { data: rows } = await supabase.from("invoices").select("id, display_number, status").in("id", parsed.data).eq("status", "draft");
+  let sent = 0;
+  const failed: { id: string; number: string; error: string }[] = [];
+  for (const inv of rows ?? []) {
+    const r = await submitInvoiceByEmailAction(inv.id);
+    if (r.ok) sent += 1;
+    else failed.push({ id: inv.id, number: inv.display_number, error: r.error });
+  }
+  revalidatePath("/invoices");
+  revalidatePath("/");
+  return { ok: true, data: { sent, failed } };
+}
+
 /** Manual "Mark as submitted" for portal / paper, with an optional confirmation upload. */
 export async function markSubmittedAction(formData: FormData): Promise<ActionResult> {
   const session = await requireAdmin();
