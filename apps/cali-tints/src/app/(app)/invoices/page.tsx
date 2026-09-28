@@ -29,7 +29,9 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const sp = await props.searchParams;
   const typed = parseInvoiceFilters(sp); // what the search box shows
   const session = await getSession();
-  const filters = resolveInvoiceFilters(typed, todayIn(session.company.timezone)); // "9/27" in the box → that day
+  const today = todayIn(session.company.timezone);
+  const filters = resolveInvoiceFilters(typed, today); // "9/27" in the box → that day
+  const spansDays = !!filters.from && !!filters.to && filters.from !== filters.to; // the week, a month: show it day by day
   const supabase = await createClient();
   const created = typeof sp.created === "string" ? sp.created.split(",").filter(Boolean) : [];
   const clover = session.isAdmin ? cloverContext(session.company) : null;
@@ -113,7 +115,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         >
           <InvoiceFilters filters={typed} searchDate={filters.searchDate} services={services ?? []} dealerships={dealerships ?? []} isAdmin={session.isAdmin} />
         </Suspense>
-        <InvoiceList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} filtered={filtered} />
+        <InvoiceList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} filtered={filtered} groupByDay={spansDays ? today : null} />
       </div>
     </Page>
   );

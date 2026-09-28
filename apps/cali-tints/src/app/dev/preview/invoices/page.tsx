@@ -36,7 +36,9 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
   const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
 
   // Apply the URL filters to the fixture the way the RPC would (a date in the search box becomes a range).
-  const filters = resolveInvoiceFilters(typed, toDateInput(new Date())); // the fixture dates rows by the server's local day
+  const today = toDateInput(new Date());
+  const filters = resolveInvoiceFilters(typed, today); // the fixture dates rows by the server's local day
+  const spansDays = !!filters.from && !!filters.to && filters.from !== filters.to;
   const q = filters.q?.toUpperCase();
   const rows = invoiceListFixture().filter((r) => {
     const st = filters.status;
@@ -95,7 +97,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
               >
                 <InvoiceFilters filters={typed} searchDate={filters.searchDate} services={SERVICES} dealerships={DEALERSHIPS} isAdmin />
               </Suspense>
-              <InvoiceList rows={rows} page={1} count={rows.length} params="" isAdmin filtered={filtered} />
+              <InvoiceList rows={rows} page={1} count={rows.length} params="" isAdmin filtered={filtered} groupByDay={spansDays ? today : null} />
             </div>
           </Page>
         </AppShell>

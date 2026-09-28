@@ -3,7 +3,6 @@ import { AlertTriangleIcon, PlusIcon, WalletIcon } from "lucide-react";
 import type { DashboardStats } from "@/lib/db/types";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatDateOnly, presetRange, RANGE_PRESETS, type RangePreset } from "@/lib/dates";
-import { WeekTile } from "./week-tile";
 import { MonthPicker } from "./month-picker";
 import { Page, PageHeader, SectionHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,12 @@ export function resolveRange(sp: Record<string, string | string[] | undefined>):
 }
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function addDaysYmd(ymd: string, n: number) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
 
 /** The breakdown month (`?bm=YYYY-MM`), defaulting to the current month; `months` lists the last six for the picker. */
 export function resolveBreakdownMonth(sp: Record<string, string | string[] | undefined>, today: string): { month: string; start: string; end: string; label: string; months: { value: string; label: string }[] } {
@@ -101,6 +106,8 @@ export function Dashboard({
   const rangeQ = range.preset === "all" ? "" : `from=${range.start}&to=${range.end}`;
   const pageQ = range.preset === "all" ? "preset=all" : `${rangeQ}${range.preset !== "custom" ? `&preset=${range.preset}` : ""}`;
   const weeks = weeksOfMonth(breakdown.start, breakdown.end, breakdown.stats.by_day);
+  const yesterday = addDaysYmd(today, -1);
+  const weekFrom = week.start < yesterday ? week.start : yesterday;
 
   return (
     <Page>
@@ -128,7 +135,8 @@ export function Dashboard({
             tone={stats.today.jobs > 0 ? "accent" : undefined}
             href="/invoices?q=today"
           />
-          <WeekTile jobs={stats.week.jobs} revenue={stats.week.revenue} weekStart={week.start} today={today} days={stats.week_by_day} />
+          {/* The week, day by day, on the Invoices list; yesterday is always in view even on a Monday. */}
+          <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)} · day by day`} href={`/invoices?from=${weekFrom}&to=${today}`} />
           <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/invoices?from=${month.start}&to=${month.end}`} />
         </section>
 

@@ -4,6 +4,7 @@ import type { InvoiceListRow } from "@/lib/db/types";
 import { INVOICE_PAGE_SIZE } from "@/lib/invoices/query";
 import { formatMoney } from "@/lib/money";
 import { formatDateOnly } from "@/lib/dates";
+import { Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,6 +23,31 @@ function periodLabel(r: Pick<InvoiceListRow, "period_start" | "period_end">) {
 }
 
 const collectable = (r: InvoiceListRow) => r.status !== "void" && r.status !== "paid" && r.balance > 0;
+
+function addDays(ymd: string, n: number) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
+/** Header for the first row of each day: "Today · Mon, Sep 28", "Yesterday · Sun, Sep 27", "Fri, Sep 25". Keyed by that row's id. */
+function dayGroups(rows: InvoiceListRow[], today: string) {
+  const yesterday = addDays(today, -1);
+  const totals = new Map<string, { first: string; count: number; total: number }>();
+  for (const r of rows) {
+    const day = r.period_end;
+    const g = totals.get(day) ?? { first: r.id, count: 0, total: 0 };
+    g.count += 1;
+    g.total += Number(r.total);
+    totals.set(day, g);
+  }
+  const out = new Map<string, { label: string; count: number; total: number }>();
+  for (const [day, g] of totals) {
+    const date = formatDateOnly(day, "EEE, MMM d");
+    out.set(g.first, { label: day === today ? `Today · ${date}` : day === yesterday ? `Yesterday · ${date}` : date, count: g.count, total: g.total });
+  }
+  return out;
+}
 
 function PageLinks({ page, count, params }: { page: number; count: number; params: string }) {
   const pages = Math.max(1, Math.ceil(count / INVOICE_PAGE_SIZE));
@@ -56,7 +82,7 @@ function PageLinks({ page, count, params }: { page: number; count: number; param
  * The one list: every car, as its invoice. Desktop: dense table. Phone:
  * tappable cards with Collect on anything still owed (admins).
  */
-export function InvoiceList({ rows, page, count, params, isAdmin, filtered }: { rows: InvoiceListRow[]; page: number; count: number; params: string; isAdmin: boolean; filtered: boolean }) {
+export function InvoiceList({ rows, page, count, params, isAdmin, filtered, groupByDay = null }: { rows: InvoiceListRow[]; page: number; count: number; params: string; isAdmin: boolean; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers (Today, Yesterday, weekday) when set. */ groupByDay?: string | null }) {
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -74,14 +100,27 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered }: { 
     );
   }
 
+  // Day groups (newest first, the order the rows arrive in), with a count and total per day.
+  const groups = groupByDay ? dayGroups(rows, groupByDay) : null;
+
   return (
     <div className="flex flex-col gap-3">
       {/* Mobile cards */}
       <ul className="flex flex-col gap-2 md:hidden">
         {rows.map((r, i) => {
           const c = carsLabel(r);
+          const head = groups?.get(r.id);
           return (
-            <StaggerItem key={r.id} index={i} as="li">
+            <Fragment key={r.id}>
+            {head && (
+              <li className="mt-2 flex items-baseline justify-between gap-3 px-1 first:mt-0" data-testid="day-group">
+                <span className="text-sm font-semibold">{head.label}</span>
+                <span className="text-caption tabular-nums text-muted-foreground">
+                  {head.count} {head.count === 1 ? "car" : "cars"} · {formatMoney(head.total)}
+                </span>
+              </li>
+            )}
+            <StaggerItem index={i} as="li">
               {/* Stretched link: the card opens the invoice; "Collect" sits above it. */}
               <div className="relative rounded-xl border border-border bg-card p-4 surface-raised transition-[border-color] duration-150 hover:border-border-strong">
                 <div className="flex items-start justify-between gap-3">
@@ -117,6 +156,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered }: { 
                 )}
               </div>
             </StaggerItem>
+            </Fragment>
           );
         })}
       </ul>
@@ -146,8 +186,20 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered }: { 
           <TableBody>
             {rows.map((r) => {
               const c = carsLabel(r);
+              const head = groups?.get(r.id);
               return (
-                <TableRow key={r.id} className={cn(r.status === "void" && "opacity-60")}>
+                <Fragment key={r.id}>
+                {head && (
+                  <TableRow className="bg-muted/30 hover:bg-muted/30" data-testid="day-group">
+                    <TableCell colSpan={isAdmin ? 9 : 8} className="py-2 text-sm">
+                      <span className="font-semibold">{head.label}</span>
+                      <span className="ml-2 text-caption tabular-nums text-muted-foreground">
+                        {head.count} {head.count === 1 ? "car" : "cars"} · {formatMoney(head.total)}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                )}
+                <TableRow className={cn(r.status === "void" && "opacity-60")}>
                   <TableCell className="whitespace-nowrap text-muted-foreground">{periodLabel(r)}</TableCell>
                   <TableCell>
                     <Link href={`/invoices/${r.id}`} className="font-semibold tracking-wide text-foreground hover:text-primary">
@@ -182,6 +234,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered }: { 
                     </TableCell>
                   )}
                 </TableRow>
+                </Fragment>
               );
             })}
           </TableBody>
