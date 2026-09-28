@@ -36,32 +36,43 @@
   routing, AI answering.
 
 ## Apps
-Built as installable web apps (PWAs), not App Store or Google Play apps.
+Built as installable web apps (PWAs) by default, with App Store and Google Play
+listings available as a paid add-on rather than the standard route.
 Used for booking and orders, loyalty and repeat custom, customer accounts and
 history, and photo updates — whatever a business's customers do more than once. They
 install to the home screen from a link, so there are no store fees, no review
 queue before a fix goes live, and nothing for a customer to download. The
 trade-off, stated plainly: no push notifications on iPhones below iOS 16.4 —
-reminders go by text and email instead.
+reminders go by text and email instead, unless the store listings are added.
 - **Starter App** — $1,900 build, then $49/month. Booking and quote requests,
   installs to the home screen, works offline, client's own branding and domain,
   appointment reminders, requests landing in the same inbox as website leads.
 - **Business App** — $3,900 build, then $99/month. Everything in Starter plus
   digital inspections with photos sent to the customer before they approve,
-  customer accounts with service history, an automated declined-work follow-up
-  list, scheduled service reminders, review requests on job completion.
-- **Custom Build** — from $7,500, monthly quoted with the build. Fleet customer
-  portals, dispatch and job boards, parts and supplier integrations. Begins
-  with a $499 scoping session that produces a written spec the client owns,
-  credited against the build.
+  customer accounts with order and service history, automated follow-up on
+  quotes that went quiet, scheduled reminders, review requests on completion.
+- **Custom Build** — from $7,500, monthly quoted with the build. Client
+  portals, rotas and job boards for staff on the move, stock and supplier
+  integrations. Begins with a $499 scoping session that produces a written spec
+  the client owns, credited against the build.
+- **App Store and Google Play listing** — optional add-on, $1,200 one time then
+  $25/month. The same app wrapped and submitted under developer accounts
+  registered in the client's own business name, so the listings are the
+  client's property. Apple's $99/year and Google's one-time $25 are passed
+  through at cost and paid in the client's own accounts. Adds proper push
+  notifications on every iPhone. Stated plainly on the page: Apple rejects
+  anything it reads as a repackaged website under Guideline 4.2, so native
+  functionality is built in before submission, a first listing takes two to
+  four weeks mostly in account verification, and if Apple cannot be cleared
+  $600 is refunded while the client keeps the Play listing and the web app.
 - Growth clients get $500 off any app build; Market Leader clients get $1,000 off.
 
 Quantum Growth's stated position is that most small local businesses do not
 need an app, and that it says so rather than selling one — a business whose customers
 visit twice a year will not install anything. Where an app does pay
-is usually staff-facing rather than customer-facing: a technician photographing
-a worn part and sending it to the owner before approval converts better than a
-booking button.
+is usually staff-facing rather than customer-facing: sending the customer a
+picture before they decide — the problem for a trade, the finished result for a
+salon, the new stock for a shop — converts better than a booking button.
 
 ## Terms
 - No contract. Cancel any month.
