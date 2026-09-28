@@ -35,6 +35,32 @@
 - **Custom projects** — from $1,500. Booking tools, quote calculators, lead
   routing, AI answering.
 
+## Apps
+Built as installable web apps (PWAs), not App Store or Google Play apps. They
+install to the home screen from a link, so there are no store fees, no review
+queue before a fix goes live, and nothing for a customer to download. The
+trade-off, stated plainly: no push notifications on iPhones below iOS 16.4 —
+reminders go by text and email instead.
+- **Starter App** — $1,900 build, then $49/month. Booking and quote requests,
+  installs to the home screen, works offline, client's own branding and domain,
+  appointment reminders, requests landing in the same inbox as website leads.
+- **Business App** — $3,900 build, then $99/month. Everything in Starter plus
+  digital inspections with photos sent to the customer before they approve,
+  customer accounts with service history, an automated declined-work follow-up
+  list, scheduled service reminders, review requests on job completion.
+- **Custom Build** — from $7,500, monthly quoted with the build. Fleet customer
+  portals, dispatch and job boards, parts and supplier integrations. Begins
+  with a $499 scoping session that produces a written spec the client owns,
+  credited against the build.
+- Growth clients get $500 off any app build; Market Leader clients get $1,000 off.
+
+Quantum Growth's stated position is that most local service businesses do not
+need an app, and that it says so rather than selling one — a business whose
+customers visit twice a year will not install anything. Where an app does pay
+is usually staff-facing rather than customer-facing: a technician photographing
+a worn part and sending it to the owner before approval converts better than a
+booking button.
+
 ## Terms
 - No contract. Cancel any month.
 - Pause for up to two months a year at $29/month; the site and email stay live.
