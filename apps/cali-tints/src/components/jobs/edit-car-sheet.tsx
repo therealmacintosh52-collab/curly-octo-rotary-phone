@@ -116,7 +116,7 @@ export function EditCarSheet({
         services: services.map((s) => ({ service_id: s.service_id, price: s.price, override_reason: s.override_reason, label: s.label ?? null })),
       });
       if (r.ok) {
-        toast.success("Car updated · invoice refreshed");
+        toast.success("Invoice updated");
         onClose();
         onSaved?.();
         router.refresh();
@@ -130,7 +130,7 @@ export function EditCarSheet({
     <Sheet open onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="bottom" className="max-h-[94dvh] overflow-y-auto sm:mx-auto sm:max-w-2xl sm:rounded-t-2xl">
         <SheetHeader>
-          <SheetTitle>{title ?? `Edit car ${car.tag_number}`}</SheetTitle>
+          <SheetTitle>{title ?? `Edit invoice · ${car.tag_number}`}</SheetTitle>
           <SheetDescription>{description ?? "The invoice keeps its number; its lines and total follow the car."}</SheetDescription>
         </SheetHeader>
         <div className="grid gap-4 px-5">

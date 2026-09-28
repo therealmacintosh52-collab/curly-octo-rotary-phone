@@ -48,12 +48,12 @@ export function CarActions({
     <div className="flex flex-wrap gap-2">
       {canEdit && (
         <Button variant="outline" onClick={() => setEditOpen(true)}>
-          <PencilIcon /> Edit car
+          <PencilIcon /> Edit invoice
         </Button>
       )}
       {canDelete && (
         <Button variant="ghost" className="text-destructive" onClick={() => setDeleteOpen(true)}>
-          <Trash2Icon /> Delete car
+          <Trash2Icon /> Delete invoice
         </Button>
       )}
       {!canEdit && lockedReason && (
@@ -83,13 +83,13 @@ export function CarActions({
           onConfirm={(reason) =>
             start(async () => {
               if (demo) {
-                toast.success("Car removed", { description: "Guest preview — nothing changed" });
+                toast.success("Invoice deleted", { description: "Guest preview — nothing changed" });
                 setDeleteOpen(false);
                 return;
               }
               const r = await deleteInvoiceCarAction(invoiceId, reason);
               if (r.ok) {
-                toast.success("Car removed · invoice voided");
+                toast.success("Invoice deleted");
                 setDeleteOpen(false);
                 router.push("/invoices");
                 router.refresh();
@@ -107,8 +107,8 @@ function DeleteCarDialog({ tag, onConfirm, pending }: { tag: string; onConfirm: 
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Remove {tag}?</DialogTitle>
-        <DialogDescription>The invoice is voided (its number stays in the audit trail) and the car is hidden from lists. Nothing is billed for it.</DialogDescription>
+        <DialogTitle>Delete the invoice for {tag}?</DialogTitle>
+        <DialogDescription>The invoice is voided (its number stays in the audit trail) and the car comes off the lists. Nothing is billed for it.</DialogDescription>
       </DialogHeader>
       <div className="grid gap-2">
         <Label htmlFor="delete-reason">Reason (optional)</Label>
@@ -116,7 +116,7 @@ function DeleteCarDialog({ tag, onConfirm, pending }: { tag: string; onConfirm: 
       </div>
       <DialogFooter>
         <Button variant="destructive" disabled={pending} onClick={() => onConfirm(reason)}>
-          Remove car
+          Delete invoice
         </Button>
       </DialogFooter>
     </DialogContent>
