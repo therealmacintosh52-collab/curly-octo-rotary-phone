@@ -34,6 +34,11 @@ type Dialog = null | "card" | "device" | { manual: ManualMethod };
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0", "⌫"];
 
+/** Drop the make when it is the default one, so "4821 · 2024 GLE 450" fits a phone row. */
+const shortVehicle = (v: string | null | undefined) => v?.replace(/^(\d{4} )?Mercedes-Benz /, "$1") ?? null;
+/** What an invoice row leads with: the car's tag, or the invoice number when the invoice has no car. */
+const invoiceTitle = (i: OpenInvoiceOption) => i.tag ?? i.display_number;
+
 /**
  * Point of sale. Left: amount keypad, what it is for (quick sale or an open
  * invoice), how it is paid. Right: the day's transactions with totals. Every
@@ -87,7 +92,8 @@ export function Terminal({
   const initialCents = Math.round(openInvoices.filter((i) => initialIds.includes(i.id)).reduce((s, i) => s + i.balance, 0) * 100);
   // Amount is kept in cents so the keypad behaves like a register (typing 1 2 5 0 → $12.50).
   const [cents, setCents] = useState(initialCents);
-  const [mode, setMode] = useState<"sale" | "invoice">(initialIds.length ? "invoice" : "sale");
+  // Dealership invoices are the everyday case; a quick sale is the exception.
+  const [mode, setMode] = useState<"sale" | "invoice">(initialIds.length || openInvoices.length ? "invoice" : "sale");
   // One or many invoices; several are settled with one payment, oldest first.
   const [selected, setSelected] = useState<string[]>(initialIds);
   const [query, setQuery] = useState("");
@@ -117,7 +123,7 @@ export function Terminal({
   const valid = amount > 0 && amount <= max + 0.005;
   const filteredInvoices = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? openInvoices.filter((i) => i.display_number.toLowerCase().includes(q) || i.dealership.toLowerCase().includes(q)) : openInvoices;
+    return q ? openInvoices.filter((i) => [i.display_number, i.dealership, i.tag, i.vehicle, i.service].some((s) => s?.toLowerCase().includes(q))) : openInvoices;
   }, [openInvoices, query]);
   const filteredBalance = Math.round(filteredInvoices.reduce((s, i) => s + i.balance, 0) * 100) / 100;
   const allFilteredSelected = filteredInvoices.length > 0 && filteredInvoices.every((i) => selected.includes(i.id));
@@ -282,9 +288,11 @@ export function Terminal({
   const dealers = [...new Set(selectedInvoices.map((i) => i.dealership))];
   const subtitle = many ? `${selectedInvoices.length} invoices · balance ${formatMoney(selectedBalance)}` : invoice ? `${invoice.display_number} · balance ${formatMoney(invoice.balance)}` : description.trim() || "Counter sale";
   const forLabel = many ? `${selectedInvoices.length} invoices${dealers.length === 1 ? ` · ${dealers[0]}` : ""}` : invoice ? `${invoice.display_number} · ${invoice.dealership}` : "Quick sale";
+  // On the Invoices tab a payment has to belong to an invoice; nothing picked means nothing to take.
+  const needsPick = mode === "invoice" && selectedInvoices.length === 0;
 
   const methodButton = (label: string, Icon: React.ComponentType<{ className?: string }>, onClick: () => void, opts: { disabled?: boolean; hint?: string; primary?: boolean } = {}) => (
-    <Button type="button" size="lg" variant={opts.primary ? "default" : "secondary"} className="h-14 flex-col gap-0.5 text-sm" disabled={!valid || opts.disabled || pending} onClick={onClick} title={opts.hint}>
+    <Button type="button" size="lg" variant={opts.primary ? "default" : "secondary"} className="h-14 flex-col gap-0.5 text-sm" disabled={!valid || needsPick || opts.disabled || pending} onClick={onClick} title={opts.hint}>
       <Icon className="size-5" />
       {label}
     </Button>
@@ -312,7 +320,8 @@ export function Terminal({
                 <span className="flex min-w-0 flex-1 items-center gap-2">
                   {many ? <LayersIcon className="size-4 shrink-0 text-primary" /> : <FileTextIcon className="size-4 shrink-0 text-primary" />}
                   <span className="min-w-0 truncate">
-                    Paying <strong>{many ? `${selectedInvoices.length} invoices` : invoice!.display_number}</strong> · {many ? (dealers.length === 1 ? dealers[0] : `${dealers.length} dealerships`) : invoice!.dealership}
+                    Paying <strong>{many ? `${selectedInvoices.length} invoices` : invoiceTitle(invoice!)}</strong>
+                    {!many && invoice!.tag ? ` · ${invoice!.display_number}` : ""} · {many ? (dealers.length === 1 ? dealers[0] : `${dealers.length} dealerships`) : invoice!.dealership}
                     {many ? ` · ${formatMoney(selectedBalance)}` : ""}
                   </span>
                 </span>
@@ -347,8 +356,8 @@ export function Terminal({
                   size="sm"
                   aria-label="What the payment is for"
                   items={[
-                    { value: "sale", label: "Quick sale" },
                     { value: "invoice", label: "Invoices" },
+                    { value: "sale", label: "Quick sale" },
                   ]}
                   value={mode}
                   onValueChange={(v) => {
@@ -372,7 +381,7 @@ export function Terminal({
                 <div className="grid gap-2">
                   <div className="relative">
                     <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle" />
-                    <Input className="pl-9" placeholder="Invoice number or dealership" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find an open invoice" />
+                    <Input className="pl-9" placeholder="Tag, model, invoice number or dealership" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find an open invoice" />
                   </div>
                   {filteredInvoices.length === 0 ? (
                     <p className="px-1 py-2 text-sm text-muted-foreground">No open invoices match.</p>
@@ -404,8 +413,11 @@ export function Terminal({
                                   {on && <CheckIcon className="size-3" />}
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                  <span className="font-semibold">{i.display_number}</span>
-                                  <span className="block truncate text-caption text-muted-foreground">{i.dealership}</span>
+                                  <span className="block truncate">
+                                    <span className="font-semibold tracking-wide">{invoiceTitle(i)}</span>
+                                    {i.tag && (i.car_count ?? 1) > 1 ? <span className="text-muted-foreground"> · {i.car_count} cars</span> : i.tag && i.vehicle ? <span className="text-muted-foreground"> · {shortVehicle(i.vehicle)}</span> : null}
+                                  </span>
+                                  <span className="block truncate text-caption text-muted-foreground">{[i.tag ? i.display_number : null, i.dealership, i.service, i.date ? formatDateOnly(i.date, "MMM d") : null].filter(Boolean).join(" · ")}</span>
                                 </span>
                                 <span className="shrink-0 tabular-nums">{formatMoney(i.balance)}</span>
                               </button>
@@ -415,6 +427,7 @@ export function Terminal({
                       </ul>
                     </div>
                   )}
+                  {needsPick && openInvoices.length > 0 && <Hint>Tick the invoices being paid; the balance fills in. For anything else, use Quick sale.</Hint>}
                   {invoice && amount > 0 && amount < invoice.balance - 0.004 && <Hint tone="warning">Partial payment; {formatMoney(invoice.balance - amount)} stays open on {invoice.display_number}.</Hint>}
                   {many && amount > 0 && amount < selectedBalance - 0.004 && (
                     <Hint tone="warning">

@@ -20,6 +20,14 @@ export interface OpenInvoiceOption {
   balance: number;
   /** Dealership AP email, for one-tap receipts from the Terminal. */
   email?: string | null;
+  /** The car on the invoice (first car on a legacy multi-car one), so the Terminal can show "4821 · 2024 GLE 450". */
+  tag?: string | null;
+  vehicle?: string | null;
+  /** Services on the invoice, joined ("Used", "PDI, Paint Correction"). */
+  service?: string | null;
+  /** Day the car was detailed (YYYY-MM-DD). */
+  date?: string | null;
+  car_count?: number;
 }
 
 /**

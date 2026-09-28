@@ -25,12 +25,26 @@ export default async function TerminalPage(props: PageProps<"/terminal">) {
   const supabase = await createClient();
   const [{ data: txs }, { data: invoices }] = await Promise.all([
     supabase.rpc("terminal_transactions", { p_start: date, p_end: date }),
-    supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name, ap_emails)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200),
+    supabase.from("invoices").select("id, display_number, total, amount_paid, period_end, dealership:dealerships(name, ap_emails), invoice_items(tag_number, year, make, model, service_name, performed_at, sort_order)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200),
   ]);
+  type Item = { tag_number: string; year: number | null; make: string | null; model: string | null; service_name: string; performed_at: string; sort_order: number };
   const openInvoices: OpenInvoiceOption[] = (invoices ?? [])
     .map((i) => {
       const d = i.dealership as unknown as { name: string; ap_emails: string[] } | null;
-      return { id: i.id, display_number: i.display_number, dealership: d?.name ?? "", balance: Number(i.total) - Number(i.amount_paid), email: d?.ap_emails?.[0] ?? null };
+      const items = ((i.invoice_items as unknown as Item[] | null) ?? []).slice().sort((a, b) => a.sort_order - b.sort_order);
+      const first = items[0];
+      return {
+        id: i.id,
+        display_number: i.display_number,
+        dealership: d?.name ?? "",
+        balance: Number(i.total) - Number(i.amount_paid),
+        email: d?.ap_emails?.[0] ?? null,
+        tag: first?.tag_number ?? null,
+        vehicle: first ? [first.year, first.make, first.model].filter(Boolean).join(" ") || null : null,
+        service: [...new Set(items.map((x) => x.service_name))].join(", ") || null,
+        date: first?.performed_at ?? i.period_end,
+        car_count: new Set(items.map((x) => x.tag_number)).size,
+      };
     })
     .filter((i) => i.balance > 0);
   // Deep link from "Save & charge" / "Collect payment": ?invoice=<id>&method=card|device
