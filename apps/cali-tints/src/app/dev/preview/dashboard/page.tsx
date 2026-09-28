@@ -15,7 +15,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   const { company } = invoiceBundleFixture();
   const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
 
-  const days = Array.from({ length: 26 }, (_, i) => {
+  const days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(2026, 8, i + 1);
     const weekend = d.getDay() === 0 || d.getDay() === 6;
     const jobs = weekend ? 0 : 3 + ((i * 7) % 6);
@@ -67,8 +67,10 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
     week_by_day: Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + i);
-      const jobs = [9, 8, 6, 0, 0, 0, 0][i];
-      return { day: toDateInput(d), jobs, revenue: jobs * 90 };
+      const key = toDateInput(d);
+      const known = days.find((x) => x.day === key);
+      const jobs = key > today ? 0 : (known?.jobs ?? [9, 8, 6, 9, 7, 0, 0][i]);
+      return { day: key, jobs, revenue: known?.revenue ?? jobs * 90 };
     }).filter((d) => d.jobs > 0),
     overdue: [
       { id: "i1", display_number: "INV-000009", dealership: "Mercedes-Benz of El Dorado Hills", total: 4210, amount_paid: 0, submitted_at: "2026-08-02T17:00:00Z", days_outstanding: 55 },
