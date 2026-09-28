@@ -34,7 +34,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 |---|---|
 | New invoice `/jobs/new` | Big tag input, VIN camera scan (Code 39/128, QR, DataMatrix, PDF417) → NHTSA decode with cache, Mercedes model list + free text, service chips with priced overrides (reason required), 7-day duplicate warning. **Save** makes the car its own invoice; the success card shows the invoice number with **Collect** and **Open**. **Save & charge** (admins) jumps straight to the Terminal with it |
 | Offline | Cars queue in IndexedDB and sync when online (idempotent on a client id, so retries never duplicate); each becomes its invoice on arrival and the form's card fills in the number. `/jobs/outbox` shows the queue with retry/discard. App shell is cached by a service worker |
-| Invoices `/invoices` | The one list: every car as its invoice. Search tag/VIN/model/RO/invoice number, or a date (`9/27`, `sep 27`, `september`, `yesterday`, `last week`), or scan the VIN barcode on the car to pull up its invoice; filter by dealership, service, dates; **All · Unpaid (Not sent / Sent / Partial) · Overdue · Paid · Void**; **Collect** on every open row, **Collect all unpaid** in the header. Detailers see their own cars, read-only |
+| Invoices `/invoices` | The one list: every car as its invoice. Search tag/VIN/model/RO/invoice number/service, or a date (`9/27`, `sep 27`, `september`, `yesterday`, `last week`), or scan the VIN barcode on the car to pull up its invoice; filter by dealership, service, dates; **All · Unpaid (Not sent / Sent / Partial) · Overdue · Paid · Void**; **Collect** on every open row, **Collect all unpaid** in the header. Detailers see their own cars, read-only |
 | Invoice page | The car (VIN, color, notes), its services, subtotal/tax/total, where it stands (logged → sent → paid). Card payments taken in the app, on the Clover terminal or through the pay link add themselves; **Add payment** is for checks, ACH or cash that arrived outside the app. **Edit car** and **Delete car** while it is an unsent draft with nothing paid (owner, or the car's detailer for edits): the lines re-snapshot, the number stays. Branded and print-ready PDF, CSV, Excel; submit by email (Resend) with full send history; manual mark-as-submitted with confirmation upload; partial payments; void |
 | Double-billing guard | At entry, the 7-day duplicate prompt says if the earlier car is already on an invoice (it always is now, so the prompt shows the number). `/invoices/new` still exists for cars logged before auto-invoicing, with the same VIN/tag conflict check |
 | Terminal `/terminal` | Point of sale from any phone or laptop: amount keypad, quick sale or open invoice, paid by card (in app), card on the Clover device, cash, check or ACH; refunds (full/partial, back to the same card); email and print receipts; the day's transactions with totals |
@@ -47,7 +47,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 ```
 apps/cali-tints
 ├── supabase/
-│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice
+│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice · 0016 search by service
 │   ├── seed.sql         company, 2 dealerships, 8 services, price overrides
 │   └── tests/           SQL test suite runnable on plain Postgres (run.sh)
 ├── scripts/seed-demo.mjs   demo users + 60 days of jobs + invoices (uses the real RPCs)

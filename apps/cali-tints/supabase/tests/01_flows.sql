@@ -461,8 +461,8 @@ begin
   perform public.refund_terminal_sale(v_sale, null, (select amount from public.invoice_payments where id = v_first));
   assert (select status from public.invoices where id = c) = 'submitted' or (select status from public.invoices where id = c) = 'draft', 'c reopened after refunding its share: ' || (select status from public.invoices where id = c);
   assert (select status from public.invoices where id = b) = 'paid', 'b untouched by c refund';
-  assert jsonb_array_length(public.terminal_transactions(current_date, current_date)) >= 2, 'group rows listed';
-  assert (select count(*) from jsonb_array_elements(public.terminal_transactions(current_date, current_date)) e where e ->> 'group_id' = g::text) = 2, 'group id on both rows (sale + refund)';
+  assert jsonb_array_length(public.terminal_transactions(current_date - 1, current_date + 1)) >= 2, 'group rows listed';
+  assert (select count(*) from jsonb_array_elements(public.terminal_transactions(current_date - 1, current_date + 1)) e where e ->> 'group_id' = g::text) = 2, 'group id on both rows (sale + refund)';
 end $$;
 select pg_temp.login('10000000-0000-4000-8000-000000000003');
 do $$
@@ -518,7 +518,7 @@ begin
   assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before - 120, 'income reflects the refunded invoice payment once';
 
   -- The day list shows ledger rows and the remaining invoice payment (recorded elsewhere) together.
-  tx := public.terminal_transactions(current_date - 1, current_date);
+  tx := public.terminal_transactions(current_date - 1, current_date + 1);
   assert jsonb_array_length(tx) >= 4, 'transactions listed: ' || jsonb_array_length(tx);
   select count(*) into n from jsonb_array_elements(tx) e where e ->> 'clover_payment_id' = 'CLV-PAY-2' and e ->> 'kind' = 'sale' and (e ->> 'payment_id') is not null;
   assert n = 1, 'unlinked invoice payment appears once';
@@ -680,6 +680,8 @@ begin
   assert (f ->> 'count')::int = 1 and (f -> 'rows' -> 0 -> 'cars' -> 0 ->> 'tag') = 'CAR1X' and (f -> 'rows' -> 0 -> 'cars' -> 0 ->> 'vehicle') = 'GLE 450', 'search by tag finds the car: ' || f;
   f := public.invoices_filtered(p_q => 'RO-900');
   assert (f ->> 'count')::int = 1 and (f -> 'rows' -> 0 ->> 'display_number') = v_num, 'search by RO/PO';
+  f := public.invoices_filtered(p_q => 'loaner');
+  assert (f ->> 'count')::int >= 1 and (select count(*) from jsonb_array_elements(f -> 'rows') r where not (r -> 'services') ? 'Service Loaner Detail') = 0, 'search by service name: ' || (f ->> 'count');
   f := public.invoices_filtered(p_q => 'INV-0000');
   assert (f ->> 'count')::int >= 3, 'search by invoice number';
   f := public.invoices_filtered(p_service => '00000000-0000-4000-8000-000000000209');

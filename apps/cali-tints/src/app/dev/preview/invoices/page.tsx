@@ -49,7 +49,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
     if (filters.service && !r.services.includes(SERVICES.find((s) => s.id === filters.service)?.name ?? "")) return false;
     if (filters.from && r.period_end < filters.from) return false;
     if (filters.to && r.period_start > filters.to) return false;
-    if (q && !(r.display_number.includes(q) || r.cars.some((c) => c.tag.includes(q) || (c.vin ?? "").includes(q) || (c.vehicle ?? "").toUpperCase().includes(q)))) return false;
+    if (q && !(r.display_number.includes(q) || r.services.some((s) => s.toUpperCase().includes(q)) || r.cars.some((c) => c.tag.includes(q) || (c.vin ?? "").includes(q) || (c.vehicle ?? "").toUpperCase().includes(q)))) return false;
     return true;
   });
   const total = rows.reduce((s, r) => s + r.total, 0);

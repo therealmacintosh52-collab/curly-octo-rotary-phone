@@ -156,7 +156,7 @@ export function InvoiceFilters({
           }}
         >
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-subtle" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag, VIN, invoice #, model or date" className="pl-10 pr-20" enterKeyHint="search" autoCapitalize="characters" aria-label="Search invoices" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag, VIN, invoice #, model, service or date" className="pl-10 pr-20" enterKeyHint="search" autoCapitalize="characters" aria-label="Search invoices" />
           <div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5">
             {q && (
               <button
