@@ -39,7 +39,7 @@ function addDaysYmd(ymd: string, n: number) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
 
-/** "Good morning, Vincent." from the hour in the company timezone and the signed-in person's first name. */
+/** "Good morning, Mike." from the hour in the company timezone and the signed-in person's first name. */
 export function greetingFor(fullName: string, tz: string, now: Date = new Date()): string {
   let hour = now.getHours();
   try {
@@ -110,7 +110,7 @@ export function Dashboard({
   cloverUnmatched?: number;
   /** Today in the company timezone (yyyy-mm-dd). */
   today: string;
-  /** "Good afternoon, Vincent." — built by the page from the clock and the signed-in name. */
+  /** "Good afternoon, Mike." — built by the page from the clock and the signed-in name. */
   greeting: string;
   /** The month the breakdown shows, with its own stats (by service, by day). */
   breakdown: ReturnType<typeof resolveBreakdownMonth> & { stats: Pick<DashboardStats, "by_service" | "by_day"> };

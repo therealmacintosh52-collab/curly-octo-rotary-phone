@@ -179,7 +179,6 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
                   <Fact label="Color" value={car.color ?? "—"} />
                   <Fact label="VIN" value={car.vin ? <span className="font-mono">{car.vin}</span> : "—"} />
                   <Fact label="Dealership" value={dealership.name} />
-                  <Fact label="Detailed on" value={formatDate(car.performed_at)} />
                   <Fact label="Detailer" value={detailerName ?? "—"} />
                   {car.ro_po_number && <Fact label="RO / PO" value={car.ro_po_number} />}
                   {car.notes && <Fact label="Notes" value={<span className="whitespace-pre-wrap">{car.notes}</span>} />}

@@ -74,7 +74,8 @@ export function EditCarSheet({
   const [tag, setTag] = useState(car.tag_number);
   const [vin, setVin] = useState(car.vin ?? "");
   const [year, setYear] = useState(car.year ? String(car.year) : "");
-  const [make, setMake] = useState(car.make ?? DEFAULT_MAKE);
+  const [make, setMake] = useState(car.make && !(MAKES as readonly string[]).includes(car.make) ? "Other" : (car.make ?? DEFAULT_MAKE));
+  const [customMake, setCustomMake] = useState(car.make && !(MAKES as readonly string[]).includes(car.make) ? car.make : "");
   const [model, setModel] = useState(car.model ?? "");
   const [color, setColor] = useState(car.color ?? "");
   const [performedAt, setPerformedAt] = useState(toDateInput(new Date(car.performed_at)));
@@ -106,7 +107,7 @@ export function EditCarSheet({
         tag_number: tag.trim().toUpperCase(),
         vin: vin ? normalizeVin(vin) : null,
         year: year ? Number(year) : null,
-        make: make || null,
+        make: make === "Other" ? customMake.trim() || null : make || null,
         model: model.trim() || null,
         color: color || null,
         // Unchanged date keeps the original timestamp; a new date is stored per dateInputToIso.
@@ -125,6 +126,7 @@ export function EditCarSheet({
   }
 
   const modelOptions = make.startsWith("Mercedes") ? MERCEDES_MODELS : [];
+  const otherMake = make === "Other";
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
@@ -165,7 +167,13 @@ export function EditCarSheet({
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="e-make">Make</Label>
-              <Select value={make} onValueChange={setMake}>
+              <Select
+                value={make}
+                onValueChange={(v) => {
+                  setMake(v);
+                  if (v !== "Other") setCustomMake("");
+                }}
+              >
                 <SelectTrigger id="e-make">
                   <SelectValue />
                 </SelectTrigger>
@@ -175,9 +183,10 @@ export function EditCarSheet({
                       {m}
                     </SelectItem>
                   ))}
-                  {!MAKES.includes(make as (typeof MAKES)[number]) && make && <SelectItem value={make}>{make}</SelectItem>}
+                  {!MAKES.includes("Other" as (typeof MAKES)[number]) && <SelectItem value="Other">Other</SelectItem>}
                 </SelectContent>
               </Select>
+              {otherMake && <Input id="e-make-other" value={customMake} onChange={(e) => setCustomMake(e.target.value)} placeholder="Type the make" aria-label="Other make" autoCapitalize="words" maxLength={60} />}
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="e-model">Model</Label>

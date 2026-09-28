@@ -81,6 +81,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
   const [decodedLabel, setDecodedLabel] = useState<string | null>(null);
   const [year, setYear] = useState<string>("");
   const [make, setMake] = useState<string>(DEFAULT_MAKE);
+  const [customMake, setCustomMake] = useState(""); // typed when Make is "Other"
   const [model, setModel] = useState("");
   const [color, setColor] = useState("");
   const [services, setServices] = useState<SelectedService[]>([]);
@@ -160,7 +161,13 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
     try {
       const r = await decodeVin(v);
       if (r.year) setYear(String(r.year));
-      if (r.make) setMake(r.make);
+      if (r.make) {
+        if ((MAKES as readonly string[]).includes(r.make)) setMake(r.make);
+        else {
+          setMake("Other");
+          setCustomMake(r.make);
+        }
+      }
       if (r.model) setModel(r.model);
       const label = [r.year, r.make, r.model].filter(Boolean).join(" ");
       setDecodedLabel(label || null);
@@ -247,7 +254,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
       tag_number: tag.trim().toUpperCase(),
       vin: vin || null,
       year: year ? Number(year) : null,
-      make: make === "Other" ? null : make || null,
+      make: make === "Other" ? customMake.trim() || null : make || null,
       model: model.trim() || null,
       color: color === "Other" ? null : color || null,
       performed_at: dateInputToIso(performedAt),
@@ -350,6 +357,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
     setDecodedLabel(null);
     setYear("");
     setMake(DEFAULT_MAKE);
+    setCustomMake("");
     setModel("");
     setColor("");
     setServices([]);
@@ -529,7 +537,13 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="make">Make</Label>
-            <Select value={MAKES.includes(make as (typeof MAKES)[number]) ? make : "Other"} onValueChange={(v) => setMake(v)}>
+            <Select
+              value={MAKES.includes(make as (typeof MAKES)[number]) ? make : "Other"}
+              onValueChange={(v) => {
+                setMake(v);
+                if (v !== "Other") setCustomMake("");
+              }}
+            >
               <SelectTrigger id="make" aria-label="Make">
                 <SelectValue />
               </SelectTrigger>
@@ -539,9 +553,12 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
                     {mk}
                   </SelectItem>
                 ))}
-                {!MAKES.includes(make as (typeof MAKES)[number]) && make && <SelectItem value={make}>{make}</SelectItem>}
+                {!MAKES.includes("Other" as (typeof MAKES)[number]) && <SelectItem value="Other">Other</SelectItem>}
               </SelectContent>
             </Select>
+            {(make === "Other" || !MAKES.includes(make as (typeof MAKES)[number])) && (
+              <Input id="make-other" value={customMake} onChange={(e) => setCustomMake(e.target.value)} placeholder="Type the make, e.g. Porsche" aria-label="Other make" autoCapitalize="words" maxLength={60} autoFocus />
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="model">Model</Label>
