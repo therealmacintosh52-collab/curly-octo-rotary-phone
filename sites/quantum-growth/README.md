@@ -7,15 +7,14 @@ One static page. No build step, no framework, no dependencies.
 Three things, in order. Skip any of them and the page is broken in a way that
 costs money rather than looking wrong.
 
-1. **Wire up the form.** `public/index.html` posts to
-   `https://formsubmit.co/REPLACE-WITH-YOUR-FORMSUBMIT-CODE`. Until that
-   placeholder is replaced, every enquiry is silently discarded. Create the
-   endpoint at [formsubmit.co](https://formsubmit.co), swap the code in, submit
-   the form once yourself, then click the confirmation email. Nothing arrives
-   until that click.
-2. **Stamp the domain.** `python3 set-domain.py yourdomain.com`
-3. **Check the share card.** Paste the live URL into a text message to yourself
+1. **Stamp the domain.** `python3 set-domain.py yourdomain.com`
+2. **Check the share card.** Paste the live URL into a text message to yourself
    and confirm the picture appears.
+
+> **There is no form on this page.** Every enquiry has to come by phone. That
+> is a deliberate choice, but it is worth knowing: a visitor who is not ready
+> to call has no way to raise their hand, and there is no record of anyone who
+> looked. If leads ever feel thin, this is the first place to look.
 
 ## Deploy
 

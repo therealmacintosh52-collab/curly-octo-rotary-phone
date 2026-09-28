@@ -93,20 +93,6 @@ sales call in 2026, not a survey of the industry.
 - Reporting: Google's own numbers, verifiable by the client — vendor: a vendor dashboard
 - Pages built: 25, each targeting a real search — vendor: five and a contact form
 
-## Growth calculator
-The top of the site carries an interactive calculator rather than a lead form.
-A visitor sets what one new customer is worth — presets span a $25 cafe sale,
-a $45 salon visit, $90 retail, a $150 clinic visit, a $450 trades
-call-out and a $2,500 project — and how many extra customers a month would change
-things for them. It shows what that new work is worth per year and per month,
-then names the largest plan those numbers would comfortably carry. At $150 a
-customer and five a month that is $9,000 a year, and Local at $299/month
-leaves $451 a month ahead.
-
-Where the numbers do not support any plan, it says so rather than
-recommending one. The page states plainly that no result can be promised and
-that the figures are the visitor's own assumptions, not a forecast.
-
 ## Free visibility check
 A no-obligation review of a business's Google profile and website — map-pack
 position, profile gaps, who ranks ahead and why. Requested by phone or text on
