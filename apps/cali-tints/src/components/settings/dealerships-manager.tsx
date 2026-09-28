@@ -91,7 +91,6 @@ export function DealershipsManager({ dealerships }: { dealerships: Dealership[] 
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{d.name}</span>
                   {!d.active && <Badge variant="muted">Inactive</Badge>}
-                  <Badge variant="outline">{d.invoice_mode === "per_job" ? "Per job" : "Batch"}</Badge>
                   <Badge variant="outline">{d.submission_method}</Badge>
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">{[d.address_line1, d.city, d.state].filter(Boolean).join(", ") || "No address"}</div>
@@ -198,7 +197,7 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
               <Textarea id="d-ape" value={f.ap_emails} onChange={set("ap_emails")} className="min-h-16" placeholder="ap@dealer.com, controller@dealer.com" />
               <p className="text-xs text-muted-foreground">Comma-separated. Invoices are emailed here with the company CC&apos;d.</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2">
               <div className="grid gap-1.5">
                 <Label>Preferred method</Label>
                 <Select value={f.submission_method} onValueChange={(v) => setF((s) => ({ ...s, submission_method: v as SubmissionMethod }))}>
@@ -212,20 +211,8 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5">
-                <Label>Invoice mode</Label>
-                <Select value={f.invoice_mode} onValueChange={(v) => setF((s) => ({ ...s, invoice_mode: v as InvoiceMode }))}>
-                  <SelectTrigger aria-label="Invoice mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="batch">Batch (date range)</SelectItem>
-                    <SelectItem value="per_job">Per job (one per RO/PO)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-            {f.invoice_mode === "per_job" && <p className="text-xs text-muted-foreground">Per-job mode creates one invoice per job (jobs that share an RO/PO number are grouped).</p>}
+            <p className="text-xs text-muted-foreground">Every car logged for this dealership becomes its own invoice. Use <strong>Collect all unpaid</strong> on the Invoices page to settle several at once.</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="d-terms">Payment terms</Label>

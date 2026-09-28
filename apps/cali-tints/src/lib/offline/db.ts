@@ -17,6 +17,9 @@ export interface OutboxItem {
   created_at: number;
   synced_at: number | null;
   job_id: string | null;
+  /** Set once synced: the invoice the car became (0015). Optional for items queued by older builds. */
+  invoice_id?: string | null;
+  invoice_number?: string | null;
 }
 
 /** Slim copy of recent jobs so the duplicate check works offline. */

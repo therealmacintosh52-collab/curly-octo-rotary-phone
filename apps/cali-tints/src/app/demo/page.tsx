@@ -44,7 +44,7 @@ export default async function DemoPage(props: PageProps<"/demo">) {
               <Link href="/">Open the app</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/jobs/new">Try making an invoice</Link>
+              <Link href="/jobs/new">Try logging a car</Link>
             </Button>
           </div>
         ) : (

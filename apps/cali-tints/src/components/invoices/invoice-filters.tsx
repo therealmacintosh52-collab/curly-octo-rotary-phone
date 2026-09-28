@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
-import type { JobFilters } from "@/lib/jobs/query";
+import { STATUS_LABELS, type InvoiceFilters as Filters } from "@/lib/invoices/query";
 import { formatDateOnly } from "@/lib/dates";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,18 +16,22 @@ import { cn } from "@/lib/utils";
 
 const ALL = "__all";
 
+/** The unpaid family: the segmented control shows one "Unpaid" segment, and these chips split it. */
+const UNPAID = new Set(["unpaid", "outstanding", "draft", "submitted", "partial"]);
+
 /**
- * URL-state filter bar. Search and status are always visible; the rest lives
- * in a sheet on phones and inline on desktop. Active filters show as chips so
- * a drilled-down list (from the dashboard) is always explainable.
+ * URL-state filter bar for the one list. Search and status are always
+ * visible; dealership, service and dates live in a sheet on phones and inline
+ * on desktop. Active filters show as chips so a drilled-down list (from the
+ * dashboard) is always explainable.
  */
-export function JobsFilters({
+export function InvoiceFilters({
   filters,
   services,
   dealerships,
   isAdmin,
 }: {
-  filters: JobFilters;
+  filters: Filters;
   services: { id: string; name: string }[];
   dealerships: { id: string; name: string }[];
   isAdmin: boolean;
@@ -52,7 +56,8 @@ export function JobsFilters({
       else next.set(k, v);
     }
     next.delete("page");
-    start(() => router.push(`${pathname}?${next.toString()}`));
+    const qs = next.toString();
+    start(() => router.push(qs ? `${pathname}?${qs}` : pathname));
   }
 
   const serviceName = services.find((s) => s.id === filters.service)?.name;
@@ -65,33 +70,26 @@ export function JobsFilters({
     const label = filters.from && filters.to && filters.from === filters.to ? formatDateOnly(filters.from, "MMM d, yyyy") : `${filters.from ? formatDateOnly(filters.from, "MMM d") : "…"} – ${filters.to ? formatDateOnly(filters.to, "MMM d, yyyy") : "…"}`;
     chips.push({ key: "dates", label, clear: { from: undefined, to: undefined } });
   }
-  const hasFilters = chips.length > 0 || !!filters.q || (!!filters.status && filters.status !== "all");
+  const hasFilters = chips.length > 0 || !!filters.q || filters.status !== "all";
   const advancedCount = chips.length;
 
+  const segment = UNPAID.has(filters.status) ? "unpaid" : filters.status;
   const statusItems = [
     { value: "all", label: "All" },
-    { value: "uninvoiced", label: "Uninvoiced" },
-    { value: "invoiced", label: "Invoiced" },
-    ...(isAdmin ? [{ value: "deleted", label: "Deleted" }] : []),
+    { value: "unpaid", label: "Unpaid" },
+    { value: "overdue", label: "Overdue" },
+    { value: "paid", label: "Paid" },
+    ...(isAdmin ? [{ value: "void", label: "Void" }] : []),
+  ];
+  const unpaidChips: { value: string; label: string }[] = [
+    { value: "unpaid", label: "Any" },
+    { value: "draft", label: STATUS_LABELS.draft },
+    { value: "submitted", label: STATUS_LABELS.submitted },
+    { value: "partial", label: STATUS_LABELS.partial },
   ];
 
   const controls = (layout: "sheet" | "inline") => (
     <div className={cn(layout === "sheet" ? "grid gap-4" : "flex flex-wrap items-end gap-2")}>
-      <Field label="Service" layout={layout}>
-        <Select value={filters.service ?? ALL} onValueChange={(v) => update({ service: v })}>
-          <SelectTrigger size={layout === "inline" ? "sm" : "default"} aria-label="Service" className={layout === "inline" ? "w-44" : undefined}>
-            <SelectValue placeholder="Service" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All services</SelectItem>
-            {services.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
       {dealerships.length > 1 && (
         <Field label="Dealership" layout={layout}>
           <Select value={filters.dealership ?? ALL} onValueChange={(v) => update({ dealership: v })}>
@@ -109,6 +107,21 @@ export function JobsFilters({
           </Select>
         </Field>
       )}
+      <Field label="Service" layout={layout}>
+        <Select value={filters.service ?? ALL} onValueChange={(v) => update({ service: v })}>
+          <SelectTrigger size={layout === "inline" ? "sm" : "default"} aria-label="Service" className={layout === "inline" ? "w-44" : undefined}>
+            <SelectValue placeholder="Service" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All services</SelectItem>
+            {services.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
       <div className={cn(layout === "sheet" ? "grid grid-cols-2 gap-3" : "contents")}>
         <Field label="From" layout={layout}>
           <Input type="date" value={filters.from ?? ""} onChange={(e) => update({ from: e.target.value || undefined })} className={layout === "inline" ? "h-9 w-40 text-sm" : undefined} aria-label="From date" />
@@ -133,7 +146,7 @@ export function JobsFilters({
           }}
         >
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-subtle" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag, VIN or model" className="pl-10 pr-9" enterKeyHint="search" autoCapitalize="characters" aria-label="Search jobs" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag, VIN, invoice # or model" className="pl-10 pr-9" enterKeyHint="search" autoCapitalize="characters" aria-label="Search invoices" />
           {q && (
             <button
               type="button"
@@ -157,9 +170,34 @@ export function JobsFilters({
 
       {/* Status + inline controls (desktop) */}
       <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
-        <Segmented aria-label="Invoice status" items={statusItems} value={filters.status ?? "all"} onValueChange={(v) => update({ status: v === "all" ? undefined : v })} className="w-full sm:w-auto" />
+        <Segmented aria-label="Invoice status" items={statusItems} value={segment} onValueChange={(v) => update({ status: v === "all" ? undefined : v })} className="w-full sm:w-auto" />
         <div className="hidden sm:block">{controls("inline")}</div>
       </div>
+
+      {/* Unpaid: split by where the money is */}
+      <AnimatePresence initial={false}>
+        {segment === "unpaid" && (
+          <m.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex flex-wrap items-center gap-1.5 overflow-hidden" role="group" aria-label="Unpaid by stage">
+            {unpaidChips.map((c) => {
+              const active = (filters.status === "outstanding" ? "unpaid" : filters.status) === c.value;
+              return (
+                <button
+                  key={c.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => update({ status: c.value })}
+                  className={cn(
+                    "inline-flex h-8 items-center rounded-full border px-3 text-[13px] font-medium transition-colors",
+                    active ? "border-primary/40 bg-accent-soft text-primary" : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
+                  )}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {/* Active filter chips */}
       <AnimatePresence initial={false}>

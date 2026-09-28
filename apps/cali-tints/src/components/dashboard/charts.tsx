@@ -19,7 +19,7 @@ const ACCENT_DIM = "#4d7f34";
 const GRID = "#232a2f";
 const TICK = "#8a939b";
 
-function ChartTooltip({ active, payload, label, money, countNoun = "job", hint = "Tap to see the jobs" }: { active?: boolean; payload?: { value: number; name: string; payload: Record<string, unknown> }[]; label?: string; money?: boolean; countNoun?: string; hint?: string }) {
+function ChartTooltip({ active, payload, label, money, countNoun = "car", hint = "Tap to see the cars" }: { active?: boolean; payload?: { value: number; name: string; payload: Record<string, unknown> }[]; label?: string; money?: boolean; countNoun?: string; hint?: string }) {
   if (!active || !payload?.length) return null;
   const p = payload[0];
   const count = (p.payload.count ?? p.payload.jobs) as number | undefined;
@@ -48,23 +48,23 @@ function barRow<T>(item: unknown): T | undefined {
 /**
  * A money amount per day as columns; empty days are filled in so the axis is
  * continuous and long ranges are grouped by week or month. Click a column →
- * `href(from, to)` for that bucket. Used for revenue logged (jobs) and income
+ * `href(from, to)` for that bucket. Used for revenue logged (cars) and income
  * collected (payments).
  */
 export function DailyBarsChart({
   data,
   start,
   end,
-  drill = "jobs",
+  drill = "cars",
 }: {
   data: { day: string; value: number; count: number }[];
   start: string;
   end: string;
-  /** Where a click goes: that bucket's jobs, or the paid invoices list (serialisable so a server component can pass it). */
-  drill?: "jobs" | "paid";
+  /** Where a click goes: that bucket's cars, or the paid invoices list (serialisable so a server component can pass it). */
+  drill?: "cars" | "paid";
 }) {
-  const countNoun = drill === "paid" ? "payment" : "job";
-  const hint = drill === "paid" ? "Tap to see paid invoices" : "Tap to see the jobs";
+  const countNoun = drill === "paid" ? "payment" : "car";
+  const hint = drill === "paid" ? "Tap to see paid invoices" : "Tap to see the cars";
   const router = useRouter();
   const reduce = useReducedMotion();
   const byDay = new Map(data.map((d) => [d.day, d]));
@@ -103,7 +103,7 @@ export function DailyBarsChart({
 
   function open(day: string) {
     const [from, to] = day.includes("|") ? day.split("|") : [day, day];
-    router.push(drill === "paid" ? "/invoices?status=paid" : `/jobs?from=${from}&to=${to}`);
+    router.push(drill === "paid" ? "/invoices?status=paid" : `/invoices?from=${from}&to=${to}`);
   }
 
   return (
@@ -122,7 +122,7 @@ export function DailyBarsChart({
   );
 }
 
-/** Horizontal magnitude comparison with the value at the bar tip; the top item is emphasised. Click a bar → jobs filtered to it. */
+/** Horizontal magnitude comparison with the value at the bar tip; the top item is emphasised. Click a bar → invoices filtered to it. */
 export function HorizontalBars({
   data,
   money,
@@ -141,7 +141,7 @@ export function HorizontalBars({
   if (data.length === 0) return <p className="py-8 text-center text-sm text-muted-foreground">No data for this range.</p>;
   const rows = data.slice(0, 8).map((d) => ({ ...d, revenue: Number(d.revenue), value: money ? Number(d.revenue) : d.jobs }));
   const height = Math.max(120, rows.length * 34 + 16);
-  const open = (id: string) => router.push(`/jobs?${linkParam}=${encodeURIComponent(id)}${range ? `&from=${range.start}&to=${range.end}` : ""}`);
+  const open = (id: string) => router.push(`/invoices?${linkParam}=${encodeURIComponent(id)}${range ? `&from=${range.start}&to=${range.end}` : ""}`);
   return (
     <div style={{ height }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">

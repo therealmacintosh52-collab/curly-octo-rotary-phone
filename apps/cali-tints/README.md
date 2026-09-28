@@ -1,9 +1,10 @@
-# Cali Tints — dealership detailing job log & invoicing
+# Cali Tints — every car is an invoice
 
 A mobile-first, offline-capable PWA that replaces handwritten invoices for a detailing vendor working inside Mercedes-Benz dealerships.
 
-- **Detailers** log a car from the lot in seconds: key tag, scan the VIN, tap services, Save & next. Works with no signal; jobs sync when it returns.
-- **The owner** generates a professional invoice for any date range (or one per RO/PO) in one click, emails it with PDF + CSV attachments, tracks submission, partial payments and overdue balances, and keeps every record searchable forever.
+- **A car is an invoice.** Log a car from the lot in seconds (key tag, scan the VIN, tap services, Save) and it *is* its invoice, numbered and ready. Works with no signal; the invoice is made the moment the car syncs.
+- **One list.** The Invoices tab is every car ever logged: search by tag, VIN, model or invoice number; filter by dealership, service, dates and where the money stands (Unpaid · Overdue · Paid). Fix a typo or remove a car while the invoice is still an unsent draft.
+- **Collect.** Send the PDF + CSV by email, take the card on the Clover terminal or in the app, or settle every unpaid invoice for a dealership with one payment. Partial payments, refunds, receipts and overdue reminders are built in.
 
 Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn-style UI on Radix · Supabase (Postgres, Auth, Storage, RLS) · Resend · Vercel.
 
@@ -31,22 +32,22 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 
 | Area | What it does |
 |---|---|
-| Quick job entry `/jobs/new` | Big tag input, VIN camera scan (Code 39/128, QR, DataMatrix, PDF417) → NHTSA decode with cache, Mercedes model list + free text, service chips with priced overrides (reason required), 7-day duplicate warning, Save & next |
-| Offline | Jobs queue in IndexedDB and sync when online (idempotent on a client id, so retries never duplicate). `/jobs/outbox` shows the queue with retry/discard. App shell is cached by a service worker |
-| Job history `/jobs` | Search tag/VIN/model/RO, filter by service, dealership, detailer, dates, invoiced status; detail page with photos, edit sheet, soft delete/restore and a per-field audit timeline |
-| Double-billing guard | At entry, the 7-day duplicate prompt says if the earlier job is already on an invoice. At invoice time every candidate job is checked for the same VIN (or tag at that dealer) within 30 days, against live invoices and the batch itself, with a red flag when the service is the same; the owner excludes it or marks it OK with a note that is audited and stops future flags |
-| Invoicing `/invoices` | Batch (date range) or per-job (one invoice per RO/PO, bulk zip) modes; auto-numbered; branded and print-ready PDF, CSV, Excel; submit by email (Resend) with full send history; manual mark-as-submitted with confirmation upload; partial payments; void |
+| New car `/jobs/new` | Big tag input, VIN camera scan (Code 39/128, QR, DataMatrix, PDF417) → NHTSA decode with cache, Mercedes model list + free text, service chips with priced overrides (reason required), 7-day duplicate warning. **Save** makes the car its own invoice; the success card shows the invoice number with **Collect** and **Open**. **Save & charge** (admins) jumps straight to the Terminal with it |
+| Offline | Cars queue in IndexedDB and sync when online (idempotent on a client id, so retries never duplicate); each becomes its invoice on arrival and the form's card fills in the number. `/jobs/outbox` shows the queue with retry/discard. App shell is cached by a service worker |
+| Invoices `/invoices` | The one list: every car as its invoice. Search tag/VIN/model/RO/invoice number; filter by dealership, service, dates; **All · Unpaid (Not sent / Sent / Partial) · Overdue · Paid · Void**; **Collect** on every open row, **Collect all unpaid** in the header. Detailers see their own cars, read-only |
+| Invoice page | The car (VIN, color, notes, photos), its services, subtotal/tax/total. **Edit car** and **Delete car** while it is an unsent draft with nothing paid (owner, or the car's detailer for edits): the lines re-snapshot, the number stays. Branded and print-ready PDF, CSV, Excel; submit by email (Resend) with full send history; manual mark-as-submitted with confirmation upload; partial payments; void |
+| Double-billing guard | At entry, the 7-day duplicate prompt says if the earlier car is already on an invoice (it always is now, so the prompt shows the number). `/invoices/new` still exists for cars logged before auto-invoicing, with the same VIN/tag conflict check |
 | Terminal `/terminal` | Point of sale from any phone or laptop: amount keypad, quick sale or open invoice, paid by card (in app), card on the Clover device, cash, check or ACH; refunds (full/partial, back to the same card); email and print receipts; the day's transactions with totals |
-| Dashboard `/` | Cars detailed (week/month), ready to bill, owed, overdue reminders (configurable), and **Income** for any date range: total received, revenue logged, average per car, still to collect, income received per day, revenue logged per day, revenue by service |
-| Settings `/settings` | Company profile + logo, invoicing defaults, dealerships (AP contacts, submission method, invoice mode, terms/tax overrides), services grouped by category (seeded with the real menu: PDI $60, Sold $20, Used $200, Service Loaner Detail $125, Touch Up Detail $20–40, Tint Removal $40, Paint Correction $250; a service can carry a quoted range inside which no override reason is needed) + per-dealership price grid, users (password or email invite, roles, reset), full CSV export |
-| Roles | **Owner/Admin**: everything. **Detailer**: log and view own jobs only, no pricing edits, no invoices. Enforced by Postgres RLS, not just the UI |
+| Dashboard `/` | Cars detailed (week/month), **Unpaid** (still to collect, not sent yet, sent and unpaid), collected, overdue reminders (configurable), and **Income** for any date range: total received, revenue logged, average per car, still to collect, income received per day, revenue logged per day, revenue by service. Every number opens the Invoices list filtered to the cars behind it |
+| Settings `/settings` | Company profile + logo, invoicing defaults, dealerships (AP contacts, submission method, terms/tax overrides), services grouped by category (seeded with the real menu: PDI $60, Sold $20, Used $200, Service Loaner Detail $125, Touch Up Detail $20–40, Tint Removal $40, Paint Correction $250; a service can carry a quoted range inside which no override reason is needed) + per-dealership price grid, users (password or email invite, roles, reset), full CSV export |
+| Roles | **Owner/Admin**: everything. **Detailer**: log cars, see and fix their own (as invoices, read-only otherwise); no pricing edits, no payments. Enforced by Postgres RLS, not just the UI |
 
 ## Project layout
 
 ```
 apps/cali-tints
 ├── supabase/
-│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard + service categories
+│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice
 │   ├── seed.sql         company, 2 dealerships, 8 services, price overrides
 │   └── tests/           SQL test suite runnable on plain Postgres (run.sh)
 ├── scripts/seed-demo.mjs   demo users + 60 days of jobs + invoices (uses the real RPCs)
@@ -68,7 +69,7 @@ cp .env.example .env.local     # fill in Supabase keys (see below)
 pnpm dev                       # http://localhost:3000
 ```
 
-UI previews with fixture data (no Supabase needed, dev only): `/dev/preview` (job form), `/dev/preview/jobs`, `/dev/preview/invoice`, `/dev/preview/dashboard`, `/dev/preview/settings`.
+UI previews with fixture data (no Supabase needed, dev only): `/dev/preview` (new car form), `/dev/preview/invoices` (the list), `/dev/preview/invoice`, `/dev/preview/dashboard`, `/dev/preview/terminal`, `/dev/preview/settings`.
 
 ## Supabase setup
 
@@ -135,7 +136,7 @@ Without a key the action fails with a clear message; **Mark as submitted** (port
 
 - Installable: Chrome/Android shows an install nudge; on iOS use *Share → Add to Home Screen*. `start_url` is `/jobs/new`.
 - `public/sw.js` caches the app shell (`/jobs/new`, `/jobs/outbox`, `/offline`, static assets) with a network-first policy for pages so online users never see stale data. API, auth and Supabase traffic are never cached. Bump `VERSION` in `sw.js` to force clients to refresh caches.
-- Jobs saved offline sit in IndexedDB (`outbox`) with their compressed photos; the sync loop runs on reconnect, on tab focus, every 30 s while anything is queued, and right after each save. `create_job` is idempotent on `client_id`, so a retry after a dropped response cannot create a duplicate.
+- Cars saved offline sit in IndexedDB (`outbox`) with their compressed photos; the sync loop runs on reconnect, on tab focus, every 30 s while anything is queued, and right after each save. `create_job` is idempotent on `client_id`, so a retry after a dropped response cannot create a duplicate car or a second invoice.
 - The offline duplicate check uses the last 7 days of jobs cached on the device plus the outbox; the online check (`find_duplicate_jobs`) sees the whole company.
 - The service worker is only registered in production builds so local dev never serves from cache.
 
@@ -146,13 +147,14 @@ Deviations from the brief and why:
 - `profiles` (1:1 with `auth.users`) instead of `users`; role, company and active flag live there. A trigger creates the row on sign-up from the invite metadata.
 - `invoice_items` is an **immutable snapshot** of every billed line. Editing or voiding a job later can never change an invoice that was sent. PDFs/CSVs re-render from this table, so any past invoice can be re-downloaded identically.
 - `invoice_payments` (partial payments; a trigger rolls up `amount_paid`, `paid_at`, status `partial`/`paid`) and `invoice_submissions` (email attempts with message ids, portal/paper confirmations) replace single columns.
+- **A car is an invoice** (migration `0015`). `create_job` inserts the car (`jobs` + `job_services`) and, while `companies.auto_invoice` is on (default), calls `_create_invoice_from_jobs` for that one car in the same transaction: the invoice is numbered, its lines snapshotted and the car locked before the RPC returns. Detailers and offline syncs get the same behaviour (security definer). `edit_invoice_car` unlinks, edits through `update_job`, relinks and re-snapshots a draft, unpaid, one-car invoice without changing its number; `delete_invoice_car` voids it and soft-deletes the car. `invoices_filtered` is the list (search, dealership, service, detailer, dates, status, paging) with the cars and services on each row. The migration backfills every uninvoiced car into its own invoice.
 - `jobs.client_id` = offline idempotency key. `jobs` are soft-deleted only; a trigger rejects hard deletes and locks any job that is on a non-void invoice.
-- `dealerships` carry AP contact/emails, `submission_method`, `invoice_mode` (`batch` | `per_job`), and optional terms/tax overrides. In per-job mode each job gets its own invoice; jobs that share an RO/PO number are grouped (RO/PO is optional at entry).
+- `dealerships` carry AP contact/emails, `submission_method`, and optional terms/tax overrides. `invoice_mode` (`batch` | `per_job`) stays in the schema for the legacy builder at `/invoices/new` but no longer changes invoicing.
 - `services.category` (`new` | `used` | `service` | `addon`) groups the price list the way the dealer buys the work; `jobs.dup_reviewed_*` records an owner's "OK to bill" decision on a flagged job; `find_invoice_conflicts()` powers the guard and `generate_*` accept `p_exclude`.
 - `vin_cache` shares NHTSA decodes; `audit_log` is written by triggers on every business table (who/what/when + changed columns).
-- Invoice numbers come from `companies.next_invoice_number` under a row lock inside `generate_invoice` / `generate_per_job_invoices`, so they are gap-free and never collide.
+- Invoice numbers come from `companies.next_invoice_number` under a row lock inside `_create_invoice_from_jobs`, so they are gap-free and never collide.
 
-RLS summary: every table is scoped to the caller's company via `current_company_id()`. Owners/admins get full access; detailers can read reference data, insert jobs as themselves, and read/edit only their own uninvoiced jobs; invoices, payments, submissions and the audit log are admin-only. Storage policies scope every object to `<company_id>/…`. The service-role key is used only server-side for user management and the seed script.
+RLS summary: every table is scoped to the caller's company via `current_company_id()`. Owners/admins get full access; detailers can read reference data, insert cars as themselves, read the invoices and lines that carry their own cars, and edit those only through `edit_invoice_car` while unsent and unpaid; payments, submissions and the audit log are admin-only. Storage policies scope every object to `<company_id>/…`. The service-role key is used only server-side for user management and the seed script.
 
 ## Design system
 
@@ -191,7 +193,7 @@ Limits: hosted checkout cannot refund or void through the API, so refunds are do
 
 ## Charge a customer in three taps
 
-1. **Make invoice** → log the car → **Save & charge** (admins, online). The job is saved, invoiced on its own and mirrored to Clover as an order.
+1. **New** → log the car → **Save & charge** (admins, online). The car is saved as its invoice and mirrored to Clover as an order.
 2. The **Terminal** opens with that invoice selected and the balance on the keypad. Tap **Terminal** (the Clover device), **Card**, or **Cash / Check / ACH**.
 3. The customer taps their card. The payment lands on the invoice, the receipt is one tap from the dealership's AP email or the printer.
 
@@ -222,7 +224,7 @@ pnpm db:test       # migrations + RLS/RPC/trigger tests on a local Postgres 16 (
 pnpm build
 ```
 
-`supabase/tests/run.sh` creates a throwaway database, installs a small stub of Supabase's `auth`/`storage` schemas, applies the migrations and seed, then runs `tests/01_flows.sql`, which asserts detailer isolation, idempotent `create_job`, price override rules, invoice generation/locking, payment status transitions, void/unlock, per-job grouping, dashboard stats and storage path policies. CI (`.github/workflows/cali-tints-ci.yml`) runs all of the above.
+`supabase/tests/run.sh` creates a throwaway database, installs a small stub of Supabase's `auth`/`storage` schemas, applies the migrations and seed, then runs `tests/01_flows.sql`, which asserts detailer isolation, idempotent `create_job`, price override rules, invoice generation/locking, payment status transitions, void/unlock, per-job grouping, dashboard stats, storage path policies, and (0015) car-is-invoice: auto-invoicing for detailers and retries, the backfill, edit/delete rules, the filtered list and detailer read access. CI (`.github/workflows/cali-tints-ci.yml`) runs all of the above.
 
 ## CSV / DMS integration contract
 
@@ -234,7 +236,8 @@ Rules: UTF-8 with BOM, CRLF, RFC 4180 quoting, dates as `yyyy-mm-dd`, amounts wi
 
 ## Operations notes
 
-- **Locked jobs**: a job on a draft/submitted/paid invoice cannot be edited. Void the invoice (only if no payments are recorded) to unlock its jobs, then re-generate.
+- **Locked cars**: a car on a sent or paid invoice cannot be edited. While the invoice is an unsent draft, **Edit car** / **Delete car** on the invoice page do the right thing. After that, void the invoice (only if no payments are recorded) to unlock the car; it then shows under *Cars with no invoice* on the dashboard and `/invoices/new` re-invoices it.
+- **Applying 0015 to an existing database**: `pnpm db:push` (or paste the migration in the SQL editor). The backfill gives every uninvoiced car its own draft invoice, in `performed_at` order, so invoice numbers follow the calendar.
 - **Tax**: company default is 0 %; set per dealership if a dealer requires it. Rates are fractional in the database (`0.0775`), percentages in the UI.
 - **Timezone**: `companies.timezone` decides which calendar day a job belongs to for invoice periods and the dashboard.
 - **Logo**: upload in Settings → Company; the PDF uses it (grayscale bundled mark on the print variant).

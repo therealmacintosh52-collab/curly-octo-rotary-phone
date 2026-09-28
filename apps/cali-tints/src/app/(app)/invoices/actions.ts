@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth";
+import { getSession, requireAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
 import { invoicePdf } from "@/lib/invoices/pdf";
 import { invoiceCsv } from "@/lib/invoices/csv";
 import { sendInvoiceEmail } from "@/lib/invoices/email";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
+import { updateJobSchema, type UpdateJobInput } from "@/lib/jobs/schema";
 import { cloverContext, createInvoiceCheckout, pushInvoiceOrder } from "@/lib/clover/invoices";
 import { syncCloverPayments, type SyncResult } from "@/lib/clover/sync";
 import { cancelDevice } from "@/lib/clover/client";
@@ -30,10 +31,44 @@ export async function invoiceJobAction(jobId: string): Promise<ActionResult<stri
   if (error || !data) return { ok: false, error: error ? errorMessage(error) : "Could not create the invoice" };
   await autoPushToClover([data], session.company);
   revalidatePath("/invoices");
-  revalidatePath("/jobs");
   revalidatePath("/terminal");
   revalidatePath("/");
   return { ok: true, data };
+}
+
+/**
+ * Fix the car on a draft, unpaid, one-car invoice (typo in the tag, wrong
+ * service, wrong day). The RPC re-snapshots the lines and keeps the number;
+ * owners and the car's own detailer may do this.
+ */
+export async function editInvoiceCarAction(input: UpdateJobInput & { invoice_id: string }): Promise<ActionResult> {
+  await getSession();
+  const parsed = updateJobSchema.extend({ invoice_id: z.uuid() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const { id: _jobId, invoice_id, ...p } = parsed.data;
+  void _jobId;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("edit_invoice_car", { p_invoice_id: invoice_id, p });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${invoice_id}`);
+  revalidatePath("/terminal");
+  revalidatePath("/");
+  return { ok: true, data: undefined };
+}
+
+/** A car that should never have been logged: void its invoice and soft-delete the car (kept for audit). */
+export async function deleteInvoiceCarAction(invoiceId: string, reason: string): Promise<ActionResult> {
+  await requireAdmin();
+  if (!/^[0-9a-f-]{36}$/i.test(invoiceId)) return { ok: false, error: "Invalid invoice" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_invoice_car", { p_invoice_id: invoiceId, p_reason: reason.trim() || null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${invoiceId}`);
+  revalidatePath("/terminal");
+  revalidatePath("/");
+  return { ok: true, data: undefined };
 }
 
 /** Batch mode: one invoice for a date range. Returns the new invoice id. */
@@ -55,7 +90,6 @@ export async function generateInvoiceAction(input: { dealership_id: string; star
   if (error) return { ok: false, error: errorMessage(error) };
   await autoPushToClover([data], session.company);
   revalidatePath("/invoices");
-  revalidatePath("/jobs");
   revalidatePath("/");
   return { ok: true, data };
 }
@@ -74,7 +108,6 @@ export async function generatePerJobInvoicesAction(input: { dealership_id: strin
   if (error) return { ok: false, error: errorMessage(error) };
   await autoPushToClover(data ?? [], session.company);
   revalidatePath("/invoices");
-  revalidatePath("/jobs");
   revalidatePath("/");
   return { ok: true, data: data ?? [] };
 }
@@ -153,7 +186,6 @@ export async function voidInvoiceAction(id: string, reason: string): Promise<Act
   if (error) return { ok: false, error: errorMessage(error) };
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
-  revalidatePath("/jobs");
   revalidatePath("/");
   return { ok: true, data: undefined };
 }
@@ -281,7 +313,6 @@ export async function reviewJobDuplicateAction(jobId: string, note: string): Pro
   const { error } = await supabase.rpc("review_job_duplicate", { p_id: jobId, p_note: note.trim() || null });
   if (error) return { ok: false, error: errorMessage(error) };
   revalidatePath("/invoices/new");
-  revalidatePath(`/jobs/${jobId}`);
   return { ok: true, data: undefined };
 }
 

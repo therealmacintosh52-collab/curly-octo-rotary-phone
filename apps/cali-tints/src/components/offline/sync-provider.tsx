@@ -58,7 +58,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     try {
       const { syncOutbox } = await import("@/lib/offline/sync");
       const r = await syncOutbox();
-      if (r.synced > 0) toast.success(r.synced === 1 ? "1 job synced" : `${r.synced} jobs synced`);
+      if (r.synced > 0) toast.success(r.synced === 1 ? "1 car synced · its invoice is ready" : `${r.synced} cars synced · invoices ready`);
     } catch (err) {
       // e.g. Supabase not configured (guest preview): leave items queued, never crash the UI.
       console.warn("sync failed", err);

@@ -17,6 +17,13 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('10000000-0000-4000-8000-000000000002', 'det1@test',  '{"role":"detailer","full_name":"Dee One"}'),
   ('10000000-0000-4000-8000-000000000003', 'det2@test',  '{"role":"detailer","full_name":"Dee Two"}');
 
+-- The blocks up to "One car, one invoice" exercise the original batch /
+-- per-job invoicing, so auto-invoicing (0015, default on) is switched off
+-- for them and switched on again at the end.
+update public.companies set auto_invoice = false;
+create temp table t_ids (k text primary key, v uuid);
+grant all on t_ids to authenticated;
+
 do $$
 begin
   assert (select role from public.profiles where id = '10000000-0000-4000-8000-000000000001') = 'owner', 'first user becomes owner';
@@ -543,6 +550,176 @@ insert into public.clover_connections (company_id, env, merchant_id, merchant_na
 values ('00000000-0000-4000-8000-000000000001', 'sandbox', '7G9V9DP834ZY2', 'Test merchant', 'v1.enc');
 update public.clover_connections set status = 'needs_reconnect', last_error = 'expired' where company_id = '00000000-0000-4000-8000-000000000001';
 delete from public.clover_connections where company_id = '00000000-0000-4000-8000-000000000001';
+
+-- One car, one invoice (0015) -------------------------------------------------
+select pg_temp.logout();
+update public.companies set auto_invoice = true where id = '00000000-0000-4000-8000-000000000001';
+do $$
+declare n int; m int;
+begin
+  -- Backfill: every car still uninvoiced gets its own invoice, nothing is left in limbo.
+  select count(*) into n from public.jobs where company_id = '00000000-0000-4000-8000-000000000001' and invoice_id is null and deleted_at is null;
+  assert n > 0, 'fixture has pending cars to backfill';
+  m := public._invoice_pending_cars('00000000-0000-4000-8000-000000000001');
+  assert m = n, 'backfill invoiced every pending car: ' || m || ' of ' || n;
+  select count(*) into n from public.jobs where company_id = '00000000-0000-4000-8000-000000000001' and invoice_id is null and deleted_at is null;
+  assert n = 0, 'nothing left uninvoiced';
+  assert public._invoice_pending_cars('00000000-0000-4000-8000-000000000001') = 0, 'backfill is idempotent';
+  -- an owner-logged one-car draft the detailer must not be able to touch
+  insert into t_ids select 'other_draft', i.id from public.invoices i
+    join public.jobs j on j.invoice_id = i.id
+   where j.tag_number = 'ONE2' and i.status = 'draft' limit 1;
+  assert (select count(*) from t_ids) = 1, 'fixture: another draft invoice';
+end $$;
+
+-- Detailer 2 logs a car: it is an invoice at once, visible and fixable by them.
+select pg_temp.login('10000000-0000-4000-8000-000000000003');
+do $$
+declare j public.jobs; j2 public.jobs; inv public.invoices; n int; f jsonb; v_num text; v_mine int;
+begin
+  j := public.create_job(jsonb_build_object('client_id', '20000000-0000-4000-8000-000000000099',
+        'dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'car1', 'model', 'GLE 450', 'performed_at', now(),
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  assert j.invoice_id is not null and j.status = 'invoiced', 'car is invoiced on save';
+  select * into inv from public.invoices where id = j.invoice_id;
+  assert inv.id is not null, 'detailer can read the invoice for their own car (rls)';
+  assert inv.status = 'draft' and inv.period_start = inv.period_end, 'one-day draft';
+  assert inv.total = (select sum(price) from public.job_services where job_id = j.id), 'invoice total = the car''s services';
+  select count(*) into n from public.invoice_items where invoice_id = inv.id; assert n = 1, 'detailer sees the line (rls)';
+  v_num := inv.display_number;
+
+  -- retry with the same client_id (offline sync): same car, same invoice
+  j2 := public.create_job(jsonb_build_object('client_id', '20000000-0000-4000-8000-000000000099',
+        'dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ZZZ',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  assert j2.id = j.id and j2.invoice_id = inv.id, 'retry keeps one invoice';
+  select count(*) into n from public.invoices where id = inv.id; assert n = 1, 'no duplicate invoice';
+
+  -- fix a typo and add a service: lines re-snapshotted, number unchanged, car locked again
+  inv := public.edit_invoice_car(inv.id, jsonb_build_object('tag_number', 'car1x',
+           'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'),
+                                         jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000209'))));
+  assert inv.display_number = v_num, 'invoice number unchanged';
+  select count(*) into n from public.invoice_items where invoice_id = inv.id; assert n = 2, 'two lines after the edit';
+  assert (select count(*) from public.invoice_items where invoice_id = inv.id and tag_number = 'CAR1X') = 2, 're-snapshotted tag';
+  assert inv.subtotal = (select sum(price) from public.job_services where job_id = j.id) and inv.total = inv.subtotal, 'totals recomputed: ' || inv.total;
+  assert (select invoice_id from public.jobs where id = j.id) = inv.id and (select status from public.jobs where id = j.id) = 'invoiced', 'car relinked and locked';
+  begin
+    update public.jobs set notes = 'x' where id = j.id;
+    raise exception 'expected lock';
+  exception when sqlstate 'P0001' then null; end;
+
+  -- the list shows only invoices carrying my cars
+  f := public.invoices_filtered();
+  select count(distinct invoice_id) into v_mine from public.jobs where detailer_id = auth.uid() and invoice_id is not null and deleted_at is null;
+  assert (f ->> 'count')::int = v_mine and v_mine >= 2, 'detailer list = own invoices: ' || (f ->> 'count') || ' vs ' || v_mine;
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = inv.id::text) = 1, 'own invoice listed';
+  assert (select count(*) from public.invoices) = v_mine, 'rls: detailer sees exactly the invoices with their cars';
+  assert (select (r ->> 'car_count')::int from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = inv.id::text) = 1, 'new rows are one car each';
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where (r ->> 'car_count')::int = 2) = 1, 'the old two-car batch invoice (C9 + A123) still lists, with both cars';
+
+  -- not theirs to delete, and not their car to edit
+  begin
+    perform public.delete_invoice_car(inv.id, 'x');
+    raise exception 'expected admin-only';
+  exception when sqlstate '42501' then null; end;
+  begin
+    perform public.edit_invoice_car((select v from t_ids where k = 'other_draft'), '{"notes":"x"}'::jsonb);
+    raise exception 'expected own-car-only';
+  exception when sqlstate '42501' then null; end;
+  insert into t_ids values ('det_inv', inv.id);
+end $$;
+
+-- Owner: logging, fixing, removing, the list and the dashboard.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare j public.jobs; inv public.invoices; f jsonb; n int; v_num text; stats jsonb;
+begin
+  -- a car logged by the owner carries RO/PO, dealership price and terms onto its invoice
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'OWN1', 'ro_po_number', 'RO-900',
+        'performed_at', now() - interval '1 day',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000204'))));
+  select * into inv from public.invoices where id = j.invoice_id;
+  assert inv.ro_po_number = 'RO-900' and inv.payment_terms = 'Net 45' and inv.subtotal = 55.00, 'invoice carries RO/PO, dealer terms and price: ' || inv.subtotal;
+  v_num := inv.display_number;
+
+  -- move the car to another dealership: terms follow, number stays; repricing happens when services are sent
+  inv := public.edit_invoice_car(inv.id, jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101'));
+  assert inv.display_number = v_num and inv.dealership_id = '00000000-0000-4000-8000-000000000101' and inv.payment_terms = 'Net 30', 'dealership change follows through';
+  inv := public.edit_invoice_car(inv.id, jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000204'))));
+  assert inv.subtotal = 60.00, 'repriced for the new dealership: ' || inv.subtotal;
+
+  -- once money is on it, the car is fixed
+  perform public.record_payment(inv.id, 10, current_date, 'cash');
+  begin
+    perform public.edit_invoice_car(inv.id, '{"notes":"x"}'::jsonb);
+    raise exception 'expected payment block';
+  exception when sqlstate 'P0001' then null; end;
+  begin
+    perform public.delete_invoice_car(inv.id, 'x');
+    raise exception 'expected payment block';
+  exception when sqlstate 'P0001' then null; end;
+
+  -- a car logged twice: delete voids the invoice and soft-deletes the car
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'DEL1',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000209'))));
+  perform public.delete_invoice_car(j.invoice_id, 'logged twice');
+  assert (select status from public.invoices where id = j.invoice_id) = 'void', 'invoice voided';
+  assert (select deleted_at from public.jobs where id = j.id) is not null and (select invoice_id from public.jobs where id = j.id) is null, 'car soft-deleted and unlinked';
+  begin
+    perform public.delete_invoice_car(j.invoice_id, 'again');
+    raise exception 'expected void block';
+  exception when sqlstate 'P0001' then null; end;
+
+  -- the list: filters
+  f := public.invoices_filtered(p_status => 'void');
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = j.invoice_id::text) = 1, 'void filter lists the voided invoice';
+  f := public.invoices_filtered();
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'status' = 'void') = 0, 'all hides void';
+  f := public.invoices_filtered(p_q => 'car1x');
+  assert (f ->> 'count')::int = 1 and (f -> 'rows' -> 0 -> 'cars' -> 0 ->> 'tag') = 'CAR1X' and (f -> 'rows' -> 0 -> 'cars' -> 0 ->> 'vehicle') = 'GLE 450', 'search by tag finds the car: ' || f;
+  f := public.invoices_filtered(p_q => 'RO-900');
+  assert (f ->> 'count')::int = 1 and (f -> 'rows' -> 0 ->> 'display_number') = v_num, 'search by RO/PO';
+  f := public.invoices_filtered(p_q => 'INV-0000');
+  assert (f ->> 'count')::int >= 3, 'search by invoice number';
+  f := public.invoices_filtered(p_service => '00000000-0000-4000-8000-000000000209');
+  assert (f ->> 'count')::int >= 1 and (select count(*) from jsonb_array_elements(f -> 'rows') r where not (r -> 'services') ? 'Sold') = 0, 'service filter: every row has the service';
+  f := public.invoices_filtered(p_dealership => '00000000-0000-4000-8000-000000000102', p_status => 'unpaid');
+  assert (f ->> 'count')::int >= 1 and (select count(*) from jsonb_array_elements(f -> 'rows') r
+          where r ->> 'dealership' <> 'Mercedes-Benz of Sacramento' or r ->> 'status' not in ('draft','submitted','partial')) = 0, 'dealership + unpaid filter';
+  assert (f ->> 'balance')::numeric = (select sum(total - amount_paid) from public.invoices where dealership_id = '00000000-0000-4000-8000-000000000102' and status in ('draft','submitted','partial')), 'balance = open balances of the filtered set';
+  f := public.invoices_filtered(p_detailer => '10000000-0000-4000-8000-000000000003');
+  assert (f ->> 'count')::int >= 2 and (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = (select v::text from t_ids where k = 'det_inv')) = 1, 'detailer filter';
+  f := public.invoices_filtered(p_from => current_date - 1, p_to => current_date);
+  assert (f ->> 'count')::int >= 2, 'date filter overlaps periods';
+  f := public.invoices_filtered(p_from => '2000-01-01', p_to => '2000-01-02');
+  assert (f ->> 'count')::int = 0, 'date filter excludes';
+  f := public.invoices_filtered(p_limit => 2, p_offset => 0);
+  assert jsonb_array_length(f -> 'rows') = 2 and (f ->> 'count')::int > 2, 'pagination: page smaller than count';
+  assert (f -> 'rows' -> 0 ->> 'display_number') > (f -> 'rows' -> 1 ->> 'display_number'), 'newest first';
+  f := public.invoices_filtered(p_status => 'paid');
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'status' <> 'paid') = 0, 'paid filter';
+  f := public.invoices_filtered(p_status => 'overdue');
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where (r ->> 'overdue')::boolean is not true) = 0, 'overdue rows flagged';
+
+  -- dashboard: nothing uninvoiced any more; unpaid = every open invoice
+  stats := public.dashboard_stats();
+  assert stats ? 'unpaid_total' and stats ? 'unpaid_invoices' and stats ? 'draft_invoices', 'new stats keys';
+  assert (stats ->> 'uninvoiced_jobs')::int = 0, 'nothing uninvoiced';
+  assert (stats ->> 'unpaid_total')::numeric = (select coalesce(sum(total - amount_paid), 0) from public.invoices where company_id = public.current_company_id() and status in ('draft','submitted','partial')), 'unpaid total';
+  assert (stats ->> 'draft_invoices')::int = (select count(*) from public.invoices where company_id = public.current_company_id() and status = 'draft'), 'draft count';
+  select count(*) into n from public.invoices where id = (select v from t_ids where k = 'det_inv'); assert n = 1, 'owner sees the detailer''s invoice';
+end $$;
+
+-- Detailer 1 cannot see detailer 2's invoice.
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare n int;
+begin
+  select count(*) into n from public.invoices where id = (select v from t_ids where k = 'det_inv'); assert n = 0, 'other detailer''s invoice hidden';
+  select count(*) into n from public.invoice_items where invoice_id = (select v from t_ids where k = 'det_inv'); assert n = 0, 'its lines hidden too';
+  select count(*) into n from public.invoice_payments; assert n = 0, 'payments stay admin-only';
+end $$;
 
 -- Back to the owner for the storage checks below.
 select pg_temp.login('10000000-0000-4000-8000-000000000001');

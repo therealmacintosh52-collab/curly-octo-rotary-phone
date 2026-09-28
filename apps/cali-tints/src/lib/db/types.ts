@@ -48,6 +48,8 @@ export type Company = {
   clover_merchant_name: string | null;
   clover_device_id: string | null;
   clover_pos_id: string;
+  /** Every car logged becomes its own invoice on save (0015). */
+  auto_invoice: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -420,9 +422,13 @@ export type DashboardStats = {
   collected_by_day: { day: string; payments: number; amount: number }[];
   uninvoiced_total: number;
   uninvoiced_jobs: number;
+  /** Every open invoice (draft + submitted + partial): what is still owed. */
+  unpaid_total: number;
+  unpaid_invoices: number;
   outstanding_total: number;
   outstanding_invoices: number;
   draft_total: number;
+  draft_invoices: number;
   avg_days_to_pay: number | null;
   paid_last_90: number;
   by_service: { service_id: string; name: string; jobs: number; revenue: number }[];
@@ -439,6 +445,30 @@ export type DashboardStats = {
   }[];
   reminder_days: number;
 }
+
+/** One row of the Invoices list (invoices_filtered): the invoice plus the cars and services on it. */
+export type InvoiceListRow = {
+  id: string;
+  display_number: string;
+  status: InvoiceStatus;
+  overdue: boolean;
+  total: number;
+  amount_paid: number;
+  balance: number;
+  period_start: string;
+  period_end: string;
+  ro_po_number: string | null;
+  submitted_at: string | null;
+  paid_at: string | null;
+  created_at: string;
+  dealership_id: string;
+  dealership: string;
+  car_count: number;
+  cars: { tag: string; vin: string | null; vehicle: string | null; detailer: string | null }[];
+  services: string[];
+};
+
+export type InvoiceListResult = { count: number; total: number; balance: number; rows: InvoiceListRow[] };
 
 /** Payload accepted by create_job() / update_job(). */
 export type JobPayload = {
@@ -515,6 +545,22 @@ export type Database = {
       ignore_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_ignore?: boolean }; Returns: undefined };
       clover_unmatched_count: { Args: Record<string, never>; Returns: number };
       invoice_job: { Args: { p_job_id: string; p_notes?: string | null }; Returns: string };
+      edit_invoice_car: { Args: { p_invoice_id: string; p: Partial<JobPayload> }; Returns: Invoice };
+      delete_invoice_car: { Args: { p_invoice_id: string; p_reason?: string | null }; Returns: undefined };
+      invoices_filtered: {
+        Args: {
+          p_q?: string | null;
+          p_service?: string | null;
+          p_dealership?: string | null;
+          p_detailer?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_status?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: InvoiceListResult;
+      };
       record_batch_payment: {
         Args: { p_invoice_ids: string[]; p_amount: number; p_method: PaymentMethod; p_reference?: string | null; p_note?: string | null; p_source?: PaymentSource };
         Returns: { invoice_id: string; payment_id: string; amount: number }[];

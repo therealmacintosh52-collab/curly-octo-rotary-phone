@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Sync queue" };
 export default function OutboxPage() {
   return (
     <Page narrow>
-      <PageHeader title="Sync queue" description="Jobs saved on this phone that are waiting to reach the server." />
+      <PageHeader title="Sync queue" description="Cars saved on this phone that are waiting to reach the server. Each becomes its invoice once it syncs." />
       <div className="mt-5">
         <OutboxList />
       </div>

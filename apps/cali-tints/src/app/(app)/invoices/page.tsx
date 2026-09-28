@@ -1,54 +1,53 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileTextIcon, PlusIcon, WalletIcon } from "lucide-react";
-import { requireAdmin } from "@/lib/auth";
+import { Suspense } from "react";
+import { PlusIcon, WalletIcon } from "lucide-react";
+import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { InvoiceStatus } from "@/lib/db/types";
+import type { InvoiceListResult } from "@/lib/db/types";
+import { EMPTY_INVOICE_LIST, invoiceFilterArgs, parseInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
 import { formatMoney } from "@/lib/money";
-import { formatDate, formatDateOnly, nowMs } from "@/lib/dates";
+import { formatDateOnly } from "@/lib/dates";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { StaggerItem } from "@/components/motion/primitives";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
-import { InvoiceStatusTabs } from "@/components/invoices/invoice-status-tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { InvoiceFilters } from "@/components/invoices/invoice-filters";
+import { InvoiceList } from "@/components/invoices/invoice-list";
 import { BulkDownloadBanner } from "@/components/invoices/bulk-download-banner";
 import { CloverQueue, CloverSyncButton, type OpenInvoiceOption } from "@/components/invoices/clover-queue";
 import { cloverContext } from "@/lib/clover/invoices";
 
 export const metadata: Metadata = { title: "Invoices" };
 
-const STATUSES = ["draft", "submitted", "partial", "paid", "void", "outstanding", "overdue"] as const;
-type StatusFilter = (typeof STATUSES)[number];
+const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
 
+/**
+ * The one list. Every car logged is an invoice; this page finds it, shows
+ * where the money stands and collects it. Detailers see their own cars.
+ */
 export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const sp = await props.searchParams;
-  const session = await requireAdmin();
+  const filters = parseInvoiceFilters(sp);
+  const session = await getSession();
   const supabase = await createClient();
-  const status = typeof sp.status === "string" && (STATUSES as readonly string[]).includes(sp.status) ? (sp.status as StatusFilter) : undefined;
-  const reminderMs = session.company.reminder_days * 86400000;
   const created = typeof sp.created === "string" ? sp.created.split(",").filter(Boolean) : [];
+  const clover = session.isAdmin ? cloverContext(session.company) : null;
 
-  let q = supabase
-    .from("invoices")
-    .select("id, display_number, period_start, period_end, ro_po_number, total, amount_paid, status, submitted_at, paid_at, created_at, dealership:dealerships(name)")
-    .order("number", { ascending: false })
-    .limit(200);
-  if (status === "outstanding") q = q.in("status", ["submitted", "partial"]);
-  else if (status === "overdue") q = q.in("status", ["submitted", "partial"]).lt("submitted_at", new Date(nowMs() - reminderMs).toISOString());
-  else if (status) q = q.eq("status", status);
-  else q = q.neq("status", "void");
-  const { data: invoices } = await q;
+  const [{ data: list, error }, { data: services }, { data: dealerships }, { data: owed }, { data: queue }, { data: openInvoices }] = await Promise.all([
+    supabase.rpc("invoices_filtered", invoiceFilterArgs(filters)),
+    supabase.from("services").select("id, name").order("sort_order"),
+    supabase.from("dealerships").select("id, name").order("name"),
+    // Everything owed across all open invoices (not just this filter), for "Collect all unpaid".
+    session.isAdmin ? supabase.from("invoices").select("total, amount_paid").in("status", ["draft", "submitted", "partial"]) : Promise.resolve({ data: [] }),
+    // Clover: payments waiting to be matched, and the open invoices they could belong to.
+    clover ? supabase.from("clover_payments").select("id, clover_payment_id, amount, tip, paid_at, card_brand, last4, reference").eq("status", "unmatched").order("paid_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+    clover ? supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200) : Promise.resolve({ data: [] }),
+  ]);
+  if (error) throw new Error(error.message);
+  const result = (list as InvoiceListResult | null) ?? EMPTY_INVOICE_LIST;
 
-  // Clover: payments waiting to be matched, and the open invoices they could belong to.
-  const clover = cloverContext(session.company);
-  const [{ data: queue }, { data: openInvoices }] = clover
-    ? await Promise.all([
-        supabase.from("clover_payments").select("id, clover_payment_id, amount, tip, paid_at, card_brand, last4, reference").eq("status", "unmatched").order("paid_at", { ascending: false }).limit(50),
-        supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200),
-      ])
-    : [{ data: [] }, { data: [] }];
+  const unpaid = (owed ?? []).map((i) => Number(i.total) - Number(i.amount_paid)).filter((b) => b > 0);
+  const unpaidTotal = unpaid.reduce((s, b) => s + b, 0);
   const openOptions: OpenInvoiceOption[] = (openInvoices ?? []).map((i) => ({
     id: i.id,
     display_number: i.display_number,
@@ -56,23 +55,31 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     balance: Number(i.total) - Number(i.amount_paid),
   }));
 
-  // Everything owed across all open invoices (not just this tab), for "Collect all unpaid".
-  const { data: owed } = await supabase.from("invoices").select("total, amount_paid").in("status", ["draft", "submitted", "partial"]);
-  const unpaid = (owed ?? []).map((i) => Number(i.total) - Number(i.amount_paid)).filter((b) => b > 0);
-  const unpaidTotal = unpaid.reduce((s, b) => s + b, 0);
-  const collectable = (i: { status: InvoiceStatus; total: number; amount_paid: number }) => i.status !== "void" && i.status !== "paid" && Number(i.total) - Number(i.amount_paid) > 0;
-  const isOverdue = (i: { status: InvoiceStatus; submitted_at: string | null }) =>
-    (i.status === "submitted" || i.status === "partial") && !!i.submitted_at && nowMs() - new Date(i.submitted_at).getTime() > reminderMs;
+  // Header line: what this view adds up to, and which filters shaped it.
+  const scope = [
+    filters.status !== "all" ? STATUS_LABELS[filters.status] : null,
+    filters.dealership ? dealerships?.find((d) => d.id === filters.dealership)?.name : null,
+    filters.service ? services?.find((s) => s.id === filters.service)?.name : null,
+    filters.from || filters.to ? `${filters.from ? formatDateOnly(filters.from, "MMM d, yyyy") : "…"} – ${filters.to ? formatDateOnly(filters.to, "MMM d, yyyy") : "…"}` : null,
+  ].filter(Boolean);
+  const filtered = scope.length > 0 || !!filters.q || !!filters.detailer;
+  const summary = [
+    plural(result.count, "car", "cars"),
+    formatMoney(result.total),
+    result.balance > 0 ? `${formatMoney(result.balance)} unpaid` : filters.status !== "void" && result.count > 0 ? "all paid" : null,
+    ...scope,
+  ].filter(Boolean);
+  const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : []))).toString();
 
   return (
     <Page>
       <PageHeader
-        title="Invoices"
-        description={status === "outstanding" ? "Submitted or partially paid, not yet settled." : status === "overdue" ? `Submitted more than ${session.company.reminder_days} days ago and still unpaid.` : "Generate, send and track payment."}
+        title={session.isAdmin ? "Invoices" : "My cars"}
+        description={summary.join(" · ")}
         actions={
           <>
             {clover && <CloverSyncButton lastSyncAt={session.company.clover_last_sync_at} />}
-            {unpaid.length > 1 && (
+            {session.isAdmin && unpaid.length > 1 && (
               <Button asChild variant="soft">
                 <Link href="/terminal?invoices=all">
                   <WalletIcon /> Collect all unpaid · {formatMoney(unpaidTotal)}
@@ -80,8 +87,8 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
               </Button>
             )}
             <Button asChild>
-              <Link href="/invoices/new">
-                <PlusIcon /> New invoice
+              <Link href="/jobs/new">
+                <PlusIcon /> New car
               </Link>
             </Button>
           </>
@@ -94,109 +101,18 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         </div>
       )}
       <div className="mt-5 flex flex-col gap-4">
-        <InvoiceStatusTabs value={status ?? "all"} />
-
-        {(invoices ?? []).length === 0 ? (
-          <EmptyState
-            icon={FileTextIcon}
-            title={status ? "Nothing with this status" : "No invoices yet"}
-            description={status ? "Try another tab, or generate a new invoice from uninvoiced jobs." : "Pick a dealership and a date range and the invoice builds itself from the jobs you logged."}
-            action={
-              <Button asChild>
-                <Link href="/invoices/new">
-                  <PlusIcon /> New invoice
-                </Link>
-              </Button>
-            }
-          />
-        ) : (
-          <>
-            <ul className="flex flex-col gap-2 md:hidden">
-              {(invoices ?? []).map((i, idx) => (
-                <StaggerItem key={i.id} index={idx} as="li">
-                  {/* Stretched link: the card opens the invoice; "Collect" sits above it. */}
-                  <div className="relative rounded-xl border border-border bg-card p-4 surface-raised transition-[border-color] duration-150 hover:border-border-strong">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <Link href={`/invoices/${i.id}`} className="font-semibold after:absolute after:inset-0 after:rounded-xl">
-                          {i.display_number}
-                        </Link>
-                        <div className="truncate text-sm text-muted-foreground">{(i.dealership as unknown as { name: string } | null)?.name}</div>
-                        <div className="text-caption text-subtle">
-                          {formatDateOnly(i.period_start, "MMM d")} – {formatDateOnly(i.period_end, "MMM d, yyyy")}
-                          {i.ro_po_number ? ` · ${i.ro_po_number}` : ""}
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div className="font-semibold tabular-nums">{formatMoney(i.total)}</div>
-                        <div className="mt-1">
-                          <InvoiceStatusBadge status={i.status} overdue={isOverdue(i)} />
-                        </div>
-                      </div>
-                    </div>
-                    {collectable(i) && (
-                      <Button asChild size="sm" variant="soft" className="relative z-10 mt-3 w-full">
-                        <Link href={`/terminal?invoice=${i.id}`}>
-                          <WalletIcon /> Collect {formatMoney(Number(i.total) - Number(i.amount_paid))}
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </StaggerItem>
-              ))}
-            </ul>
-            <div className="hidden overflow-hidden rounded-xl border border-border md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead scope="col">Invoice</TableHead>
-                    <TableHead scope="col">Dealership</TableHead>
-                    <TableHead scope="col">Period</TableHead>
-                    <TableHead scope="col">RO/PO</TableHead>
-                    <TableHead scope="col">Created</TableHead>
-                    <TableHead scope="col">Submitted</TableHead>
-                    <TableHead scope="col">Status</TableHead>
-                    <TableHead scope="col" className="text-right">Paid</TableHead>
-                    <TableHead scope="col" className="text-right">Total</TableHead>
-                    <TableHead scope="col" className="w-28"><span className="sr-only">Collect</span></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(invoices ?? []).map((i) => (
-                    <TableRow key={i.id}>
-                      <TableCell>
-                        <Link href={`/invoices/${i.id}`} className="font-semibold hover:text-primary">
-                          {i.display_number}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{(i.dealership as unknown as { name: string } | null)?.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDateOnly(i.period_start, "MMM d")} – {formatDateOnly(i.period_end, "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{i.ro_po_number ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatDate(i.created_at)}</TableCell>
-                      <TableCell className="text-muted-foreground">{i.submitted_at ? formatDate(i.submitted_at) : "—"}</TableCell>
-                      <TableCell>
-                        <InvoiceStatusBadge status={i.status} overdue={isOverdue(i)} />
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">{Number(i.amount_paid) > 0 ? formatMoney(i.amount_paid) : "—"}</TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">{formatMoney(i.total)}</TableCell>
-                      <TableCell className="text-right">
-                        {collectable(i) && (
-                          <Button asChild size="sm" variant="soft">
-                            <Link href={`/terminal?invoice=${i.id}`}>
-                              <WalletIcon /> Collect
-                            </Link>
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+        {/* useSearchParams streams this in after first paint; the fallback reserves the same height so nothing shifts. */}
+        <Suspense
+          fallback={
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-11 w-full sm:w-96" />
             </div>
-          </>
-        )}
+          }
+        >
+          <InvoiceFilters filters={filters} services={services ?? []} dealerships={dealerships ?? []} isAdmin={session.isAdmin} />
+        </Suspense>
+        <InvoiceList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} filtered={filtered} />
       </div>
     </Page>
   );

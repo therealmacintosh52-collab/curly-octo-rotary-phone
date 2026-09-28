@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckIcon, CreditCardIcon, LoaderCircleIcon, ScanLineIcon, XIcon } from "lucide-react";
+import { CheckIcon, CircleCheckBigIcon, CloudOffIcon, CreditCardIcon, ExternalLinkIcon, LoaderCircleIcon, ScanLineIcon, TriangleAlertIcon, WalletIcon, XIcon } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import type { Dealership, JobPayload, PriceListRow } from "@/lib/db/types";
 import { useSession } from "@/components/app/session-provider";
 import { useSync } from "@/components/offline/sync-provider";
-import { enqueueJob, findLocalDuplicates, saveRecentJobs, saveReference } from "@/lib/offline/outbox";
+import { enqueueJob, findLocalDuplicates, getOutboxItem, OUTBOX_EVENT, saveRecentJobs, saveReference } from "@/lib/offline/outbox";
+import { fireConfetti, haptic } from "@/components/motion/confetti";
 import { invoiceJobAction } from "@/app/(app)/invoices/actions";
 import type { OutboxItem, RecentJob } from "@/lib/offline/db";
 import { decodeVin } from "@/lib/vin-client";
@@ -43,16 +45,32 @@ interface Props {
 
 type SaveIntent = "next" | "charge";
 
+/** The car just saved, shown in the success card while the form is ready for the next one. */
+interface SavedCar {
+  clientId: string;
+  tag: string;
+  model: string | null;
+  dealership: string;
+  total: number;
+  /** syncing: on its way to the server · queued: offline · ready: invoice made · failed: server said no */
+  status: "syncing" | "queued" | "ready" | "failed";
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  error?: string | null;
+}
+
 /**
- * Quick Job Entry. Optimistic by design: "Save & next" writes to the local
- * outbox and returns immediately; the sync loop pushes it to Supabase.
- * "Save & charge" (admins, online) saves straight to the server, invoices the
- * car and opens the Terminal with the invoice ready to pay.
+ * New car. Optimistic by design: "Save & next" writes to the local outbox and
+ * returns immediately; the sync loop pushes it to Supabase, where the car
+ * becomes its own invoice, and the success card fills in the invoice number.
+ * "Save & charge" (admins, online) saves straight to the server and opens the
+ * Terminal with the invoice ready to pay.
  */
 export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmin = false }: Props) {
   const router = useRouter();
-  const { company, demo } = useSession();
+  const { company, demo, isAdmin: sessionAdmin } = useSession();
   const { online } = useSync();
+  const canCharge = isAdmin || sessionAdmin;
   const tagRef = useRef<HTMLInputElement>(null);
 
   // --- form state ------------------------------------------------------------
@@ -75,6 +93,8 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
   const [charging, setCharging] = useState(false);
   const [intent, setIntent] = useState<SaveIntent>("next");
   const [savedCount, setSavedCount] = useState(0);
+  const [savedTotal, setSavedTotal] = useState(0);
+  const [lastSaved, setLastSaved] = useState<SavedCar | null>(null);
 
   const dealership = dealerships.find((d) => d.id === dealershipId) ?? null;
   const priceList = priceLists[dealershipId] ?? [];
@@ -95,6 +115,32 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
     }, 0);
     return () => clearTimeout(t);
   }, [dealerships, priceLists, detailers, recentJobs]);
+
+  // Follow the car we just queued: when it syncs, the invoice number lands in the card.
+  const followId = lastSaved?.status === "syncing" || lastSaved?.status === "queued" ? lastSaved.clientId : null;
+  useEffect(() => {
+    if (!followId) return;
+    let alive = true;
+    const check = async () => {
+      const item = await getOutboxItem(followId).catch(() => undefined);
+      if (!alive || !item) return;
+      if (item.status === "done") {
+        setLastSaved((c) => (c && c.clientId === followId ? { ...c, status: "ready", invoiceId: item.invoice_id ?? null, invoiceNumber: item.invoice_number ?? null } : c));
+        haptic([15]);
+      } else if (item.status === "error") {
+        setLastSaved((c) => (c && c.clientId === followId ? { ...c, status: "failed", error: item.last_error } : c));
+      } else if (item.status === "syncing") {
+        setLastSaved((c) => (c && c.clientId === followId && c.status === "queued" ? { ...c, status: "syncing" } : c));
+      }
+    };
+    window.addEventListener(OUTBOX_EVENT, check);
+    const t = setTimeout(check, 0);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+      window.removeEventListener(OUTBOX_EVENT, check);
+    };
+  }, [followId]);
 
   // Switching dealership resets selected services (prices differ per dealer).
   function changeDealership(id: string) {
@@ -226,57 +272,68 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
       job_id: null,
     };
 
-    if (demo) {
-      // Guest preview: nothing is persisted.
-      toast.success(`Saved ${payload.tag_number}${payload.model ? ` · ${payload.model}` : ""}`, { description: "Guest preview — not actually saved" });
+    const saved: SavedCar = { clientId, tag: payload.tag_number, model: payload.model ?? null, dealership: dealership?.name ?? "", total, status: online ? "syncing" : "queued", invoiceId: null, invoiceNumber: null };
+    const celebrate = () => {
       setSavedCount((c) => c + 1);
+      setSavedTotal((t) => t + total);
+      haptic([20]);
+      fireConfetti({ y: 0.25 });
+    };
+
+    if (demo) {
+      // Guest preview: nothing is persisted; pretend the invoice came back.
+      celebrate();
       if (how === "charge") {
         router.push("/terminal?invoice=demo&method=device");
         return;
       }
+      setLastSaved({ ...saved, status: "ready", invoiceId: "demo", invoiceNumber: `INV-${String(125 + savedCount).padStart(6, "0")}` });
+      toast.success(`Saved ${payload.tag_number} · guest preview, not actually saved`);
       resetForNext();
       return;
     }
 
     if (how === "charge") {
-      // Straight to the server so we have the job id, then invoice it and go collect.
-      let jobId: string;
+      // Straight to the server so we have the invoice, then go collect.
       try {
         const { createJobDirect } = await import("@/lib/offline/sync");
-        jobId = await createJobDirect(item);
+        const car = await createJobDirect(item);
+        celebrate();
+        let invoiceId = car.invoice_id;
+        if (!invoiceId) {
+          // Auto-invoicing is off for this company: invoice the car explicitly.
+          const r = await invoiceJobAction(car.id);
+          if (!r.ok) {
+            toast.error(`Saved ${payload.tag_number}, but the invoice failed: ${r.error}`);
+            resetForNext();
+            return;
+          }
+          invoiceId = r.data;
+        }
+        toast.success(`${payload.tag_number} saved · ${car.invoice_number ?? "invoice"} ready to charge`);
+        router.push(`/terminal?invoice=${invoiceId}`);
       } catch (err) {
-        toast.error(errorMessage(err, "Could not save the job"));
-        return;
+        toast.error(errorMessage(err, "Could not save the car"));
       }
-      setSavedCount((c) => c + 1);
-      const r = await invoiceJobAction(jobId);
-      if (!r.ok) {
-        toast.error(`Saved ${payload.tag_number}, but the invoice failed: ${r.error}`, { description: "The job is logged; make the invoice from Invoices → New." });
-        resetForNext();
-        return;
-      }
-      toast.success(`Saved ${payload.tag_number} · invoice ready to charge`);
-      router.push(`/terminal?invoice=${r.data}`);
       return;
     }
 
     try {
       await enqueueJob(item); // sync loop picks it up immediately
+      setLastSaved(saved);
     } catch {
       // IndexedDB unavailable (rare: private mode). Save straight to the server instead.
       try {
         const { createJobDirect } = await import("@/lib/offline/sync");
-        await createJobDirect(item);
+        const car = await createJobDirect(item);
+        setLastSaved({ ...saved, status: "ready", invoiceId: car.invoice_id, invoiceNumber: car.invoice_number });
       } catch (err) {
-        toast.error(errorMessage(err, "Could not save the job"));
+        toast.error(errorMessage(err, "Could not save the car"));
         return;
       }
     }
 
-    toast.success(`Saved ${payload.tag_number}${payload.model ? ` · ${payload.model}` : ""}`, {
-      description: online ? undefined : "Queued offline — will sync when signal returns",
-    });
-    setSavedCount((c) => c + 1);
+    celebrate();
     resetForNext();
   }
 
@@ -306,17 +363,69 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
       {/* Title row */}
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-title">Make invoice</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Tag first, then services. Save &amp; next clears the form for the next car.</p>
+          <h1 className="text-title">New car</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Tag, services, save. Every car you log becomes its own invoice.</p>
         </div>
         <AnimatePresence>
           {savedCount > 0 && (
-            <m.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="shrink-0 rounded-full bg-accent-soft px-3 py-1 text-caption font-medium text-primary">
-              {savedCount} logged
+            <m.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="shrink-0 rounded-full bg-accent-soft px-3 py-1 text-caption font-medium tabular-nums text-primary" data-testid="today-pill">
+              {savedCount} {savedCount === 1 ? "car" : "cars"} · {formatMoney(savedTotal)} today
             </m.span>
           )}
         </AnimatePresence>
       </div>
+
+      {/* The car just saved: its invoice, and what to do with it */}
+      <AnimatePresence initial={false}>
+        {lastSaved && (
+          <m.div key={lastSaved.clientId} initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, height: 0, marginTop: -28 }} className={cn("overflow-hidden rounded-xl border p-4 surface-raised", lastSaved.status === "failed" ? "border-destructive/40 bg-destructive/5" : "border-primary/30 bg-accent-soft/60")} data-testid="saved-card" role="status">
+            <div className="flex items-start gap-3">
+              {lastSaved.status === "ready" ? <CircleCheckBigIcon className="mt-0.5 size-5 shrink-0 text-primary" /> : lastSaved.status === "failed" ? <TriangleAlertIcon className="mt-0.5 size-5 shrink-0 text-destructive" /> : lastSaved.status === "queued" ? <CloudOffIcon className="mt-0.5 size-5 shrink-0 text-warning" /> : <LoaderCircleIcon className="mt-0.5 size-5 shrink-0 animate-spin text-primary" />}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-lg font-semibold tracking-wide">{lastSaved.tag}</span>
+                  {lastSaved.model && <span className="truncate text-sm text-muted-foreground">{lastSaved.model}</span>}
+                  <span className="ml-auto font-semibold tabular-nums">{formatMoney(lastSaved.total)}</span>
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {lastSaved.status === "ready" && (
+                    <>
+                      <span className="font-medium text-foreground">{lastSaved.invoiceNumber ?? "Invoice"}</span> ready · {lastSaved.dealership}
+                    </>
+                  )}
+                  {lastSaved.status === "syncing" && "Saved · making the invoice…"}
+                  {lastSaved.status === "queued" && "Queued on this phone · the invoice is made when signal returns"}
+                  {lastSaved.status === "failed" && (lastSaved.error ?? "The server rejected this car")}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {lastSaved.status === "ready" && lastSaved.invoiceId && canCharge && (
+                    <Button asChild size="sm">
+                      <Link href={`/terminal?invoice=${lastSaved.invoiceId}`}>
+                        <WalletIcon /> Collect {formatMoney(lastSaved.total)}
+                      </Link>
+                    </Button>
+                  )}
+                  {lastSaved.status === "ready" && lastSaved.invoiceId && (
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/invoices/${lastSaved.invoiceId}`}>
+                        <ExternalLinkIcon /> Open invoice
+                      </Link>
+                    </Button>
+                  )}
+                  {lastSaved.status === "failed" && (
+                    <Button asChild size="sm" variant="outline">
+                      <Link href="/jobs/outbox">Sync queue</Link>
+                    </Button>
+                  )}
+                  <Button type="button" size="sm" variant="ghost" className="ml-auto text-muted-foreground" onClick={() => { setLastSaved(null); tagRef.current?.focus(); }}>
+                    Next car
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {/* Where and when */}
       <section className="grid gap-3 sm:grid-cols-[2fr_3fr]">
@@ -482,8 +591,8 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
             <div className="text-caption text-muted-foreground">{services.length === 0 ? "No services selected" : `${services.length} service${services.length > 1 ? "s" : ""}`}</div>
             <CountUp value={total} format={formatMoney} className="text-stat block" />
           </div>
-          {isAdmin && (
-            <Button type="button" size="lg" variant="secondary" loading={charging} disabled={saving || !online} aria-label="Save & charge" title={online ? "Save, invoice this car and open the Terminal to charge it" : "Charge when back online"} onClick={() => onSubmit(undefined, "charge")} className="shrink-0 px-4">
+          {canCharge && (
+            <Button type="button" size="lg" variant="secondary" loading={charging} disabled={saving || !online} aria-label="Save & charge" title={online ? "Save this car and open the Terminal to charge its invoice" : "Charge when back online"} onClick={() => onSubmit(undefined, "charge")} className="shrink-0 px-4">
               <CreditCardIcon /> <span className="hidden sm:inline">Save &amp; charge</span>
             </Button>
           )}

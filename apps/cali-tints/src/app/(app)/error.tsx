@@ -17,12 +17,12 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
         icon={AlertTriangleIcon}
         tone="error"
         title="Something went wrong"
-        description={error.digest ? `Reference ${error.digest}. Nothing you logged has been lost; queued jobs stay on this phone.` : "Nothing you logged has been lost; queued jobs stay on this phone."}
+        description={error.digest ? `Reference ${error.digest}. Nothing you logged has been lost; queued cars stay on this phone.` : "Nothing you logged has been lost; queued cars stay on this phone."}
         action={
           <div className="flex gap-2">
             <Button onClick={reset}>Try again</Button>
             <Button variant="outline" asChild>
-              <Link href="/jobs/new">Make invoice</Link>
+              <Link href="/jobs/new">New car</Link>
             </Button>
           </div>
         }

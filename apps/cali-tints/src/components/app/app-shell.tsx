@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardListIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, TabletSmartphoneIcon } from "lucide-react";
+import { FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, TabletSmartphoneIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 interface NavItem {
   href: string;
   label: string;
-  /** Shorter label for the phone tab bar (six tabs share 390px). */
+  /** Shorter label for the phone tab bar (five tabs share 390px). */
   short?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
@@ -22,11 +22,11 @@ interface NavItem {
   prefix?: boolean;
 }
 
+/** A car is an invoice: one list, one "New" button. Detailers see New + Invoices (their own cars). */
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon, adminOnly: true },
-  { href: "/jobs/new", label: "Make invoice", short: "New", icon: PlusCircleIcon },
-  { href: "/jobs", label: "Jobs", icon: ClipboardListIcon, prefix: true },
-  { href: "/invoices", label: "Invoices", icon: FileTextIcon, adminOnly: true, prefix: true },
+  { href: "/jobs/new", label: "New car", short: "New", icon: PlusCircleIcon },
+  { href: "/invoices", label: "Invoices", icon: FileTextIcon, prefix: true },
   { href: "/terminal", label: "Terminal", icon: TabletSmartphoneIcon, adminOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, prefix: true },
 ];
@@ -34,17 +34,12 @@ const NAV: NavItem[] = [
 function isActive(pathname: string, item: NavItem) {
   if (item.href === "/") return pathname === "/";
   if (pathname === item.href) return true;
-  if (item.prefix && pathname.startsWith(item.href + "/")) {
-    // /jobs/new belongs to "Make invoice", not "Jobs".
-    return !(item.href === "/jobs" && pathname === "/jobs/new");
-  }
-  return false;
+  return !!item.prefix && pathname.startsWith(item.href + "/");
 }
 
 /**
  * Responsive chrome: sidebar on desktop, bottom tab bar on phones. The active
  * item's highlight slides between destinations instead of blinking.
- * Detailers only see Make invoice + Jobs.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

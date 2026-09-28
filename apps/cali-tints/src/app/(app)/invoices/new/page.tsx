@@ -7,7 +7,7 @@ import { InvoiceBuilder } from "@/components/invoices/invoice-builder";
 import { presetRange } from "@/lib/dates";
 import { sumPrices } from "@/lib/money";
 
-export const metadata: Metadata = { title: "New invoice" };
+export const metadata: Metadata = { title: "Invoice older cars" };
 
 export interface PreviewJob {
   id: string;
@@ -78,7 +78,7 @@ export default async function NewInvoicePage(props: PageProps<"/invoices/new">) 
 
   return (
     <Page>
-      <PageHeader title="New invoice" description="Preview uninvoiced jobs, resolve any double-billing flags, then generate. Jobs on an invoice are locked." />
+      <PageHeader title="Invoice older cars" description="Every car is invoiced the moment it is logged. This page only exists for cars logged before that, or unlinked by a voided invoice: preview them, resolve any double-billing flags, then generate." />
       <div className="mt-5">
         <InvoiceBuilder
           dealerships={list}

@@ -60,6 +60,7 @@ async function run(): Promise<SyncResult> {
       if (error) throw error;
 
       await uploadPhotos(item, job.id);
+      const invoiceNumber = await invoiceNumberFor(job.invoice_id);
 
       await addRecentJob({
         id: job.id,
@@ -73,6 +74,8 @@ async function run(): Promise<SyncResult> {
       await updateOutboxItem(item.client_id, {
         status: "done",
         job_id: job.id,
+        invoice_id: job.invoice_id,
+        invoice_number: invoiceNumber,
         synced_at: Date.now(),
         last_error: null,
         photos: [], // free the blobs
@@ -94,16 +97,33 @@ async function run(): Promise<SyncResult> {
   return result;
 }
 
+/** The invoice number a synced car got (readable by its detailer under RLS). Best effort. */
+async function invoiceNumberFor(invoiceId: string | null): Promise<string | null> {
+  if (!invoiceId) return null;
+  try {
+    const { data } = await createClient().from("invoices").select("display_number").eq("id", invoiceId).maybeSingle();
+    return data?.display_number ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export interface SavedCar {
+  id: string;
+  invoice_id: string | null;
+  invoice_number: string | null;
+}
+
 /**
- * Save one job straight to the server, bypassing the outbox. Used only when
- * IndexedDB is unavailable; the normal path is enqueueJob() + syncOutbox().
+ * Save one car straight to the server, bypassing the outbox: "Save & charge",
+ * or when IndexedDB is unavailable. The normal path is enqueueJob() + syncOutbox().
  */
-export async function createJobDirect(item: OutboxItem): Promise<string> {
+export async function createJobDirect(item: OutboxItem): Promise<SavedCar> {
   const supabase = createClient();
   const { data: job, error } = await supabase.rpc("create_job", { p: { ...item.payload, client_id: item.client_id } });
   if (error) throw error;
   await uploadPhotos(item, job.id);
-  return job.id;
+  return { id: job.id, invoice_id: job.invoice_id, invoice_number: await invoiceNumberFor(job.invoice_id) };
 }
 
 /** Upload compressed photos to storage and register them on the job. */
