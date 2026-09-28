@@ -1,6 +1,13 @@
 /** Importing this module registers every check. Add new check files here. */
 import "./conversion/phone-click-to-call";
 import "./identity/nap-checks";
+import "./website/technical";
+import "./website/local";
+import "./website/schema";
+import "./website/aeo";
+import "./website/images";
+import "./website/conversion";
+import "./website/content";
 
 export * from "./registry";
 export { runChecks, type CheckRunResult, type FindingDraft } from "./run";

@@ -28,6 +28,16 @@ export const CanonicalSchema = z.looseObject({
 });
 export type Canonical = z.infer<typeof CanonicalSchema>;
 
+export const ProbeSchema = z.looseObject({
+  url: z.string(),
+  final_url: z.string(),
+  status: z.number(),
+  content_type: z.string().nullable(),
+  content_length: z.number().nullable(),
+  redirect_chain: z.array(z.string()).default([]),
+});
+export type Probe = z.infer<typeof ProbeSchema>;
+
 export const WEBSITE_USER_AGENT_TOKEN = "LocalAuditBot";
 export const WEBSITE_USER_AGENT = `${WEBSITE_USER_AGENT_TOKEN}/0.1 (+https://github.com/therealmacintosh52-collab/curly-octo-rotary-phone; local business audit; contact via the agency)`;
 const MAX_REDIRECTS = 10;
@@ -167,6 +177,43 @@ export function createWebsiteProvider(opts: { env?: EnvLike; fetchImpl?: typeof 
             fetched_at: new Date().toISOString(),
           };
           return { response, costUsd: 0 };
+        },
+      });
+    },
+
+    /** Status, type and size of a URL without storing its body (link checks, image weights). Follows redirects and records them. */
+    probe(input: { url: string }, ctx: CallContext): Promise<ProviderResult<Probe>> {
+      return provider.call({
+        endpoint: "probe",
+        request: input,
+        ctx,
+        schema: ProbeSchema,
+        async execute({ timeoutMs }) {
+          const chain: string[] = [];
+          let current = input.url;
+          for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+            chain.push(current);
+            let res = await timedFetch(fetchImpl, current, { method: "HEAD", redirect: "manual" }, Math.min(timeoutMs, 10_000));
+            if (res.status === 405 || res.status === 501) res = await timedFetch(fetchImpl, current, { method: "GET", redirect: "manual", headers: { range: "bytes=0-0" } }, Math.min(timeoutMs, 10_000));
+            const location = res.headers.get("location");
+            if (res.status >= 300 && res.status < 400 && location) {
+              current = new URL(location, current).toString();
+              continue;
+            }
+            const len = Number(res.headers.get("content-length"));
+            return {
+              response: {
+                url: input.url,
+                final_url: current,
+                status: res.status,
+                content_type: res.headers.get("content-type"),
+                content_length: Number.isFinite(len) && len > 0 ? len : null,
+                redirect_chain: chain,
+              },
+              costUsd: 0,
+            };
+          }
+          throw new ProviderHttpError(310, "too many redirects");
         },
       });
     },

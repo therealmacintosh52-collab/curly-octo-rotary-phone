@@ -4,7 +4,7 @@ import { Page, PageHeader, SectionHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CATEGORY_LABELS, type CheckCategory } from "@/lib/checks/registry";
+import { CATEGORY_LABELS, CHECK_CATEGORIES } from "@/lib/checks/registry";
 import type { Audit, AuditStatus, Business, Evidence, Finding, FindingSeverity } from "@/lib/db/types";
 import { formatPhone } from "@/lib/resolve/nap";
 
@@ -40,6 +40,117 @@ type SourceExcerpt = z.infer<typeof SourceExcerpt>;
 
 const SOURCE_LABEL: Record<SourceExcerpt["source"], string> = { website: "Website", gbp: "Google Business Profile", yelp: "Yelp" };
 
+/** Shape of what the pipeline steps merge into `audits.scores`. Everything optional: older audits and partial runs must still render. */
+const PsiSummary = z.looseObject({
+  status: z.string(),
+  reason: z.string().optional(),
+  message: z.string().optional(),
+  performanceScore: z.number().nullable().optional(),
+  lab: z.looseObject({ lcpMs: z.number().nullable().optional(), clsScore: z.number().nullable().optional(), ttfbMs: z.number().nullable().optional(), tbtMs: z.number().nullable().optional() }).optional(),
+  field: z.looseObject({ lcpMs: z.number().nullable().optional(), inpMs: z.number().nullable().optional(), cls: z.number().nullable().optional(), ttfbMs: z.number().nullable().optional(), overall: z.string().nullable().optional() }).optional(),
+});
+const ScoresJson = z.looseObject({
+  visibility: z.number().nullable().optional(),
+  conversion: z.number().nullable().optional(),
+  categories: z.record(z.string(), z.number().nullable()).optional(),
+  assessed: z.array(z.string()).optional(),
+  crawl: z
+    .looseObject({
+      status: z.string(),
+      reason: z.string().optional(),
+      canonical_url: z.string().optional(),
+      https: z.boolean().optional(),
+      pages_crawled: z.number().optional(),
+      pages_discovered: z.number().optional(),
+      truncated: z.boolean().optional(),
+      failures: z.number().optional(),
+      blocked: z.number().optional(),
+      robots: z.string().optional(),
+      ai_agents_blocked: z.array(z.string()).optional(),
+      sitemap: z.string().optional(),
+      sitemap_urls: z.number().optional(),
+      llms_txt: z.string().optional(),
+      soft_404: z.boolean().nullable().optional(),
+      broken_links: z.number().optional(),
+      pages: z.array(z.looseObject({ url: z.string(), kind: z.string(), status: z.number().nullable().optional(), title: z.string().nullable().optional(), words: z.number().optional() })).optional(),
+    })
+    .optional(),
+  pagespeed: z.looseObject({ mobile: PsiSummary.optional(), desktop: PsiSummary.optional() }).optional(),
+  checks_website: z.looseObject({ passed: z.array(z.string()).optional(), unavailable: z.array(z.looseObject({ check_id: z.string(), reason: z.string() })).optional() }).optional(),
+});
+type ScoresJson = z.infer<typeof ScoresJson>;
+
+function parseScores(v: unknown): ScoresJson {
+  const r = ScoresJson.safeParse(v);
+  return r.success ? r.data : {};
+}
+
+const SEVERITY_ORDER: FindingSeverity[] = ["critical", "high", "medium", "low"];
+const shortUrl = (u: string) => {
+  try {
+    const x = new URL(u);
+    return x.pathname === "/" && !x.search ? x.host : x.pathname + x.search;
+  } catch {
+    return u;
+  }
+};
+const ms = (v: number | null | undefined) => (v == null ? "—" : v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${Math.round(v)} ms`);
+function scoreTone(n: number | null | undefined) {
+  if (n == null) return "text-muted-foreground";
+  return n >= 80 ? "text-emerald-600 dark:text-emerald-400" : n >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+}
+
+function ScoreBar({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <span className="w-36 shrink-0 truncate text-muted-foreground sm:w-56" title={label}>
+        {label}
+      </span>
+      <div className="h-2 flex-1 overflow-hidden rounded bg-muted">
+        {value != null ? <div className={`h-full rounded ${value >= 80 ? "bg-emerald-500" : value >= 50 ? "bg-amber-500" : "bg-red-500"}`} style={{ width: `${value}%` }} /> : null}
+      </div>
+      <span className={`w-16 shrink-0 whitespace-nowrap text-right tabular-nums ${scoreTone(value)}`} title={value == null ? "not assessed yet" : undefined}>
+        {value == null ? "n/a" : `${value}/100`}
+      </span>
+    </div>
+  );
+}
+
+function PsiCell({ label, psi }: { label: string; psi: z.infer<typeof PsiSummary> | undefined }) {
+  if (!psi) return <p className="text-sm text-muted-foreground">{label}: not run</p>;
+  if (psi.status !== "ok")
+    return (
+      <p className="text-sm">
+        <span className="font-medium">{label}</span> <Badge variant="outline">UNAVAILABLE</Badge> <span className="text-muted-foreground">{psi.reason}: {psi.message}</span>
+      </p>
+    );
+  return (
+    <div className="text-sm">
+      <div className="flex items-baseline gap-2">
+        <span className="font-medium">{label}</span>
+        <span className={`text-2xl font-semibold tabular-nums ${scoreTone(psi.performanceScore)}`}>{psi.performanceScore ?? "—"}</span>
+        <span className="text-muted-foreground">/100 performance</span>
+      </div>
+      <dl className="mt-1 grid grid-cols-[6rem_1fr] gap-x-2 gap-y-0.5 text-caption text-muted-foreground">
+        <dt>LCP</dt>
+        <dd className="tabular-nums">
+          {ms(psi.field?.lcpMs)} field · {ms(psi.lab?.lcpMs)} lab
+        </dd>
+        <dt>INP</dt>
+        <dd className="tabular-nums">{psi.field?.inpMs != null ? `${psi.field.inpMs} ms field` : "no field data"}</dd>
+        <dt>CLS</dt>
+        <dd className="tabular-nums">
+          {psi.field?.cls ?? "—"} field · {psi.lab?.clsScore != null ? psi.lab.clsScore.toFixed(3) : "—"} lab
+        </dd>
+        <dt>TTFB</dt>
+        <dd className="tabular-nums">
+          {ms(psi.field?.ttfbMs)} field · {ms(psi.lab?.ttfbMs)} lab
+        </dd>
+      </dl>
+    </div>
+  );
+}
+
 function parseSource(excerpt: string): SourceExcerpt | null {
   try {
     const parsed = SourceExcerpt.safeParse(JSON.parse(excerpt));
@@ -60,6 +171,11 @@ export interface AuditDetailProps {
 export function AuditDetail({ audit, business, findings, evidence }: AuditDetailProps) {
   const sources = evidence.map((e) => ({ row: e, parsed: parseSource(e.excerpt ?? "") })).filter((s): s is { row: Evidence; parsed: SourceExcerpt } => s.parsed !== null);
   const evidenceById = new Map(evidence.map((e) => [e.id, e]));
+  const scores = parseScores(audit.scores);
+  const crawl = scores.crawl;
+  const assessed = new Set(scores.assessed ?? []);
+  const byCategory = CHECK_CATEGORIES.map((c) => ({ category: c, items: findings.filter((f) => f.category === c).sort((a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) || (b.impact_score ?? 0) - (a.impact_score ?? 0)) })).filter((g) => g.items.length);
+  const severityCounts = SEVERITY_ORDER.map((sev) => [sev, findings.filter((f) => f.severity === sev).length] as const).filter(([, n]) => n);
   const inputs = (audit.inputs ?? {}) as Record<string, unknown>;
   const inputRows = [
     ["Website", inputs.website],
@@ -137,6 +253,110 @@ export function AuditDetail({ audit, business, findings, evidence }: AuditDetail
           </CardContent>
         </Card>
       </div>
+
+      {scores.visibility != null || scores.conversion != null || crawl ? (
+        <>
+          <SectionHeader className="mt-10" title="Scores" aside={<span className="text-caption text-muted-foreground">from {findings.length} findings across {assessed.size} assessed categories</span>} />
+          <div className="mt-4 grid gap-4 lg:grid-cols-[16rem_1fr]">
+            <Card>
+              <CardContent className="flex flex-col gap-4 pt-6">
+                <div>
+                  <p className="text-caption text-muted-foreground">Visibility</p>
+                  <p className={`text-4xl font-semibold tabular-nums ${scoreTone(scores.visibility)}`}>{scores.visibility ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="text-caption text-muted-foreground">Conversion</p>
+                  <p className={`text-4xl font-semibold tabular-nums ${scoreTone(scores.conversion)}`}>{scores.conversion ?? "—"}</p>
+                </div>
+                <p className="text-caption text-muted-foreground">n/a = not assessed yet; those categories count as neither 0 nor 100.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex flex-col gap-2 pt-6">
+                {CHECK_CATEGORIES.map((c) => (
+                  <ScoreBar key={c} label={CATEGORY_LABELS[c]} value={scores.categories?.[c] ?? null} />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      ) : null}
+
+      {crawl ? (
+        <>
+          <SectionHeader className="mt-10" title="Website crawl" aside={crawl.canonical_url ? <span className="text-caption text-muted-foreground">{crawl.canonical_url}</span> : null} />
+          {crawl.status !== "ok" ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              <Badge variant="outline">{crawl.status.toUpperCase()}</Badge> {crawl.reason}
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Crawl</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid grid-cols-[11rem_1fr] gap-y-1.5 text-sm">
+                    <dt className="text-muted-foreground">Pages fetched</dt>
+                    <dd className="tabular-nums">
+                      {crawl.pages_crawled ?? 0} of {crawl.pages_discovered ?? 0} discovered{crawl.truncated ? " (capped)" : ""}
+                      {crawl.failures ? ` · ${crawl.failures} failed${crawl.blocked ? `, ${crawl.blocked} blocked` : ""}` : ""}
+                    </dd>
+                    <dt className="text-muted-foreground">HTTPS</dt>
+                    <dd>{crawl.https ? "yes" : "no"}</dd>
+                    <dt className="text-muted-foreground">robots.txt</dt>
+                    <dd>
+                      {crawl.robots}
+                      {crawl.ai_agents_blocked?.length ? ` · blocks ${crawl.ai_agents_blocked.join(", ")}` : ""}
+                    </dd>
+                    <dt className="text-muted-foreground">Sitemap</dt>
+                    <dd>
+                      {crawl.sitemap}
+                      {crawl.sitemap_urls ? ` · ${crawl.sitemap_urls} URLs` : ""}
+                    </dd>
+                    <dt className="text-muted-foreground">llms.txt</dt>
+                    <dd>{crawl.llms_txt}</dd>
+                    <dt className="text-muted-foreground">Missing pages</dt>
+                    <dd>{crawl.soft_404 === null || crawl.soft_404 === undefined ? "not probed" : crawl.soft_404 ? "return 200 (soft 404)" : "return 404"}</dd>
+                    <dt className="text-muted-foreground">Broken links</dt>
+                    <dd className="tabular-nums">{crawl.broken_links ?? 0}</dd>
+                  </dl>
+                  {crawl.pages?.length ? (
+                    <details className="mt-3 text-caption">
+                      <summary className="cursor-pointer text-muted-foreground">Pages ({crawl.pages.length})</summary>
+                      <ul className="mt-2 flex flex-col gap-0.5">
+                        {crawl.pages.map((p) => (
+                          <li key={p.url} className="flex gap-2">
+                            <span className="w-16 shrink-0 text-muted-foreground">{p.kind}</span>
+                            <span className="truncate" title={p.url}>
+                              {p.title || p.url}
+                            </span>
+                            <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">{p.words ?? 0} w</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>PageSpeed Insights</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <PsiCell label="Mobile" psi={scores.pagespeed?.mobile} />
+                  <PsiCell label="Desktop" psi={scores.pagespeed?.desktop} />
+                  {scores.checks_website ? (
+                    <p className="text-caption text-muted-foreground">
+                      {scores.checks_website.passed?.length ?? 0} website checks passed · {scores.checks_website.unavailable?.length ?? 0} could not be judged
+                    </p>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </>
+      ) : null}
 
       <SectionHeader className="mt-10" title="Sources" />
       <div className="mt-4 flex flex-col gap-3 md:hidden">
@@ -237,50 +457,75 @@ export function AuditDetail({ audit, business, findings, evidence }: AuditDetail
         )}
       </div>
 
-      <SectionHeader className="mt-10" title={`Findings (${findings.length})`} />
-      <div className="mt-4 flex flex-col gap-3">
-        {findings.length ? (
-          findings.map((f) => (
-            <Card key={f.id}>
-              <CardHeader>
-                <CardTitle className="flex flex-wrap items-center gap-2">
-                  <Badge variant={SEVERITY_VARIANT[f.severity]}>{f.severity}</Badge>
-                  <span>{f.title}</span>
-                  <span className="text-caption font-normal text-muted-foreground">
-                    {CATEGORY_LABELS[f.category as CheckCategory] ?? f.category} · {f.check_id} · fix: {f.fix_difficulty ?? "—"}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{f.plain_english}</p>
-                {f.evidence_ids.length ? (
-                  <ul className="mt-3 flex flex-col gap-1 text-caption text-muted-foreground">
-                    {f.evidence_ids.map((eid) => {
-                      const e = evidenceById.get(eid);
-                      return (
-                        <li key={eid}>
-                          <span className="font-mono">{e?.type ?? "evidence"}</span> · {e?.excerpt ?? eid}
-                          {e?.source_url ? (
-                            <>
-                              {" "}
-                              ·{" "}
-                              <a className="underline-offset-4 hover:underline" href={e.source_url} target="_blank" rel="noreferrer">
-                                source
-                              </a>
-                            </>
-                          ) : null}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <p className="text-sm text-muted-foreground">{audit.status === "succeeded" ? "No problems found by the checks that ran." : "Findings appear here as steps complete."}</p>
-        )}
-      </div>
+      <SectionHeader
+        className="mt-10"
+        title={`Findings (${findings.length})`}
+        aside={
+          severityCounts.length ? (
+            <span className="flex flex-wrap gap-1">
+              {severityCounts.map(([sev, n]) => (
+                <Badge key={sev} variant={SEVERITY_VARIANT[sev]}>
+                  {n} {sev}
+                </Badge>
+              ))}
+            </span>
+          ) : null
+        }
+      />
+      {byCategory.length ? (
+        byCategory.map((group) => (
+          <section key={group.category} className="mt-6">
+            <h3 className="mb-3 flex items-baseline gap-2 text-base font-semibold">
+              {CATEGORY_LABELS[group.category]}
+              <span className="text-caption font-normal text-muted-foreground">
+                {group.items.length} finding{group.items.length === 1 ? "" : "s"}
+                {scores.categories?.[group.category] != null ? ` · score ${scores.categories[group.category]}/100` : ""}
+              </span>
+            </h3>
+            <div className="flex flex-col gap-3">
+              {group.items.map((f) => (
+                <Card key={f.id}>
+                  <CardHeader>
+                    <CardTitle className="flex flex-wrap items-center gap-2">
+                      <Badge variant={SEVERITY_VARIANT[f.severity]}>{f.severity}</Badge>
+                      <span>{f.title}</span>
+                      <span className="text-caption font-normal text-muted-foreground">
+                        {f.check_id} · impact {f.impact_score} · fix: {f.fix_difficulty ?? "—"}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{f.plain_english}</p>
+                    {f.evidence_ids.length ? (
+                      <ul className="mt-3 flex flex-col gap-1 text-caption text-muted-foreground">
+                        {f.evidence_ids.map((eid) => {
+                          const e = evidenceById.get(eid);
+                          return (
+                            <li key={eid} className="break-words">
+                              <span className="font-mono">{e?.type ?? "evidence"}</span> · {e?.excerpt ?? eid}
+                              {e?.source_url ? (
+                                <>
+                                  {" "}
+                                  ·{" "}
+                                  <a className="underline-offset-4 hover:underline" href={e.source_url} target="_blank" rel="noreferrer" title={e.source_url}>
+                                    {shortUrl(e.source_url)}
+                                  </a>
+                                </>
+                              ) : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        ))
+      ) : (
+        <p className="mt-4 text-sm text-muted-foreground">{audit.status === "succeeded" ? "No problems found by the checks that ran." : "Findings appear here as steps complete."}</p>
+      )}
     </Page>
   );
 }

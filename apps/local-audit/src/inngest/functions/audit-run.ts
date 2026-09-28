@@ -1,6 +1,7 @@
 import { inngest } from "../client";
 import { AUDIT_REQUESTED, AuditRequested } from "../events";
 import { markAuditFailed, setAuditProgress } from "@/lib/audits/progress";
+import { runCrawlStep } from "@/lib/audits/crawl-step";
 import { runResolveStep } from "@/lib/audits/resolve-step";
 import { supabaseAuditRepo } from "@/lib/audits/repo";
 import { createProviders } from "@/lib/providers";
@@ -10,9 +11,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 /**
  * The audit pipeline as a durable function. Each `step.run` is checkpointed
  * by Inngest, so a crash or a timeout resumes at the next step instead of
- * starting over. Steps so far: mark running → resolve (Phase 1) → mark
- * finished. Phases 2–8 add crawl, gbp, yelp, citations, rankings, ai,
- * offsite, analyse, revenue and solutions, each updating progress.
+ * starting over. Steps so far: mark running → resolve (Phase 1) → crawl
+ * (Phase 2: website, PageSpeed, website checks, scores) → mark finished.
+ * Phases 3–8 add gbp, yelp, citations, rankings, ai, offsite, analyse,
+ * revenue and solutions, each updating progress.
  */
 export const auditRun = inngest.createFunction(
   {
@@ -44,10 +46,20 @@ export const auditRun = inngest.createFunction(
       });
     });
 
+    const crawled = await step.run("crawl", async () => {
+      const admin = createAdminClient();
+      return runCrawlStep(auditId, {
+        repo: supabaseAuditRepo(admin),
+        providers: createProviders(),
+        ctx: { store: supabaseSnapshotStore(admin) },
+        progress: (pct, current_step) => setAuditProgress(auditId, { progress_pct: pct, current_step }),
+      });
+    });
+
     await step.run("mark-finished", () =>
       setAuditProgress(auditId, { status: "succeeded", progress_pct: 100, current_step: "done", finished_at: new Date().toISOString() }),
     );
 
-    return { auditId, status: "succeeded" as const, resolved };
+    return { auditId, status: "succeeded" as const, resolved, crawled };
   },
 );

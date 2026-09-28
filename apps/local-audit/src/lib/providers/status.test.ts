@@ -32,7 +32,7 @@ describe("stub adapters", () => {
     expect(places.ok && places.data.places[0]!.displayName?.text).toBe("Test Plumbing");
 
     const psi = await p.pagespeed.run({ url: "https://testplumbing.example/", strategy: "mobile" }, mock());
-    expect(psi.ok && psi.data.lighthouseResult?.categories?.performance?.score).toBe(0.62);
+    expect(psi.ok && psi.data.lighthouseResult?.categories?.performance?.score).toBe(0.42);
 
     const serp = await p.dataforseo.serp.googleOrganic({ keyword: "plumber sacramento" }, mock());
     expect(serp.ok && serp.data.tasks[0]!.cost).toBe(0.002);

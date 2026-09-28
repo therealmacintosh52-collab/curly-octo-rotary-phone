@@ -7,6 +7,7 @@ export default function PreviewIndex() {
     ["/dev/preview/audit", "Audit detail (resolver run on fixtures)"],
     ["/dev/preview/audit?scenario=mismatch", "Audit detail with a phone mismatch"],
     ["/dev/preview/audit?scenario=unavailable", "Audit detail with Google unavailable"],
+    ["/dev/preview/audit?scenario=crawl", "Audit detail after a website crawl (flawed demo site, PageSpeed fixture)"],
     ["/dev/preview/report", "Client report shell"],
   ];
   return (

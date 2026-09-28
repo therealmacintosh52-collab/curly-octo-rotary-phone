@@ -38,9 +38,12 @@ log of choices already made; do not re-decide them silently. Phase plans live in
   `ProviderResult<T>`; `PROVIDER_MODE=mock|record|live`; fixtures are synthetic and
   labeled. `providerStatus()` exposes booleans only, never values.
 - Jobs: `src/inngest/functions/audit-run.ts` (Inngest v4: `triggers: [...]`), served at
-  `/api/inngest`.
+  `/api/inngest`. Steps: mark-running → resolve → crawl → mark-finished.
 - Resolver: `src/lib/resolve` (inputs → entity → NAP comparison); persisted by
   `src/lib/audits/resolve-step.ts` through the `AuditRepo` interface (memory impl for tests).
+- Crawler: `src/lib/crawl` (cheerio page analysis, `crawlSite()` through the website provider);
+  persisted by `src/lib/audits/crawl-step.ts` with PageSpeed and the website checks. Fixture
+  sites for tests and previews: `src/lib/crawl/__fixtures__/demo-site.ts` (flawed + clean).
 - Checks: `src/lib/checks` (register under a category prefix; `runChecks()` turns outcomes
   into finding drafts); scoring weights in
   `src/lib/scoring/config.ts`; revenue defaults in `src/lib/revenue/defaults.ts`.

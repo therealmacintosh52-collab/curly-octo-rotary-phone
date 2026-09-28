@@ -6,13 +6,17 @@ Report (problems, evidence, $ ranges, no fixes) and an admin-only Solution Vault
 per-problem unlock. Spec: [`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md). Decisions:
 [`docs/DECISIONS.md`](docs/DECISIONS.md). Phase plans: [`docs/phases/`](docs/phases/).
 
-**Status: Phase 1 built.** Phase 0 foundation (schema + RLS, admin auth, provider
-adapters, Inngest, cost meter, client-report shell, CI) plus the input resolver:
-`/admin/audits/new` takes a website, a Google Business Profile link or name, a Yelp
-URL and optional extras; the job resolves one canonical business, cross-checks name,
-address and phone across the three sources, and records mismatches as findings with
-evidence. Live calls: Google Places (Text Search, Place Details) and Yelp business
-details, only when their keys are set. Everything else is still a stub.
+**Status: Phase 2 built.** Phase 0 foundation (schema + RLS, admin auth, provider
+adapters, Inngest, cost meter, client-report shell, CI), the Phase 1 input resolver
+(website + Google Business Profile + Yelp → one canonical business, NAP cross-check
+findings), and the Phase 2 website audit: the job crawls up to 50 pages (robots.txt,
+sitemap, llms.txt, soft-404, link and image probes), runs PageSpeed Insights for
+mobile and desktop, and applies 97 deterministic checks across technical SEO, local
+on-site signals, structured data, AI-readiness, images, conversion and content.
+Every finding cites evidence; anything that could not be measured is recorded as
+`UNAVAILABLE`. Category and headline scores are computed and shown on the audit page.
+Live calls: Google Places, Yelp, PageSpeed, only when their keys are set. Rankings,
+AI engines, citations, backlinks, social and the LLM layer are still stubs.
 
 Stack: Next.js 16 (App Router) · TypeScript · Tailwind v4 · radix-ui · Supabase
 (Postgres, Auth, Storage, RLS) · Inngest v4 · Anthropic SDK · Vercel.
@@ -54,7 +58,7 @@ pnpm inngest:dev                    # optional: Inngest dev server, discovers /a
 | `ANTHROPIC_API_KEY` | optional | <https://platform.claude.com> |
 | `GOOGLE_PLACES_API_KEY` | **now** (resolver) | <https://console.cloud.google.com> → enable Places API (New) |
 | `YELP_API_KEY` | now, optional (Yelp NAP source) | <https://www.yelp.com/developers/v3/manage_app> |
-| `GOOGLE_PAGESPEED_API_KEY` | Phase 2 | same Google Cloud project |
+| `GOOGLE_PAGESPEED_API_KEY` | **now** (website speed; keyless quota is exhausted) | same Google Cloud project → enable PageSpeed Insights API |
 | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Phases 4–6 | <https://app.dataforseo.com/register> |
 
 `/admin/settings/providers` shows which of these are set (booleans only) and the

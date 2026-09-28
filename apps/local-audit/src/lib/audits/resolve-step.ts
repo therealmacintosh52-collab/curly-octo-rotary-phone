@@ -86,13 +86,15 @@ export async function runResolveStep(auditId: string, deps: ResolveStepDeps) {
     });
   }
   await deps.repo.insertFindings(auditId, findingRows);
-  await deps.repo.saveCheckSummary(auditId, {
-    phase: 1,
-    ran_at: new Date().toISOString(),
-    passed: run.passed,
-    unavailable: run.unavailable,
-    assessed: run.assessed,
-    resolution: summarizeResolution(resolved),
+  await deps.repo.mergeScores(auditId, {
+    checks: {
+      phase: 1,
+      ran_at: new Date().toISOString(),
+      passed: run.passed,
+      unavailable: run.unavailable,
+      assessed: run.assessed,
+      resolution: summarizeResolution(resolved),
+    },
   });
   await deps.progress?.(50, "resolve: done");
 

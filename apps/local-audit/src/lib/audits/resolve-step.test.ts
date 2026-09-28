@@ -71,7 +71,7 @@ describe("runResolveStep (mock providers, fixtures)", () => {
 
     expect(repo.evidence.map((e) => JSON.parse(e.excerpt).source)).toEqual(["website", "gbp", "yelp"]);
     expect(repo.findings).toEqual([]);
-    expect(repo.summaries[0]).toMatchObject({ phase: 1, assessed: expect.arrayContaining(["identity_nap", "conversion"]) });
+    expect(repo.scores.checks).toMatchObject({ phase: 1, assessed: expect.arrayContaining(["identity_nap", "conversion"]) });
     expect(progress.at(-1)).toBe("resolve: done");
     // Fixtures cost nothing and are cached snapshots, so no spend is recorded.
     expect(await d.store.sumCost(audit({}).id)).toBe(0);

@@ -1,6 +1,7 @@
 import type { EvidenceType, FindingSeverity, FixDifficulty } from "@/lib/db/types";
 import type { Place } from "@/lib/providers/google-places/client";
-import type { PagespeedResult } from "@/lib/providers/pagespeed/client";
+import type { PagespeedSummary } from "@/lib/providers/pagespeed/client";
+import type { SiteCrawl } from "@/lib/crawl/crawler";
 import type { PageFetch } from "@/lib/providers/website/client";
 import type { YelpBusiness } from "@/lib/providers/yelp/client";
 import type { NapComparison } from "@/lib/resolve/nap";
@@ -30,6 +31,9 @@ export const CHECK_CATEGORIES = [
 ] as const;
 export type CheckCategory = (typeof CHECK_CATEGORIES)[number];
 
+/** Categories the website crawl step assesses (Phase 2). */
+export const WEBSITE_CATEGORIES: CheckCategory[] = ["technical_seo", "local_onsite", "schema", "aeo", "images", "conversion", "content_keywords"];
+
 export const CATEGORY_LABELS: Record<CheckCategory, string> = {
   identity_nap: "Name, address & phone consistency",
   technical_seo: "Website technical health",
@@ -57,8 +61,12 @@ export const CATEGORY_LABELS: Record<CheckCategory, string> = {
 export interface CheckContext {
   audit: { id: string };
   business: { name: string; canonicalDomain: string | null; phone: string | null; address: string | null };
-  website?: { pages: PageFetch[] };
-  pagespeed?: { mobile?: PagespeedResult; desktop?: PagespeedResult };
+  website?: { pages: PageFetch[]; crawl?: SiteCrawl };
+  pagespeed?: { mobile?: PagespeedSummary; desktop?: PagespeedSummary };
+  /** Services the admin listed, used to look for dedicated pages. */
+  services?: string[];
+  /** City/region the business serves (from the resolved address or the admin). */
+  city?: string | null;
   places?: { business?: Place; competitors?: Place[] };
   yelp?: { business?: YelpBusiness };
   /** Output of the Phase 1 resolver: cross-source NAP comparison and what was found. */
@@ -108,7 +116,8 @@ export interface Check {
 const registry = new Map<string, Check>();
 
 export function registerCheck(check: Check): Check {
-  if (registry.has(check.id)) throw new Error(`Duplicate check id: ${check.id}`);
+  // Hot reload re-evaluates a check file without clearing this map; only a real build catches duplicates.
+  if (registry.has(check.id) && process.env.NODE_ENV !== "development") throw new Error(`Duplicate check id: ${check.id}`);
   if (!check.id.startsWith(`${check.category}.`)) throw new Error(`Check id "${check.id}" must be prefixed with its category "${check.category}."`);
   registry.set(check.id, check);
   return check;

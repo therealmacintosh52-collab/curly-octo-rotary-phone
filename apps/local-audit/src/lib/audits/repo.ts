@@ -32,8 +32,10 @@ export interface AuditRepo {
   updateBusiness(businessId: string, patch: Partial<Omit<Business, "id" | "created_at" | "updated_at">>): Promise<void>;
   insertEvidence(auditId: string, rows: EvidenceRow[]): Promise<string[]>;
   insertFindings(auditId: string, rows: FindingRow[]): Promise<void>;
-  /** Replaces the check-run summary stored on the audit (scores jsonb, key `checks`). */
-  saveCheckSummary(auditId: string, summary: Json): Promise<void>;
+  /** Findings persisted so far (all steps), for scoring. */
+  listFindings(auditId: string): Promise<{ category: string; severity: FindingSeverity }[]>;
+  /** Merges keys into the audit's `scores` jsonb (step summaries, category scores, headline scores). */
+  mergeScores(auditId: string, patch: Record<string, Json>): Promise<void>;
 }
 
 export function supabaseAuditRepo(client: SupabaseClient<Database> = createAdminClient()): AuditRepo {
@@ -63,14 +65,19 @@ export function supabaseAuditRepo(client: SupabaseClient<Database> = createAdmin
       const { error } = await client.from("findings").insert(rows.map((r) => ({ ...r, audit_id: auditId })));
       if (error) throw new Error(`findings insert failed: ${error.message}`);
     },
-    async saveCheckSummary(auditId, summary) {
+    async listFindings(auditId) {
+      const { data, error } = await client.from("findings").select("category, severity").eq("audit_id", auditId);
+      if (error) throw new Error(`findings read failed: ${error.message}`);
+      return data ?? [];
+    },
+    async mergeScores(auditId, patch) {
       const { data: current } = await client.from("audits").select("scores").eq("id", auditId).single();
       const scores = (current?.scores && typeof current.scores === "object" && !Array.isArray(current.scores) ? current.scores : {}) as Record<string, Json | undefined>;
       const { error } = await client
         .from("audits")
-        .update({ scores: { ...scores, checks: summary } as Json })
+        .update({ scores: { ...scores, ...patch } as Json })
         .eq("id", auditId);
-      if (error) throw new Error(`audit summary update failed: ${error.message}`);
+      if (error) throw new Error(`audit scores update failed: ${error.message}`);
     },
   };
 }
@@ -80,13 +87,13 @@ export class MemoryAuditRepo implements AuditRepo {
   evidence: (EvidenceRow & { id: string; audit_id: string })[] = [];
   findings: (FindingRow & { audit_id: string })[] = [];
   businessPatches: Partial<Business>[] = [];
-  summaries: Json[] = [];
+  scores: Record<string, Json> = {};
   constructor(
     private audit: Audit,
     private business: Business,
   ) {}
   async load() {
-    return { audit: this.audit, business: this.business };
+    return { audit: { ...this.audit, scores: this.scores as Json }, business: this.business };
   }
   async updateBusiness(_id: string, patch: Partial<Business>) {
     this.businessPatches.push(patch);
@@ -102,7 +109,10 @@ export class MemoryAuditRepo implements AuditRepo {
   async insertFindings(auditId: string, rows: FindingRow[]) {
     for (const r of rows) this.findings.push({ ...r, audit_id: auditId });
   }
-  async saveCheckSummary(_auditId: string, summary: Json) {
-    this.summaries.push(summary);
+  async listFindings() {
+    return this.findings.map((f) => ({ category: f.category, severity: f.severity }));
+  }
+  async mergeScores(_auditId: string, patch: Record<string, Json>) {
+    this.scores = { ...this.scores, ...patch };
   }
 }
