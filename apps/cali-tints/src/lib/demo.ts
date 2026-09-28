@@ -47,6 +47,9 @@ const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
 
 export function demoRewriteTarget(pathname: string): string | null {
   if (pathname.startsWith("/dev/preview")) return null; // already a preview page
+  // One invoice: keep the id so every row in the demo list opens its own page.
+  const inv = pathname.match(/^\/invoices\/([^/]+)$/);
+  if (inv && inv[1] !== "new") return `/dev/preview/invoice/${inv[1]}`;
   for (const [prefix, target, exact] of DEMO_REWRITES) {
     if (pathname === prefix) return target;
     if (!exact && prefix !== "/" && pathname.startsWith(prefix + "/")) return target;

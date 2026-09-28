@@ -1,5 +1,5 @@
 import type { InvoiceBundle } from "@/lib/invoices/load";
-import type { InvoiceListRow, TerminalTransaction } from "@/lib/db/types";
+import type { InvoiceListRow, PriceListRow, TerminalTransaction } from "@/lib/db/types";
 
 /** A realistic invoice bundle for renderer tests and previews. */
 export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): InvoiceBundle {
@@ -201,5 +201,19 @@ export function invoiceListFixture(): InvoiceListRow[] {
       { tag: "K-118", vin: null, vehicle: "2025 Mercedes-Benz C 300", detailer: "Marco R." },
       { tag: "7702", vin: "WDDGF4HB3CR227845", vehicle: "2023 Mercedes-Benz C-Class", detailer: "Dee One" },
     ], ["Used", "PDI", "Service Loaner Detail", "Sold"], { car_count: 6, amount_paid: 500, balance: 290, overdue: true, period_start: day(75), period_end: day(45), display_number: "INV-000012" }),
+  ];
+}
+
+/** The seeded menu, as the price list RPC returns it (previews). */
+export function priceListFixture(): PriceListRow[] {
+  return [
+    { service_id: "s1", name: "PDI", description: "New car pre-delivery inspection prep", category: "new", price: 60, price_min: null, price_max: null, is_override: false, sort_order: 10 },
+    { service_id: "s2", name: "Sold", description: "Delivery clean on a sold unit", category: "new", price: 20, price_min: null, price_max: null, is_override: false, sort_order: 20 },
+    { service_id: "s3", name: "Used", description: "Used car full detail", category: "used", price: 200, price_min: null, price_max: null, is_override: false, sort_order: 30 },
+    { service_id: "s4", name: "Service Loaner Detail", description: "Full detail on a service loaner", category: "service", price: 125, price_min: null, price_max: null, is_override: false, sort_order: 40 },
+    { service_id: "s5", name: "Touch Up Detail", description: "$20–40 by condition", category: "addon", price: 30, price_min: 20, price_max: 40, is_override: false, sort_order: 50 },
+    { service_id: "s6", name: "Tint Removal", description: "Strip old tint on a used unit", category: "addon", price: 40, price_min: null, price_max: null, is_override: false, sort_order: 60 },
+    { service_id: "s7", name: "Paint Correction (1-step)", description: "Single-stage machine polish", category: "addon", price: 250, price_min: null, price_max: null, is_override: false, sort_order: 70 },
+    { service_id: "s8", name: "Other", description: "Anything not on the menu; set the amount", category: "addon", price: 0, price_min: 0, price_max: 100000, is_override: false, sort_order: 80 },
   ];
 }
