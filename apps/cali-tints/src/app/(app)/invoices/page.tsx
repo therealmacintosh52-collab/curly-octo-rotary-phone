@@ -5,9 +5,9 @@ import { PlusIcon, WalletIcon } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceListResult } from "@/lib/db/types";
-import { EMPTY_INVOICE_LIST, invoiceFilterArgs, parseInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
+import { EMPTY_INVOICE_LIST, invoiceFilterArgs, parseInvoiceFilters, resolveInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
 import { formatMoney } from "@/lib/money";
-import { formatDateOnly } from "@/lib/dates";
+import { formatDateOnly, todayIn } from "@/lib/dates";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,8 +27,9 @@ const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} 
  */
 export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const sp = await props.searchParams;
-  const filters = parseInvoiceFilters(sp);
+  const typed = parseInvoiceFilters(sp); // what the search box shows
   const session = await getSession();
+  const filters = resolveInvoiceFilters(typed, todayIn(session.company.timezone)); // "9/27" in the box → that day
   const supabase = await createClient();
   const created = typeof sp.created === "string" ? sp.created.split(",").filter(Boolean) : [];
   const clover = session.isAdmin ? cloverContext(session.company) : null;
@@ -60,7 +61,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     filters.status !== "all" ? STATUS_LABELS[filters.status] : null,
     filters.dealership ? dealerships?.find((d) => d.id === filters.dealership)?.name : null,
     filters.service ? services?.find((s) => s.id === filters.service)?.name : null,
-    filters.from || filters.to ? `${filters.from ? formatDateOnly(filters.from, "MMM d, yyyy") : "…"} – ${filters.to ? formatDateOnly(filters.to, "MMM d, yyyy") : "…"}` : null,
+    filters.searchDate ? filters.searchDate.label : filters.from || filters.to ? `${filters.from ? formatDateOnly(filters.from, "MMM d, yyyy") : "…"} – ${filters.to ? formatDateOnly(filters.to, "MMM d, yyyy") : "…"}` : null,
   ].filter(Boolean);
   const filtered = scope.length > 0 || !!filters.q || !!filters.detailer;
   const summary = [
@@ -110,7 +111,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
             </div>
           }
         >
-          <InvoiceFilters filters={filters} services={services ?? []} dealerships={dealerships ?? []} isAdmin={session.isAdmin} />
+          <InvoiceFilters filters={typed} searchDate={filters.searchDate} services={services ?? []} dealerships={dealerships ?? []} isAdmin={session.isAdmin} />
         </Suspense>
         <InvoiceList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} filtered={filtered} />
       </div>

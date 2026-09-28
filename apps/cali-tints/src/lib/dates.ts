@@ -120,6 +120,15 @@ export function isoDaysAgo(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
+/** Today's calendar date (yyyy-mm-dd) in a timezone, e.g. the company's. */
+export function todayIn(tz: string, now: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  } catch {
+    return now.toISOString().slice(0, 10);
+  }
+}
+
 /** Current epoch ms (see isoDaysAgo). */
 export function nowMs(): number {
   return Date.now();

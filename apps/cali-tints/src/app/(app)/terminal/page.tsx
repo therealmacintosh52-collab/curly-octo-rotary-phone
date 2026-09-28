@@ -8,19 +8,12 @@ import { CloverSetupChecklist, cloverSetupSteps } from "@/components/clover/setu
 import { cloverStatus } from "@/lib/clover/status";
 import type { TerminalTransaction } from "@/lib/db/types";
 import { Terminal } from "@/components/terminal/terminal";
+import { todayIn } from "@/lib/dates";
 import type { OpenInvoiceOption } from "@/components/invoices/clover-queue";
 
 export const metadata: Metadata = { title: "Terminal" };
 // "Pay on terminal" waits for the customer to tap; give server actions from this page up to 60 s.
 export const maxDuration = 60;
-
-function todayIn(tz: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  } catch {
-    return new Date().toISOString().slice(0, 10);
-  }
-}
 
 /** Point of sale: everything the Clover terminal does, from any phone or laptop. */
 export default async function TerminalPage(props: PageProps<"/terminal">) {

@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
-import { STATUS_LABELS, type InvoiceFilters as Filters } from "@/lib/invoices/query";
+import { STATUS_LABELS, type InvoiceFilters as Filters, type SearchDate } from "@/lib/invoices/query";
 import { formatDateOnly } from "@/lib/dates";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,15 +23,18 @@ const UNPAID = new Set(["unpaid", "outstanding", "draft", "submitted", "partial"
  * URL-state filter bar for the one list. Search and status are always
  * visible; dealership, service and dates live in a sheet on phones and inline
  * on desktop. Active filters show as chips so a drilled-down list (from the
- * dashboard) is always explainable.
+ * dashboard) is always explainable. The search box also takes a date
+ * ("9/27", "sep", "yesterday"): `searchDate` says the page read it that way.
  */
 export function InvoiceFilters({
   filters,
+  searchDate = null,
   services,
   dealerships,
   isAdmin,
 }: {
   filters: Filters;
+  searchDate?: SearchDate | null;
   services: { id: string; name: string }[];
   dealerships: { id: string; name: string }[];
   isAdmin: boolean;
@@ -66,6 +69,7 @@ export function InvoiceFilters({
   if (filters.service) chips.push({ key: "service", label: serviceName ?? "Service", clear: { service: undefined } });
   if (filters.dealership) chips.push({ key: "dealership", label: dealershipName ?? "Dealership", clear: { dealership: undefined } });
   if (filters.detailer) chips.push({ key: "detailer", label: "One detailer", clear: { detailer: undefined } });
+  if (searchDate) chips.push({ key: "search-date", label: searchDate.label, clear: { q: undefined } });
   if (filters.from || filters.to) {
     const label = filters.from && filters.to && filters.from === filters.to ? formatDateOnly(filters.from, "MMM d, yyyy") : `${filters.from ? formatDateOnly(filters.from, "MMM d") : "…"} – ${filters.to ? formatDateOnly(filters.to, "MMM d, yyyy") : "…"}`;
     chips.push({ key: "dates", label, clear: { from: undefined, to: undefined } });
@@ -146,7 +150,7 @@ export function InvoiceFilters({
           }}
         >
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-subtle" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag, VIN, invoice # or model" className="pl-10 pr-9" enterKeyHint="search" autoCapitalize="characters" aria-label="Search invoices" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag, VIN, invoice #, model or date" className="pl-10 pr-9" enterKeyHint="search" autoCapitalize="characters" aria-label="Search invoices" />
           {q && (
             <button
               type="button"

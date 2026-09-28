@@ -10,11 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { InvoiceList } from "@/components/invoices/invoice-list";
 import { CloverSyncButton } from "@/components/invoices/clover-queue";
-import { parseInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
+import { parseInvoiceFilters, resolveInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
 import { invoiceListFixture } from "@/test/fixtures";
 import type { Company, Profile } from "@/lib/db/types";
 import { formatMoney } from "@/lib/money";
-import { isoDaysAgo } from "@/lib/dates";
+import { isoDaysAgo, toDateInput } from "@/lib/dates";
 
 const SERVICES = [
   { id: "s1", name: "PDI" },
@@ -31,11 +31,12 @@ const DEALERSHIPS = [
 
 /** Fixture preview of the one list (guest demo in production). Filters come from the URL so the segmented control, chips and sheet behave like the real page. */
 export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/invoices">) {
-  const filters = parseInvoiceFilters(await props.searchParams);
+  const typed = parseInvoiceFilters(await props.searchParams);
   const company = { id: "c1", name: "Cali Tints", payment_terms: "Net 30", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles", clover_enabled: true, auto_invoice: true } as Company;
   const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
 
-  // Apply the URL filters to the fixture the way the RPC would.
+  // Apply the URL filters to the fixture the way the RPC would (a date in the search box becomes a range).
+  const filters = resolveInvoiceFilters(typed, toDateInput(new Date())); // the fixture dates rows by the server's local day
   const q = filters.q?.toUpperCase();
   const rows = invoiceListFixture().filter((r) => {
     const st = filters.status;
@@ -54,7 +55,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
   const total = rows.reduce((s, r) => s + r.total, 0);
   const balance = rows.filter((r) => r.status !== "void" && r.status !== "paid").reduce((s, r) => s + r.balance, 0);
   const unpaidAll = invoiceListFixture().filter((r) => r.status !== "void" && r.status !== "paid").reduce((s, r) => s + r.balance, 0);
-  const scope = [filters.status !== "all" ? STATUS_LABELS[filters.status] : null, filters.dealership ? DEALERSHIPS.find((d) => d.id === filters.dealership)?.name : null, filters.service ? SERVICES.find((s) => s.id === filters.service)?.name : null].filter(Boolean);
+  const scope = [filters.status !== "all" ? STATUS_LABELS[filters.status] : null, filters.dealership ? DEALERSHIPS.find((d) => d.id === filters.dealership)?.name : null, filters.service ? SERVICES.find((s) => s.id === filters.service)?.name : null, filters.searchDate?.label ?? null].filter(Boolean);
   const filtered = scope.length > 0 || !!filters.q || !!filters.from || !!filters.to;
   const summary = [`${rows.length} ${rows.length === 1 ? "car" : "cars"}`, formatMoney(total), balance > 0 ? `${formatMoney(balance)} unpaid` : rows.length ? "all paid" : null, ...scope].filter(Boolean);
 
@@ -92,7 +93,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
                   </div>
                 }
               >
-                <InvoiceFilters filters={filters} services={SERVICES} dealerships={DEALERSHIPS} isAdmin />
+                <InvoiceFilters filters={typed} searchDate={filters.searchDate} services={SERVICES} dealerships={DEALERSHIPS} isAdmin />
               </Suspense>
               <InvoiceList rows={rows} page={1} count={rows.length} params="" isAdmin filtered={filtered} />
             </div>
