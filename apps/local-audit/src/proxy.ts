@@ -22,6 +22,11 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
+  // Local development: fixture previews are always open (the route 404s in production).
+  if (process.env.NODE_ENV !== "production" && (pathname === "/dev" || pathname.startsWith("/dev/"))) {
+    return NextResponse.next({ request });
+  }
+
   if (!hasSupabaseEnv()) {
     return isPublic ? NextResponse.next({ request }) : NextResponse.redirect(new URL("/login?error=Supabase+is+not+configured", request.url));
   }

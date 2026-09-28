@@ -42,3 +42,6 @@ next-env.d.ts
 # local postgres data dir (supabase/tests/run.sh never writes here, but a
 # hand-started cluster for db:test should not land in the repo either)
 /.pgdata
+
+# QA screenshots (regenerate with the preview routes)
+/qa/
