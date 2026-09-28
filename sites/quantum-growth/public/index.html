@@ -219,6 +219,47 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .form-note{font-size:.8rem;color:var(--neutral);margin:12px 0 0;text-align:center;font-weight:600}
 .hp{position:absolute;left:-9999px}
 
+/* ---------- break-even calculator ----------
+   The hero used to be a form asking for details before giving anything back.
+   This gives something back first: set what a job is worth and watch how many
+   customers a month each plan has to find before it pays for itself. The
+   presets exist so a salon and a roofer both see themselves in it. */
+.calc .sub{margin-bottom:16px}
+.calc-lab{font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--neutral);margin:0 0 8px}
+.calc-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.calc-presets button{font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;
+  background:var(--paper-2);border:1px solid var(--rule);color:var(--ink-2);
+  border-radius:var(--r-pill);padding:7px 12px;
+  transition:border-color .15s ease,color .15s ease,transform .15s var(--ease)}
+.calc-presets button:hover{border-color:var(--fire);color:var(--fire-dk);transform:translateY(-1px)}
+.calc-presets button[aria-pressed="true"]{background:var(--fire-wash);border-color:var(--fire);
+  color:var(--fire-dk)}
+.calc-input{display:flex;align-items:center;gap:6px;border:1.5px solid var(--rule);
+  border-radius:11px;background:var(--paper-2);padding:0 14px;margin-bottom:10px}
+.calc-input span{font-family:var(--display);font-size:1.5rem;color:var(--neutral)}
+.calc-input input{flex:1;border:0;background:none;padding:12px 0;font-family:var(--display);
+  font-size:1.9rem;letter-spacing:.01em;color:var(--ink);width:100%;
+  font-variant-numeric:tabular-nums}
+.calc-input input:focus{outline:none}
+.calc-input:focus-within{border-color:var(--fire);box-shadow:0 0 0 4px rgba(245,166,35,.2)}
+.calc-input input::-webkit-outer-spin-button,.calc-input input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0}
+.calc-input input[type=number]{-moz-appearance:textfield}
+.calc-range{width:100%;margin:0 0 20px;accent-color:var(--fire-2);height:22px}
+.calc-rows{list-style:none;padding:0;margin:0 0 4px;border:1px solid var(--rule);
+  border-radius:var(--r);overflow:hidden}
+.calc-rows li{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:11px 15px;font-size:.92rem;font-weight:600;color:var(--ink-2);
+  border-bottom:1px solid var(--rule)}
+.calc-rows li:last-child{border-bottom:0}
+.calc-rows li.hot{background:var(--fire-wash)}
+.calc-rows b{font-weight:800;color:var(--ink)}
+.calc-rows .n{font-family:var(--display);font-size:1.3rem;letter-spacing:.01em;
+  color:var(--fire-dk);white-space:nowrap;font-variant-numeric:tabular-nums}
+.calc-note{font-size:.84rem;color:var(--neutral);font-weight:600;margin:10px 0 0;min-height:2.4em}
+.calc-form{margin-top:18px;padding-top:18px;border-top:1px solid var(--rule)}
+
 /* ---------- stat band ---------- */
 .statband{position:relative;z-index:2;margin-top:calc(-1 * clamp(44px,4.6vw,72px))}
 .statband + section{padding-top:clamp(46px,4.6vw,72px)}
@@ -719,39 +760,59 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
          Get the code at formsubmit.co, submit the form once yourself, then
          click the confirmation email. See README.md > Before you launch.
          ================================================================ -->
-    <form class="quote-card" action="https://formsubmit.co/REPLACE-WITH-YOUR-FORMSUBMIT-CODE" method="POST">
-      <h2>Free visibility check</h2>
-      <p class="sub">Where you actually rank, what your listing is missing, and who is ahead of you. No pitch.</p>
-      <input type="hidden" name="_subject" value="Quantum Growth — visibility check request">
-      <input type="hidden" name="_captcha" value="false">
-      <input type="hidden" name="_template" value="table">
-      <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
-      <div class="field">
-        <label for="q-biz">Business name</label>
-        <input id="q-biz" name="Business" type="text" required autocomplete="organization">
+    <form class="quote-card calc" action="https://formsubmit.co/REPLACE-WITH-YOUR-FORMSUBMIT-CODE" method="POST">
+      <h2>What would this cost you?</h2>
+      <p class="sub">Not in dollars — in customers. Set what one job is worth and see how many extra ones a month each plan has to bring you before it pays for itself.</p>
+
+      <p class="calc-lab">Start from a business like yours</p>
+      <div class="calc-presets" id="calcPresets">
+        <button type="button" data-v="45">Haircut · $45</button>
+        <button type="button" data-v="90">Oil change · $90</button>
+        <button type="button" data-v="150">Dental clean · $150</button>
+        <button type="button" data-v="450">HVAC repair · $450</button>
+        <button type="button" data-v="1200">Landscaping · $1,200</button>
+        <button type="button" data-v="9000">New roof · $9,000</button>
       </div>
-      <div class="f2">
-        <div class="field">
-          <label for="q-name">Your name</label>
-          <input id="q-name" name="Name" type="text" required autocomplete="name">
-        </div>
-        <div class="field">
-          <label for="q-phone">Phone</label>
-          <input id="q-phone" name="Phone" type="tel" required autocomplete="tel">
-        </div>
+
+      <label class="calc-lab" for="calcVal">One job or sale is worth</label>
+      <div class="calc-input">
+        <span>$</span>
+        <input id="calcVal" name="Average job value" type="number" min="10" max="50000" step="5" value="150" inputmode="numeric">
       </div>
-      <div class="f2">
-        <div class="field">
-          <label for="q-town">Town &amp; state</label>
-          <input id="q-town" name="Town" type="text" required placeholder="Sacramento, CA">
+      <input class="calc-range" id="calcRange" type="range" min="10" max="5000" step="5" value="150"
+             aria-label="Average value of one job">
+
+      <p class="calc-lab">Extra jobs a month to break even</p>
+      <ul class="calc-rows" id="calcRows">
+        <li data-price="79"><span>Starter <b>$79/mo</b></span><span class="n">—</span></li>
+        <li data-price="299" class="hot"><span>Local <b>$299/mo</b></span><span class="n">—</span></li>
+        <li data-price="599"><span>Growth <b>$599/mo</b></span><span class="n">—</span></li>
+        <li data-price="1199"><span>Market Leader <b>$1,199/mo</b></span><span class="n">—</span></li>
+      </ul>
+      <p class="calc-note" id="calcNote"></p>
+
+      <div class="calc-form">
+        <input type="hidden" name="_subject" value="Quantum Growth — enquiry from the calculator">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="hidden" name="_template" value="table">
+        <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <div class="f2">
+          <div class="field">
+            <label for="q-name">Your name</label>
+            <input id="q-name" name="Name" type="text" required autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="q-phone">Phone</label>
+            <input id="q-phone" name="Phone" type="tel" required autocomplete="tel">
+          </div>
         </div>
         <div class="field">
-          <label for="q-trade">Trade</label>
-          <input id="q-trade" name="Trade" type="text" required placeholder="Plumbing, salon, clinic…">
+          <label for="q-trade">What do you do, and where?</label>
+          <input id="q-trade" name="Business" type="text" required placeholder="Salon in Sacramento, CA">
         </div>
+        <button class="btn btn-fire" type="submit">Send me a plan for these numbers <svg class="ico"><use href="#i-arrow"/></svg></button>
+        <p class="form-note">No obligation. We reply within one business day.</p>
       </div>
-      <button class="btn btn-fire" type="submit">Send it over <svg class="ico"><use href="#i-arrow"/></svg></button>
-      <p class="form-note">No obligation. We reply within one business day.</p>
     </form>
   </div>
 
@@ -1329,11 +1390,11 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   <span id="motionLabel">Turn on animations</span>
 </button>
 
-<a class="fab" href="#top"><svg class="ico"><use href="#i-arrow"/></svg> Free visibility check</a>
+<a class="fab" href="#top"><svg class="ico"><use href="#i-arrow"/></svg> What would this cost you?</a>
 
 <div class="callbar">
   <a class="primary" href="tel:+19168682447"><svg class="ico"><use href="#i-phone"/></svg> Call now</a>
-  <a href="#top"><svg class="ico"><use href="#i-check"/></svg> Free check</a>
+  <a href="#top"><svg class="ico"><use href="#i-check"/></svg> My numbers</a>
 </div>
 
 <script>
@@ -1384,6 +1445,49 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   addEventListener('scroll',onScroll,{passive:true});
   addEventListener('resize',onScroll,{passive:true});
   onScroll();
+
+  /* ---- Break-even calculator ----
+     Everything here is presentation: the page is perfectly usable with the
+     numbers it ships with if this never runs. */
+  var cVal=document.getElementById('calcVal'),
+      cRange=document.getElementById('calcRange'),
+      cRows=document.getElementById('calcRows'),
+      cNote=document.getElementById('calcNote'),
+      cPre=document.getElementById('calcPresets');
+  if(cVal&&cRows){
+    function money(n){return '$'+Math.round(n).toLocaleString('en-US')}
+    function draw(){
+      var v=Math.max(10,Math.min(50000,parseFloat(cVal.value)||0));
+      var rows=cRows.querySelectorAll('li'), least=null;
+      for(var i=0;i<rows.length;i++){
+        var price=parseFloat(rows[i].getAttribute('data-price'));
+        var jobs=price/v, cell=rows[i].querySelector('.n');
+        if(jobs<=1){ cell.textContent='under 1'; }
+        else { cell.textContent=Math.ceil(jobs)+(Math.ceil(jobs)===1?' job':' jobs'); }
+        if(least===null)least=jobs;
+      }
+      if(cPre){
+        var btns=cPre.querySelectorAll('button');
+        for(var p=0;p<btns.length;p++)
+          btns[p].setAttribute('aria-pressed', parseFloat(btns[p].getAttribute('data-v'))===v?'true':'false');
+      }
+      /* The line under the table is the whole point: turn the monthly into
+         something the owner already has a feel for. */
+      var localJobs=299/v;
+      cNote.textContent = localJobs<=1
+        ? 'At ' + money(v) + ' a job, one extra customer a month more than covers Local — the rest is profit.'
+        : 'At ' + money(v) + ' a job, Local needs ' + Math.ceil(localJobs) +
+          ' extra customers a month to pay for itself. Everything past that is yours.';
+      if(cRange&&v<=parseFloat(cRange.max))cRange.value=v;
+    }
+    cVal.addEventListener('input',draw);
+    if(cRange)cRange.addEventListener('input',function(){cVal.value=cRange.value;draw()});
+    if(cPre)cPre.addEventListener('click',function(e){
+      var b=e.target.closest('button[data-v]'); if(!b)return;
+      cVal.value=b.getAttribute('data-v'); draw();
+    });
+    draw();
+  }
 
   /* ---- Reveal on scroll ----
      window.__rv is the one selector list, set by the head bootstrap. Its
