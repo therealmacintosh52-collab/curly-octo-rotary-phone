@@ -94,7 +94,7 @@ export function InvoiceFilters({
   const unpaidChips: { value: string; label: string }[] = [
     { value: "unpaid", label: "Any" },
     { value: "draft", label: STATUS_LABELS.draft },
-    { value: "submitted", label: STATUS_LABELS.submitted },
+    { value: "submitted", label: "Sent" },
     { value: "partial", label: STATUS_LABELS.partial },
   ];
 

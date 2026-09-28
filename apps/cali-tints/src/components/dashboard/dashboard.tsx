@@ -112,7 +112,7 @@ export function Dashboard({
       <PageHeader
         eyebrow={formatDate(new Date(), "EEEE, MMMM d")}
         title={companyName}
-        description="Tap any number to see the cars behind it."
+        description="Every number opens the invoices it adds up to."
         actions={
           <Button asChild>
             <Link href="/jobs/new">

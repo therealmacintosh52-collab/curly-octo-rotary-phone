@@ -154,7 +154,7 @@ export const STATUS_LABELS: Record<InvoiceStatusFilter, string> = {
   outstanding: "Sent, unpaid",
   overdue: "Overdue",
   draft: "Not sent",
-  submitted: "Sent",
+  submitted: "Sent to dealer",
   partial: "Partially paid",
   paid: "Paid",
   void: "Void",
