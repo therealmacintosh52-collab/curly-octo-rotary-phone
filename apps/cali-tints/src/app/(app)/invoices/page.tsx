@@ -47,7 +47,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     clover ? supabase.from("clover_payments").select("id, clover_payment_id, amount, tip, paid_at, card_brand, last4, reference").eq("status", "unmatched").order("paid_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
     clover ? supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200) : Promise.resolve({ data: [] }),
     // Unsent invoices by dealership, for "Send invoices".
-    session.isAdmin ? supabase.from("invoices").select("id, total, dealership_id, dealership:dealerships(name, ap_emails)").eq("status", "draft").order("number").limit(200) : Promise.resolve({ data: [] }),
+    session.isAdmin ? supabase.from("invoices").select("id, display_number, total, dealership_id, dealership:dealerships(name, ap_emails), invoice_items(tag_number, year, make, model)").eq("status", "draft").order("number").limit(200) : Promise.resolve({ data: [] }),
   ]);
   if (error) throw new Error(error.message);
   const result = (list as InvoiceListResult | null) ?? EMPTY_INVOICE_LIST;
@@ -57,9 +57,9 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const unsentGroups: UnsentGroup[] = Object.values(
     (unsent ?? []).reduce<Record<string, UnsentGroup>>((acc, i) => {
       const d = i.dealership as unknown as { name: string; ap_emails: string[] } | null;
-      const g = acc[i.dealership_id] ?? { dealership_id: i.dealership_id, name: d?.name ?? "", emails: d?.ap_emails ?? [], ids: [], total: 0 };
-      g.ids.push(i.id);
-      g.total += Number(i.total);
+      const first = (i.invoice_items as unknown as { tag_number: string; year: number | null; make: string | null; model: string | null }[] | null)?.[0];
+      const g = acc[i.dealership_id] ?? { dealership_id: i.dealership_id, name: d?.name ?? "", emails: d?.ap_emails ?? [], invoices: [] };
+      g.invoices.push({ id: i.id, number: i.display_number, tag: first?.tag_number ?? "—", vehicle: first ? [first.year, first.make, first.model].filter(Boolean).join(" ") || null : null, total: Number(i.total) });
       acc[i.dealership_id] = g;
       return acc;
     }, {}),

@@ -10,7 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { InvoiceList } from "@/components/invoices/invoice-list";
 import { CloverSyncButton } from "@/components/invoices/clover-queue";
-import { SendInvoicesButton, type UnsentGroup } from "@/components/invoices/send-invoices-button";
+import { SendInvoicesButton, type EmailPreview, type UnsentGroup } from "@/components/invoices/send-invoices-button";
+import { invoiceEmailEnvelope, invoiceEmailHtml } from "@/lib/invoices/email";
+import { invoiceBundleFixture } from "@/test/fixtures";
 import { parseInvoiceFilters, resolveInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
 import { invoiceListFixture } from "@/test/fixtures";
 import type { Company, Profile } from "@/lib/db/types";
@@ -57,16 +59,28 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
   });
   const total = rows.reduce((s, r) => s + r.total, 0);
   const balance = rows.filter((r) => r.status !== "void" && r.status !== "paid").reduce((s, r) => s + r.balance, 0);
+  const drafts = invoiceListFixture().filter((r) => r.status === "draft");
+  const emailsFor = (dealershipId: string) => (dealershipId === "d1" ? ["ap@mbeldoradohills.example"] : ["ap@mbsacramento.example", "controller@mbsacramento.example"]);
   const unsentGroups: UnsentGroup[] = Object.values(
-    invoiceListFixture()
-      .filter((r) => r.status === "draft")
-      .reduce<Record<string, UnsentGroup>>((acc, r) => {
-        const g = acc[r.dealership_id] ?? { dealership_id: r.dealership_id, name: r.dealership, emails: r.dealership_id === "d1" ? ["ap@mbeldoradohills.example"] : ["ap@mbsacramento.example", "controller@mbsacramento.example"], ids: [], total: 0 };
-        g.ids.push(r.id);
-        g.total += r.total;
-        acc[r.dealership_id] = g;
-        return acc;
-      }, {}),
+    drafts.reduce<Record<string, UnsentGroup>>((acc, r) => {
+      const g = acc[r.dealership_id] ?? { dealership_id: r.dealership_id, name: r.dealership, emails: emailsFor(r.dealership_id), invoices: [] };
+      g.invoices.push({ id: r.id, number: r.display_number, tag: r.cars[0]?.tag ?? "—", vehicle: r.cars[0]?.vehicle ?? null, total: r.total });
+      acc[r.dealership_id] = g;
+      return acc;
+    }, {}),
+  );
+  // The email each one would be, built from the fixture (the real page asks the server on demand).
+  const base = invoiceBundleFixture();
+  const emailPreviews: Record<string, EmailPreview> = Object.fromEntries(
+    drafts.map((r) => {
+      const b = {
+        ...base,
+        invoice: { ...base.invoice, id: r.id, display_number: r.display_number, period_start: r.period_start, period_end: r.period_end, ro_po_number: r.ro_po_number, total: r.total, payment_terms: r.dealership_id === "d2" ? "Net 45" : "Net 30" },
+        dealership: { ...base.dealership, id: r.dealership_id, name: r.dealership, ap_emails: emailsFor(r.dealership_id) },
+      };
+      const env = invoiceEmailEnvelope(b);
+      return [r.id, { to: env.to, cc: env.cc, subject: env.subject, html: invoiceEmailHtml(b, "cali-tints-demo.vercel.app", null), attachments: [{ name: `${env.stem}.pdf`, href: null }, { name: `${env.stem}.csv`, href: null }] }];
+    }),
   );
   const unpaidAll = invoiceListFixture().filter((r) => r.status !== "void" && r.status !== "paid").reduce((s, r) => s + r.balance, 0);
   const scope = [filters.status !== "all" ? STATUS_LABELS[filters.status] : null, filters.dealership ? DEALERSHIPS.find((d) => d.id === filters.dealership)?.name : null, filters.service ? SERVICES.find((s) => s.id === filters.service)?.name : null, filters.searchDate?.label ?? null].filter(Boolean);
@@ -89,7 +103,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
                       <WalletIcon /> Collect all unpaid · {formatMoney(unpaidAll)}
                     </Link>
                   </Button>
-                  <SendInvoicesButton groups={unsentGroups} />
+                  <SendInvoicesButton groups={unsentGroups} previews={emailPreviews} />
                   <Button asChild>
                     <Link href="/jobs/new">
                       <PlusIcon /> New invoice

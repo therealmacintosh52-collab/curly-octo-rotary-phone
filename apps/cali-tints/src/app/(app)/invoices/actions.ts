@@ -8,7 +8,7 @@ import { errorMessage } from "@/lib/utils";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
 import { invoicePdf } from "@/lib/invoices/pdf";
 import { invoiceCsv } from "@/lib/invoices/csv";
-import { sendInvoiceEmail } from "@/lib/invoices/email";
+import { invoiceEmailEnvelope, invoiceEmailHtml, sendInvoiceEmail } from "@/lib/invoices/email";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { updateJobSchema, type UpdateJobInput } from "@/lib/jobs/schema";
 import { cloverContext, createInvoiceCheckout, pushInvoiceOrder } from "@/lib/clover/invoices";
@@ -270,6 +270,28 @@ export async function submitInvoiceByEmailAction(id: string): Promise<ActionResu
   if (insErr) return { ok: false, error: `Sent but could not log the submission: ${insErr.message}` };
   if (!result.ok) return { ok: false, error: result.error };
   return { ok: true, data: { recipients: result.to } };
+}
+
+/** The email as it will arrive (no pay link yet: that is made at send time when Clover checkout is on). */
+export async function previewInvoiceEmailAction(id: string): Promise<ActionResult<{ to: string[]; cc: string[]; subject: string; html: string; attachments: { name: string; href: string | null }[] }>> {
+  await requireAdmin();
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, error: "Invalid invoice" };
+  const bundle = await loadInvoiceBundle(id);
+  if (!bundle) return { ok: false, error: "Invoice not found" };
+  const env = invoiceEmailEnvelope(bundle);
+  return {
+    ok: true,
+    data: {
+      to: env.to,
+      cc: env.cc,
+      subject: env.subject,
+      html: invoiceEmailHtml(bundle, process.env.NEXT_PUBLIC_APP_URL ?? null, null),
+      attachments: [
+        { name: `${env.stem}.pdf`, href: `/api/invoices/${id}/pdf?inline=1` },
+        { name: `${env.stem}.csv`, href: `/api/invoices/${id}/csv` },
+      ],
+    },
+  };
 }
 
 /** "Send invoices": email every chosen unsent invoice, one after another. Never throws for one bad address; the caller gets the list. */

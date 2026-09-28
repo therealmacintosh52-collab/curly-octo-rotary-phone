@@ -82,28 +82,36 @@ export function invoiceEmailText(b: InvoiceBundle, payUrl: string | null = null)
     .join("\n");
 }
 
+/** Who gets it, what it says: the parts of the email that are worth previewing. */
+export function invoiceEmailEnvelope(b: InvoiceBundle): { to: string[]; cc: string[]; subject: string; stem: string } {
+  return {
+    to: b.dealership.ap_emails.map((e) => e.trim()).filter(Boolean),
+    cc: b.company.email ? [b.company.email] : [],
+    subject: `Invoice ${b.invoice.display_number} — ${b.company.name} — ${formatMoney(b.invoice.total)}`,
+    stem: invoiceFileStem(b),
+  };
+}
+
 /**
  * Email the invoice (PDF + CSV) to the dealership's AP addresses, CC the
  * company. Requires RESEND_API_KEY and EMAIL_FROM; returns a clear failure
  * otherwise so the caller can record it.
  */
 export async function sendInvoiceEmail(b: InvoiceBundle, attachments: { pdf: Buffer; csv: string }, opts: { payUrl?: string | null } = {}): Promise<SendResult | SendFailure> {
-  const to = b.dealership.ap_emails.map((e) => e.trim()).filter(Boolean);
-  const cc = b.company.email ? [b.company.email] : [];
+  const { to, cc, subject, stem } = invoiceEmailEnvelope(b);
   if (to.length === 0) return { ok: false, error: `${b.dealership.name} has no AP email on file (Settings → Dealerships)`, to, cc };
 
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
   if (!apiKey || !from) return { ok: false, error: "Email is not configured: set RESEND_API_KEY and EMAIL_FROM", to, cc };
 
-  const stem = invoiceFileStem(b);
   const resend = new Resend(apiKey);
   const { data, error } = await resend.emails.send({
     from,
     to,
     cc: cc.length ? cc : undefined,
     replyTo: b.company.email ?? undefined,
-    subject: `Invoice ${b.invoice.display_number} — ${b.company.name} — ${formatMoney(b.invoice.total)}`,
+    subject,
     html: invoiceEmailHtml(b, process.env.NEXT_PUBLIC_APP_URL ?? null, opts.payUrl ?? null),
     text: invoiceEmailText(b, opts.payUrl ?? null),
     attachments: [

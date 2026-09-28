@@ -39,6 +39,19 @@ function addDaysYmd(ymd: string, n: number) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
 
+/** "Good morning, Vincent." from the hour in the company timezone and the signed-in person's first name. */
+export function greetingFor(fullName: string, tz: string, now: Date = new Date()): string {
+  let hour = now.getHours();
+  try {
+    hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hour12: false }).format(now)) % 24;
+  } catch {
+    /* unknown timezone: local hour */
+  }
+  const part = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const first = fullName.trim().split(/\s+/)[0] ?? "";
+  return first ? `${part}, ${first}.` : `${part}.`;
+}
+
 /** The breakdown month (`?bm=YYYY-MM`), defaulting to the current month; `months` lists the last six for the picker. */
 export function resolveBreakdownMonth(sp: Record<string, string | string[] | undefined>, today: string): { month: string; start: string; end: string; label: string; months: { value: string; label: string }[] } {
   const bm = typeof sp.bm === "string" && /^\d{4}-\d{2}$/.test(sp.bm) ? sp.bm : today.slice(0, 7);
@@ -88,6 +101,7 @@ export function Dashboard({
   companyName,
   cloverUnmatched = 0,
   today,
+  greeting,
   breakdown,
 }: {
   stats: DashboardStats;
@@ -96,6 +110,8 @@ export function Dashboard({
   cloverUnmatched?: number;
   /** Today in the company timezone (yyyy-mm-dd). */
   today: string;
+  /** "Good afternoon, Vincent." — built by the page from the clock and the signed-in name. */
+  greeting: string;
   /** The month the breakdown shows, with its own stats (by service, by day). */
   breakdown: ReturnType<typeof resolveBreakdownMonth> & { stats: Pick<DashboardStats, "by_service" | "by_day"> };
 }) {
@@ -112,7 +128,7 @@ export function Dashboard({
       <PageHeader
         eyebrow={formatDate(new Date(), "EEEE, MMMM d")}
         title={companyName}
-        description="Every number opens the invoices it adds up to."
+        description={greeting}
         actions={
           <Button asChild>
             <Link href="/jobs/new">
