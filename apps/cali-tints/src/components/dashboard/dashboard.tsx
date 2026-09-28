@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StaggerItem } from "@/components/motion/primitives";
 import { StatList, StatTile } from "./stat-tile";
-import { DailyBarsChart, HorizontalBars } from "./charts-lazy";
+import { HorizontalBars } from "./charts-lazy";
 import { RangePicker } from "./range-picker";
 
 export interface DashboardRange {
@@ -226,17 +226,6 @@ export function Dashboard({
           href="/invoices?status=unpaid"
         />
       </div>
-      <div className="mt-4 grid gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoices received per day</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DailyBarsChart data={stats.collected_by_day.map((d) => ({ day: d.day, value: Number(d.amount), count: d.payments }))} start={range.start} end={range.end} drill="paid" />
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Breakdown: one month at a time, by service and by week */}
       <SectionHeader className="mt-8" title={<span>Breakdown · {breakdown.label}</span>} aside={<MonthPicker months={breakdown.months} value={breakdown.month} baseQuery={pageQ} />} />
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
