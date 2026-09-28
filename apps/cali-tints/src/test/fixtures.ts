@@ -107,7 +107,7 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
       model: model as string,
       color: color as string | null,
       ro_po_number: null,
-      detailer_name: i % 2 ? "Dee One" : "Marco R.",
+      detailer_name: i % 2 ? "Dee One" : "Victor",
       service_name: service as string,
       price: price as number,
     })),
@@ -194,7 +194,7 @@ export function invoiceListFixture(): InvoiceListRow[] {
       ...extra,
     };
   };
-  const M = "Marco R.";
+  const M = "Victor";
   const D = "Dee One";
   const today: Spec[] = [
     ["4821", "2024 Mercedes-Benz GLE 450", "W1KZF8DB3NA123456", M, "Used"],

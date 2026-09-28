@@ -61,7 +61,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
       { service_id: "s2", name: "Sold", jobs: 33, revenue: 660 },
     ],
     by_detailer: [
-      { detailer_id: "u2", name: "Marco R.", jobs: 52, revenue: 7010 },
+      { detailer_id: "u2", name: "Victor", jobs: 52, revenue: 7010 },
       { detailer_id: "u3", name: "Dee One", jobs: 39, revenue: 5120 },
       { detailer_id: "u4", name: "Dee Two", jobs: 27, revenue: 3810 },
     ],
@@ -83,7 +83,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
 
   // ?as=detailer: the same page as a detailer sees it (their own cars, no money).
   if (sp.as === "detailer") {
-    const marco = { ...profile, id: "u2", role: "detailer", full_name: "Marco R." } as Profile;
+    const marco = { ...profile, id: "u2", role: "detailer", full_name: "Victor" } as Profile;
     const mine = detailerFixture(today);
     return (
       <SessionProvider value={{ userId: marco.id, email: null, profile: marco, company, isAdmin: false, demo: true }}>
@@ -119,7 +119,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   );
 }
 
-/** Marco's sample month: about four cars a weekday, four logged so far today. */
+/** Victor's sample month: about four cars a weekday, four logged so far today. */
 function detailerFixture(today: string): DetailerStats {
   const now = Date.now();
   const ymd = (n: number) => toDateInput(new Date(now - n * 86400000));

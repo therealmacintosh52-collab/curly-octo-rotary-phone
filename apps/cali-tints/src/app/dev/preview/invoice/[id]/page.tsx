@@ -31,7 +31,7 @@ const common = (base: ReturnType<typeof invoiceBundleFixture>) => ({
   priceList: priceListFixture(),
   detailers: [
     { id: "u1", full_name: "Mike" },
-    { id: "u2", full_name: "Marco R." },
+    { id: "u2", full_name: "Victor" },
     { id: "u3", full_name: "Dee One" },
   ],
   isAdmin: true,

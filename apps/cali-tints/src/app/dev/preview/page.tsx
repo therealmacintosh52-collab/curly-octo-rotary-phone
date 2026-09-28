@@ -106,7 +106,7 @@ export default function DevPreviewPage() {
             priceLists={{ d1: list, d2: list }}
             detailers={[
               { id: profile.id, full_name: profile.full_name },
-              { id: "u2", full_name: "Marco R." },
+              { id: "u2", full_name: "Victor" },
             ]}
             recentJobs={[]}
             isAdmin
