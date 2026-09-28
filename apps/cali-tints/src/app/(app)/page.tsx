@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Dashboard, greetingFor, resolveBreakdownMonth, resolveRange } from "@/components/dashboard/dashboard";
+import { Dashboard, resolveBreakdownMonth, resolveRange } from "@/components/dashboard/dashboard";
 import type { DashboardStats } from "@/lib/db/types";
 import { todayIn } from "@/lib/dates";
 
@@ -21,5 +21,5 @@ export default async function HomePage(props: PageProps<"/">) {
   ]);
   if (error || !data) throw new Error(error?.message ?? "Could not load dashboard");
   const month = (monthData as DashboardStats | null) ?? (data as DashboardStats);
-  return <Dashboard stats={data as DashboardStats} range={range} cloverUnmatched={Number(cloverUnmatched ?? 0)} today={today} greeting={greetingFor(session.profile.full_name, session.company.timezone)} breakdown={{ ...bm, stats: { by_service: month.by_service, by_day: month.by_day } }} />;
+  return <Dashboard stats={data as DashboardStats} range={range} cloverUnmatched={Number(cloverUnmatched ?? 0)} today={today} who={{ name: session.profile.full_name, tz: session.company.timezone }} breakdown={{ ...bm, stats: { by_service: month.by_service, by_day: month.by_day } }} />;
 }

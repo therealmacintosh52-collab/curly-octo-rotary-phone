@@ -3,7 +3,9 @@ import { AlertTriangleIcon, PlusIcon, WalletIcon } from "lucide-react";
 import type { DashboardStats } from "@/lib/db/types";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatDateOnly, presetRange, RANGE_PRESETS, type RangePreset } from "@/lib/dates";
+import { greetingFor } from "@/lib/greeting";
 import { MonthPicker } from "./month-picker";
+import { LiveDate, LiveGreeting } from "./live-greeting";
 import { Page, PageHeader, SectionHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,18 +41,6 @@ function addDaysYmd(ymd: string, n: number) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
 
-/** "Good morning, Mike." from the hour in the company timezone and the signed-in person's first name. */
-export function greetingFor(fullName: string, tz: string, now: Date = new Date()): string {
-  let hour = now.getHours();
-  try {
-    hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hour12: false }).format(now)) % 24;
-  } catch {
-    /* unknown timezone: local hour */
-  }
-  const part = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const first = fullName.trim().split(/\s+/)[0] ?? "";
-  return first ? `${part}, ${first}.` : `${part}.`;
-}
 
 /** The breakdown month (`?bm=YYYY-MM`), defaulting to the current month; `months` lists the last six for the picker. */
 export function resolveBreakdownMonth(sp: Record<string, string | string[] | undefined>, today: string): { month: string; start: string; end: string; label: string; months: { value: string; label: string }[] } {
@@ -100,7 +90,7 @@ export function Dashboard({
   range,
   cloverUnmatched = 0,
   today,
-  greeting,
+  who,
   breakdown,
 }: {
   stats: DashboardStats;
@@ -108,8 +98,8 @@ export function Dashboard({
   cloverUnmatched?: number;
   /** Today in the company timezone (yyyy-mm-dd). */
   today: string;
-  /** "Good afternoon, Mike." — the page title, built by the page from the clock and the signed-in name. */
-  greeting: string;
+  /** The signed-in person and the company clock: the title is "Good afternoon, Mike" and follows the time of day. */
+  who: { name: string; tz: string };
   /** The month the breakdown shows, with its own stats (by service, by day). */
   breakdown: ReturnType<typeof resolveBreakdownMonth> & { stats: Pick<DashboardStats, "by_service" | "by_day"> };
 }) {
@@ -124,8 +114,8 @@ export function Dashboard({
   return (
     <Page>
       <PageHeader
-        eyebrow={formatDate(new Date(), "EEEE, MMMM d")}
-        title={greeting.replace(/\.$/, "")}
+        eyebrow={<LiveDate initial={formatDate(new Date(), "EEEE, MMMM d")} />}
+        title={<LiveGreeting name={who.name} tz={who.tz} initial={greetingFor(who.name, who.tz).replace(/\.$/, "")} />}
         actions={
           <Button asChild>
             <Link href="/jobs/new">
