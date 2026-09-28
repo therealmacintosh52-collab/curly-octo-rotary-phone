@@ -68,13 +68,13 @@ export function SendInvoicesButton({ groups }: { groups: UnsentGroup[] }) {
             <DialogTitle>Send {count === 1 ? "the unsent invoice" : `${count} unsent invoices`}</DialogTitle>
             <DialogDescription>Each invoice is emailed to the dealership&apos;s AP contact with the PDF and a CSV attached, and marked as sent.</DialogDescription>
           </DialogHeader>
-          <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+          <ul className="min-w-0 divide-y divide-border overflow-hidden rounded-lg border border-border text-sm">
             {groups.map((g) => {
               const can = g.emails.length > 0;
               const on = can && picked.has(g.dealership_id);
               return (
                 <li key={g.dealership_id}>
-                  <label className="flex cursor-pointer items-start gap-3 px-3 py-2.5">
+                  <label className="flex min-w-0 cursor-pointer items-start gap-3 px-3 py-2.5">
                     <Checkbox
                       checked={on}
                       disabled={!can}
