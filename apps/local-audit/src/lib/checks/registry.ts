@@ -110,6 +110,8 @@ export interface Check {
   category: CheckCategory;
   title: string;
   description: string;
+  /** The finding headline in customer language, when the check declares one. */
+  problem?: string;
   run(ctx: CheckContext): CheckOutcome | Promise<CheckOutcome>;
 }
 

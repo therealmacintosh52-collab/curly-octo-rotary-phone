@@ -23,8 +23,8 @@ export const phoneClickToCall: Check = registerCheck({
       status: "finding",
       title: phoneShown ? "Your phone number cannot be tapped on mobile" : "No tap-to-call phone link on the home page",
       plain_english: phoneShown
-        ? "The number is on the page as plain text, so on a phone a visitor has to remember or copy it. A tap-to-call link turns that into one tap."
-        : "Mobile visitors who want to call have nothing to tap. Adding a tap-to-call link in the header is the cheapest conversion fix there is.",
+        ? "Your number is on the page as plain text. On a phone, a visitor has to memorise or copy it to call you, and many do not bother."
+        : "Visitors on a phone who want to call you have nothing to tap. They have to find the number somewhere else or give up.",
       severity: "high",
       impact_score: 70,
       fix_difficulty: "easy",

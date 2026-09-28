@@ -46,7 +46,7 @@ export const phoneMismatch = mismatchCheck("phone", {
   severity: "high",
   impact: 80,
   title: "Different phone numbers across your listings",
-  why: "Google and AI assistants treat a consistent phone number as proof that the listings are the same business; a mismatch costs ranking trust and sends some callers to the wrong number.",
+  why: "Your phone number is written differently on your website and your listings. Google trusts a business less when its number changes from place to place, and some callers end up dialling the wrong one.",
 });
 
 export const addressMismatch = mismatchCheck("address", {
@@ -54,7 +54,7 @@ export const addressMismatch = mismatchCheck("address", {
   severity: "high",
   impact: 75,
   title: "Your address is written differently across listings",
-  why: "Address consistency across the website, Google and Yelp is one of the strongest local ranking signals; even suite-number or street-type differences count.",
+  why: "Your address is written differently across your website, Google and Yelp. Google uses a matching address to decide these are one business; even a missing suite number or \"St\" versus \"Street\" counts against you.",
 });
 
 export const nameMismatch = mismatchCheck("name", {
@@ -62,7 +62,7 @@ export const nameMismatch = mismatchCheck("name", {
   severity: "medium",
   impact: 50,
   title: "Your business name differs across listings",
-  why: "The name should be identical everywhere (no keyword add-ons, no old trading names) so search engines merge the listings into one entity.",
+  why: "Your business name is not the same everywhere. Google may treat the versions as different businesses and split your reviews and rankings between them.",
 });
 
 export const websiteMissingNap: Check = registerCheck({
@@ -80,7 +80,7 @@ export const websiteMissingNap: Check = registerCheck({
     return {
       status: "finding",
       title: `Your website does not show a ${missing.join(" or ")}`,
-      plain_english: `We read the home page and the contact page and could not find a ${missing.join(" or ")} as text. Customers and search engines need both, in the footer of every page.`,
+      plain_english: `We read your home page and contact page and could not find a ${missing.join(" or ")} written as text. Customers look for it, and Google uses it to confirm you are a real local business.`,
       severity: "medium",
       impact_score: 55,
       fix_difficulty: "easy",
@@ -104,7 +104,7 @@ export const gbpWebsiteMismatch: Check = registerCheck({
       return {
         status: "finding",
         title: "Your Google Business Profile has no website link",
-        plain_english: "Profiles with a website link get the 'Website' button and pass trust to the site. Yours has none.",
+        plain_english: "Your Google listing has no website link, so the 'Website' button is missing and people who find you on Google cannot get to your site.",
         severity: "medium",
         impact_score: 60,
         fix_difficulty: "easy",
@@ -115,7 +115,7 @@ export const gbpWebsiteMismatch: Check = registerCheck({
     return {
       status: "finding",
       title: "Your Google profile points to a different website",
-      plain_english: `Google lists ${id.gbpWebsiteHost} while your website resolves to ${id.canonicalDomain}. Search engines see two different businesses.`,
+      plain_english: `Your Google listing sends people to ${id.gbpWebsiteHost}, but your website is ${id.canonicalDomain}. Customers land somewhere else, and Google sees two different businesses.`,
       severity: "medium",
       impact_score: 60,
       fix_difficulty: "easy",
@@ -138,7 +138,7 @@ export const gbpNotFound: Check = registerCheck({
     return {
       status: "finding",
       title: "We could not confirm your Google Business Profile",
-      plain_english: "The link or name you gave did not match a Google Maps listing with confidence. Either the profile is missing, suspended, or listed under a different name or address.",
+      plain_english: "We could not find a Google Maps listing that clearly matches your business. Either it does not exist, it has been suspended, or it is listed under a different name or address. Until this is sorted out, people searching on Google and Maps cannot find you.",
       severity: "critical",
       impact_score: 95,
       fix_difficulty: "medium",

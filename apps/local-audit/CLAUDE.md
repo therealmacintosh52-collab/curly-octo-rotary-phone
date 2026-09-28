@@ -18,6 +18,9 @@ log of choices already made; do not re-decide them silently. Phase plans live in
 5. **Commit at the end of each phase** with a summary; append to `docs/DECISIONS.md`.
 6. **Ask before**: adding a paid API, changing the data model, or anything that changes
    what clients can see.
+7. **Customer language.** A finding's `problem` and `plain_english` are read by a business
+   owner: no jargon, no fix instructions (fixes are the vault's product), proof goes in
+   evidence. `src/lib/reports/customer-language.test.ts` enforces it (D-021).
 
 ## Repo facts
 

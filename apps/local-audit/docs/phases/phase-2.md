@@ -104,6 +104,10 @@ What changed against the plan during the build:
 - `local_onsite.services_without_pages` matches singular/plural ("water heaters" ↔ "Water Heater Repair").
 - Above-the-fold detection excludes the footer, so a footer phone number on a short page no longer counts as visible.
 - Playwright rendering and screenshots are deferred to the worker decision (D-016/D-017).
+- After the owner's review ("make it simple to understand for the customer"): every headline
+  and explanation was rewritten in everyday language with no fix instructions, guarded by a
+  jargon test; the customer report (`/r/[token]`) became three questions with word ratings,
+  proof folded away and fixes shown only when unlocked (D-021).
 
 ## Exit criteria
 

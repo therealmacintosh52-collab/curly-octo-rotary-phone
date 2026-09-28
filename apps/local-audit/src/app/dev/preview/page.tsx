@@ -8,7 +8,8 @@ export default function PreviewIndex() {
     ["/dev/preview/audit?scenario=mismatch", "Audit detail with a phone mismatch"],
     ["/dev/preview/audit?scenario=unavailable", "Audit detail with Google unavailable"],
     ["/dev/preview/audit?scenario=crawl", "Audit detail after a website crawl (flawed demo site, PageSpeed fixture)"],
-    ["/dev/preview/report", "Client report shell"],
+    ["/dev/preview/report", "Customer report (same demo run, one fix unlocked)"],
+    ["/dev/preview/report?scenario=default", "Customer report with nothing found"],
   ];
   return (
     <Page narrow>

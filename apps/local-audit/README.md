@@ -15,6 +15,8 @@ mobile and desktop, and applies 97 deterministic checks across technical SEO, lo
 on-site signals, structured data, AI-readiness, images, conversion and content.
 Every finding cites evidence; anything that could not be measured is recorded as
 `UNAVAILABLE`. Category and headline scores are computed and shown on the audit page.
+Findings are written for the business owner (no jargon, no fixes in the problem text) and
+the customer report reads as three questions with plain ratings.
 Live calls: Google Places, Yelp, PageSpeed, only when their keys are set. Rankings,
 AI engines, citations, backlinks, social and the LLM layer are still stubs.
 

@@ -33,6 +33,7 @@ export function siteCheck(spec: SiteCheckSpec): Check {
     category: spec.category,
     title: spec.title,
     description: spec.description,
+    problem: spec.problem,
     run(ctx): CheckOutcome {
       const site = ctx.website?.crawl;
       if (!site) return { status: "unavailable", reason: "website was not crawled" };
@@ -110,4 +111,73 @@ export function mentionsService(haystack: string, service: string): boolean {
   const stem = (w: string) => w.replace(/(ies|es|s)$/, (m) => (m === "ies" ? "i" : ""));
   const words = service.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
   return words.length > 0 && words.every((w) => h.includes(stem(w)));
+}
+
+const AI_AGENT_LABELS: Record<string, string> = {
+  gptbot: "ChatGPT",
+  "chatgpt-user": "ChatGPT",
+  "oai-searchbot": "ChatGPT search",
+  claudebot: "Claude",
+  "anthropic-ai": "Claude",
+  perplexitybot: "Perplexity",
+  "google-extended": "Google Gemini",
+  "applebot-extended": "Apple Intelligence",
+  ccbot: "Common Crawl (used to train many assistants)",
+  bytespider: "TikTok's assistant",
+  amazonbot: "Amazon Alexa",
+  "meta-externalagent": "Meta AI",
+};
+/** "ChatGPT, Claude and Perplexity" from robots.txt agent tokens. */
+export function aiAgentNames(agents: string[]): string {
+  const names = [...new Set(agents.map((a) => AI_AGENT_LABELS[a.toLowerCase()] ?? a))];
+  return names.length <= 1 ? (names[0] ?? "AI assistants") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+const OPPORTUNITY_LABELS: Record<string, string> = {
+  "render-blocking-resources": "files that stop the page from drawing until they finish loading",
+  "modern-image-formats": "pictures saved in old, heavy formats",
+  "uses-optimized-images": "pictures that are not compressed",
+  "uses-responsive-images": "pictures far larger than the space they fill",
+  "offscreen-images": "pictures loading before anyone scrolls to them",
+  "server-response-time": "a slow web server",
+  "total-byte-weight": "too much to download",
+  "unused-javascript": "add-on code that is loaded but never used",
+  "unused-css-rules": "styling that is loaded but never used",
+  "uses-text-compression": "files sent uncompressed",
+  "uses-long-cache-ttl": "files that visitors have to download again on every visit",
+  "unminified-javascript": "add-on code that was never shrunk",
+  "unminified-css": "styling that was never shrunk",
+  "third-party-summary": "outside widgets and trackers",
+  "largest-contentful-paint-element": "a slow main image or headline",
+  "font-display": "fonts that hide the text until they load",
+};
+/** Lighthouse opportunity id → words a business owner understands. */
+export function describeOpportunity(id: string): string {
+  return OPPORTUNITY_LABELS[id] ?? id.replace(/-/g, " ");
+}
+
+/** "1 page" / "3 pages" / "2 page names": counts read as a sentence, never "page(s)". */
+export function count(n: number, noun: string, plural = `${noun}s`): string {
+  return `${n} ${n === 1 ? noun : plural}`;
+}
+
+/** The city as the business wrote it ("Sacramento"), for display; `cityTokens` is for matching. */
+export function cityLabel(ctx: CheckContext): string | null {
+  for (const s of [ctx.city, ctx.business.address]) {
+    if (!s) continue;
+    const m = s.match(/([A-Za-z][A-Za-z .'-]+?),\s*[A-Z]{2}\b/);
+    if (m) return m[1]!.trim();
+    if (s.length < 40) return s.split(",")[0]!.trim();
+  }
+  return null;
+}
+
+/** Verb agreement after a count: v(1, "are") → "is", v(3, "have") → "have", v(1, "carry") → "carries". */
+export function v(n: number, plural: string): string {
+  if (n !== 1) return plural;
+  const irregular: Record<string, string> = { are: "is", have: "has", do: "does" };
+  if (irregular[plural]) return irregular[plural]!;
+  if (/[^aeiou]y$/.test(plural)) return `${plural.slice(0, -1)}ies`;
+  if (/(s|sh|ch|x|z|o)$/.test(plural)) return `${plural}es`;
+  return `${plural}s`;
 }

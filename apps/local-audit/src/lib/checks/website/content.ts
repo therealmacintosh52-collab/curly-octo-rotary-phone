@@ -1,4 +1,4 @@
-import { ev, home, keyPages, listUrls, pagesOfKind, serviceTokens, shortUrl, siteCheck } from "./util";
+import { count, ev, home, keyPages, listUrls, pagesOfKind, serviceTokens, shortUrl, siteCheck, v } from "./util";
 
 const C = "content_keywords" as const;
 
@@ -13,7 +13,7 @@ siteCheck({
   fix: "medium",
   run: (site) => {
     const thin = keyPages(site).filter((p) => p.wordCount < 300 && ["service", "location", "about", "home", "other"].includes(site.kinds[p.finalUrl] ?? "other"));
-    return thin.length ? { plain_english: `${thin.length} page(s) have fewer than 300 words: ${listUrls(thin)}. Thin pages do not rank and do not convince.`, evidence: thin.slice(0, 6).map((p) => ev(`${p.wordCount} words`, p.finalUrl)) } : "pass";
+    return thin.length ? { plain_english: `${count(thin.length, "page")} ${v(thin.length, "have")} fewer than 300 words: ${listUrls(thin)}. Pages with this little on them rarely appear in Google and rarely convince anyone.`, evidence: thin.slice(0, 6).map((p) => ev(`${p.wordCount} words`, p.finalUrl)) } : "pass";
   },
 });
 
@@ -28,13 +28,13 @@ siteCheck({
   fix: "medium",
   run: (site) => {
     const h = home(site);
-    return h.wordCount < 200 ? { plain_english: `The home page has ${h.wordCount} words. Aim for 400–800 words covering what you do, where, for whom, and why you.`, evidence: [ev(`${h.wordCount} words`, h.finalUrl)] } : "pass";
+    return h.wordCount < 200 ? { plain_english: `Your home page has only ${h.wordCount} words. It does not give Google enough to rank you or visitors enough to trust you.`, evidence: [ev(`${h.wordCount} words`, h.finalUrl)] } : "pass";
   },
 });
 
 siteCheck({
   id: "primary_service_in_title",
-  problem: "Home title does not name the main service",
+  problem: "Home page name does not say what you do",
   category: C,
   title: "Home title names the main service",
   description: "The word people type ('plumber', 'dentist', 'window tinting') has to be in the home page title.",
@@ -46,7 +46,7 @@ siteCheck({
     if (!services.length) return { unavailable: "no services listed for this business" };
     const t = (home(site).title ?? "").toLowerCase();
     const hit = services.find((s) => t.includes(s) || s.split(" ").every((w) => w.length > 3 && t.includes(w)));
-    return hit ? "pass" : { plain_english: `The home title ("${home(site).title}") does not contain any of your main services (${services.join(", ")}).`, evidence: [ev(`<title>${home(site).title}</title>`, home(site).finalUrl)] };
+    return hit ? "pass" : { plain_english: `Your home page name in Google ("${home(site).title}") does not contain any of your main services (${services.join(", ")}), the words people actually type.`, evidence: [ev(`<title>${home(site).title}</title>`, home(site).finalUrl)] };
   },
 });
 
@@ -63,7 +63,7 @@ siteCheck({
     const y = home(site).copyrightYear;
     if (!y) return { unavailable: "no copyright year found" };
     const now = new Date().getFullYear();
-    return y < now - 1 ? { plain_english: `The footer says © ${y}. It is ${now}.`, evidence: [ev(`copyright year ${y}`, home(site).finalUrl)] } : "pass";
+    return y < now - 1 ? { plain_english: `Your footer says © ${y}. It is ${now}. It tells visitors the site may be abandoned.`, evidence: [ev(`copyright year ${y}`, home(site).finalUrl)] } : "pass";
   },
 });
 
@@ -81,7 +81,7 @@ siteCheck({
     if (!dated.length) return { unavailable: "no dates found on pages" };
     const newest = Math.max(...dated.map((x) => x.year));
     const now = new Date().getFullYear();
-    return newest < now - 1 ? { plain_english: `The most recent date on the site is from ${newest}. Publish or update something at least quarterly.`, evidence: dated.filter((x) => x.year === newest).slice(0, 3).map((x) => ev(x.d, x.p.finalUrl)) } : "pass";
+    return newest < now - 1 ? { plain_english: `The newest date anywhere on your site is ${newest}. Visitors and Google read that as a business that may no longer be active.`, evidence: dated.filter((x) => x.year === newest).slice(0, 3).map((x) => ev(x.d, x.p.finalUrl)) } : "pass";
   },
 });
 
@@ -120,7 +120,7 @@ siteCheck({
         if (jac > 0.6) dupes.push([sets[i]!.p.finalUrl, sets[j]!.p.finalUrl, Math.round(jac * 100)]);
       }
     }
-    return dupes.length ? { plain_english: `${dupes.length} pair(s) of pages share most of their text.`, evidence: dupes.slice(0, 5).map(([a, b, j]) => ev(`${shortUrl(a)} ≈ ${shortUrl(b)} (${j}% shared)`, a)) } : "pass";
+    return dupes.length ? { plain_english: `${count(dupes.length, "pair")} of pages say almost the same thing. Google treats them as one page, so neither ranks.`, evidence: dupes.slice(0, 5).map(([a, b, j]) => ev(`${shortUrl(a)} ≈ ${shortUrl(b)} (${j}% shared)`, a)) } : "pass";
   },
 });
 
@@ -133,12 +133,12 @@ siteCheck({
   severity: "low",
   impact: 25,
   fix: "hard",
-  run: (site) => (pagesOfKind(site, "blog", "faq").length ? "pass" : { plain_english: "No blog, guides or FAQ pages were found. Three to five articles answering real pre-purchase questions would give the site something to rank for besides its name.", evidence: [ev(`page kinds crawled: ${[...new Set(Object.values(site.kinds))].join(", ")}`, home(site).finalUrl)] }),
+  run: (site) => (pagesOfKind(site, "blog", "faq").length ? "pass" : { plain_english: "Your site has no guides, tips or questions-and-answers. Without them it can only show up for your own name, never for the questions customers ask before they call.", evidence: [ev(`page kinds crawled: ${[...new Set(Object.values(site.kinds))].join(", ")}`, home(site).finalUrl)] }),
 });
 
 siteCheck({
   id: "keyword_stuffed_title",
-  problem: "Titles are keyword lists, not sentences",
+  problem: "Page names are lists of search terms",
   category: C,
   title: "Titles read like a sentence, not a keyword list",
   description: "Titles that repeat the service and city several times get rewritten by Google and put customers off.",
@@ -153,6 +153,6 @@ siteCheck({
       for (const w of words) counts.set(w, (counts.get(w) ?? 0) + 1);
       return [...counts.values()].some((n) => n >= 3) || (p.title.split(/[|\-–]/).length >= 4 && p.title.length > 70);
     });
-    return bad.length ? { plain_english: `${bad.length} title(s) repeat the same words or chain several keywords: ${listUrls(bad)}.`, evidence: bad.slice(0, 4).map((p) => ev(`"${p.title}"`, p.finalUrl)) } : "pass";
+    return bad.length ? { plain_english: `${count(bad.length, "page name")} ${v(bad.length, "repeat")} the same words or chain several search terms together: ${listUrls(bad)}. Google rewrites them and customers find them off-putting.`, evidence: bad.slice(0, 4).map((p) => ev(`"${p.title}"`, p.finalUrl)) } : "pass";
   },
 });

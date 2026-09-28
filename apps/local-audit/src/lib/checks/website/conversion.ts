@@ -1,4 +1,4 @@
-import { ev, home, keyPages, listUrls, pagesOfKind, siteCheck } from "./util";
+import { count, ev, home, keyPages, listUrls, pagesOfKind, siteCheck, v } from "./util";
 
 const C = "conversion" as const;
 
@@ -15,7 +15,7 @@ siteCheck({
     const h = home(site);
     const top = `${h.headerText} ${h.textStart}`;
     const visible = /\(?\b[2-9]\d{2}\)?[\s.-]?[2-9]\d{2}[\s.-]?\d{4}\b/.test(top) || h.links.some((l) => l.region === "header" && /call/i.test(l.text));
-    return visible ? "pass" : { plain_english: "No phone number appears in the header or the first screen of the home page.", evidence: [ev(`header: "${h.headerText.slice(0, 120)}" · first text: "${h.textStart.slice(0, 120)}"`, h.finalUrl)] };
+    return visible ? "pass" : { plain_english: "Your phone number does not appear at the top of the home page. Most callers decide in the first screen; if the number is only at the bottom they never see it.", evidence: [ev(`header: "${h.headerText.slice(0, 120)}" · first text: "${h.textStart.slice(0, 120)}"`, h.finalUrl)] };
   },
 });
 
@@ -30,7 +30,7 @@ siteCheck({
   fix: "easy",
   run: (site) => {
     const h = home(site);
-    return h.ctaAboveFold.length ? "pass" : { plain_english: "The header and hero have no call-to-action wording (call, quote, book, schedule, contact).", evidence: [ev(`header: "${h.headerText.slice(0, 160)}"`, h.finalUrl)] };
+    return h.ctaAboveFold.length ? "pass" : { plain_english: "The first screen of your home page does not tell visitors what to do next (call, get a quote, book). Visitors who have to hunt for the next step leave.", evidence: [ev(`header: "${h.headerText.slice(0, 160)}"`, h.finalUrl)] };
   },
 });
 
@@ -46,7 +46,7 @@ siteCheck({
   run: (site) => {
     const forms = site.pages.filter((p) => p.forms.some((f) => f.fields >= 2));
     const booking = site.pages.some((p) => p.widgets.booking.length);
-    return forms.length || booking ? "pass" : { plain_english: "No quote form or booking widget was found on any crawled page. Add a short form (name, phone, what you need) on the home and service pages, or embed the booking tool you already use.", evidence: [ev(`${site.pages.length} pages crawled; forms with 2+ fields: 0; booking widgets: none`, home(site).finalUrl)] };
+    return forms.length || booking ? "pass" : { plain_english: "There is no way to request a quote or book online anywhere on the site. Around half of visitors will not call; without a form they go to the competitor who has one.", evidence: [ev(`${site.pages.length} pages crawled; forms with 2+ fields: 0; booking widgets: none`, home(site).finalUrl)] };
   },
 });
 
@@ -61,7 +61,7 @@ siteCheck({
   fix: "easy",
   run: (site) => {
     const long = site.pages.flatMap((p) => p.forms.filter((f) => f.fields > 6).map((f) => ({ p, f })));
-    return long.length ? { plain_english: `${long.length} form(s) ask for ${long[0]!.f.fields}+ fields. Cut to name, phone and a message.`, evidence: long.slice(0, 3).map(({ p, f }) => ev(`${f.fields} fields (${f.method.toUpperCase()} ${f.action ?? ""})`, p.finalUrl)) } : "pass";
+    return long.length ? { plain_english: `Your form asks for ${long[0]!.f.fields} pieces of information. Every extra box costs you completions; most people give up after three or four.`, evidence: long.slice(0, 3).map(({ p, f }) => ev(`${f.fields} fields (${f.method.toUpperCase()} ${f.action ?? ""})`, p.finalUrl)) } : "pass";
   },
 });
 
@@ -78,7 +78,7 @@ siteCheck({
     const forms = site.pages.flatMap((p) => p.forms.filter((f) => f.fields >= 2 && f.hasTextarea).map((f) => ({ p, f })));
     if (!forms.length) return { unavailable: "no lead form found" };
     const noPhone = forms.filter(({ f }) => !f.hasPhoneField);
-    return noPhone.length === forms.length ? { plain_english: "The lead form has no phone field, so every lead starts with an email back-and-forth.", evidence: noPhone.slice(0, 2).map(({ p, f }) => ev(`${f.fields} fields, no tel input`, p.finalUrl)) } : "pass";
+    return noPhone.length === forms.length ? { plain_english: "Your enquiry form never asks for a phone number, so every lead starts with an email back-and-forth instead of a call.", evidence: noPhone.slice(0, 2).map(({ p, f }) => ev(`${f.fields} fields, no tel input`, p.finalUrl)) } : "pass";
   },
 });
 
@@ -91,7 +91,7 @@ siteCheck({
   severity: "medium",
   impact: 45,
   fix: "easy",
-  run: (site) => (pagesOfKind(site, "contact").length ? "pass" : { plain_english: "No contact page was found.", evidence: [ev(`page kinds crawled: ${[...new Set(Object.values(site.kinds))].join(", ")}`, home(site).finalUrl)] }),
+  run: (site) => (pagesOfKind(site, "contact").length ? "pass" : { plain_english: "There is no contact page. Visitors and Google both expect one with your address, phone, hours and a map.", evidence: [ev(`page kinds crawled: ${[...new Set(Object.values(site.kinds))].join(", ")}`, home(site).finalUrl)] }),
 });
 
 siteCheck({
@@ -106,7 +106,7 @@ siteCheck({
   run: (site) => {
     const h = home(site);
     const proof = /\b(review|testimonial|rated|stars?|★|⭐|out of 5|\d\.\d\s*\/\s*5|customers? say|what (our )?(clients|customers) say)\b/i.test(h.text) || h.widgets.reviews.length > 0 || pagesOfKind(site, "reviews").length > 0;
-    return proof ? "pass" : { plain_english: "The home page shows no reviews, rating or testimonials. Put the Google rating and review count near the top, and three real quotes with names.", evidence: [ev("no review/testimonial wording or widget on the home page", h.finalUrl)] };
+    return proof ? "pass" : { plain_english: "Your home page shows no reviews, star rating or customer quotes. A rating with a review count is the single strongest reason a stranger decides to call.", evidence: [ev("no review/testimonial wording or widget on the home page", h.finalUrl)] };
   },
 });
 
@@ -121,7 +121,7 @@ siteCheck({
   fix: "easy",
   run: (site) => {
     const h = home(site);
-    return h.trustPhrases.length ? "pass" : { plain_english: "The home page states no licence, insurance, guarantee or years in business.", evidence: [ev(`trust phrases on home: none (site-wide: ${[...new Set(site.pages.flatMap((p) => p.trustPhrases))].join(", ") || "none"})`, h.finalUrl)] };
+    return h.trustPhrases.length ? "pass" : { plain_english: "Your home page does not mention a licence, insurance, guarantee or years in business. Visitors look for these before they call.", evidence: [ev(`trust phrases on home: none (site-wide: ${[...new Set(site.pages.flatMap((p) => p.trustPhrases))].join(", ") || "none"})`, h.finalUrl)] };
   },
 });
 
@@ -137,13 +137,13 @@ siteCheck({
   run: (site) => {
     const pages = keyPages(site);
     const mentions = pages.reduce((n, p) => n + p.pricingMentions, 0);
-    return mentions > 0 ? "pass" : { plain_english: "No prices, price ranges or 'free estimate' wording anywhere on the crawled pages.", evidence: [ev(`0 pricing mentions across ${pages.length} pages`, home(site).finalUrl)] };
+    return mentions > 0 ? "pass" : { plain_english: "There is no price, price range or \"free estimate\" anywhere on the site. Visitors who cannot gauge the cost do not call.", evidence: [ev(`0 pricing mentions across ${pages.length} pages`, home(site).finalUrl)] };
   },
 });
 
 siteCheck({
   id: "chat_widget_missing",
-  problem: "No one-tap way to reach you on mobile",
+  problem: "No one-tap way to reach you on a phone",
   category: C,
   title: "An instant way to reach you on mobile",
   description: "A tap-to-call link, a booking widget or a chat/text option: visitors on a phone want one tap, not a form. Only flagged when none of the three exists.",
@@ -153,7 +153,7 @@ siteCheck({
   run: (site) => {
     const h = home(site);
     const instant = h.telLinks.length > 0 || site.pages.some((p) => p.widgets.chat.length || p.widgets.booking.length);
-    return instant ? "pass" : { plain_english: "The home page has no tap-to-call link, booking widget or chat/text option. On a phone every contact needs typing.", evidence: [ev("no tel: link, booking or chat widget detected on the home page", h.finalUrl)] };
+    return instant ? "pass" : { plain_english: "On a phone there is no one-tap way to reach you: no tap-to-call, booking or chat. Every contact means typing.", evidence: [ev("no tel: link, booking or chat widget detected on the home page", h.finalUrl)] };
   },
 });
 
@@ -169,7 +169,7 @@ siteCheck({
   run: (site, ctx) => {
     const s = ctx.pagespeed?.mobile?.usability.tapTargets;
     if (s === null || s === undefined) return { unavailable: "no tap-target audit in PageSpeed result" };
-    return s < 0.9 ? { plain_english: "Lighthouse flags tap targets that are too small or too close together on mobile.", evidence: [ev(`tap-targets audit score ${s}`, home(site).finalUrl, "api_field")] } : "pass";
+    return s < 0.9 ? { plain_english: "Buttons and links on your site are too small or too close together on phones, so people mis-tap and give up.", evidence: [ev(`tap-targets audit score ${s}`, home(site).finalUrl, "api_field")] } : "pass";
   },
 });
 
@@ -185,7 +185,7 @@ siteCheck({
   run: (site, ctx) => {
     const s = ctx.pagespeed?.mobile?.usability.fontSize;
     if (s === null || s === undefined) return { unavailable: "no font-size audit in PageSpeed result" };
-    return s < 1 ? { plain_english: "Lighthouse reports text that is too small to read on mobile without zooming.", evidence: [ev(`font-size audit score ${s}`, home(site).finalUrl, "api_field")] } : "pass";
+    return s < 1 ? { plain_english: "Text on your site is too small to read on a phone without zooming in.", evidence: [ev(`font-size audit score ${s}`, home(site).finalUrl, "api_field")] } : "pass";
   },
 });
 
@@ -201,7 +201,7 @@ siteCheck({
   run: (site, ctx) => {
     const s = ctx.pagespeed?.mobile?.usability.contentWidth;
     if (s === null || s === undefined) return { unavailable: "no content-width audit in PageSpeed result" };
-    return s < 1 ? { plain_english: "The page is wider than a phone screen, so it scrolls sideways.", evidence: [ev(`content-width audit score ${s}`, home(site).finalUrl, "api_field")] } : "pass";
+    return s < 1 ? { plain_english: "Your page is wider than a phone screen, so it scrolls sideways and hides part of the content, sometimes the call button.", evidence: [ev(`content-width audit score ${s}`, home(site).finalUrl, "api_field")] } : "pass";
   },
 });
 
@@ -218,7 +218,7 @@ siteCheck({
     const m = ctx.pagespeed?.mobile;
     const lcp = m?.field.lcpMs ?? m?.lab.lcpMs ?? null;
     if (lcp === null) return { unavailable: "no PageSpeed mobile data" };
-    return lcp > 4_000 ? { plain_english: `The mobile home page takes ${(lcp / 1000).toFixed(1)} s to show its main content. A meaningful share of ad and search visitors leave before that; every one of them was paid for or earned.`, evidence: [ev(`mobile LCP ${lcp} ms; performance ${m?.performanceScore ?? "?"}/100`, home(site).finalUrl, "api_field")] } : "pass";
+    return lcp > 4_000 ? { plain_english: `On phones, your home page takes ${(lcp / 1000).toFixed(1)} seconds to show its main content. Google's own data says a large share of visitors leave before that, and every one of them was earned or paid for.`, evidence: [ev(`mobile LCP ${lcp} ms; performance ${m?.performanceScore ?? "?"}/100`, home(site).finalUrl, "api_field")] } : "pass";
   },
 });
 
@@ -231,7 +231,7 @@ siteCheck({
   severity: "low",
   impact: 20,
   fix: "easy",
-  run: (site) => (home(site).widgets.analytics.length ? "pass" : { plain_english: "No analytics or call-tracking script was detected on the home page.", evidence: [ev("no GA4/GTM/Meta/Clarity/CallRail scripts detected", home(site).finalUrl)] }),
+  run: (site) => (home(site).widgets.analytics.length ? "pass" : { plain_english: "Your site has no visitor tracking, so nobody can tell which pages produce calls. It does not cost you customers today, but it makes every improvement a guess.", evidence: [ev("no GA4/GTM/Meta/Clarity/CallRail scripts detected", home(site).finalUrl)] }),
 });
 
 siteCheck({
@@ -247,6 +247,6 @@ siteCheck({
     const services = pagesOfKind(site, "service");
     if (!services.length) return { unavailable: "no service pages found" };
     const bare = services.filter((p) => !p.telLinks.length && !p.forms.length && !p.links.some((l) => l.internal && /contact|quote|book|schedule/i.test(`${l.text} ${l.href}`) && l.region !== "nav" && l.region !== "footer"));
-    return bare.length ? { plain_english: `${bare.length} of ${services.length} service page(s) have no call link, form or quote button in the body: ${listUrls(bare)}.`, evidence: bare.slice(0, 4).map((p) => ev("no tel: link, form or contact/quote link outside nav/footer", p.finalUrl)) } : "pass";
+    return bare.length ? { plain_english: `${bare.length} of ${count(services.length, "service page")} ${v(services.length, "have")} no call link, form or quote button in the page itself: ${listUrls(bare)}. Visitors rarely go back to the home page to find one.`, evidence: bare.slice(0, 4).map((p) => ev("no tel: link, form or contact/quote link outside nav/footer", p.finalUrl)) } : "pass";
   },
 });
