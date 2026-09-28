@@ -36,7 +36,7 @@ const DEALERSHIPS = [
 export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/invoices">) {
   const typed = parseInvoiceFilters(await props.searchParams);
   const company = { id: "c1", name: "Cali Tints", payment_terms: "Net 30", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles", clover_enabled: true, auto_invoice: true } as Company;
-  const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
+  const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Mike", email: null, active: true } as Profile;
 
   // Apply the URL filters to the fixture the way the RPC would (a date in the search box becomes a range).
   const today = toDateInput(new Date());

@@ -15,7 +15,7 @@ import type { CloverStatus } from "@/lib/clover/status";
 /** Dev-only settings preview with fixtures. 404 in production. */
 export default function DevSettingsPreview() {
   const { company, dealership } = invoiceBundleFixture();
-  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Owner (preview)", email: "owner@example.com", active: true, created_at: "", updated_at: "" } as Profile;
+  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike", email: "owner@example.com", active: true, created_at: "", updated_at: "" } as Profile;
   const svc = (id: string, name: string, category: Service["category"], price: number, sort: number, range: [number, number] | null = null, active = true): Service => ({
     id, company_id: company.id, name, description: null, category, default_price: price, price_min: range?.[0] ?? null, price_max: range?.[1] ?? null, active, sort_order: sort, created_at: "", updated_at: "",
   });

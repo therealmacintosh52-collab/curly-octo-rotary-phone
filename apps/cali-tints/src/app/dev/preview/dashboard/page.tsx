@@ -13,7 +13,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   const today = toDateInput(new Date());
   const bm = resolveBreakdownMonth(sp, today);
   const { company } = invoiceBundleFixture();
-  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
+  const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Mike", email: null, active: true } as Profile;
 
   const days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(2026, 8, i + 1);
@@ -83,7 +83,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
     <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
-          <Dashboard stats={stats} range={range} today={today} greeting={greetingFor("Mike", company.timezone)} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} />
+          <Dashboard stats={stats} range={range} today={today} greeting={greetingFor(profile.full_name, company.timezone)} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

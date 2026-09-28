@@ -10,7 +10,7 @@ import { invoiceBundleFixture, invoiceListFixture, terminalTransactionsFixture }
 export default async function DevTerminalPreview(props: PageProps<"/dev/preview/terminal">) {
   const sp = await props.searchParams;
   const b = invoiceBundleFixture();
-  const profile = { id: "u1", company_id: b.company.id, role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
+  const profile = { id: "u1", company_id: b.company.id, role: "owner", full_name: "Mike", email: null, active: true } as Profile;
   const today = new Date().toISOString().slice(0, 10);
   const date = typeof sp.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : today;
   const invoiceParam = typeof sp.invoice === "string" ? sp.invoice : null;

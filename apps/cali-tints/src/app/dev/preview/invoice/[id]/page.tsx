@@ -12,7 +12,7 @@ export default async function DevInvoiceByIdPreview(props: PageProps<"/dev/previ
   const legacy = rows.find((r) => r.display_number === "INV-000012")!; // the old multi-car batch; also the fallback for unknown ids
   const row = rows.find((r) => r.id === id) ?? legacy;
   const base = invoiceBundleFixture();
-  const profile = { id: "u1", company_id: base.company.id, role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
+  const profile = { id: "u1", company_id: base.company.id, role: "owner", full_name: "Mike", email: null, active: true } as Profile;
   const p = row === legacy ? legacyProps(base) : carProps(row, base);
 
   return (
@@ -30,7 +30,7 @@ const common = (base: ReturnType<typeof invoiceBundleFixture>) => ({
   company: base.company,
   priceList: priceListFixture(),
   detailers: [
-    { id: "u1", full_name: "Owner (preview)" },
+    { id: "u1", full_name: "Mike" },
     { id: "u2", full_name: "Marco R." },
     { id: "u3", full_name: "Dee One" },
   ],
