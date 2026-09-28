@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { ScanLineIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { PriceListRow } from "@/lib/db/types";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
@@ -17,6 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ServicePicker, type SelectedService } from "./service-picker";
 import { ModelCombobox } from "./model-combobox";
+// The barcode engine (ZXing) is ~200 KB; it only loads the first time the scanner opens.
+const VinScanner = dynamic(() => import("./vin-scanner").then((mod) => mod.VinScanner), { ssr: false });
 
 /** The car as logged: what the edit sheet starts from. */
 export interface EditableCar {
@@ -76,6 +80,8 @@ export function EditCarSheet({
   const [performedAt, setPerformedAt] = useState(toDateInput(new Date(car.performed_at)));
   const [notes, setNotes] = useState(car.notes ?? "");
   const [detailerId, setDetailerId] = useState(car.detailer_id);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerMounted, setScannerMounted] = useState(false);
   const [services, setServices] = useState<SelectedService[]>(
     car.services.map((s) => ({
       service_id: s.service_id,
@@ -134,7 +140,12 @@ export function EditCarSheet({
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="e-vin">VIN</Label>
-              <Input id="e-vin" value={vin} onChange={(e) => setVin(normalizeVin(e.target.value).slice(0, 17))} className="font-mono" maxLength={17} />
+              <div className="flex gap-1.5">
+                <Input id="e-vin" value={vin} onChange={(e) => setVin(normalizeVin(e.target.value).slice(0, 17))} className="min-w-0 font-mono" maxLength={17} />
+                <Button type="button" variant="secondary" size="icon" className="shrink-0" onClick={() => { setScannerMounted(true); setScannerOpen(true); }} aria-label="Scan VIN barcode" title="Scan the VIN barcode">
+                  <ScanLineIcon className="size-5" />
+                </Button>
+              </div>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="e-year">Year</Label>
@@ -218,6 +229,16 @@ export function EditCarSheet({
             <Textarea id="e-notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-20" />
           </div>
         </div>
+        {scannerMounted && (
+          <VinScanner
+            open={scannerOpen}
+            onOpenChange={setScannerOpen}
+            onDetected={(v) => {
+              setVin(v);
+              toast.success("VIN scanned");
+            }}
+          />
+        )}
         <div className="flex gap-2 px-5 pb-2">
           <Button variant="outline" className="flex-1" onClick={onClose}>
             Cancel

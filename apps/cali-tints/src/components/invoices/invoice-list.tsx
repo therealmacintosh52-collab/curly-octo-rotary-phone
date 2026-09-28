@@ -66,7 +66,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered }: { 
         action={
           <Button asChild>
             <Link href="/jobs/new">
-              <PlusIcon /> New car
+              <PlusIcon /> New invoice
             </Link>
           </Button>
         }

@@ -363,8 +363,8 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
       {/* Title row */}
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-title">New car</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Tag, services, save. Every car you log becomes its own invoice.</p>
+          <h1 className="text-title">New invoice</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Tag, services, save. The car you log is the invoice.</p>
         </div>
         <AnimatePresence>
           {savedCount > 0 && (
@@ -489,10 +489,11 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
               className={cn("font-mono tracking-wide uppercase placeholder:font-sans placeholder:normal-case placeholder:tracking-normal", vinState === "valid" && "border-success/60")}
               aria-invalid={vinState === "invalid"}
             />
-            <Button type="button" variant="secondary" size="icon" className="w-14 shrink-0" onClick={() => { setScannerMounted(true); setScannerOpen(true); }} aria-label="Scan VIN barcode">
-              {decoding ? <LoaderCircleIcon className="animate-spin" /> : <ScanLineIcon className="size-5" />}
+            <Button type="button" variant="secondary" className="shrink-0 px-3" onClick={() => { setScannerMounted(true); setScannerOpen(true); }} aria-label="Scan VIN barcode" title="Scan the VIN barcode on the door jamb or windshield">
+              {decoding ? <LoaderCircleIcon className="animate-spin" /> : <ScanLineIcon className="size-5" />} Scan barcode
             </Button>
           </div>
+          {!vin && !decodedLabel && <p className="text-caption text-subtle">Point the camera at the barcode on the door jamb or the windshield plate; year, make and model fill in on their own.</p>}
           <AnimatePresence>
             {decodedLabel && (
               <m.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 text-sm text-success">

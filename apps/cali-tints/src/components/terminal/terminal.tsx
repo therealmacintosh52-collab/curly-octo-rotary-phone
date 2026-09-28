@@ -564,7 +564,7 @@ export function Terminal({
             )}
             <DialogFooter>
               <Button type="button" loading={pending} onClick={() => takeManual(dialog.manual)}>
-                Record {formatMoney(amount)}
+                Accept {formatMoney(amount)}
               </Button>
             </DialogFooter>
           </DialogContent>

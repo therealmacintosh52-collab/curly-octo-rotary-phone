@@ -16,7 +16,7 @@ export default function OfflinePage() {
         </p>
       </div>
       <Button asChild size="lg">
-        <Link href="/jobs/new">New car</Link>
+        <Link href="/jobs/new">New invoice</Link>
       </Button>
     </main>
   );

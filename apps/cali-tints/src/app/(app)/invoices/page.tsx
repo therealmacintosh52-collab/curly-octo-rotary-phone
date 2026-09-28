@@ -89,7 +89,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
             )}
             <Button asChild>
               <Link href="/jobs/new">
-                <PlusIcon /> New car
+                <PlusIcon /> New invoice
               </Link>
             </Button>
           </>

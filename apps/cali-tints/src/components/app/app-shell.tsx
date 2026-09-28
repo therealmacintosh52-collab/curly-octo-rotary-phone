@@ -25,7 +25,7 @@ interface NavItem {
 /** A car is an invoice: one list, one "New" button. Detailers see New + Invoices (their own cars). */
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon, adminOnly: true },
-  { href: "/jobs/new", label: "New car", short: "New", icon: PlusCircleIcon },
+  { href: "/jobs/new", label: "New invoice", short: "New", icon: PlusCircleIcon },
   { href: "/invoices", label: "Invoices", icon: FileTextIcon, prefix: true },
   { href: "/terminal", label: "Terminal", icon: TabletSmartphoneIcon, adminOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, prefix: true },

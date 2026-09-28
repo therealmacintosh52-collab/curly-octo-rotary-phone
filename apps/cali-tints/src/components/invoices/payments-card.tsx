@@ -67,14 +67,14 @@ export function PaymentsCard({
           )}
           {status !== "void" && balance > 0 && (
             <Button size="sm" onClick={() => setOpen(true)}>
-              <PlusIcon /> Record
+              <PlusIcon /> Add payment
             </Button>
           )}
         </CardAction>
       </CardHeader>
       <CardContent>
         {payments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No payments recorded.</p>
+          <p className="text-sm text-muted-foreground">Nothing received yet. Card payments taken in the app or on the Clover terminal show up here on their own.</p>
         ) : (
           <ul className="divide-y divide-border text-sm">
             {payments.map((p) => (
@@ -140,8 +140,8 @@ function PaymentDialog({ invoiceId, balance, onDone }: { invoiceId: string; bala
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Record payment</DialogTitle>
-        <DialogDescription>Balance due {formatMoney(balance)}. Partial payments are fine; the invoice shows as paid once the balance hits zero.</DialogDescription>
+        <DialogTitle>Add a payment you received</DialogTitle>
+        <DialogDescription>For a check, ACH or cash that came in outside the app. Card payments taken here, on the Clover terminal or through the pay link add themselves. Balance due {formatMoney(balance)}; partial amounts are fine.</DialogDescription>
       </DialogHeader>
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">

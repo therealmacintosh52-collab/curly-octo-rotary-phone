@@ -57,7 +57,7 @@ export function Dashboard({ stats, range, companyName, cloverUnmatched = 0 }: { 
         actions={
           <Button asChild>
             <Link href="/jobs/new">
-              <PlusIcon /> New car
+              <PlusIcon /> New invoice
             </Link>
           </Button>
         }

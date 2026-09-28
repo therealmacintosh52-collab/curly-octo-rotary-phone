@@ -77,7 +77,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
                   </Button>
                   <Button asChild>
                     <Link href="/jobs/new">
-                      <PlusIcon /> New car
+                      <PlusIcon /> New invoice
                     </Link>
                   </Button>
                 </>
