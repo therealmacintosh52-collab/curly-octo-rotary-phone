@@ -18,6 +18,8 @@ interface NavItem {
   short?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
+  /** Owner and admin only (managers run the day but do not change settings). */
+  settingsOnly?: boolean;
   /** Match nested routes too. */
   prefix?: boolean;
 }
@@ -28,7 +30,7 @@ const NAV: NavItem[] = [
   { href: "/jobs/new", label: "New invoice", short: "New", icon: PlusCircleIcon },
   { href: "/invoices", label: "Invoices", icon: FileTextIcon, prefix: true },
   { href: "/terminal", label: "Terminal", icon: TabletSmartphoneIcon, adminOnly: true, prefix: true },
-  { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, prefix: true },
+  { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, settingsOnly: true, prefix: true },
 ];
 
 function isActive(pathname: string, item: NavItem) {
@@ -44,7 +46,8 @@ function isActive(pathname: string, item: NavItem) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { profile, company, isAdmin } = useSession();
-  const items = NAV.filter((i) => isAdmin || !i.adminOnly);
+  const canSettings = profile.role === "owner" || profile.role === "admin";
+  const items = NAV.filter((i) => (isAdmin || !i.adminOnly) && (canSettings || !i.settingsOnly));
   const home = "/";
   const sideRef = useRef<HTMLElement>(null);
   const tabRef = useRef<HTMLElement>(null);

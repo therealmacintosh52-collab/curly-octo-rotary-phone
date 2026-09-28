@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireOwnerAdmin } from "@/lib/auth";
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,8 @@ const EXPORTS = [
   { key: "payments", title: "Payments", desc: "Every recorded payment with method, reference and invoice number." },
 ];
 
-export default function ExportPage() {
+export default async function ExportPage() {
+  await requireOwnerAdmin();
   return (
     <div className="grid gap-4">
       <p className="text-sm text-muted-foreground">

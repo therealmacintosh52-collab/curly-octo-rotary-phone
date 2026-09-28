@@ -17,7 +17,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const ROLE_LABEL: Record<UserRole, string> = { owner: "Owner", admin: "Admin", detailer: "Detailer" };
+const ROLE_LABEL: Record<UserRole, string> = { owner: "Owner", admin: "Admin", manager: "Manager", detailer: "Detailer" };
+/** What each role can do, shown under the picker. */
+const ROLE_HINT: Record<UserRole, string> = {
+  owner: "Everything, including making other owners.",
+  admin: "Everything the owner can do.",
+  manager: "Runs the day: dashboard, every invoice, sending, the Terminal. No Settings.",
+  detailer: "Logs cars and sees only their own.",
+};
 
 function randomPassword() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -93,7 +100,7 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<"password" | "invite">("password");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"admin" | "detailer">("detailer");
+  const [role, setRole] = useState<"admin" | "manager" | "detailer">("detailer");
   const [password, setPassword] = useState(() => randomPassword());
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
 
@@ -153,7 +160,7 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
       >
         <DialogHeader>
           <DialogTitle>Add user</DialogTitle>
-          <DialogDescription>Detailers can log and view their own jobs only. Admins can do everything except transfer ownership.</DialogDescription>
+          <DialogDescription>Detailers log and see their own cars. Managers run the day without Settings. Admins can do everything except transfer ownership.</DialogDescription>
         </DialogHeader>
         <Tabs value={mode} onValueChange={(v) => setMode(v as "password" | "invite")}>
           <TabsList className="w-full">
@@ -171,15 +178,17 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
         </div>
         <div className="grid gap-1.5">
           <Label>Role</Label>
-          <Select value={role} onValueChange={(v) => setRole(v as "admin" | "detailer")}>
+          <Select value={role} onValueChange={(v) => setRole(v as "admin" | "manager" | "detailer")}>
             <SelectTrigger aria-label="Role">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="detailer">Detailer</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">{ROLE_HINT[role]}</p>
         </div>
         {mode === "password" ? (
           <div className="grid gap-1.5">
@@ -230,10 +239,12 @@ function EditUserDialog({ user, currentRole, isSelf, onClose }: { user: Profile;
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="detailer">Detailer</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               {currentRole === "owner" && <SelectItem value="owner">Owner</SelectItem>}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground">{ROLE_HINT[role]}</p>
         </div>
         <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
           <div className="text-sm font-medium">Active</div>

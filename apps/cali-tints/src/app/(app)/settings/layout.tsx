@@ -1,9 +1,9 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireOwnerAdmin } from "@/lib/auth";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { SettingsNav } from "@/components/settings/settings-nav";
 
 export default async function SettingsLayout({ children }: LayoutProps<"/settings">) {
-  await requireAdmin();
+  await requireOwnerAdmin();
   return (
     <Page>
       <PageHeader title="Settings" description="Company profile, dealerships, price list, users and data export." />

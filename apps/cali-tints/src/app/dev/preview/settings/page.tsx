@@ -29,7 +29,12 @@ export default function DevSettingsPreview() {
     { key: "CLOVER_WEBHOOK_SECRET", set: false, purpose: "pay-link confirmations" },
   ];
   const demoStatus: CloverStatus = { enabled: true, env: "sandbox", merchantId: "7G9V9DP834ZY2", merchantName: "Cali Tints (sandbox)", signInAvailable: true, connected: true, needsReconnect: false, lastOkAt: "2026-09-27T16:40:00Z", lastError: null, healthy: true, manualTokens: false, cardEntry: true, device: true, hostedCheckout: true, webhook: false };
-  const users: Profile[] = [profile, { ...profile, id: "u2", role: "detailer", full_name: "Victor", email: "marco@example.com" }, { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com", active: false }];
+  const users: Profile[] = [
+    profile,
+    { ...profile, id: "u4", role: "manager", full_name: "Manny", email: "manny@example.com" },
+    { ...profile, id: "u2", role: "detailer", full_name: "Victor", email: "victor@example.com" },
+    { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com", active: false },
+  ];
 
   return (
     <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: true, demo: true }}>

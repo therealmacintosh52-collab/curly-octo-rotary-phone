@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireOwnerAdmin } from "@/lib/auth";
 import { CLOVER_HOSTS, type CloverEnv } from "@/lib/clover/env";
 import { STATE_COOKIE, exchangeCode, fetchPakmsKey, saveConnection } from "@/lib/clover/connection";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /** Step 2 of "Sign in with Clover": Clover sends the owner back with a code; swap it for tokens and store them. */
 export async function GET(request: NextRequest) {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const q = request.nextUrl.searchParams;
   const back = (query: string) => {
     const res = NextResponse.redirect(new URL(`/settings?${query}`, request.nextUrl.origin));

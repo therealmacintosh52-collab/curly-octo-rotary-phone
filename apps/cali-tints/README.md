@@ -110,7 +110,7 @@ Create the owner in *Supabase → Authentication → Users → Add user* (email 
 
 - **Set a password** — for detailers without email access on the lot; you hand them the credentials.
 
-**What a detailer sees.** Three tabs: their own **Dashboard** (today's cars by service, this week, this month, their cars per day for the last 30 days, and today's cars; no money, no one else's work; migration `0023`, `my_dashboard()`), **New invoice**, and **Invoices** limited to the cars they logged. Terminal and Settings are hidden, redirect to their dashboard if typed, and are blocked at the database. **admin** gets everything the owner has.
+**What a detailer sees.** Three tabs: their own **Dashboard** (today's cars by service, this week, this month, their cars per day for the last 30 days, and today's cars; no money, no one else's work; migration `0023`, `my_dashboard()`), **New invoice**, and **Invoices** limited to the cars they logged. Terminal and Settings are hidden, redirect to their dashboard if typed, and are blocked at the database. **manager** (migration `0024`) runs the day: the owner's dashboard, every invoice, sending and collecting, the Terminal, but no Settings (company, dealerships, prices, users, Clover, export), enforced by `is_owner_admin()` policies. **admin** gets everything the owner has.
 - **Email an invite** — Supabase sends a link; they choose a password at `/auth/reset`.
 
 ## Guest preview (share a link, no login)

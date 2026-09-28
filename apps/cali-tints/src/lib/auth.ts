@@ -10,7 +10,10 @@ export interface Session {
   email: string | null;
   profile: Profile;
   company: Company;
+  /** owner, admin or manager: the whole company's cars, invoices and money. */
   isAdmin: boolean;
+  /** owner or admin: Settings (company, dealerships, prices, users, Clover, export). */
+  canSettings: boolean;
 }
 
 /**
@@ -35,7 +38,8 @@ export const getSession = cache(async (): Promise<Session> => {
     email: user.email ?? null,
     profile,
     company,
-    isAdmin: profile.role === "owner" || profile.role === "admin",
+    isAdmin: profile.role === "owner" || profile.role === "admin" || profile.role === "manager",
+    canSettings: profile.role === "owner" || profile.role === "admin",
   };
 });
 
@@ -43,5 +47,12 @@ export const getSession = cache(async (): Promise<Session> => {
 export async function requireAdmin(): Promise<Session> {
   const session = await getSession();
   if (!session.isAdmin) redirect("/");
+  return session;
+}
+
+/** Settings: owner and admin only. Managers and detailers go to their dashboard. */
+export async function requireOwnerAdmin(): Promise<Session> {
+  const session = await getSession();
+  if (!session.canSettings) redirect("/");
   return session;
 }

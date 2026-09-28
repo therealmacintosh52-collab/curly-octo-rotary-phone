@@ -15,7 +15,8 @@ $$;
 insert into auth.users (id, email, raw_user_meta_data) values
   ('10000000-0000-4000-8000-000000000001', 'owner@test', '{}'),                                  -- bootstrap → owner
   ('10000000-0000-4000-8000-000000000002', 'det1@test',  '{"role":"detailer","full_name":"Dee One"}'),
-  ('10000000-0000-4000-8000-000000000003', 'det2@test',  '{"role":"detailer","full_name":"Dee Two"}');
+  ('10000000-0000-4000-8000-000000000003', 'det2@test',  '{"role":"detailer","full_name":"Dee Two"}'),
+  ('10000000-0000-4000-8000-000000000004', 'mgr@test',   '{"role":"manager","full_name":"Manny"}');
 
 -- The blocks up to "One car, one invoice" exercise the original batch /
 -- per-job invoicing, so auto-invoicing (0015, default on) is switched off
@@ -127,7 +128,7 @@ begin
       'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000202'))));
   select count(*) into n from public.jobs; assert n = 1, 'sees own job only';
   -- profiles visible (names) but role change blocked
-  select count(*) into n from public.profiles; assert n = 3, 'profiles visible in company';
+  select count(*) into n from public.profiles; assert n = 4, 'profiles visible in company';
   begin
     update public.profiles set role = 'owner' where id = auth.uid();
     raise exception 'expected role guard';
@@ -760,6 +761,30 @@ begin
   select count(*) into n from public.invoice_payments; assert n = 0, 'payments stay admin-only';
   select count(*) into n from jsonb_array_elements(public.my_dashboard() -> 'today_cars') e where e ->> 'invoice_id' = (select v::text from t_ids where k = 'det_inv');
   assert n = 0, 'other detailer''s car not on my dashboard';
+end $$;
+
+-- 0024: a manager runs the day (every invoice, payments, dashboard) but cannot touch settings.
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare n int; total int; r record;
+begin
+  assert public.is_admin() and not public.is_owner_admin(), 'manager: admin for the day, not for settings';
+  select count(*) into n from public.invoices; assert n >= 3, 'manager sees every invoice';
+  select count(*) into n from public.invoice_payments; assert n >= 1, 'manager sees payments';
+  assert (public.dashboard_stats() ->> 'unpaid_invoices')::int >= 1, 'manager gets the owner dashboard';
+  update public.companies set name = 'Hacked' where id = '00000000-0000-4000-8000-000000000001';
+  get diagnostics total = row_count; assert total = 0, 'manager cannot edit the company';
+  update public.dealerships set name = 'Hacked' where company_id = '00000000-0000-4000-8000-000000000001';
+  get diagnostics total = row_count; assert total = 0, 'manager cannot edit dealerships';
+  update public.services set default_price = 1 where company_id = '00000000-0000-4000-8000-000000000001';
+  get diagnostics total = row_count; assert total = 0, 'manager cannot edit prices';
+  update public.profiles set role = 'detailer' where id = '10000000-0000-4000-8000-000000000002';
+  get diagnostics total = row_count; assert total = 0, 'manager cannot change other users';
+  begin
+    update public.profiles set role = 'owner' where id = auth.uid();
+    raise exception 'expected guard';
+  exception when sqlstate '42501' then null; end;
+  select * into r from public.profiles where id = auth.uid(); assert r.role::text = 'manager', 'still a manager';
 end $$;
 
 -- Back to the owner for the storage checks below.

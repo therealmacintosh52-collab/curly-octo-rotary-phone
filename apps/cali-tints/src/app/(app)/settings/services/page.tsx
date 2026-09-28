@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { requireOwnerAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ServicesManager } from "@/components/settings/services-manager";
 
 export const metadata: Metadata = { title: "Services & prices" };
 
 export default async function ServicesPage() {
+  await requireOwnerAdmin();
   const supabase = await createClient();
   const [{ data: services }, { data: dealerships }, { data: prices }] = await Promise.all([
     supabase.from("services").select("*").order("active", { ascending: false }).order("sort_order").order("name"),

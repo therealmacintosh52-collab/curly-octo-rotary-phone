@@ -4,7 +4,8 @@
  * keep this file in sync by hand; it is the single source of truth for the app.
  */
 
-export type UserRole = "owner" | "admin" | "detailer";
+/** owner/admin: everything. manager: the day (dashboard, invoices, Terminal) but not Settings. detailer: their own cars. */
+export type UserRole = "owner" | "admin" | "manager" | "detailer";
 export type JobStatus = "logged" | "invoiced";
 export type InvoiceStatus = "draft" | "submitted" | "partial" | "paid" | "void";
 export type InvoiceMode = "batch" | "per_job";

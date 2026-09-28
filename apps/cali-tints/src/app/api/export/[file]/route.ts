@@ -17,7 +17,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/[file]">
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (!profile || profile.role === "detailer") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) return NextResponse.json({ error: "Owner or admin only" }, { status: 403 });
 
   async function all<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
     const out: T[] = [];

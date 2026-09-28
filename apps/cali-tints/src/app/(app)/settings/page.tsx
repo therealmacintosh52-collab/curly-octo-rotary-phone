@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/auth";
+import { requireOwnerAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CompanyForm } from "@/components/settings/company-form";
 import { CloverCard } from "@/components/settings/clover-card";
@@ -10,7 +10,7 @@ import { CloverSetupChecklist, cloverSetupSteps } from "@/components/clover/setu
 export const metadata: Metadata = { title: "Company settings" };
 
 export default async function CompanySettingsPage(props: PageProps<"/settings">) {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const sp = await props.searchParams;
   const notice = sp.clover === "connected" ? { kind: "connected" as const, message: typeof sp.name === "string" ? sp.name : null } : sp.clover === "error" ? { kind: "error" as const, message: typeof sp.msg === "string" ? sp.msg : null } : null;
   const status = await cloverStatus(session.company);
