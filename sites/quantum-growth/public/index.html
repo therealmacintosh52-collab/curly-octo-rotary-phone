@@ -217,7 +217,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .pick-ico .ico{width:18px;height:18px;stroke-width:2.4}
 .pick b{font-family:var(--display);font-weight:400;text-transform:uppercase;
   font-size:1.18rem;letter-spacing:.02em;line-height:1.05;color:#fff}
-.pick span{font-size:.83rem;line-height:1.4;color:var(--on-void-2);font-weight:600}
+.pick span:not(.pick-ico){font-size:.83rem;line-height:1.4;color:var(--on-void-2);font-weight:600}
 .pick em{font-style:normal;font-size:.78rem;font-weight:800;letter-spacing:.04em;
   color:var(--fire);margin-top:6px}
 @media(max-width:1040px){.picker{grid-template-columns:repeat(3,1fr)}}
@@ -226,7 +226,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   .pick{flex-direction:row;align-items:center;flex-wrap:wrap;padding:13px 15px}
   .pick-ico{margin-bottom:0;margin-right:11px}
   .pick b{flex:1}
-  .pick span{flex-basis:100%;margin-top:4px}
+  .pick span:not(.pick-ico){flex-basis:100%;margin-top:4px}
   .pick em{margin-top:2px}
 }
 
@@ -798,8 +798,8 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
         </a>
         <a class="pick" href="#plans">
           <span class="pick-ico"><svg class="ico"><use href="#i-chart"/></svg></span>
-          <b>Organic traffic</b>
-          <span>Getting found on Google without paying for every click</span>
+          <b>More customers finding me</b>
+          <span>Ranking on Google and in the map pack, without paying for every click</span>
           <em>From $299 a month</em>
         </a>
       </div>
