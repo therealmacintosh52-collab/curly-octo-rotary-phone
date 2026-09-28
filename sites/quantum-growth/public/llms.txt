@@ -65,8 +65,16 @@ booking button.
 - No contract. Cancel any month.
 - Pause for up to two months a year at $29/month; the site and email stay live.
 - Downgrade to a smaller plan at any time.
-- Cancellation inside the first six months carries a $100–$500 fee by plan,
-  recovering part of the build given free. After six months there is no fee.
+- Cancellation: no notice period, and the client can leave any month. On
+  Starter there is never an exit fee, because the $699 build was paid up
+  front. On the plans where the build is free, it is discounted to nothing
+  across the first six months, so leaving early makes the undiscounted part
+  payable — $600 in months one or two, $400 in three or four, $200 in five or
+  six, nothing after six months. It is a subsidy that unwinds, not a contract.
+- On cancellation the client keeps the domain, Google profile, email and the
+  website files, delivered as a zip with setup instructions. Hosting is part
+  of the monthly, so it stops — the client either moves the files to their own
+  hosting or keeps the site live for $29/month.
 - Domain, website, Google Business Profile and email are registered in the
   client's name and stay with them if they leave.
 
@@ -78,7 +86,7 @@ sales call in 2026, not a survey of the industry.
 - Entry marketing plan: $299/month with the build included — vendor: $350/month, build extra
 - Domain registered to: the client — vendor: often the vendor
 - Google Business Profile role: the client is Owner — vendor: the client is often only Manager
-- On cancellation: the client keeps site, domain, listing and email — vendor: the site goes dark
+- On cancellation: the client keeps the domain, listing, email and the site files — vendor: the site goes dark, and was never the client's to begin with
 - Contract: none, month to month — vendor: a term with a notice period
 - Pause: $29/month for up to two months a year — vendor: cancel or keep paying
 - Contact: the person who builds the site — vendor: a rotating account manager
