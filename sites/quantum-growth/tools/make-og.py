@@ -62,9 +62,12 @@ CARD = """<!doctype html><meta charset="utf-8">
 <div class="in">
   <div class="mark">
     <svg width="58" height="58" viewBox="0 0 40 40">
-      <ellipse cx="20" cy="20" rx="17" ry="8.4" fill="none" stroke="#3B6EF6" stroke-width="2.4" transform="rotate(-38 20 20)"/>
-      <circle cx="20" cy="20" r="4.4" fill="#F5A623"/>
-      <path d="M27.5 16.5 L33 9.5 L34.5 18" fill="none" stroke="#F26419" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <defs><linearGradient id="q" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FFC078"/><stop offset="1" stop-color="#F26419"/>
+      </linearGradient></defs>
+      <circle cx="17.5" cy="17.5" r="11.2" fill="none" stroke="url(#q)" stroke-width="4"/>
+      <path d="M25.6 25.6 L33.2 33.2" fill="none" stroke="url(#q)" stroke-width="4.6" stroke-linecap="round"/>
+      <path d="M12.6 20.6 L16.4 16 L19.8 18.6 L23 12.9" fill="none" stroke="url(#q)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <b>Quantum Growth</b>
   </div>
