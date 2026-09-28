@@ -93,12 +93,18 @@ sales call in 2026, not a survey of the industry.
 - Reporting: Google's own numbers, verifiable by the client — vendor: a vendor dashboard
 - Pages built: 25, each targeting a real search — vendor: five and a contact form
 
-## Break-even calculator
+## Growth calculator
 The top of the site carries an interactive calculator rather than a lead form.
-A visitor sets what one job or sale is worth to them — presets range from a
-$45 haircut to a $9,000 roof — and it shows live how many extra customers a
-month each plan needs before it pays for itself. At $150 a job, the $299
-Local plan breaks even on two extra customers a month.
+A visitor sets what one new customer is worth — presets range from a $45
+haircut to a $9,000 roof — and how many extra customers a month would change
+things for them. It shows what that new work is worth per year and per month,
+then names the largest plan those numbers would comfortably carry. At $150 a
+customer and five a month that is $9,000 a year, and Local at $299/month
+leaves $451 a month ahead.
+
+Where the numbers do not support any plan, it says so rather than
+recommending one. The page states plainly that no result can be promised and
+that the figures are the visitor's own assumptions, not a forecast.
 
 ## Free visibility check
 A no-obligation review of a business's Google profile and website — map-pack
