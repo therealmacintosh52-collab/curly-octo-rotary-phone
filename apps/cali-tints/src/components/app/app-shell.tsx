@@ -22,9 +22,9 @@ interface NavItem {
   prefix?: boolean;
 }
 
-/** A car is an invoice: one list, one "New" button. Detailers see New + Invoices (their own cars). */
+/** A car is an invoice: one list, one "New" button. Detailers see Dashboard (their own cars) + New + Invoices (their own cars). */
 const NAV: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboardIcon, adminOnly: true },
+  { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/jobs/new", label: "New invoice", short: "New", icon: PlusCircleIcon },
   { href: "/invoices", label: "Invoices", icon: FileTextIcon, prefix: true },
   { href: "/terminal", label: "Terminal", icon: TabletSmartphoneIcon, adminOnly: true, prefix: true },
@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { profile, company, isAdmin } = useSession();
   const items = NAV.filter((i) => isAdmin || !i.adminOnly);
-  const home = isAdmin ? "/" : "/jobs/new";
+  const home = "/";
   const sideRef = useRef<HTMLElement>(null);
   const tabRef = useRef<HTMLElement>(null);
   const ready = useIndicatorReady();

@@ -628,6 +628,12 @@ begin
     raise exception 'expected own-car-only';
   exception when sqlstate '42501' then null; end;
   insert into t_ids values ('det_inv', inv.id);
+
+  -- 0023: my own dashboard shows this car (logged today) and nothing about money
+  assert (public.my_dashboard() -> 'today' ->> 'cars')::int >= 1, 'my dashboard: cars today';
+  assert (select count(*) from jsonb_array_elements(public.my_dashboard() -> 'today_cars') e where e ->> 'invoice_id' = inv.id::text and e ->> 'tag' = 'CAR1X') = 1, 'my dashboard: my car listed';
+  assert (select count(*) from jsonb_array_elements(public.my_dashboard() -> 'today' -> 'by_service') e where e ->> 'name' = 'Sold') = 1, 'my dashboard: by service';
+  assert not (public.my_dashboard() ? 'unpaid_total') and not (public.my_dashboard() -> 'today' ? 'revenue'), 'my dashboard: no money';
 end $$;
 
 -- Owner: logging, fixing, removing, the list and the dashboard.
@@ -752,6 +758,8 @@ begin
   select count(*) into n from public.invoices where id = (select v from t_ids where k = 'det_inv'); assert n = 0, 'other detailer''s invoice hidden';
   select count(*) into n from public.invoice_items where invoice_id = (select v from t_ids where k = 'det_inv'); assert n = 0, 'its lines hidden too';
   select count(*) into n from public.invoice_payments; assert n = 0, 'payments stay admin-only';
+  select count(*) into n from jsonb_array_elements(public.my_dashboard() -> 'today_cars') e where e ->> 'invoice_id' = (select v::text from t_ids where k = 'det_inv');
+  assert n = 0, 'other detailer''s car not on my dashboard';
 end $$;
 
 -- Back to the owner for the storage checks below.

@@ -417,6 +417,18 @@ export type InvoiceConflictRow = {
 };
 
 /** Shape returned by dashboard_stats(). */
+/** A detailer's own numbers (my_dashboard): their cars only, no money. */
+export type DetailerStats = {
+  today: { cars: number; by_service: { service_id: string; name: string; cars: number }[] };
+  week: { cars: number };
+  month: { cars: number };
+  week_by_day: { day: string; cars: number }[];
+  /** The last 30 days, days with cars only. */
+  by_day: { day: string; cars: number }[];
+  today_cars: { id: string; invoice_id: string | null; display_number: string | null; tag: string; vehicle: string | null; dealership: string | null; performed_at: string; services: string[] }[];
+  range: { start: string; end: string };
+};
+
 export type DashboardStats = {
   range: { start: string; end: string };
   week: { jobs: number; revenue: number };
@@ -594,6 +606,7 @@ export type Database = {
         Returns: string;
       };
       dashboard_stats: { Args: { p_start?: string | null; p_end?: string | null }; Returns: DashboardStats };
+      my_dashboard: { Args: Record<string, never>; Returns: DetailerStats };
       jobs_filter_summary: {
         Args: {
           p_q?: string | null;

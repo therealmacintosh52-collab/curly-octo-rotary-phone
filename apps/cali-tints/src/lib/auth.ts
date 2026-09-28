@@ -39,9 +39,9 @@ export const getSession = cache(async (): Promise<Session> => {
   };
 });
 
-/** Like getSession() but sends detailers to their home page. */
+/** Like getSession() but sends detailers to their own dashboard. */
 export async function requireAdmin(): Promise<Session> {
   const session = await getSession();
-  if (!session.isAdmin) redirect("/jobs/new");
+  if (!session.isAdmin) redirect("/");
   return session;
 }
