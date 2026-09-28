@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getSession, requireAdmin } from "@/lib/auth";
+import { getSession, requireAdmin, requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
 import { invoicePdf } from "@/lib/invoices/pdf";
@@ -507,7 +507,7 @@ export async function ignoreCloverPaymentAction(cloverPaymentId: string, ignore 
  * so the invoice status and audit trail stay consistent.
  */
 export async function chargeCardAction(input: { invoiceId: string; token: string; amount: number }): Promise<ActionResult<{ amount: number; last4: string | null }>> {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const ctx = cloverContext(session.company);
   if (!ctx) return { ok: false, error: "Clover is not enabled (Settings → Clover)" };
   const parsed = z.object({ invoiceId: z.uuid(), token: z.string().regex(/^clv_[A-Za-z0-9_-]+$/, "Card token is invalid"), amount: z.number().positive().max(1_000_000) }).safeParse(input);
@@ -541,7 +541,7 @@ export async function chargeCardAction(input: { invoiceId: string; token: string
 
 /** Send the amount to the Clover terminal and record the payment when the device answers. */
 export async function payOnDeviceAction(input: { invoiceId: string; amount: number }): Promise<ActionResult<{ amount: number; last4: string | null }>> {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const ctx = cloverContext(session.company);
   if (!ctx) return { ok: false, error: "Clover is not enabled (Settings → Clover)" };
   if (!session.company.clover_device_id) return { ok: false, error: "Add the Clover device serial in Settings → Clover first" };
@@ -575,7 +575,7 @@ export async function payOnDeviceAction(input: { invoiceId: string; amount: numb
 }
 
 export async function cancelDevicePaymentAction(): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const ctx = cloverContext(session.company);
   if (!ctx || !session.company.clover_device_id) return { ok: false, error: "No Clover device configured" };
   try {

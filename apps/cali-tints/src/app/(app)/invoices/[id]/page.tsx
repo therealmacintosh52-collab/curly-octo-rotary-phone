@@ -113,6 +113,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
       priceList={(priceListRes.data ?? []) as PriceListRow[]}
       detailers={detailers ?? []}
       isAdmin={session.isAdmin}
+      canCollect={session.canTerminal}
       canEdit={canEdit}
       canDelete={canDelete}
       lockedReason={lockedReason}
@@ -120,8 +121,8 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
       reminderDays={session.company.reminder_days}
       clover={{
         enabled: !!clover,
-        card: cloverCard,
-        device: !!(clover && company.clover_device_id),
+        card: session.canTerminal ? cloverCard : null,
+        device: session.canTerminal && !!(clover && company.clover_device_id),
         payLink: !!(clover && company.clover_hosted_checkout),
         orderUrl: clover && invoice.clover_order_id ? orderDashboardUrl(clover, invoice.clover_order_id) : null,
       }}

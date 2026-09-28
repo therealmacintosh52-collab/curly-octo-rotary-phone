@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/auth";
+import { requireOwnerAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cloverContext } from "@/lib/clover/invoices";
 import { CLOVER_HOSTS } from "@/lib/clover/env";
@@ -17,7 +17,7 @@ export const maxDuration = 60;
 
 /** Point of sale: everything the Clover terminal does, from any phone or laptop. */
 export default async function TerminalPage(props: PageProps<"/terminal">) {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const sp = await props.searchParams;
   const today = todayIn(session.company.timezone);
   const date = typeof sp.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : today;

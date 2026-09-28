@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import type { PaymentMethod, PaymentSource, TerminalTransaction } from "@/lib/db/types";
@@ -64,7 +64,7 @@ export type SaleResult = TerminalTransaction & { group?: TerminalTransaction[] }
 
 /** Take a payment. Returns the ledger row for the receipt view. */
 export async function takeSaleAction(input: SaleInput): Promise<ActionResult<SaleResult>> {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const parsed = saleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const d = parsed.data;
@@ -167,7 +167,7 @@ export async function takeSaleAction(input: SaleInput): Promise<ActionResult<Sal
 }
 
 /** One payment across several unpaid invoices: one Clover charge (or one check), split oldest first, one ledger row per invoice sharing a group id. */
-async function takeBatch(session: Awaited<ReturnType<typeof requireAdmin>>, d: z.output<typeof saleSchema> & { invoiceIds: string[] }): Promise<ActionResult<SaleResult>> {
+async function takeBatch(session: Awaited<ReturnType<typeof requireOwnerAdmin>>, d: z.output<typeof saleSchema> & { invoiceIds: string[] }): Promise<ActionResult<SaleResult>> {
   const supabase = await createClient();
   const company = session.company;
   const { data: raw } = await supabase.from("invoices").select("id, number, display_number, total, amount_paid, status, dealership:dealerships(name, ap_emails)").in("id", d.invoiceIds);
@@ -262,7 +262,7 @@ async function takeBatch(session: Awaited<ReturnType<typeof requireAdmin>>, d: z
 
 /** Refund part or all of a sale (ledger row id) or of an invoice payment recorded elsewhere. */
 export async function refundSaleAction(input: { saleId?: string | null; paymentId?: string | null; amount: number }): Promise<ActionResult<TerminalTransaction>> {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const parsed = z.object({ saleId: z.uuid().nullish(), paymentId: z.uuid().nullish(), amount: money }).safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { saleId, paymentId } = parsed.data;
@@ -337,7 +337,7 @@ export async function refundSaleAction(input: { saleId?: string | null; paymentI
 
 /** Email a receipt for a ledger row or an invoice payment recorded elsewhere. */
 export async function emailReceiptAction(input: { id: string; to: string }): Promise<ActionResult<{ to: string }>> {
-  const session = await requireAdmin();
+  const session = await requireOwnerAdmin();
   const parsed = z.object({ id: z.uuid(), to: z.email("Enter a valid email") }).safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const supabase = await createClient();

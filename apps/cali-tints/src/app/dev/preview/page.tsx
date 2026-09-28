@@ -109,7 +109,7 @@ export default function DevPreviewPage() {
               { id: "u2", full_name: "Victor" },
             ]}
             recentJobs={[]}
-            isAdmin
+            canCharge
           />
         </AppShell>
       </SyncProvider>

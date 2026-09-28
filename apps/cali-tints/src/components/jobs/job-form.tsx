@@ -9,6 +9,7 @@ import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import type { Dealership, JobPayload, PriceListRow } from "@/lib/db/types";
 import { useSession } from "@/components/app/session-provider";
+import { canTakePayments } from "@/lib/roles";
 import { useSync } from "@/components/offline/sync-provider";
 import { enqueueJob, findLocalDuplicates, getOutboxItem, OUTBOX_EVENT, saveRecentJobs, saveReference } from "@/lib/offline/outbox";
 import { fireConfetti, haptic } from "@/components/motion/confetti";
@@ -40,7 +41,8 @@ interface Props {
   detailers: { id: string; full_name: string }[];
   recentJobs: RecentJob[];
   /** Admins also get "Save & charge": invoice this car now and open the Terminal. */
-  isAdmin?: boolean;
+  /** Owner/admin: "Save & charge" and Collect after save. Defaults from the signed-in role. */
+  canCharge?: boolean;
 }
 
 type SaveIntent = "next" | "charge";
@@ -66,11 +68,11 @@ interface SavedCar {
  * "Save & charge" (admins, online) saves straight to the server and opens the
  * Terminal with the invoice ready to pay.
  */
-export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmin = false }: Props) {
+export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCharge: canChargeProp }: Props) {
   const router = useRouter();
-  const { company, demo, isAdmin: sessionAdmin } = useSession();
+  const { company, demo, profile } = useSession();
   const { online } = useSync();
-  const canCharge = isAdmin || sessionAdmin;
+  const canCharge = canChargeProp ?? canTakePayments(profile.role);
   const tagRef = useRef<HTMLInputElement>(null);
 
   // --- form state ------------------------------------------------------------

@@ -95,7 +95,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         actions={
           <>
             {clover && <CloverSyncButton lastSyncAt={session.company.clover_last_sync_at} />}
-            {session.isAdmin && unpaid.length > 1 && (
+            {session.canTerminal && unpaid.length > 1 && (
               <Button asChild variant="soft">
                 <Link href="/terminal?invoices=all">
                   <WalletIcon /> Collect all unpaid · {formatMoney(unpaidTotal)}
@@ -129,7 +129,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         >
           <InvoiceFilters filters={typed} searchDate={filters.searchDate} services={services ?? []} dealerships={dealerships ?? []} isAdmin={session.isAdmin} />
         </Suspense>
-        <InvoiceList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} filtered={filtered} groupByDay={spansDays ? today : null} />
+        <InvoiceList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} canCollect={session.canTerminal} filtered={filtered} groupByDay={spansDays ? today : null} />
       </div>
     </Page>
   );

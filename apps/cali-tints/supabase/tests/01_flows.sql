@@ -785,6 +785,12 @@ begin
     raise exception 'expected guard';
   exception when sqlstate '42501' then null; end;
   select * into r from public.profiles where id = auth.uid(); assert r.role::text = 'manager', 'still a manager';
+  -- 0025: no Terminal for managers (the ledger is invisible and cannot be written)
+  select count(*) into n from public.terminal_sales; assert n = 0, 'manager cannot see the terminal ledger';
+  begin
+    insert into public.terminal_sales (company_id, kind, amount, method, source) values ('00000000-0000-4000-8000-000000000001', 'sale', 1, 'cash', 'manual');
+    raise exception 'expected terminal rls block';
+  exception when sqlstate '42501' then null; end;
 end $$;
 
 -- Back to the owner for the storage checks below.

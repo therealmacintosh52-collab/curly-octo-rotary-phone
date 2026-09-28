@@ -22,7 +22,7 @@ const ROLE_LABEL: Record<UserRole, string> = { owner: "Owner", admin: "Admin", m
 const ROLE_HINT: Record<UserRole, string> = {
   owner: "Everything, including making other owners.",
   admin: "Everything the owner can do.",
-  manager: "Runs the day: dashboard, every invoice, sending, the Terminal. No Settings.",
+  manager: "Runs invoicing: dashboard, every invoice, sending, pay links, recording payments. No Terminal, no Settings.",
   detailer: "Logs cars and sees only their own.",
 };
 
@@ -160,7 +160,7 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
       >
         <DialogHeader>
           <DialogTitle>Add user</DialogTitle>
-          <DialogDescription>Detailers log and see their own cars. Managers run the day without Settings. Admins can do everything except transfer ownership.</DialogDescription>
+          <DialogDescription>Detailers log and see their own cars. Managers run invoicing without the Terminal or Settings. Admins can do everything except transfer ownership.</DialogDescription>
         </DialogHeader>
         <Tabs value={mode} onValueChange={(v) => setMode(v as "password" | "invite")}>
           <TabsList className="w-full">

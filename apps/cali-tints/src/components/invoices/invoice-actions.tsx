@@ -37,9 +37,11 @@ interface Props {
   collect?: { device: boolean; card: boolean; payLink: boolean };
   /** Enables "See breakdown" in the Collect menu. */
   breakdown?: BalanceBreakdown | null;
+  /** Owner/admin may collect (Terminal, card, cash). A manager gets email and pay links only. */
+  allowCollect?: boolean;
 }
 
-export function InvoiceActions({ invoice, dealership, companyEmail, collect = { device: false, card: false, payLink: false }, breakdown = null }: Props) {
+export function InvoiceActions({ invoice, dealership, companyEmail, collect = { device: false, card: false, payLink: false }, breakdown = null, allowCollect = true }: Props) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -52,7 +54,8 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
   const canVoid = !isVoid && invoice.amount_paid === 0;
   const hasBeenSent = invoice.status !== "draft";
   const balance = Math.round((invoice.total - invoice.amount_paid) * 100) / 100;
-  const canCollect = !isVoid && balance > 0;
+  const owed = !isVoid && balance > 0;
+  const canCollect = owed && allowCollect;
   const dl = (kind: string, extra = "") => `/api/invoices/${invoice.id}/${kind}${extra}`;
   const collectHref = (method?: "card" | "device") => `/terminal?invoice=${invoice.id}${method ? `&method=${method}` : ""}`;
 
@@ -153,9 +156,15 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      {/* A manager cannot collect, but can still send the pay-by-card link on its own. */}
+      {owed && !allowCollect && collect.payLink && (
+        <Button onClick={() => setPayLinkOpen(true)} disabled={pending} className="flex-1 sm:flex-none" data-testid="send-pay-link">
+          <LinkIcon /> Send payment link
+        </Button>
+      )}
       {/* Send it (draft) or send it again; secondary once a balance can be collected. */}
       {!isVoid && (
-        <Button variant={canCollect ? "outline" : "default"} onClick={() => setEmailOpen(true)} disabled={pending} className={canCollect ? "hidden sm:inline-flex" : "flex-1 sm:flex-none"}>
+        <Button variant={canCollect || (owed && !allowCollect && collect.payLink) ? "outline" : "default"} onClick={() => setEmailOpen(true)} disabled={pending} className={canCollect ? "hidden sm:inline-flex" : "flex-1 sm:flex-none"}>
           {hasBeenSent ? <SendIcon /> : <MailIcon />}
           {hasBeenSent ? "Resend by email" : "Submit by email"}
         </Button>
@@ -248,7 +257,7 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
       </Dialog>
 
       {/* Payment link on its own: email, copy or text */}
-      {canCollect && (
+      {owed && (
         <Dialog open={payLinkOpen} onOpenChange={setPayLinkOpen}>
           {payLinkOpen && <SendPayLinkDialog invoiceId={invoice.id} number={invoice.display_number} dealership={dealership.name} apEmails={dealership.ap_emails} balance={balance} onDone={() => setPayLinkOpen(false)} />}
         </Dialog>

@@ -83,7 +83,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
 
   // ?as=detailer: the same page as a detailer sees it (their own cars, no money).
   if (sp.as === "detailer") {
-    const dee = { ...profile, id: "u3", role: "detailer", full_name: "Dee One" } as Profile;
+    const dee = { ...profile, id: "u5", role: "detailer", full_name: "Sam" } as Profile;
     const mine = detailerFixture(today);
     return (
       <SessionProvider value={{ userId: dee.id, email: null, profile: dee, company, isAdmin: false, demo: true }}>
@@ -119,7 +119,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   );
 }
 
-/** Dee's sample month: about four cars a weekday, four logged so far today. */
+/** Sam's sample month: about four cars a weekday, four logged so far today. */
 function detailerFixture(today: string): DetailerStats {
   const now = Date.now();
   const ymd = (n: number) => toDateInput(new Date(now - n * 86400000));

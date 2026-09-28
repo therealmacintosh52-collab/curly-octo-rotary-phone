@@ -83,7 +83,7 @@ function PageLinks({ page, count, params }: { page: number; count: number; param
  * The one list: every car, as its invoice. Desktop: dense table. Phone:
  * tappable cards with Collect on anything still owed (admins).
  */
-export function InvoiceList({ rows, page, count, params, isAdmin, filtered, groupByDay = null }: { rows: InvoiceListRow[]; page: number; count: number; params: string; isAdmin: boolean; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers (Today, Yesterday, weekday) when set. */ groupByDay?: string | null }) {
+export function InvoiceList({ rows, page, count, params, isAdmin, canCollect = isAdmin, filtered, groupByDay = null }: { rows: InvoiceListRow[]; page: number; count: number; params: string; isAdmin: boolean; /** Owner/admin: show Collect on open rows (managers see the rows, not the button). */ canCollect?: boolean; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers (Today, Yesterday, weekday) when set. */ groupByDay?: string | null }) {
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -148,7 +148,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                   </span>
                   <span className="shrink-0">{periodLabel(r)}</span>
                 </div>
-                {isAdmin && collectable(r) && (
+                {canCollect && collectable(r) && (
                   <Button asChild size="sm" variant="soft" className="relative z-10 mt-3 w-full">
                     <Link href={`/terminal?invoice=${r.id}`}>
                       <WalletIcon /> Collect {formatMoney(r.balance)}
@@ -226,7 +226,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                   </TableCell>
                   {isAdmin && (
                     <TableCell className="text-right">
-                      {collectable(r) && (
+                      {canCollect && collectable(r) && (
                         <Button asChild size="sm" variant="soft">
                           <Link href={`/terminal?invoice=${r.id}`}>
                             <WalletIcon /> Collect

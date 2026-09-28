@@ -33,6 +33,8 @@ export interface InvoiceDetailProps {
   priceList: PriceListRow[];
   detailers: { id: string; full_name: string }[];
   isAdmin: boolean;
+  /** Owner/admin: Collect menu, Charge card, Pay on terminal. Managers keep email, pay links and Add payment. Defaults to isAdmin. */
+  canCollect?: boolean;
   canEdit: boolean;
   canDelete: boolean;
   lockedReason: string | null;
@@ -124,6 +126,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
             dealership={{ name: dealership.name, ap_emails: dealership.ap_emails, submission_method: dealership.submission_method }}
             companyEmail={company.email}
             collect={{ device: p.clover.device, card: !!p.clover.card, payLink: p.clover.payLink }}
+            allowCollect={p.canCollect ?? isAdmin}
             breakdown={balanceBreakdown({ invoice, items, payments })}
           />
         )}
