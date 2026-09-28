@@ -21,6 +21,13 @@ export class ProviderNotImplemented extends ProviderError {
   }
 }
 
+/** robots.txt (or a bot wall) forbids the fetch; we report it and never bypass it. */
+export class ProviderBlocked extends ProviderError {
+  constructor(message: string) {
+    super(message, false);
+  }
+}
+
 export class ProviderTimeout extends ProviderError {
   constructor(ms: number) {
     super(`timed out after ${ms} ms`, true);

@@ -3,6 +3,7 @@ import type { Place } from "@/lib/providers/google-places/client";
 import type { PagespeedResult } from "@/lib/providers/pagespeed/client";
 import type { PageFetch } from "@/lib/providers/website/client";
 import type { YelpBusiness } from "@/lib/providers/yelp/client";
+import type { NapComparison } from "@/lib/resolve/nap";
 
 /**
  * Finding categories, one per module of the master plan. Every check and
@@ -60,6 +61,17 @@ export interface CheckContext {
   pagespeed?: { mobile?: PagespeedResult; desktop?: PagespeedResult };
   places?: { business?: Place; competitors?: Place[] };
   yelp?: { business?: YelpBusiness };
+  /** Output of the Phase 1 resolver: cross-source NAP comparison and what was found. */
+  identity?: {
+    comparison: NapComparison;
+    gbpInputGiven: boolean;
+    gbpFound: boolean;
+    gbpWebsiteHost: string | null;
+    canonicalDomain: string | null;
+    websiteFetched: boolean;
+    websitePhones: string[];
+    websiteAddresses: string[];
+  };
   /** Free-form module outputs until their types firm up (rankings, AI visibility, citations, backlinks, social, mentions). */
   modules?: Partial<Record<Exclude<CheckCategory, "identity_nap" | "technical_seo" | "conversion">, unknown>>;
 }

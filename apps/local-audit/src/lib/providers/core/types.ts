@@ -17,7 +17,8 @@ export type UnavailableReason =
   | "parse_failed"
   | "refusal"
   | "truncated"
-  | "not_implemented";
+  | "not_implemented"
+  | "blocked";
 
 export interface CallMeta {
   provider: ProviderName;

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { parseRetryAfter, ProviderHttpError, ProviderNetworkError, ProviderTimeout } from "./errors";
 import { withRetry } from "./retry";
 
-const noSleep = { sleep: vi.fn(async (_ms: number) => {}), random: () => 1 };
+const noSleep = { sleep: vi.fn<(ms: number) => Promise<void>>(async () => {}), random: () => 1 };
 
 describe("withRetry", () => {
   it("returns on first success with attempts = 1", async () => {
@@ -11,7 +11,7 @@ describe("withRetry", () => {
   });
 
   it("retries retryable errors with exponential backoff and stops at retries", async () => {
-    const sleep = vi.fn(async (_ms: number) => {});
+    const sleep = vi.fn<(ms: number) => Promise<void>>(async () => {});
     const fn = vi.fn(async () => {
       throw new ProviderNetworkError("boom");
     });

@@ -1,14 +1,18 @@
 import { inngest } from "../client";
 import { AUDIT_REQUESTED, AuditRequested } from "../events";
 import { markAuditFailed, setAuditProgress } from "@/lib/audits/progress";
+import { runResolveStep } from "@/lib/audits/resolve-step";
+import { supabaseAuditRepo } from "@/lib/audits/repo";
+import { createProviders } from "@/lib/providers";
+import { supabaseSnapshotStore } from "@/lib/providers/core";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * The audit pipeline as a durable function. Each `step.run` is checkpointed
  * by Inngest, so a crash or a timeout resumes at the next step instead of
- * starting over. Phase 0 ships the frame: mark running → collect (placeholder)
- * → mark finished. Phases 1–8 replace "collect" with the real steps
- * (resolve, crawl, gbp, yelp, citations, rankings, ai, offsite, analyse,
- * revenue, solutions), each updating progress_pct / current_step.
+ * starting over. Steps so far: mark running → resolve (Phase 1) → mark
+ * finished. Phases 2–8 add crawl, gbp, yelp, citations, rankings, ai,
+ * offsite, analyse, revenue and solutions, each updating progress.
  */
 export const auditRun = inngest.createFunction(
   {
@@ -30,15 +34,20 @@ export const auditRun = inngest.createFunction(
       setAuditProgress(auditId, { status: "running", progress_pct: 5, current_step: "start", started_at: new Date().toISOString() }),
     );
 
-    const collected = await step.run("collect", async () => ({
-      skipped: true as const,
-      reason: "Phase 0 skeleton: collectors arrive in Phase 1",
-    }));
+    const resolved = await step.run("resolve", async () => {
+      const admin = createAdminClient();
+      return runResolveStep(auditId, {
+        repo: supabaseAuditRepo(admin),
+        providers: createProviders(),
+        ctx: { store: supabaseSnapshotStore(admin) },
+        progress: (pct, current_step) => setAuditProgress(auditId, { progress_pct: pct, current_step }),
+      });
+    });
 
     await step.run("mark-finished", () =>
       setAuditProgress(auditId, { status: "succeeded", progress_pct: 100, current_step: "done", finished_at: new Date().toISOString() }),
     );
 
-    return { auditId, status: "succeeded" as const, collected };
+    return { auditId, status: "succeeded" as const, resolved };
   },
 );

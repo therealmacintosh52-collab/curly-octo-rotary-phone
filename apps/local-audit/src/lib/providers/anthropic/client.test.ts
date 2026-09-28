@@ -35,7 +35,7 @@ describe("costFromUsage", () => {
 describe("anthropic.complete", () => {
   it("calls messages.create with claude-opus-5 and no thinking key, returns text + cost", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
-    const create = vi.fn(async (_params: unknown) => ({
+    const create = vi.fn<(params: unknown) => Promise<unknown>>(async () => ({
       content: [{ type: "text", text: "Hello" }],
       stop_reason: "end_turn",
       stop_details: null,
@@ -102,7 +102,7 @@ describe("anthropic.extract", () => {
 
   it("uses messages.parse with a zod output format and returns validated data", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
-    const parse = vi.fn(async (_params: unknown) => ({ parsed_output: { phone_visible: true, rating_badge: false }, stop_reason: "end_turn", stop_details: null, usage: usage() }));
+    const parse = vi.fn<(params: unknown) => Promise<unknown>>(async () => ({ parsed_output: { phone_visible: true, rating_badge: false }, stop_reason: "end_turn", stop_details: null, usage: usage() }));
     const a = createAnthropicProvider({ sdk: stubSdk(vi.fn(), parse), env });
     const res = await a.extract({ schema: Trust, schemaName: "trust-v1", messages: [{ role: "user", content: "x" }] }, live());
     expect(res.ok).toBe(true);

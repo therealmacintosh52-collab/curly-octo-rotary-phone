@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { cacheKey } from "./cache-key";
-import { ProviderError, ProviderHttpError, ProviderNotConfigured, ProviderNotImplemented, ProviderParseError, ProviderTimeout } from "./errors";
+import { ProviderBlocked, ProviderError, ProviderHttpError, ProviderNotConfigured, ProviderNotImplemented, ProviderParseError, ProviderTimeout } from "./errors";
 import { loadFixture, saveFixture } from "./fixtures";
 import { providerMode } from "./mode";
 import { withRetry, type RetryOptions } from "./retry";
@@ -180,6 +180,7 @@ export function createProvider(def: ProviderDefinition): ProviderClient {
 function mapError(err: unknown, unavailable: (reason: UnavailableReason, message: string, extra?: Partial<Unavailable>) => Unavailable): Unavailable {
   if (err instanceof ProviderNotImplemented) return unavailable("not_implemented", err.message);
   if (err instanceof ProviderNotConfigured) return unavailable("not_configured", err.message);
+  if (err instanceof ProviderBlocked) return unavailable("blocked", err.message);
   if (err instanceof ProviderTimeout) return unavailable("timeout", err.message, { retryable: true });
   if (err instanceof ProviderParseError) return unavailable("parse_failed", err.message);
   if (err instanceof ProviderHttpError) {

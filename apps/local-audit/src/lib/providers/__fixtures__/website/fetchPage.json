@@ -1,11 +1,15 @@
 {
-  "request": { "url": "https://testplumbing.example/" },
+  "request": {
+    "url": "https://testplumbing.example/"
+  },
   "response": {
     "url": "https://testplumbing.example/",
     "final_url": "https://testplumbing.example/",
     "status": 200,
-    "html": "<!doctype html><html lang=\"en\"><head><title>Test Plumbing | Sacramento Plumber</title><meta name=\"description\" content=\"Licensed plumber in Sacramento.\"></head><body><header><a href=\"tel:+19165550100\">(916) 555-0100</a></header><main><h1>Sacramento Plumbing Repairs</h1><p>Same-day service.</p></main><footer>1 Main St, Sacramento, CA 95814</footer></body></html>",
-    "headers": { "content-type": "text/html; charset=utf-8" },
+    "html": "<!doctype html><html lang=\"en\"><head><title>Test Plumbing | Sacramento Plumber</title><meta name=\"description\" content=\"Licensed plumber in Sacramento.\"><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Plumber\",\"name\":\"Test Plumbing\",\"telephone\":\"+1-916-555-0100\",\"url\":\"https://testplumbing.example/\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"1 Main St\",\"addressLocality\":\"Sacramento\",\"addressRegion\":\"CA\",\"postalCode\":\"95814\"}}</script></head><body><header><a href=\"tel:+19165550100\">(916) 555-0100</a> <nav><a href=\"/contact\">Contact</a></nav></header><main><h1>Sacramento Plumbing Repairs</h1><p>Same-day service.</p></main><footer><address>1 Main St<br>Sacramento, CA 95814</address></footer></body></html>",
+    "headers": {
+      "content-type": "text/html; charset=utf-8"
+    },
     "fetched_at": "2026-09-27T00:00:00Z"
   },
   "cost_usd": 0,

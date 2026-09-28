@@ -6,9 +6,13 @@ Report (problems, evidence, $ ranges, no fixes) and an admin-only Solution Vault
 per-problem unlock. Spec: [`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md). Decisions:
 [`docs/DECISIONS.md`](docs/DECISIONS.md). Phase plans: [`docs/phases/`](docs/phases/).
 
-**Status: Phase 0 (foundation) built.** Schema + RLS, admin auth, provider adapters
-with mocks, Inngest job skeleton, cost meter, client-report shell, CI. No live calls
-to any paid API yet.
+**Status: Phase 1 built.** Phase 0 foundation (schema + RLS, admin auth, provider
+adapters, Inngest, cost meter, client-report shell, CI) plus the input resolver:
+`/admin/audits/new` takes a website, a Google Business Profile link or name, a Yelp
+URL and optional extras; the job resolves one canonical business, cross-checks name,
+address and phone across the three sources, and records mismatches as findings with
+evidence. Live calls: Google Places (Text Search, Place Details) and Yelp business
+details, only when their keys are set. Everything else is still a stub.
 
 Stack: Next.js 16 (App Router) · TypeScript · Tailwind v4 · radix-ui · Supabase
 (Postgres, Auth, Storage, RLS) · Inngest v4 · Anthropic SDK · Vercel.
@@ -48,9 +52,10 @@ pnpm inngest:dev                    # optional: Inngest dev server, discovers /a
 | `AUDIT_COST_BUDGET_USD` | now | default 5 |
 | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | production | <https://app.inngest.com> (or the Vercel integration) |
 | `ANTHROPIC_API_KEY` | optional | <https://platform.claude.com> |
-| `GOOGLE_PLACES_API_KEY`, `GOOGLE_PAGESPEED_API_KEY` | Phases 1–2 | <https://console.cloud.google.com> |
+| `GOOGLE_PLACES_API_KEY` | **now** (resolver) | <https://console.cloud.google.com> → enable Places API (New) |
+| `YELP_API_KEY` | now, optional (Yelp NAP source) | <https://www.yelp.com/developers/v3/manage_app> |
+| `GOOGLE_PAGESPEED_API_KEY` | Phase 2 | same Google Cloud project |
 | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Phases 4–6 | <https://app.dataforseo.com/register> |
-| `YELP_API_KEY` | Phase 3 | <https://www.yelp.com/developers/v3/manage_app> |
 
 `/admin/settings/providers` shows which of these are set (booleans only) and the
 logged API cost per provider and per audit.
@@ -83,7 +88,7 @@ first user bootstraps as admin exactly once; every table has RLS enabled.
 ## Where things live
 
 ```
-src/app/admin/…                  admin area (requireAdmin): audits list, settings/providers
+src/app/admin/…                  admin area (requireAdmin): audits list, audits/new, audits/[id], settings/providers
 src/app/r/[token]/page.tsx       client report shell, via get_client_report() only
 src/app/api/inngest/route.ts     Inngest serve handler
 src/proxy.ts                     session refresh + login gate (Next 16 middleware)
@@ -92,7 +97,9 @@ src/lib/db/types.ts              Database types (hand-maintained)
 src/lib/providers/core/          call pipeline: cache → mode → retry → validate → snapshot → cost
 src/lib/providers/<name>/        anthropic (live), google-places, pagespeed, dataforseo, yelp, social, website (typed stubs)
 src/lib/providers/__fixtures__/  synthetic fixtures for mock mode
-src/lib/checks/                  check registry, categories, first check (conversion.phone_click_to_call)
+src/lib/checks/                  check registry, categories, runner, identity_nap.* and conversion.* checks
+src/lib/resolve/                 input parsing, Maps URL parsing, NAP normalization, the resolver
+src/lib/audits/                  job-side repo, progress, the resolve step
 src/lib/scoring/                 weights + score computation
 src/lib/revenue/                 assumptions + loss model
 src/lib/reports/client-report.ts strict schema for the report payload

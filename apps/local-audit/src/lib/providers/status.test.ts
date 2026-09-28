@@ -23,14 +23,13 @@ describe("providerStatus", () => {
 });
 
 describe("stub adapters", () => {
-  it("serve their fixtures in mock mode and say not_implemented live", async () => {
+  it("serve their fixtures in mock mode; stubs say not_implemented live", async () => {
     const p = createProviders({ env: { GOOGLE_PLACES_API_KEY: "k", GOOGLE_PAGESPEED_API_KEY: "k", DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p", YELP_API_KEY: "y" } });
     const mock = () => ({ store: new MemorySnapshotStore(), mode: "mock" as const });
     const liveCtx = () => ({ store: new MemorySnapshotStore(), mode: "live" as const });
 
     const places = await p.googlePlaces.searchText({ textQuery: "Test Plumbing Sacramento CA" }, mock());
     expect(places.ok && places.data.places[0]!.displayName?.text).toBe("Test Plumbing");
-    expect(await p.googlePlaces.searchText({ textQuery: "x" }, liveCtx())).toMatchObject({ ok: false, reason: "not_implemented" });
 
     const psi = await p.pagespeed.run({ url: "https://testplumbing.example/", strategy: "mobile" }, mock());
     expect(psi.ok && psi.data.lighthouseResult?.categories?.performance?.score).toBe(0.62);

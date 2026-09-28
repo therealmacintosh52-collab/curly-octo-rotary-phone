@@ -1,0 +1,19 @@
+{
+  "request": {
+    "url": "https://maps.app.goo.gl/synthetic123"
+  },
+  "response": {
+    "input": "https://maps.app.goo.gl/synthetic123",
+    "canonical_domain": "www.google.com",
+    "canonical_url": "https://www.google.com/maps/place/Test+Plumbing/@38.5816,-121.4944,17z/data=!3m1!4b1!4m6!3m5!1s0x809ad12f3a2b1c3d:0xa1b2c3d4e5f60718!8m2!3d38.5816!4d-121.4944!16s%2Fg%2F11abcxyz",
+    "https": true,
+    "redirect_chain": [
+      "https://maps.app.goo.gl/synthetic123",
+      "https://www.google.com/maps/place/Test+Plumbing/@38.5816,-121.4944,17z/data=!3m1!4b1!4m6!3m5!1s0x809ad12f3a2b1c3d:0xa1b2c3d4e5f60718!8m2!3d38.5816!4d-121.4944!16s%2Fg%2F11abcxyz"
+    ],
+    "status": 200
+  },
+  "cost_usd": 0,
+  "recorded_at": null,
+  "note": "synthetic fixture, not real data: shapes only, for mock mode and tests"
+}

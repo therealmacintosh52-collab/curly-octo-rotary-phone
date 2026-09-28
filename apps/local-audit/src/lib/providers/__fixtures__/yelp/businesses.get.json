@@ -1,5 +1,7 @@
 {
-  "request": { "idOrAlias": "test-plumbing-sacramento" },
+  "request": {
+    "idOrAlias": "test-plumbing-sacramento"
+  },
   "response": {
     "id": "synthetic-yelp-id-0001",
     "alias": "test-plumbing-sacramento",
@@ -8,10 +10,31 @@
     "review_count": 87,
     "is_claimed": true,
     "is_closed": false,
-    "categories": [{ "alias": "plumbing", "title": "Plumbing" }],
+    "categories": [
+      {
+        "alias": "plumbing",
+        "title": "Plumbing"
+      }
+    ],
     "phone": "+19165550100",
     "url": "https://www.yelp.com/biz/test-plumbing-sacramento",
-    "photos": []
+    "photos": [],
+    "display_phone": "(916) 555-0100",
+    "location": {
+      "address1": "1 Main St",
+      "address2": "",
+      "city": "Sacramento",
+      "state": "CA",
+      "zip_code": "95814",
+      "display_address": [
+        "1 Main St",
+        "Sacramento, CA 95814"
+      ]
+    },
+    "coordinates": {
+      "latitude": 38.5816,
+      "longitude": -121.4944
+    }
   },
   "cost_usd": 0.005,
   "recorded_at": null,

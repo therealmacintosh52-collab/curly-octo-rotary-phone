@@ -39,7 +39,10 @@ log of choices already made; do not re-decide them silently. Phase plans live in
   labeled. `providerStatus()` exposes booleans only, never values.
 - Jobs: `src/inngest/functions/audit-run.ts` (Inngest v4: `triggers: [...]`), served at
   `/api/inngest`.
-- Checks: `src/lib/checks` (register under a category prefix); scoring weights in
+- Resolver: `src/lib/resolve` (inputs → entity → NAP comparison); persisted by
+  `src/lib/audits/resolve-step.ts` through the `AuditRepo` interface (memory impl for tests).
+- Checks: `src/lib/checks` (register under a category prefix; `runChecks()` turns outcomes
+  into finding drafts); scoring weights in
   `src/lib/scoring/config.ts`; revenue defaults in `src/lib/revenue/defaults.ts`.
 
 ## Before you push

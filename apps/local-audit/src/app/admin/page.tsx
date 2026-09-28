@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardListIcon } from "lucide-react";
+import { ClipboardListIcon, PlusIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,7 +38,18 @@ export default async function AdminHome() {
 
   return (
     <Page>
-      <PageHeader title="Audits" description={audits?.length ? `${audits.length} audits · ${usd.format(totalCost)} in logged API cost` : "Nothing audited yet."} />
+      <PageHeader
+        title="Audits"
+        description={audits?.length ? `${audits.length} audits · ${usd.format(totalCost)} in logged API cost` : "Nothing audited yet."}
+        actions={
+          <Button asChild>
+            <Link href="/admin/audits/new">
+              <PlusIcon />
+              New audit
+            </Link>
+          </Button>
+        }
+      />
       <div className="mt-6">
         {audits?.length ? (
           <Table>
@@ -56,7 +68,9 @@ export default async function AdminHome() {
                 return (
                   <TableRow key={a.id}>
                     <TableCell>
-                      <div className="font-medium">{b?.name ?? "—"}</div>
+                      <Link href={`/admin/audits/${a.id}`} className="font-medium underline-offset-4 hover:underline">
+                        {b?.name ?? "—"}
+                      </Link>
                       <div className="text-caption text-muted-foreground">{b?.canonical_domain ?? ""}</div>
                     </TableCell>
                     <TableCell>
@@ -76,11 +90,14 @@ export default async function AdminHome() {
           <EmptyState
             icon={ClipboardListIcon}
             title="No audits yet"
-            description="Phase 1 adds the New audit form (website, Google Business Profile link, Yelp URL). Until then, check what is wired under Settings."
+            description="Paste a website, a Google Business Profile link or a Yelp URL to start the first one."
             action={
-              <Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="/admin/settings/providers">
-                Open provider settings
-              </Link>
+              <Button asChild>
+                <Link href="/admin/audits/new">
+                  <PlusIcon />
+                  New audit
+                </Link>
+              </Button>
             }
           />
         )}
