@@ -36,7 +36,9 @@
   routing, AI answering.
 
 ## Apps
-Built as installable web apps (PWAs), not App Store or Google Play apps. They
+Built as installable web apps (PWAs), not App Store or Google Play apps.
+Used for booking and orders, loyalty and repeat custom, customer accounts and
+history, and photo updates — whatever a business's customers do more than once. They
 install to the home screen from a link, so there are no store fees, no review
 queue before a fix goes live, and nothing for a customer to download. The
 trade-off, stated plainly: no push notifications on iPhones below iOS 16.4 —
