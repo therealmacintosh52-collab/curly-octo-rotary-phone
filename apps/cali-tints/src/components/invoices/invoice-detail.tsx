@@ -210,7 +210,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
                     )}
                     <ul>
                       {c.lines.map((it) => {
-                        const override = car?.services.find((s) => s.name === it.service_name)?.override_reason ?? null;
+                        const override = car?.services.find((s) => (s.label || s.name) === it.service_name)?.override_reason ?? null;
                         return (
                           <li key={it.id} className="flex items-baseline justify-between gap-4 py-2">
                             <div className="min-w-0">

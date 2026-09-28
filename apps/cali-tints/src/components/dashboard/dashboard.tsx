@@ -106,8 +106,6 @@ export function Dashboard({
   const rangeQ = range.preset === "all" ? "" : `from=${range.start}&to=${range.end}`;
   const pageQ = range.preset === "all" ? "preset=all" : `${rangeQ}${range.preset !== "custom" ? `&preset=${range.preset}` : ""}`;
   const weeks = weeksOfMonth(breakdown.start, breakdown.end, breakdown.stats.by_day);
-  const yesterday = addDaysYmd(today, -1);
-  const weekFrom = week.start < yesterday ? week.start : yesterday;
 
   return (
     <Page>
@@ -135,8 +133,8 @@ export function Dashboard({
             tone={stats.today.jobs > 0 ? "accent" : undefined}
             href="/invoices?q=today"
           />
-          {/* The week, day by day, on the Invoices list; yesterday is always in view even on a Monday. */}
-          <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)} · day by day`} href={`/invoices?from=${weekFrom}&to=${today}`} />
+          {/* The whole week (Mon–Sun), day by day, on the Invoices list. */}
+          <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)} · day by day`} href={`/invoices?from=${week.start}&to=${addDaysYmd(week.start, 6)}`} />
           <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/invoices?from=${month.start}&to=${month.end}`} />
         </section>
 

@@ -150,6 +150,8 @@ export type JobService = {
   service_id: string;
   price: number;
   override_reason: string | null;
+  /** What an open-amount service ("Other") actually was; shown on the invoice in place of the name. */
+  label: string | null;
   created_at: string;
 }
 
@@ -488,7 +490,7 @@ export type JobPayload = {
   performed_at?: string;
   ro_po_number?: string | null;
   notes?: string | null;
-  services: { service_id: string; price?: number; override_reason?: string | null }[];
+  services: { service_id: string; price?: number; override_reason?: string | null; label?: string | null }[];
 }
 
 type Table<Row> = {

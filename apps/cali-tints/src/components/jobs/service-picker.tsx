@@ -23,6 +23,8 @@ export interface SelectedService {
   price_max: number | null;
   price: number;
   override_reason: string | null;
+  /** What it was, for open-amount services ("Other" → "Headlight restoration"); shown on the invoice. */
+  label?: string | null;
 }
 
 /** True when a price needs no written reason (matches price_within_policy() in SQL). */
@@ -74,6 +76,7 @@ export function ServicePicker({
         price_max: row.price_max === null ? null : Number(row.price_max),
         price: Number(row.price),
         override_reason: null,
+        label: null,
       };
       onChange([...value, next]);
       // Open-amount services ("Other") have no price until you type one.
@@ -135,7 +138,7 @@ export function ServicePicker({
                             </m.span>
                           )}
                         </AnimatePresence>
-                        <span className="truncate">{row.name}</span>
+                        <span className="truncate">{selected?.label || row.name}</span>
                       </span>
                       <span className={cn("text-caption tabular-nums", overridden ? "text-warning" : "text-muted-foreground")}>
                         {selected ? formatMoney(selected.price) : priceLabel(Number(row.price), row.price_min === null ? null : Number(row.price_min), row.price_max === null ? null : Number(row.price_max))}
@@ -176,6 +179,7 @@ function OverrideDialog({
 }) {
   const [price, setPrice] = useState("");
   const [reason, setReason] = useState("");
+  const [label, setLabel] = useState("");
   const [key, setKey] = useState<string | null>(null);
 
   // Reset local fields when a different service opens.
@@ -183,6 +187,7 @@ function OverrideDialog({
     setKey(service.service_id);
     setPrice(String(service.price));
     setReason(service.override_reason ?? "");
+    setLabel(service.label ?? "");
   }
   if (!service && key !== null) setKey(null);
 
@@ -190,24 +195,32 @@ function OverrideDialog({
   const changed = Number.isFinite(parsed) && parsed !== service?.list_price;
   const needsReason = !!service && Number.isFinite(parsed) && !priceWithinPolicy(service, parsed);
   const open = !!service && isOpenAmount(service);
-  const valid = Number.isFinite(parsed) && (open ? parsed > 0 : parsed >= 0) && (!needsReason || reason.trim().length > 0);
+  const valid = Number.isFinite(parsed) && (open ? parsed > 0 && label.trim().length > 0 : parsed >= 0) && (!needsReason || reason.trim().length > 0);
   const ranged = !!service && service.price_min !== null && service.price_max !== null && !open;
 
   return (
     <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{open ? "Set amount" : ranged ? "Set price" : "Override price"}</DialogTitle>
+          <DialogTitle>{open ? "What was it?" : ranged ? "Set price" : "Override price"}</DialogTitle>
           <DialogDescription>
             {service?.name} ·{" "}
             {open
-              ? "enter what this add-on costs. Use the notes for what was done."
+              ? "type what was done and what it costs; that is what the invoice will say."
               : ranged
               ? `quoted ${formatMoney(service?.price_min)}–${formatMoney(service?.price_max)}. Pick any price in that range; outside it a reason is required.`
               : `list price ${formatMoney(service?.list_price)}. A reason is required when the price differs.`}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
+          {open && (
+            <div className="grid gap-2">
+              <Label htmlFor="override-label">
+                What was done <span className="text-destructive">*</span>
+              </Label>
+              <Input id="override-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Headlight restoration" maxLength={120} autoFocus />
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="override-price">Price</Label>
             <Input id="override-price" inputMode="decimal" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
@@ -225,13 +238,13 @@ function OverrideDialog({
         </div>
         <DialogFooter>
           {!open && (
-            <Button variant="ghost" onClick={() => service && onApply({ ...service, price: service.list_price, override_reason: null })}>
+            <Button variant="ghost" onClick={() => service && onApply({ ...service, price: service.list_price, override_reason: null, label: null })}>
               Reset to list
             </Button>
           )}
           <Button
             disabled={!valid}
-            onClick={() => service && onApply({ ...service, price: Math.round(parsed * 100) / 100, override_reason: changed && reason.trim() ? reason.trim() : null })}
+            onClick={() => service && onApply({ ...service, price: Math.round(parsed * 100) / 100, override_reason: changed && reason.trim() ? reason.trim() : null, label: open ? label.trim() : null })}
           >
             Apply
           </Button>

@@ -660,6 +660,16 @@ begin
     raise exception 'expected payment block';
   exception when sqlstate 'P0001' then null; end;
 
+  -- "Other" carries what it was onto the invoice line
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OTH1',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000212', 'price', 45, 'label', '  Headlight restoration '))));
+  assert (select label from public.job_services where job_id = j.id) = 'Headlight restoration', 'label stored trimmed';
+  assert (select service_name from public.invoice_items where invoice_id = j.invoice_id) = 'Headlight restoration', 'invoice line shows the label';
+  inv := public.edit_invoice_car(j.invoice_id, jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000212', 'price', 45, 'label', 'Headlight restoration, both sides'))));
+  assert (select service_name from public.invoice_items where invoice_id = inv.id) = 'Headlight restoration, both sides', 'edit re-snapshots the label';
+  f := public.invoices_filtered(p_q => 'headlight');
+  assert (f ->> 'count')::int = 1, 'search finds the label';
+
   -- a car logged twice: delete voids the invoice and soft-deletes the car
   j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'DEL1',
         'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000209'))));

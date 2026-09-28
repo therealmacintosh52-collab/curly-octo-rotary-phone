@@ -36,7 +36,7 @@ export interface EditableCar {
   performed_at: string;
   ro_po_number: string | null;
   notes: string | null;
-  services: { service_id: string; name: string; price: number; override_reason: string | null }[];
+  services: { service_id: string; name: string; price: number; override_reason: string | null; label?: string | null }[];
 }
 
 /**
@@ -91,6 +91,7 @@ export function EditCarSheet({
       price_max: num(listRow(s.service_id)?.price_max),
       price: s.price,
       override_reason: s.override_reason,
+      label: s.label ?? null,
     })),
   );
 
@@ -112,7 +113,7 @@ export function EditCarSheet({
         performed_at: performedAt === toDateInput(new Date(car.performed_at)) ? car.performed_at : dateInputToIso(performedAt),
         ro_po_number: car.ro_po_number ?? null,
         notes: notes.trim() || null,
-        services: services.map((s) => ({ service_id: s.service_id, price: s.price, override_reason: s.override_reason })),
+        services: services.map((s) => ({ service_id: s.service_id, price: s.price, override_reason: s.override_reason, label: s.label ?? null })),
       });
       if (r.ok) {
         toast.success("Car updated · invoice refreshed");

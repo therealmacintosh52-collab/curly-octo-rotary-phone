@@ -257,6 +257,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
         service_id: s.service_id,
         price: s.price,
         override_reason: s.override_reason,
+        label: s.label ?? null,
       })),
     };
     const item: OutboxItem = {

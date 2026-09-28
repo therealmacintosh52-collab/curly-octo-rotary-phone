@@ -4,6 +4,7 @@ const serviceLine = z.object({
   service_id: z.uuid(),
   price: z.number().min(0),
   override_reason: z.string().trim().max(500).nullable().optional(),
+  label: z.string().trim().max(120).nullable().optional(),
 });
 
 /** Everything about a car that can be edited after it was logged (update_job / edit_invoice_car). */
