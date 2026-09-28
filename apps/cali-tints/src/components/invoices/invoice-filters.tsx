@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
-import { SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { ScanLineIcon, SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { toast } from "sonner";
 import { STATUS_LABELS, type InvoiceFilters as Filters, type SearchDate } from "@/lib/invoices/query";
 import { formatDateOnly } from "@/lib/dates";
 import { Input } from "@/components/ui/input";
@@ -13,6 +15,8 @@ import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+// The barcode engine (ZXing) is ~200 KB; it only loads the first time the scanner opens.
+const VinScanner = dynamic(() => import("@/components/jobs/vin-scanner").then((mod) => mod.VinScanner), { ssr: false });
 
 const ALL = "__all";
 
@@ -45,6 +49,8 @@ export function InvoiceFilters({
   const [pending, start] = useTransition();
   const [q, setQ] = useState(filters.q ?? "");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerMounted, setScannerMounted] = useState(false);
 
   // Keep the search box in sync when navigating back/forward.
   useEffect(() => {
@@ -150,21 +156,47 @@ export function InvoiceFilters({
           }}
         >
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-subtle" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag, VIN, invoice #, model or date" className="pl-10 pr-9" enterKeyHint="search" autoCapitalize="characters" aria-label="Search invoices" />
-          {q && (
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag, VIN, invoice #, model or date" className="pl-10 pr-20" enterKeyHint="search" autoCapitalize="characters" aria-label="Search invoices" />
+          <div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5">
+            {q && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => {
+                  setQ("");
+                  update({ q: undefined });
+                }}
+                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+              >
+                <XIcon className="size-4" />
+              </button>
+            )}
+            {/* Scan the VIN barcode on the car to pull up its invoice. */}
             <button
               type="button"
-              aria-label="Clear search"
+              aria-label="Scan VIN"
+              title="Scan the VIN barcode to find its invoice"
               onClick={() => {
-                setQ("");
-                update({ q: undefined });
+                setScannerMounted(true);
+                setScannerOpen(true);
               }}
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-primary"
             >
-              <XIcon className="size-4" />
+              <ScanLineIcon className="size-5" />
             </button>
-          )}
+          </div>
         </form>
+        {scannerMounted && (
+          <VinScanner
+            open={scannerOpen}
+            onOpenChange={setScannerOpen}
+            onDetected={(v) => {
+              setQ(v);
+              update({ q: v });
+              toast.success("VIN scanned · finding its invoice");
+            }}
+          />
+        )}
         <Button type="button" variant="outline" className="relative shrink-0 gap-2 sm:hidden" onClick={() => setSheetOpen(true)} aria-label="More filters">
           <SlidersHorizontalIcon />
           Filters

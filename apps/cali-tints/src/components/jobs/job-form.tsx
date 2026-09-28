@@ -60,7 +60,7 @@ interface SavedCar {
 }
 
 /**
- * New car. Optimistic by design: "Save & next" writes to the local outbox and
+ * New invoice. Optimistic by design: "Save & next" writes to the local outbox and
  * returns immediately; the sync loop pushes it to Supabase, where the car
  * becomes its own invoice, and the success card fills in the invoice number.
  * "Save & charge" (admins, online) saves straight to the server and opens the
@@ -418,7 +418,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
                     </Button>
                   )}
                   <Button type="button" size="sm" variant="ghost" className="ml-auto text-muted-foreground" onClick={() => { setLastSaved(null); tagRef.current?.focus(); }}>
-                    Next car
+                    Next invoice
                   </Button>
                 </div>
               </div>

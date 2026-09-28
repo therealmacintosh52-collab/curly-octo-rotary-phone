@@ -8,7 +8,7 @@
  * Job data itself is queued in IndexedDB by the app (see src/lib/offline);
  * this worker only handles static assets and page shells.
  */
-const VERSION = "v2"; // bump to purge every cache on the next visit
+const VERSION = "v3"; // bump to purge every cache on the next visit
 const SHELL_CACHE = `shell-${VERSION}`;
 const STATIC_CACHE = `static-${VERSION}`;
 // Only fall back to the cached shell when the network is truly gone, not merely slow: a stale

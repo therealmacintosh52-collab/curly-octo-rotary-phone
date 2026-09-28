@@ -9,7 +9,7 @@ import { isoDaysAgo } from "@/lib/dates";
 export const metadata: Metadata = { title: "New invoice" };
 
 /**
- * New car (it becomes its invoice on save). Reference data is loaded server-side so the page renders
+ * New invoice (the car becomes its invoice on save). Reference data is loaded server-side so the page renders
  * instantly; the client caches it in IndexedDB so the form also works from
  * the service-worker cache with no signal.
  */
