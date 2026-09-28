@@ -42,7 +42,7 @@ values
   ('00000000-0000-4000-8000-000000000202', '00000000-0000-4000-8000-000000000001', 'Service Loaner Detail', 'Full detail on a service loaner',            'service', 125.00, null, null, 40),
   ('00000000-0000-4000-8000-000000000210', '00000000-0000-4000-8000-000000000001', 'Touch Up Detail',       'Quick touch-up; $20–40 by condition',        'addon',   30.00, 20.00, 40.00, 50),
   ('00000000-0000-4000-8000-000000000211', '00000000-0000-4000-8000-000000000001', 'Tint Removal',          'Strip old tint on a used unit',              'addon',   40.00, null, null, 60),
-  ('00000000-0000-4000-8000-000000000207', '00000000-0000-4000-8000-000000000001', 'Paint Correction (1-step)', 'Single-stage machine polish',            'addon',  250.00, null, null, 70),
+  ('00000000-0000-4000-8000-000000000207', '00000000-0000-4000-8000-000000000001', 'Paint Correction (1-step)', 'Single-stage machine polish; about $50', 'addon',   50.00, 40.00, 60.00, 70),
   ('00000000-0000-4000-8000-000000000212', '00000000-0000-4000-8000-000000000001', 'Other',                 'Anything not on the menu; set the amount',   'addon',    0.00,  0.00, 100000.00, 80)
 on conflict (id) do nothing;
 
