@@ -1,7 +1,7 @@
 # Quantum Growth
 
-> Websites, Google Business Profile management and local search for auto shops,
-> trades and home services. Nationwide, month to month, and the client owns
+> Websites, Google Business Profile management and local search for small local
+> businesses of any kind — trades, retail, clinics, salons, restaurants, gyms. Nationwide, month to month, and the client owns
 > the domain, site, profile and email.
 
 - **Phone:** (916) 868-2447
@@ -55,8 +55,8 @@ reminders go by text and email instead.
 - Growth clients get $500 off any app build; Market Leader clients get $1,000 off.
 
 Quantum Growth's stated position is that most local service businesses do not
-need an app, and that it says so rather than selling one — a business whose
-customers visit twice a year will not install anything. Where an app does pay
+need an app, and that it says so rather than selling one — a business whose customers
+visit twice a year will not install anything. Where an app does pay
 is usually staff-facing rather than customer-facing: a technician photographing
 a worn part and sending it to the owner before approval converts better than a
 booking button.
