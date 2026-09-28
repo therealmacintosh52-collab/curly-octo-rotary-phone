@@ -199,6 +199,37 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   pointer-events:none}
 .hero-wipe svg{display:block;width:100%;height:100%}
 
+/* ---------- what do you need ----------
+   Three routes out of the hero. Most visitors arrive wanting one specific
+   thing and the page sells four; this lets them say which before reading
+   anything, and each one lands on the part that answers it. */
+.pick-q{font-family:var(--display);font-weight:400;text-transform:uppercase;
+  font-size:1.05rem;letter-spacing:.04em;color:#fff;margin:30px 0 12px}
+.picker{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.pick{display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  text-decoration:none;color:var(--on-void);border-radius:var(--r);padding:16px 15px 14px;
+  background:rgba(255,255,255,.055);border:1px solid var(--rule-void);
+  transition:transform .18s var(--ease),border-color .18s ease,background .18s ease}
+.pick:hover{transform:translateY(-3px);border-color:var(--accent,#F5A623);
+  background:rgba(245,166,35,.1)}
+.pick-ico{width:34px;height:34px;border-radius:10px;background:var(--grad-fire);
+  color:#1A0E03;display:grid;place-items:center;margin-bottom:8px;flex:none}
+.pick-ico .ico{width:18px;height:18px;stroke-width:2.4}
+.pick b{font-family:var(--display);font-weight:400;text-transform:uppercase;
+  font-size:1.18rem;letter-spacing:.02em;line-height:1.05;color:#fff}
+.pick span{font-size:.83rem;line-height:1.4;color:var(--on-void-2);font-weight:600}
+.pick em{font-style:normal;font-size:.78rem;font-weight:800;letter-spacing:.04em;
+  color:var(--fire);margin-top:6px}
+@media(max-width:1040px){.picker{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){
+  .picker{grid-template-columns:1fr;gap:9px}
+  .pick{flex-direction:row;align-items:center;flex-wrap:wrap;padding:13px 15px}
+  .pick-ico{margin-bottom:0;margin-right:11px}
+  .pick b{flex:1}
+  .pick span{flex-basis:100%;margin-top:4px}
+  .pick em{margin-top:2px}
+}
+
 /* ---------- lead form ---------- */
 .quote-card{position:relative;background:var(--paper);color:var(--ink);border-radius:var(--r-lg);
   padding:28px 26px 24px;box-shadow:var(--shadow-lg);overflow:hidden}
@@ -751,9 +782,29 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
         <span class="line"><span><em>Take it back.</em></span></span>
       </h1>
       <p class="sub">We build the website, run the Google profile, and show you the calls it produced — straight from Google's own numbers. You own every piece of it.</p>
+      <p class="pick-q">What would help your business most?</p>
+      <div class="picker">
+        <a class="pick" href="#website">
+          <span class="pick-ico"><svg class="ico"><use href="#i-door"/></svg></span>
+          <b>A website</b>
+          <span>Built properly, on your own domain, and it stays yours</span>
+          <em>One time, from $400</em>
+        </a>
+        <a class="pick" href="#apps">
+          <span class="pick-ico"><svg class="ico"><use href="#i-phone"/></svg></span>
+          <b>An app</b>
+          <span>Booking, photo reports and customer accounts — no App Store</span>
+          <em>From $1,900</em>
+        </a>
+        <a class="pick" href="#plans">
+          <span class="pick-ico"><svg class="ico"><use href="#i-chart"/></svg></span>
+          <b>Organic traffic</b>
+          <span>Getting found on Google without paying for every click</span>
+          <em>From $299 a month</em>
+        </a>
+      </div>
       <div class="btn-row">
-        <a class="btn btn-fire" href="#pricing">See pricing <svg class="ico"><use href="#i-arrow"/></svg></a>
-        <a class="btn btn-ghost" href="tel:+19168682447">Call (916) 868-2447</a>
+        <a class="btn btn-ghost" href="tel:+19168682447">Or just call — (916) 868-2447</a>
       </div>
       <ul class="hero-points">
         <li><svg class="ico"><use href="#i-check"/></svg><span>The domain, site, listing and number are in <strong>your</strong> name — day one</span></li>
@@ -900,7 +951,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       <p class="lede">Maintenance and social posting are in every plan — nothing here is an add-on that shows up on the bill later. The build is free on Local and above, so there is no setup cost to find — just the first month, charged the day we start.</p>
     </div>
 
-    <div class="plans">
+    <div class="plans" id="plans">
       <div class="plan">
         <h3>Starter</h3>
         <div class="price">$79<small>/mo</small></div>
@@ -970,7 +1021,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       </div>
     </div>
 
-    <div class="basic rv">
+    <div class="basic rv" id="website">
       <h3>Just want the website?</h3>
       <p>Some businesses do not want anything managed. They want a site that works, on their own domain, and to be left alone. That is a fair thing to want.</p>
       <div class="basic-prices">
