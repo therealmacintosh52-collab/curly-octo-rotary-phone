@@ -151,7 +151,7 @@ export function Dashboard({
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-label text-subtle">Getting paid</h2>
+          <h2 className="text-label text-subtle">Paid</h2>
           <StatTile label="Collected" value={formatMoney(stats.paid_last_90)} sub="last 90 days" tone="accent" href="/invoices?status=paid" />
           <StatList
             rows={[
