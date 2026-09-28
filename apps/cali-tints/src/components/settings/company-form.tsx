@@ -39,7 +39,6 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
     state: company.state ?? "",
     postal_code: company.postal_code ?? "",
     ein: company.ein ?? "",
-    payment_terms: company.payment_terms,
     tax_percent: String(Number(company.tax_rate) * 100),
     invoice_prefix: company.invoice_prefix,
     reminder_days: String(company.reminder_days),
@@ -108,12 +107,9 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
         <Card>
           <CardHeader>
             <CardTitle>Invoicing defaults</CardTitle>
-            <CardDescription>Dealerships can override terms and tax rate individually.</CardDescription>
+            <CardDescription>Dealerships can override the tax rate individually. Invoices carry no payment terms.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Payment terms" id="terms" hint='"Net 30" style terms also set the due date on the PDF.'>
-              <Input id="terms" value={f.payment_terms} onChange={set("payment_terms")} />
-            </Field>
             <Field label="Tax rate (%)" id="tax" hint="0 for labor-only services in most states.">
               <Input id="tax" type="number" step="0.001" min="0" max="50" value={f.tax_percent} onChange={set("tax_percent")} />
             </Field>

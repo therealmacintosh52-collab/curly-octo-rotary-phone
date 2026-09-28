@@ -65,7 +65,7 @@ function carProps(row: InvoiceListRow, base: ReturnType<typeof invoiceBundleFixt
   const c = row.cars[0];
   const [year, make, ...model] = (c.vehicle ?? "").split(" ");
   const performedAt = `${row.period_start}T17:30:00.000Z`;
-  const dealership = { ...base.dealership, id: row.dealership_id, name: row.dealership, payment_terms: row.dealership_id === "d2" ? "Net 45" : null };
+  const dealership = { ...base.dealership, id: row.dealership_id, name: row.dealership, payment_terms: null };
   // Service prices from the menu; the last line absorbs any rounding so the lines add up to the row's total.
   const lines = row.services.map((name) => ({ name, price: Number(prices[name]?.price ?? 0), service_id: prices[name]?.service_id ?? "s8" }));
   const sum = lines.reduce((s, l) => s + l.price, 0);

@@ -2,10 +2,10 @@ import "server-only";
 
 import React from "react";
 import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 import { formatMoney, formatTaxRate } from "@/lib/money";
 import { formatDateOnly } from "@/lib/dates";
-import { formatAddress, netDays, type InvoiceBundle } from "./load";
+import { formatAddress, type InvoiceBundle } from "./load";
 import { LOGO_BW_PNG_BASE64, LOGO_PNG_BASE64 } from "./logo";
 
 export type PdfVariant = "branded" | "print";
@@ -60,8 +60,6 @@ export function InvoiceDocument({ bundle, variant }: { bundle: InvoiceBundle; va
   const { invoice, items, company, dealership, logoDataUri } = bundle;
   const { s, c } = styles(variant);
   const issued = new Date(invoice.created_at);
-  const days = netDays(invoice.payment_terms);
-  const due = days !== null ? addDays(issued, days) : null;
   const balance = Number(invoice.total) - Number(invoice.amount_paid);
   const logoSrc = variant === "print" ? `data:image/png;base64,${LOGO_BW_PNG_BASE64}` : (logoDataUri ?? `data:image/png;base64,${LOGO_PNG_BASE64}`);
 
@@ -95,16 +93,6 @@ export function InvoiceDocument({ bundle, variant }: { bundle: InvoiceBundle; va
               <View style={s.metaRow}>
                 <Text style={s.metaKey}>Date</Text>
                 <Text style={s.metaVal}>{format(issued, "MMM d, yyyy")}</Text>
-              </View>
-              {due ? (
-                <View style={s.metaRow}>
-                  <Text style={s.metaKey}>Due</Text>
-                  <Text style={s.metaVal}>{format(due, "MMM d, yyyy")}</Text>
-                </View>
-              ) : null}
-              <View style={s.metaRow}>
-                <Text style={s.metaKey}>Terms</Text>
-                <Text style={s.metaVal}>{invoice.payment_terms}</Text>
               </View>
               {invoice.ro_po_number ? (
                 <View style={s.metaRow}>
@@ -190,11 +178,11 @@ export function InvoiceDocument({ bundle, variant }: { bundle: InvoiceBundle; va
           ) : null}
         </View>
 
-        {/* Terms / notes */}
+        {/* Remittance / notes */}
         <View style={s.notes} wrap={false}>
-          <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Payment terms</Text>
+          <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Remittance</Text>
           <Text style={s.small}>
-            {invoice.payment_terms}. Please reference {invoice.display_number} on remittance
+            Please reference {invoice.display_number} on remittance
             {company.email ? ` and send remittance advice to ${company.email}` : ""}.
           </Text>
           {invoice.notes ? (

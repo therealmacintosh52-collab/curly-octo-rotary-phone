@@ -165,8 +165,7 @@ export function InvoiceBuilder({
             </Select>
             {dealership && (
               <p className="text-xs text-muted-foreground">
-                Mode: <span className="text-foreground">{perJob ? "Per job (one invoice per RO/PO)" : "Batch (date range)"}</span> · Terms:{" "}
-                <span className="text-foreground">{dealership.payment_terms ?? "company default"}</span>
+                Mode: <span className="text-foreground">{perJob ? "Per job (one invoice per RO/PO)" : "Batch (date range)"}</span>
               </p>
             )}
           </div>

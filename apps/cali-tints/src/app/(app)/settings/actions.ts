@@ -25,7 +25,6 @@ const companySchema = z.object({
   state: optionalText(40),
   postal_code: optionalText(20),
   ein: optionalText(40),
-  payment_terms: z.string().trim().min(1).max(80),
   tax_rate: z.number().min(0).max(0.5),
   invoice_prefix: z.string().trim().max(12),
   reminder_days: z.number().int().min(1).max(365),
@@ -91,7 +90,6 @@ const dealershipSchema = z.object({
   ap_emails: z.array(z.string().trim().email()).max(10),
   submission_method: z.enum(["email", "portal", "paper"]),
   invoice_mode: z.enum(["batch", "per_job"]),
-  payment_terms: optionalText(80),
   tax_rate: z.number().min(0).max(0.5).nullable(),
   active: z.boolean(),
 });

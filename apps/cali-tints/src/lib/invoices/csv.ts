@@ -30,7 +30,6 @@ export const INVOICE_CSV_COLUMNS = [
   { key: "invoice_subtotal", header: "Invoice Subtotal" },
   { key: "invoice_tax", header: "Invoice Tax" },
   { key: "invoice_total", header: "Invoice Total" },
-  { key: "payment_terms", header: "Payment Terms" },
   { key: "status", header: "Status" },
 ] as const;
 
@@ -63,7 +62,6 @@ export function invoiceCsvRows(b: InvoiceBundle): InvoiceCsvRow[] {
     invoice_subtotal: Number(invoice.subtotal).toFixed(2),
     invoice_tax: Number(invoice.tax).toFixed(2),
     invoice_total: Number(invoice.total).toFixed(2),
-    payment_terms: invoice.payment_terms,
     status: invoice.status,
   }));
 }

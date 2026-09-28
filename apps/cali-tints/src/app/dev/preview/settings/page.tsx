@@ -20,7 +20,7 @@ export default function DevSettingsPreview() {
     id, company_id: company.id, name, description: null, category, default_price: price, price_min: range?.[0] ?? null, price_max: range?.[1] ?? null, active, sort_order: sort, created_at: "", updated_at: "",
   });
   const services = [svc("s1", "PDI", "new", 60, 10), svc("s2", "Sold", "new", 20, 20), svc("s3", "Used", "used", 200, 30), svc("s4", "Service Loaner Detail", "service", 125, 40), svc("s5", "Touch Up Detail", "addon", 30, 50, [20, 40]), svc("s6", "Tint Removal", "addon", 40, 60), svc("s7", "Paint Correction (1-step)", "addon", 50, 70, [40, 60]), svc("s8", "Other", "addon", 0, 80, [0, 100000])];
-  const dealerships = [dealership, { ...dealership, id: "d2", name: "Mercedes-Benz of Sacramento", invoice_mode: "per_job" as const, submission_method: "portal" as const, ap_emails: [], payment_terms: "Net 45" }];
+  const dealerships = [dealership, { ...dealership, id: "d2", name: "Mercedes-Benz of Sacramento", invoice_mode: "per_job" as const, submission_method: "portal" as const, ap_emails: [] }];
   const demoCompany = { ...company, clover_enabled: true, clover_env: "sandbox" as const, clover_merchant_id: "7G9V9DP834ZY2", clover_last_sync_at: null, clover_verified_at: null, clover_connected_at: "2026-09-20T17:00:00Z", clover_merchant_name: "Cali Tints (sandbox)", clover_device_id: "C030UQ12345678", clover_pos_id: "Cali Tints app" };
   const demoEnv = [
     { key: "CLOVER_API_TOKEN", set: true, purpose: "orders and payment sync" },

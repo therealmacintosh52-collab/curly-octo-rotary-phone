@@ -1,10 +1,10 @@
 import "server-only";
 
 import ExcelJS from "exceljs";
-import { formatAddress, netDays, type InvoiceBundle } from "./load";
+import { formatAddress, type InvoiceBundle } from "./load";
 import { INVOICE_CSV_COLUMNS, invoiceCsvRows } from "./csv";
 import { formatDateOnly } from "@/lib/dates";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 
 /**
  * Two sheets: a formatted "Invoice" for humans and a flat "Lines" sheet with
@@ -28,11 +28,9 @@ export async function invoiceXlsx(b: InvoiceBundle): Promise<Buffer> {
   ws.addRow([]);
 
   const issued = new Date(invoice.created_at);
-  const days = netDays(invoice.payment_terms);
   ws.addRow(["INVOICE", "", invoice.display_number]).font = { bold: true, size: 14 };
   ws.addRow(["Date", "", format(issued, "yyyy-MM-dd")]);
   ws.addRow(["Period", "", `${formatDateOnly(invoice.period_start)} – ${formatDateOnly(invoice.period_end)}`]);
-  ws.addRow(["Terms", "", invoice.payment_terms + (days ? ` (due ${format(addDays(issued, days), "yyyy-MM-dd")})` : "")]);
   if (invoice.ro_po_number) ws.addRow(["RO/PO", "", invoice.ro_po_number]);
   ws.addRow([]);
   ws.addRow(["Bill to", "", dealership.name]).font = { bold: true };
@@ -71,7 +69,7 @@ export async function invoiceXlsx(b: InvoiceBundle): Promise<Buffer> {
     due.font = { bold: true };
   }
   ws.addRow([]);
-  ws.addRow([`Payment terms: ${invoice.payment_terms}. Please reference ${invoice.display_number} on remittance.`]);
+  ws.addRow([`Please reference ${invoice.display_number} on remittance.`]);
 
   // --- Lines sheet -----------------------------------------------------------
   const lines = wb.addWorksheet("Lines");

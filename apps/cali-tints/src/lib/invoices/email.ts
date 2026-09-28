@@ -43,7 +43,6 @@ export function invoiceEmailHtml(b: InvoiceBundle, appUrl: string | null, payUrl
       <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #e5e7eb">Invoice</td><td style="padding:10px 14px;text-align:right;border-bottom:1px solid #e5e7eb"><strong>${e(invoice.display_number)}</strong></td></tr>
       <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #e5e7eb">Service period</td><td style="padding:10px 14px;text-align:right;border-bottom:1px solid #e5e7eb">${e(period)}</td></tr>
       ${invoice.ro_po_number ? `<tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #e5e7eb">RO / PO</td><td style="padding:10px 14px;text-align:right;border-bottom:1px solid #e5e7eb">${e(invoice.ro_po_number)}</td></tr>` : ""}
-      <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #e5e7eb">Payment terms</td><td style="padding:10px 14px;text-align:right;border-bottom:1px solid #e5e7eb">${e(invoice.payment_terms)}</td></tr>
       <tr><td style="padding:12px 14px;font-weight:700">Total due</td><td style="padding:12px 14px;text-align:right;font-weight:700;font-size:18px">${formatMoney(invoice.total)}</td></tr>
     </table>
     ${
@@ -69,7 +68,6 @@ export function invoiceEmailText(b: InvoiceBundle, payUrl: string | null = null)
     `Dealership: ${dealership.name}`,
     `Service period: ${formatDateOnly(invoice.period_start)} – ${formatDateOnly(invoice.period_end)}`,
     invoice.ro_po_number ? `RO/PO: ${invoice.ro_po_number}` : null,
-    `Payment terms: ${invoice.payment_terms}`,
     `Total due: ${formatMoney(invoice.total)}`,
     payUrl ? `Pay by card (secure Clover checkout): ${payUrl}` : null,
     ``,

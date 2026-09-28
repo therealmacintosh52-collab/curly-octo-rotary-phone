@@ -35,7 +35,7 @@ const DEALERSHIPS = [
 /** Fixture preview of the one list (guest demo in production). Filters come from the URL so the segmented control, chips and sheet behave like the real page. */
 export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/invoices">) {
   const typed = parseInvoiceFilters(await props.searchParams);
-  const company = { id: "c1", name: "Cali Tints", payment_terms: "Net 30", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles", clover_enabled: true, auto_invoice: true } as Company;
+  const company = { id: "c1", name: "Cali Tints", payment_terms: "", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles", clover_enabled: true, auto_invoice: true } as Company;
   const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Mike", email: null, active: true } as Profile;
 
   // Apply the URL filters to the fixture the way the RPC would (a date in the search box becomes a range).
@@ -77,7 +77,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
     drafts.map((r) => {
       const b = {
         ...base,
-        invoice: { ...base.invoice, id: r.id, display_number: r.display_number, period_start: r.period_start, period_end: r.period_end, ro_po_number: r.ro_po_number, total: r.total, payment_terms: r.dealership_id === "d2" ? "Net 45" : "Net 30" },
+        invoice: { ...base.invoice, id: r.id, display_number: r.display_number, period_start: r.period_start, period_end: r.period_end, ro_po_number: r.ro_po_number, total: r.total, payment_terms: "" },
         dealership: { ...base.dealership, id: r.dealership_id, name: r.dealership, ap_emails: emailsFor(r.dealership_id) },
       };
       const env = invoiceEmailEnvelope(b);

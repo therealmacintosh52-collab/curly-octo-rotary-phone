@@ -11,7 +11,7 @@ insert into public.companies (id, name, email, phone, address_line1, city, state
                               payment_terms, tax_rate, invoice_prefix, timezone)
 values ('00000000-0000-4000-8000-000000000001', 'Cali Tints', 'billing@calitints.example', '(555) 010-2030',
         '1200 Auto Center Dr', 'Anaheim', 'CA', '92806', '00-0000000',
-        'Net 30', 0, 'INV-', 'America/Los_Angeles')
+        '', 0, 'INV-', 'America/Los_Angeles')
 on conflict (id) do nothing;
 
 insert into public.dealerships (id, company_id, name, address_line1, city, state, postal_code,
@@ -21,11 +21,11 @@ values
   ('00000000-0000-4000-8000-000000000101', '00000000-0000-4000-8000-000000000001',
    'Mercedes-Benz of El Dorado Hills', '1000 Mercedes Ln', 'El Dorado Hills', 'CA', '95762',
    'Service Manager', '(555) 200-3000', 'Accounts Payable', array['ap@mbeldoradohills.example'],
-   'email', 'batch', 'Net 30'),
+   'email', 'batch', null),
   ('00000000-0000-4000-8000-000000000102', '00000000-0000-4000-8000-000000000001',
    'Mercedes-Benz of Sacramento', '1810 Howe Ave', 'Sacramento', 'CA', '95825',
    'Fixed Ops Director', '(555) 200-4000', 'AP Desk', array['ap@mbsacramento.example', 'controller@mbsacramento.example'],
-   'portal', 'per_job', 'Net 45')
+   'portal', 'per_job', null)
 on conflict (id) do nothing;
 
 -- The dealer menu, grouped the way the dealership buys the work:

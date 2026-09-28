@@ -22,7 +22,7 @@ export default function DevPreviewPage() {
     state: null,
     postal_code: null,
     ein: null,
-    payment_terms: "Net 30",
+    payment_terms: "",
     tax_rate: 0,
     invoice_prefix: "INV-",
     next_invoice_number: 1,

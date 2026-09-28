@@ -54,12 +54,6 @@ export async function loadInvoiceBundle(id: string): Promise<InvoiceBundle | nul
   };
 }
 
-/** "Net 30" → 30 days; anything else → null. */
-export function netDays(terms: string): number | null {
-  const m = /net\s*(\d{1,3})/i.exec(terms);
-  return m ? Number(m[1]) : null;
-}
-
 /** Compose a single-line address from the parts we store. */
 export function formatAddress(a: { address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; postal_code: string | null }): string[] {
   const lines: string[] = [];

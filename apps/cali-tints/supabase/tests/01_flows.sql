@@ -212,7 +212,7 @@ begin
   assert array_length(v_ids, 1) = 2, 'two per-job invoices, got ' || coalesce(array_length(v_ids,1),0);
   select * into inv from public.invoices where ro_po_number = 'RO-77';
   assert inv.subtotal = 270.00, 'RO-77 groups two jobs: ' || inv.subtotal;   -- 215 + 55
-  assert inv.payment_terms = 'Net 45', 'dealership terms override';
+  assert coalesce(inv.payment_terms, '') = '', 'invoices carry no payment terms';
   assert inv.display_number = 'INV-000002' or inv.display_number = 'INV-000003', 'sequential numbering';
 
   -- void a draft: jobs unlock
@@ -647,12 +647,12 @@ begin
         'performed_at', now() - interval '1 day',
         'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000204'))));
   select * into inv from public.invoices where id = j.invoice_id;
-  assert inv.ro_po_number = 'RO-900' and inv.payment_terms = 'Net 45' and inv.subtotal = 55.00, 'invoice carries RO/PO, dealer terms and price: ' || inv.subtotal;
+  assert inv.ro_po_number = 'RO-900' and inv.subtotal = 55.00, 'invoice carries RO/PO and dealer price: ' || inv.subtotal;
   v_num := inv.display_number;
 
   -- move the car to another dealership: terms follow, number stays; repricing happens when services are sent
   inv := public.edit_invoice_car(inv.id, jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101'));
-  assert inv.display_number = v_num and inv.dealership_id = '00000000-0000-4000-8000-000000000101' and inv.payment_terms = 'Net 30', 'dealership change follows through';
+  assert inv.display_number = v_num and inv.dealership_id = '00000000-0000-4000-8000-000000000101', 'dealership change follows through';
   inv := public.edit_invoice_car(inv.id, jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000204'))));
   assert inv.subtotal = 60.00, 'repriced for the new dealership: ' || inv.subtotal;
 

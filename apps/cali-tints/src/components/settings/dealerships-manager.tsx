@@ -30,7 +30,6 @@ type Draft = {
   ap_emails: string;
   submission_method: SubmissionMethod;
   invoice_mode: InvoiceMode;
-  payment_terms: string;
   tax_percent: string;
   active: boolean;
 };
@@ -48,7 +47,6 @@ const empty: Draft = {
   ap_emails: "",
   submission_method: "email",
   invoice_mode: "batch",
-  payment_terms: "",
   tax_percent: "",
   active: true,
 };
@@ -68,7 +66,6 @@ function toDraft(d: Dealership): Draft {
     ap_emails: d.ap_emails.join(", "),
     submission_method: d.submission_method,
     invoice_mode: d.invoice_mode,
-    payment_terms: d.payment_terms ?? "",
     tax_percent: d.tax_rate === null ? "" : String(Number(d.tax_rate) * 100),
     active: d.active,
   };
@@ -98,7 +95,7 @@ export function DealershipsManager({ dealerships }: { dealerships: Dealership[] 
                   AP: {d.ap_contact_name || "—"} · {d.ap_emails.length ? d.ap_emails.join(", ") : <span className="text-warning">no AP email</span>}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Terms: {d.payment_terms ?? "company default"} · Tax: {d.tax_rate === null ? "company default" : `${Number(d.tax_rate) * 100}%`}
+                  Tax: {d.tax_rate === null ? "company default" : `${Number(d.tax_rate) * 100}%`}
                 </div>
               </div>
               <Button size="icon-sm" variant="ghost" aria-label="Edit" onClick={() => setEditing(toDraft(d))}>
@@ -141,7 +138,6 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
         ap_emails: emails,
         submission_method: f.submission_method,
         invoice_mode: f.invoice_mode,
-        payment_terms: f.payment_terms,
         tax_rate: f.tax_percent.trim() === "" ? null : Number(f.tax_percent) / 100,
         active: f.active,
       });
@@ -213,15 +209,9 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
               </div>
             </div>
             <p className="text-xs text-muted-foreground">Every car logged for this dealership becomes its own invoice. Use <strong>Collect all unpaid</strong> on the Invoices page to settle several at once.</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="d-terms">Payment terms</Label>
-                <Input id="d-terms" value={f.payment_terms} onChange={set("payment_terms")} placeholder="Company default" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="d-tax">Tax rate (%)</Label>
-                <Input id="d-tax" type="number" step="0.001" min="0" value={f.tax_percent} onChange={set("tax_percent")} placeholder="Company default" />
-              </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="d-tax">Tax rate (%)</Label>
+              <Input id="d-tax" type="number" step="0.001" min="0" value={f.tax_percent} onChange={set("tax_percent")} placeholder="Company default" />
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
               <div>

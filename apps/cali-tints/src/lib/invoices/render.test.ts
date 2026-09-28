@@ -5,7 +5,7 @@ import { invoiceCsv, invoiceCsvRows, INVOICE_CSV_COLUMNS } from "./csv";
 import { invoiceXlsx } from "./xlsx";
 import { invoicePdf } from "./pdf";
 import { invoiceEmailHtml, invoiceEmailText } from "./email";
-import { invoiceFileStem, netDays } from "./load";
+import { invoiceFileStem } from "./load";
 
 const OUT = process.env.RENDER_OUT_DIR; // set to also write the files for eyeballing
 
@@ -49,15 +49,15 @@ describe("invoice renderers", () => {
     expect(html).not.toContain("Pay by card");
     const withPay = invoiceEmailHtml(b, "https://app.example.com", "https://checkout.example/pay/abc");
     expect(withPay).toContain("Pay by card");
+    // Invoices carry no payment terms.
+    expect(withPay).not.toMatch(/Payment terms|Net 30/);
+    expect(invoiceEmailText(b)).not.toMatch(/Payment terms|Net 30/);
     expect(withPay).toContain('href="https://checkout.example/pay/abc"');
     expect(invoiceEmailText(b, "https://checkout.example/pay/abc")).toContain("Pay by card (secure Clover checkout): https://checkout.example/pay/abc");
     if (OUT) writeFileSync(`${OUT}/invoice-email.html`, withPay);
   });
 
   it("helpers", () => {
-    expect(netDays("Net 30")).toBe(30);
-    expect(netDays("net45")).toBe(45);
-    expect(netDays("Due on receipt")).toBeNull();
     expect(invoiceFileStem(b)).toBe("INV-000012-Mercedes-Benz-of-El-Dorado-Hills");
   });
 });
