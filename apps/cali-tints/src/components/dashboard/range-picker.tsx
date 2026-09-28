@@ -20,7 +20,8 @@ const PRESETS: { value: RangePreset; label: string }[] = [
 /** Range controls above the breakdown charts; state lives in the URL so views are shareable. */
 export function RangePicker({ preset, start, end }: { preset: RangePreset | "custom"; start: string; end: string }) {
   const router = useRouter();
-  const go = (s: string, e: string, p?: RangePreset) => router.push(`/?from=${s}&to=${e}${p ? `&preset=${p}` : ""}`);
+  // scroll: false keeps the reader where they are; only the numbers below change.
+  const go = (s: string, e: string, p?: RangePreset) => router.push(`/?from=${s}&to=${e}${p ? `&preset=${p}` : ""}`, { scroll: false });
   return (
     <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
       <Segmented

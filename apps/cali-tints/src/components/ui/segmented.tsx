@@ -60,7 +60,8 @@ export function Segmented({
           wrap ? "flex-none" : "flex-1",
         );
         return item.href ? (
-          <Link key={item.value} href={item.href} data-active={active} aria-current={active ? "page" : undefined} className={classes}>
+          // scroll={false}: switching a segment swaps the content below it in place; the page must not jump to the top.
+          <Link key={item.value} href={item.href} scroll={false} data-active={active} aria-current={active ? "page" : undefined} className={classes}>
             {item.label}
           </Link>
         ) : (
