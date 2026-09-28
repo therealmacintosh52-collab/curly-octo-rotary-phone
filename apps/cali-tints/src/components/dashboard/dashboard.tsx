@@ -98,7 +98,6 @@ export function weeksOfMonth(start: string, end: string, byDay: { day: string; j
 export function Dashboard({
   stats,
   range,
-  companyName,
   cloverUnmatched = 0,
   today,
   greeting,
@@ -106,11 +105,10 @@ export function Dashboard({
 }: {
   stats: DashboardStats;
   range: DashboardRange;
-  companyName: string;
   cloverUnmatched?: number;
   /** Today in the company timezone (yyyy-mm-dd). */
   today: string;
-  /** "Good afternoon, Mike." — built by the page from the clock and the signed-in name. */
+  /** "Good afternoon, Mike." — the page title, built by the page from the clock and the signed-in name. */
   greeting: string;
   /** The month the breakdown shows, with its own stats (by service, by day). */
   breakdown: ReturnType<typeof resolveBreakdownMonth> & { stats: Pick<DashboardStats, "by_service" | "by_day"> };
@@ -127,8 +125,7 @@ export function Dashboard({
     <Page>
       <PageHeader
         eyebrow={formatDate(new Date(), "EEEE, MMMM d")}
-        title={companyName}
-        description={greeting}
+        title={greeting.replace(/\.$/, "")}
         actions={
           <Button asChild>
             <Link href="/jobs/new">

@@ -83,7 +83,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
     <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
-          <Dashboard stats={stats} range={range} companyName={company.name} today={today} greeting={greetingFor("Mike", company.timezone)} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} />
+          <Dashboard stats={stats} range={range} today={today} greeting={greetingFor("Mike", company.timezone)} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>
