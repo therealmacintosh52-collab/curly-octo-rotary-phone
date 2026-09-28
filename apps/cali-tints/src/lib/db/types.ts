@@ -458,6 +458,8 @@ export type InvoiceListRow = {
   display_number: string;
   status: InvoiceStatus;
   overdue: boolean;
+  /** Voided by "Delete invoice": lives in the archive and can be restored. */
+  deleted: boolean;
   total: number;
   amount_paid: number;
   balance: number;
@@ -553,6 +555,7 @@ export type Database = {
       invoice_job: { Args: { p_job_id: string; p_notes?: string | null }; Returns: string };
       edit_invoice_car: { Args: { p_invoice_id: string; p: Partial<JobPayload> }; Returns: Invoice };
       delete_invoice_car: { Args: { p_invoice_id: string; p_reason?: string | null }; Returns: undefined };
+      restore_invoice_car: { Args: { p_invoice_id: string }; Returns: Invoice };
       invoices_filtered: {
         Args: {
           p_q?: string | null;

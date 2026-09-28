@@ -108,7 +108,7 @@ function DeleteCarDialog({ tag, onConfirm, pending }: { tag: string; onConfirm: 
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Delete the invoice for {tag}?</DialogTitle>
-        <DialogDescription>The invoice is voided (its number stays in the audit trail) and the car comes off the lists. Nothing is billed for it.</DialogDescription>
+        <DialogDescription>It moves to the archive (Invoices → Archive), where you can restore it any time. Nothing is billed for it and its number is kept.</DialogDescription>
       </DialogHeader>
       <div className="grid gap-2">
         <Label htmlFor="delete-reason">Reason (optional)</Label>

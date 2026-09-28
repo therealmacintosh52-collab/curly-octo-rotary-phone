@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeftIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
+import { ArchiveIcon, ArrowLeftIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
 import type { Company, Dealership, Invoice, InvoiceItem, InvoicePayment, InvoiceSubmission, PaymentMethod, PriceListRow } from "@/lib/db/types";
 import { formatMoney, formatTaxRate } from "@/lib/money";
 import { formatDate, formatDateOnly, formatDateTime, nowMs } from "@/lib/dates";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
 import { InvoiceActions } from "./invoice-actions";
 import { CarActions } from "./car-actions";
+import { RestoreInvoiceButton } from "./restore-invoice-button";
 import { PaymentsCard } from "./payments-card";
 import { SubmissionsCard } from "./submissions-card";
 import { CloverPanel } from "./clover-panel";
@@ -35,6 +36,8 @@ export interface InvoiceDetailProps {
   canEdit: boolean;
   canDelete: boolean;
   lockedReason: string | null;
+  /** Deleted with "Delete invoice": in the archive, restorable. */
+  archived: boolean;
   reminderDays: number;
   clover: { enabled: boolean; card: CloverCardConfig | null; device: boolean; payLink: boolean; orderUrl: string | null };
 }
@@ -62,7 +65,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
   const steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[] = [
     { label: "Logged", detail: `${formatDate(performedOn)}${detailerName ? ` · ${detailerName}` : ""} · ${dealership.name}`, state: "done" },
     invoice.status === "void"
-      ? { label: "Voided", detail: `${formatDate(invoice.voided_at ?? invoice.updated_at)}${invoice.void_reason ? ` · ${invoice.void_reason}` : ""}`, state: "off" }
+      ? { label: p.archived ? "Deleted" : "Voided", detail: `${formatDate(invoice.voided_at ?? invoice.updated_at)}${invoice.void_reason ? ` · ${invoice.void_reason}` : ""}${p.archived ? " · in the archive" : ""}`, state: "off" }
       : invoice.submitted_at
         ? { label: "Sent to the dealership", detail: `${formatDate(invoice.submitted_at)}${lastSent ? ` ${SUBMIT_METHOD[lastSent.method]}${lastSent.recipients.length ? ` to ${lastSent.recipients.join(", ")}` : ""}` : ""}`, state: "done" }
         : { label: "Send to the dealership", detail: isAdmin ? "Not sent yet · email it, or collect on the spot" : "Not sent yet", state: "now" },
@@ -70,7 +73,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
       ? { label: "Paid", detail: "—", state: "off" }
       : invoice.status === "paid"
         ? { label: "Paid in full", detail: `${invoice.paid_at ? formatDateOnly(invoice.paid_at) : ""}${lastPayment ? ` · ${METHOD[lastPayment.method]}${lastPayment.reference ? ` #${lastPayment.reference}` : ""}` : ""}`, state: "done" }
-        : { label: invoice.status === "partial" ? "Partly paid" : "Paid", detail: invoice.status === "partial" ? `${formatMoney(invoice.amount_paid)} received · ${formatMoney(balance)} still due` : `${formatMoney(balance)} due · ${invoice.payment_terms}`, state: invoice.submitted_at ? "now" : "todo" },
+        : { label: invoice.status === "partial" ? "Partly paid" : "Paid", detail: invoice.status === "partial" ? `${formatMoney(invoice.amount_paid)} received · ${formatMoney(balance)} still due` : `${formatMoney(balance)} due`, state: invoice.submitted_at ? "now" : "todo" },
   ];
 
   return (
@@ -87,7 +90,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-title tracking-wide">{title}</h1>
-            <InvoiceStatusBadge status={invoice.status} overdue={overdue} />
+            <InvoiceStatusBadge status={invoice.status} overdue={overdue} deleted={p.archived} />
           </div>
         </div>
         {isAdmin ? (
@@ -103,8 +106,19 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
         )}
       </div>
 
+      {p.archived && (
+        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm" data-testid="archived-banner">
+          <ArchiveIcon className="size-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1">
+            Deleted {formatDate(invoice.voided_at ?? invoice.updated_at)}
+            {invoice.void_reason ? ` · ${invoice.void_reason}` : ""}. It stays in the archive; nothing is billed.
+          </span>
+          {isAdmin && <RestoreInvoiceButton invoiceId={invoice.id} number={invoice.display_number} />}
+        </div>
+      )}
+
       <div className="mt-5 flex flex-col gap-3">
-        {isAdmin && (
+        {isAdmin && !p.archived && (
           <InvoiceActions
             invoice={{ id: invoice.id, status: invoice.status, display_number: invoice.display_number, amount_paid: Number(invoice.amount_paid), total: Number(invoice.total), notes: invoice.notes }}
             dealership={{ name: dealership.name, ap_emails: dealership.ap_emails, submission_method: dealership.submission_method }}
@@ -256,10 +270,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
                   </>
                 )}
               </div>
-              <p className="mt-3 text-caption text-subtle">
-                Terms {invoice.payment_terms}
-                {invoice.notes ? ` · ${invoice.notes}` : ""}
-              </p>
+              {invoice.notes && <p className="mt-3 text-caption text-subtle">{invoice.notes}</p>}
             </CardContent>
           </Card>
 

@@ -54,6 +54,7 @@ function legacyProps(base: ReturnType<typeof invoiceBundleFixture>): InvoiceDeta
     canEdit: false,
     canDelete: false,
     lockedReason: null,
+    archived: false,
     clover: { ...common(base).clover, orderUrl: "https://sandbox.dev.clover.com/orders/m/7G9V9DP834ZY2/ABC123" },
   };
 }
@@ -147,6 +148,7 @@ function carProps(row: InvoiceListRow, base: ReturnType<typeof invoiceBundleFixt
     },
     canEdit: isDraft,
     canDelete: isDraft,
+    archived: row.deleted,
     lockedReason: !isDraft && row.status !== "void" ? (row.amount_paid > 0 ? "A payment is recorded, so the car is locked" : "Sent to the dealership, so the car is locked") : null,
   };
 }

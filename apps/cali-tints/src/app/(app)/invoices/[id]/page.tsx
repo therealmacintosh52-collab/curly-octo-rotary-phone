@@ -53,6 +53,10 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
     .is("deleted_at", null);
   const cars = (carRows ?? []) as unknown as CarRow[];
   const car = cars.length === 1 ? cars[0] : null;
+  // Deleted with "Delete invoice": void, and the car it carried is soft-deleted. Lives in the archive.
+  const itemJobIds = items.map((it) => it.job_id).filter((x): x is string => !!x);
+  const { data: deletedJobs } = invoice.status === "void" && itemJobIds.length ? await supabase.from("jobs").select("id").in("id", itemJobIds).not("deleted_at", "is", null) : { data: [] };
+  const archived = invoice.status === "void" && (deletedJobs ?? []).length > 0;
 
   const [priceListRes, { data: detailers }, submissionsWithUrls] = await Promise.all([
     car ? supabase.rpc("dealership_price_list", { p_dealership_id: car.dealership_id }) : Promise.resolve({ data: [] as PriceListRow[] }),
@@ -112,6 +116,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
       canEdit={canEdit}
       canDelete={canDelete}
       lockedReason={lockedReason}
+      archived={archived}
       reminderDays={session.company.reminder_days}
       clover={{
         enabled: !!clover,

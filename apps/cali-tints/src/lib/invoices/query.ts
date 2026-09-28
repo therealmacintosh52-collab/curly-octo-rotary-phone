@@ -4,7 +4,7 @@ import { formatDateOnly, parseDateOnly, presetRange } from "@/lib/dates";
 export const INVOICE_PAGE_SIZE = 50;
 
 /** URL-facing status values. `outstanding` is kept for old links (sent, unpaid). */
-export const INVOICE_STATUSES = ["all", "unpaid", "outstanding", "overdue", "draft", "submitted", "partial", "paid", "void"] as const;
+export const INVOICE_STATUSES = ["all", "unpaid", "outstanding", "overdue", "draft", "submitted", "partial", "paid", "void", "deleted"] as const;
 export type InvoiceStatusFilter = (typeof INVOICE_STATUSES)[number];
 
 export interface InvoiceFilters {
@@ -158,4 +158,5 @@ export const STATUS_LABELS: Record<InvoiceStatusFilter, string> = {
   partial: "Partially paid",
   paid: "Paid",
   void: "Void",
+  deleted: "Archive",
 };

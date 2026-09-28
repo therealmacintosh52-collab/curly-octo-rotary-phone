@@ -681,9 +681,24 @@ begin
     raise exception 'expected void block';
   exception when sqlstate 'P0001' then null; end;
 
-  -- the list: filters
+  -- the archive: a deleted invoice is listed under 'deleted' (not 'void'), and comes back whole
+  f := public.invoices_filtered(p_status => 'deleted');
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = j.invoice_id::text and (r ->> 'deleted')::boolean) = 1, 'archive lists the deleted invoice';
   f := public.invoices_filtered(p_status => 'void');
-  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = j.invoice_id::text) = 1, 'void filter lists the voided invoice';
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = j.invoice_id::text) = 0, 'void filter leaves deleted ones to the archive';
+  inv := public.restore_invoice_car(j.invoice_id);
+  assert inv.status = 'draft' and inv.voided_at is null and inv.display_number = (select display_number from public.invoices where id = j.invoice_id), 'restored as an unsent draft with its number';
+  assert (select deleted_at from public.jobs where id = j.id) is null and (select invoice_id from public.jobs where id = j.id) = inv.id, 'car restored and relinked';
+  assert (select count(*) from public.invoice_items where invoice_id = inv.id) = 1, 'lines kept';
+  begin
+    perform public.restore_invoice_car(inv.id);
+    raise exception 'expected not-deleted rejection';
+  exception when sqlstate 'P0001' then null; end;
+  perform public.delete_invoice_car(inv.id, 'logged twice, again');
+
+  -- the list: filters
+  f := public.invoices_filtered(p_status => 'deleted');
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = j.invoice_id::text) = 1, 'deleted filter lists the deleted invoice';
   f := public.invoices_filtered();
   assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'status' = 'void') = 0, 'all hides void';
   f := public.invoices_filtered(p_q => 'car1x');

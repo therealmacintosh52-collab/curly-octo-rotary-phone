@@ -9,10 +9,11 @@ const MAP: Record<InvoiceStatus, { label: string; short: string; hint: string; v
   void: { label: "Void", short: "Void", hint: "Cancelled; nothing billed", variant: "destructive" },
 };
 const OVERDUE_HINT = "Unpaid past the payment terms";
+const DELETED = { label: "Deleted", hint: "Deleted · kept in the archive, can be restored" };
 
 /** Status in the owner's words: has it been sent, is it paid. `short` fits a table cell; overdue replaces the label rather than stacking. Hover or long-press for what it means. */
-export function InvoiceStatusBadge({ status, overdue, short }: { status: InvoiceStatus; overdue?: boolean; short?: boolean }) {
-  const m = MAP[status];
+export function InvoiceStatusBadge({ status, overdue, short, deleted }: { status: InvoiceStatus; overdue?: boolean; short?: boolean; deleted?: boolean }) {
+  const m = deleted ? { ...MAP.void, ...DELETED, short: DELETED.label } : MAP[status];
   if (overdue && short)
     return (
       <Badge variant="destructive" title={OVERDUE_HINT}>

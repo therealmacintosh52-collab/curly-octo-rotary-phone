@@ -49,7 +49,9 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
     if (st === "unpaid" && !["draft", "submitted", "partial"].includes(r.status)) return false;
     if (st === "outstanding" && !["submitted", "partial"].includes(r.status)) return false;
     if (st === "overdue" && !r.overdue) return false;
-    if (["draft", "submitted", "partial", "paid", "void"].includes(st) && r.status !== st) return false;
+    if (st === "void" && (r.status !== "void" || r.deleted)) return false;
+    if (st === "deleted" && !r.deleted) return false;
+    if (["draft", "submitted", "partial", "paid"].includes(st) && r.status !== st) return false;
     if (filters.dealership && r.dealership_id !== filters.dealership) return false;
     if (filters.service && !r.services.includes(SERVICES.find((s) => s.id === filters.service)?.name ?? "")) return false;
     if (filters.from && r.period_end < filters.from) return false;

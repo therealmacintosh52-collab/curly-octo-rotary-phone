@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StaggerItem } from "@/components/motion/primitives";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
+import { RestoreInvoiceButton } from "./restore-invoice-button";
 import { cn } from "@/lib/utils";
 
 /** "4821 · 2024 Mercedes-Benz GLE 450", with "+2 more" for the old multi-car invoices. */
@@ -137,7 +138,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                   <div className="shrink-0 text-right">
                     <div className="font-semibold tabular-nums">{formatMoney(r.total)}</div>
                     <div className="mt-1">
-                      <InvoiceStatusBadge status={r.status} overdue={r.overdue} short />
+                      <InvoiceStatusBadge status={r.status} overdue={r.overdue} deleted={r.deleted} short />
                     </div>
                   </div>
                 </div>
@@ -154,6 +155,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                     </Link>
                   </Button>
                 )}
+                {isAdmin && r.deleted && <RestoreInvoiceButton invoiceId={r.id} number={r.display_number} className="relative z-10 mt-3 w-full" />}
               </div>
             </StaggerItem>
             </Fragment>
@@ -199,7 +201,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                     </TableCell>
                   </TableRow>
                 )}
-                <TableRow className={cn(r.status === "void" && "opacity-60")}>
+                <TableRow className={cn(r.status === "void" && !r.deleted && "opacity-60")}>
                   <TableCell className="whitespace-nowrap text-muted-foreground">{periodLabel(r)}</TableCell>
                   <TableCell>
                     <Link href={`/invoices/${r.id}`} className="font-semibold tracking-wide text-foreground hover:text-primary">
@@ -216,7 +218,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <InvoiceStatusBadge status={r.status} overdue={r.overdue} short />
+                    <InvoiceStatusBadge status={r.status} overdue={r.overdue} deleted={r.deleted} short />
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatMoney(r.total)}
@@ -231,6 +233,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                           </Link>
                         </Button>
                       )}
+                      {r.deleted && <RestoreInvoiceButton invoiceId={r.id} number={r.display_number} />}
                     </TableCell>
                   )}
                 </TableRow>

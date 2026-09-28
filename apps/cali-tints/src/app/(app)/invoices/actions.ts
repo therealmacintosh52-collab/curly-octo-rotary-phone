@@ -71,6 +71,19 @@ export async function deleteInvoiceCarAction(invoiceId: string, reason: string):
   return { ok: true, data: undefined };
 }
 
+/** Back from the archive: un-void the invoice, restore its car, relink them (same number). */
+export async function restoreInvoiceCarAction(invoiceId: string): Promise<ActionResult> {
+  await requireAdmin();
+  if (!/^[0-9a-f-]{36}$/i.test(invoiceId)) return { ok: false, error: "Invalid invoice" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("restore_invoice_car", { p_invoice_id: invoiceId });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${invoiceId}`);
+  revalidatePath("/");
+  return { ok: true, data: undefined };
+}
+
 /** Batch mode: one invoice for a date range. Returns the new invoice id. */
 export async function generateInvoiceAction(input: { dealership_id: string; start: string; end: string; notes?: string; exclude?: string[] }): Promise<ActionResult<string>> {
   const session = await requireAdmin();

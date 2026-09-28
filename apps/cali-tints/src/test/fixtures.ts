@@ -177,6 +177,7 @@ export function invoiceListFixture(): InvoiceListRow[] {
       display_number: `INV-${String(n).padStart(6, "0")}`,
       status,
       overdue: false,
+      deleted: false,
       total,
       amount_paid: status === "paid" ? total : 0,
       balance: status === "paid" || status === "void" ? 0 : total,
@@ -234,7 +235,7 @@ export function invoiceListFixture(): InvoiceListRow[] {
     ...yesterday.map((sp) => row(1, "submitted", sp)),
     ...twoDays.map((sp, i) => (i === 1 ? row(2, "partial", sp, { amount_paid: 100, balance: 115 }) : row(2, i % 3 === 0 ? "paid" : "submitted", sp))),
     row(9, "paid", ["9051", "2022 Mercedes-Benz E 350", null, D, "Service Loaner Detail"]),
-    row(14, "void", ["K-087", "2026 Mercedes-Benz GLA 250", null, M, "PDI", SAC]),
+    row(14, "void", ["K-087", "2026 Mercedes-Benz GLA 250", null, M, "PDI", SAC], { deleted: true }),
     row(34, "submitted", ["3310", "2026 Mercedes-Benz GLB 250", "W1N4M4HB0PW412221", M, "Used"], { overdue: true }),
     row(41, "paid", ["K-070", "2024 Mercedes-Benz A 220", null, M, "PDI", SAC]),
   ];

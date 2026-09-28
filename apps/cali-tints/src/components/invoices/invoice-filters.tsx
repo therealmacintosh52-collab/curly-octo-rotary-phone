@@ -89,7 +89,7 @@ export function InvoiceFilters({
     { value: "unpaid", label: "Unpaid" },
     { value: "overdue", label: "Overdue" },
     { value: "paid", label: "Paid" },
-    ...(isAdmin ? [{ value: "void", label: "Void" }] : []),
+    ...(isAdmin ? [{ value: "void", label: "Void" }, { value: "deleted", label: "Archive" }] : []),
   ];
   const unpaidChips: { value: string; label: string }[] = [
     { value: "unpaid", label: "Any" },
