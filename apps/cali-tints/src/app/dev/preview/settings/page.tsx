@@ -31,9 +31,9 @@ export default function DevSettingsPreview() {
   const demoStatus: CloverStatus = { enabled: true, env: "sandbox", merchantId: "7G9V9DP834ZY2", merchantName: "Cali Tints (sandbox)", signInAvailable: true, connected: true, needsReconnect: false, lastOkAt: "2026-09-27T16:40:00Z", lastError: null, healthy: true, manualTokens: false, cardEntry: true, device: true, hostedCheckout: true, webhook: false };
   const users: Profile[] = [
     profile,
-    { ...profile, id: "u4", role: "manager", full_name: "Manny", email: "manny@example.com" },
-    { ...profile, id: "u2", role: "detailer", full_name: "Victor", email: "victor@example.com" },
-    { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com", active: false },
+    { ...profile, id: "u4", role: "admin", full_name: "Manny", email: "manny@example.com" },
+    { ...profile, id: "u2", role: "manager", full_name: "Victor", email: "victor@example.com" },
+    { ...profile, id: "u3", role: "detailer", full_name: "Dee One", email: "dee@example.com" },
   ];
 
   return (

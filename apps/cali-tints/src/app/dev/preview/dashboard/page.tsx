@@ -83,13 +83,13 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
 
   // ?as=detailer: the same page as a detailer sees it (their own cars, no money).
   if (sp.as === "detailer") {
-    const marco = { ...profile, id: "u2", role: "detailer", full_name: "Victor" } as Profile;
+    const dee = { ...profile, id: "u3", role: "detailer", full_name: "Dee One" } as Profile;
     const mine = detailerFixture(today);
     return (
-      <SessionProvider value={{ userId: marco.id, email: null, profile: marco, company, isAdmin: false, demo: true }}>
+      <SessionProvider value={{ userId: dee.id, email: null, profile: dee, company, isAdmin: false, demo: true }}>
         <SyncProvider>
           <AppShell>
-            <DetailerDashboard stats={mine} today={today} who={{ name: marco.full_name, tz: company.timezone }} />
+            <DetailerDashboard stats={mine} today={today} who={{ name: dee.full_name, tz: company.timezone }} />
             <p className="mt-8 text-center text-caption text-muted-foreground">
               Guest preview · this is what a detailer sees ·{" "}
               <Link href="/" className="text-primary underline-offset-4 hover:underline">
@@ -119,7 +119,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   );
 }
 
-/** Victor's sample month: about four cars a weekday, four logged so far today. */
+/** Dee's sample month: about four cars a weekday, four logged so far today. */
 function detailerFixture(today: string): DetailerStats {
   const now = Date.now();
   const ymd = (n: number) => toDateInput(new Date(now - n * 86400000));
