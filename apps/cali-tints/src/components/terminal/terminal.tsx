@@ -49,7 +49,7 @@ export function Terminal({
   date,
   today,
   transactions,
-  openInvoices,
+  openInvoices: unsortedInvoices,
   cloverCard,
   cloverDevice,
   cloverEnabled,
@@ -86,6 +86,11 @@ export function Terminal({
   const { demo } = useSession();
   const [pending, start] = useTransition();
 
+  // Newest car at the top, oldest at the bottom; undated rows last, invoice number breaks ties.
+  const openInvoices = useMemo(
+    () => [...unsortedInvoices].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || b.display_number.localeCompare(a.display_number)),
+    [unsortedInvoices],
+  );
   const initialIds = useMemo(() => {
     const want = new Set([...(initialInvoiceIds ?? []), ...(initialInvoiceId ? [initialInvoiceId] : [])]);
     return openInvoices.filter((i) => want.has(i.id)).map((i) => i.id);
