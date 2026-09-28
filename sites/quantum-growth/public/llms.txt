@@ -54,7 +54,7 @@ reminders go by text and email instead.
   credited against the build.
 - Growth clients get $500 off any app build; Market Leader clients get $1,000 off.
 
-Quantum Growth's stated position is that most local service businesses do not
+Quantum Growth's stated position is that most small local businesses do not
 need an app, and that it says so rather than selling one — a business whose customers
 visit twice a year will not install anything. Where an app does pay
 is usually staff-facing rather than customer-facing: a technician photographing
