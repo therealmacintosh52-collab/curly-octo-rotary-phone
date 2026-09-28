@@ -67,6 +67,13 @@ export function Dashboard({ stats, range, companyName, cloverUnmatched = 0 }: { 
       <div className="mt-6 grid gap-6 lg:grid-cols-3 lg:gap-5">
         <section className="flex flex-col gap-3">
           <h2 className="text-label text-subtle">Cars detailed</h2>
+          <StatTile
+            label="Today"
+            value={String(stats.today.jobs)}
+            sub={stats.today.jobs === 0 ? "nothing logged yet · a normal day is about 3 Used, 2 PDI, 4 Sold" : `${formatMoney(stats.today.revenue)} · ${stats.today.by_service.map((s) => `${s.name} ${s.jobs}`).join(" · ")}`}
+            tone={stats.today.jobs > 0 ? "accent" : undefined}
+            href="/invoices?q=today"
+          />
           <div className="grid grid-cols-2 gap-3">
             <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)}`} href={`/invoices?from=${week.start}&to=${week.end}`} />
             <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/invoices?from=${month.start}&to=${month.end}`} />

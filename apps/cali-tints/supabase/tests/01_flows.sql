@@ -710,6 +710,11 @@ begin
   assert (stats ->> 'uninvoiced_jobs')::int = 0, 'nothing uninvoiced';
   assert (stats ->> 'unpaid_total')::numeric = (select coalesce(sum(total - amount_paid), 0) from public.invoices where company_id = public.current_company_id() and status in ('draft','submitted','partial')), 'unpaid total';
   assert (stats ->> 'draft_invoices')::int = (select count(*) from public.invoices where company_id = public.current_company_id() and status = 'draft'), 'draft count';
+  -- today, by service (DEL1 above was logged today with "Sold", then deleted; OWN1 was yesterday; ONE1/ONE2/BAT* are today with "Used")
+  assert stats ? 'today' and (stats -> 'today') ? 'by_service', 'today keys';
+  assert (stats -> 'today' ->> 'jobs')::int >= 1, 'cars today';
+  assert (select count(*) from jsonb_array_elements(stats -> 'today' -> 'by_service') e where e ->> 'name' = 'Used' and (e ->> 'jobs')::int >= 1) = 1, 'today split by service';
+  assert (select sum((e ->> 'jobs')::int) from jsonb_array_elements(stats -> 'today' -> 'by_service') e) >= (stats -> 'today' ->> 'jobs')::int, 'service lines cover every car';
   select count(*) into n from public.invoices where id = (select v from t_ids where k = 'det_inv'); assert n = 1, 'owner sees the detailer''s invoice';
 end $$;
 

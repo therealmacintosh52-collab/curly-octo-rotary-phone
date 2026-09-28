@@ -152,7 +152,11 @@ export function terminalTransactionsFixture(): TerminalTransaction[] {
   ];
 }
 
-/** Twelve cars as invoices for the Invoices list preview: unpaid, sent, overdue, paid, one void, one old multi-car batch. */
+/**
+ * The Invoices list preview: three real days (a normal day is about 3 Used,
+ * 2 PDI and 4 Sold), plus a few older rows so every state shows up: a loaner,
+ * an overdue one, a paid one, a void one and the old multi-car batch.
+ */
 export function invoiceListFixture(): InvoiceListRow[] {
   const day = (n: number) => {
     const d = new Date();
@@ -162,46 +166,99 @@ export function invoiceListFixture(): InvoiceListRow[] {
   const iso = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
   const EDH = { dealership_id: "d1", dealership: "Mercedes-Benz of El Dorado Hills" };
   const SAC = { dealership_id: "d2", dealership: "Mercedes-Benz of Sacramento" };
-  const car = (tag: string, vehicle: string, vin: string | null, detailer = "Marco R.") => [{ tag, vin, vehicle, detailer }];
-  const row = (n: number, ago: number, dealer: typeof EDH, total: number, status: InvoiceListRow["status"], cars: InvoiceListRow["cars"], services: string[], extra: Partial<InvoiceListRow> = {}): InvoiceListRow => ({
-    id: `30000000-0000-4000-8000-0000000000${String(n).padStart(2, "0")}`,
-    display_number: `INV-${String(n).padStart(6, "0")}`,
-    status,
-    overdue: false,
-    total,
-    amount_paid: status === "paid" ? total : 0,
-    balance: status === "paid" || status === "void" ? 0 : total,
-    period_start: day(ago),
-    period_end: day(ago),
-    ro_po_number: null,
-    submitted_at: status === "draft" || status === "void" ? null : iso(ago),
-    paid_at: status === "paid" ? iso(Math.max(0, ago - 12)) : null,
-    created_at: iso(ago),
-    ...dealer,
-    car_count: cars.length,
-    cars,
-    services,
-    ...extra,
-  });
-  return [
-    row(24, 0, EDH, 200, "draft", car("4821", "2024 Mercedes-Benz GLE 450", "W1KZF8DB3NA123456"), ["Used"]),
-    row(23, 0, EDH, 80, "draft", car("4830", "2026 Mercedes-Benz GLB 250", "W1N4M4HB0PW412221", "Dee One"), ["PDI", "Sold"]),
-    row(22, 1, SAC, 125, "submitted", car("K-118", "2023 Mercedes-Benz C 300", null, "Dee One"), ["Service Loaner Detail"]),
-    row(21, 1, SAC, 275, "draft", car("K-121", "2025 Mercedes-Benz E 350", "W1KZF8DB5NA777001"), ["Used", "Touch Up Detail"]),
-    row(20, 2, EDH, 250, "submitted", car("7710", "2022 Mercedes-Benz S 580", "W1K6G7GB3NA000111"), ["Paint Correction (1-step)"]),
-    row(19, 3, EDH, 60, "paid", car("7702", "2023 Mercedes-Benz C-Class", "WDDGF4HB3CR227845", "Dee One"), ["PDI"]),
-    row(18, 5, SAC, 215, "partial", car("K-099", "2021 Mercedes-Benz GLC 300", "W1N0G8DB1MV555002"), ["Used"], { amount_paid: 100, balance: 115 }),
-    row(17, 9, EDH, 125, "paid", car("9051", "2022 Mercedes-Benz E 350", null, "Dee One"), ["Service Loaner Detail"]),
-    row(16, 14, SAC, 55, "void", car("K-087", "2026 Mercedes-Benz GLA 250", null), ["PDI"]),
-    row(15, 34, EDH, 200, "submitted", car("3310", "2026 Mercedes-Benz GLB 250", "W1N4M4HB0PW412221"), ["Used"], { overdue: true }),
-    row(14, 41, SAC, 60, "paid", car("K-070", "2024 Mercedes-Benz A 220", null), ["PDI"]),
-    row(12, 45, EDH, 790, "partial", [
-      { tag: "4821", vin: "W1KZF8DB3NA123456", vehicle: "2024 Mercedes-Benz GLE 450", detailer: "Marco R." },
-      { tag: "4829", vin: "W1KZF8DB3NA123457", vehicle: "2026 Mercedes-Benz GLE 450", detailer: "Dee One" },
-      { tag: "K-118", vin: null, vehicle: "2025 Mercedes-Benz C 300", detailer: "Marco R." },
-      { tag: "7702", vin: "WDDGF4HB3CR227845", vehicle: "2023 Mercedes-Benz C-Class", detailer: "Dee One" },
-    ], ["Used", "PDI", "Service Loaner Detail", "Sold"], { car_count: 6, amount_paid: 500, balance: 290, overdue: true, period_start: day(75), period_end: day(45), display_number: "INV-000012" }),
+  const PRICE: Record<string, number> = { Used: 200, PDI: 60, Sold: 20, "Service Loaner Detail": 125, "Paint Correction (1-step)": 250 };
+  type Spec = [tag: string, vehicle: string, vin: string | null, detailer: string, service: string, dealer?: typeof EDH];
+  let n = 61;
+  const row = (ago: number, status: InvoiceListRow["status"], [tag, vehicle, vin, detailer, service, dealer = EDH]: Spec, extra: Partial<InvoiceListRow> = {}): InvoiceListRow => {
+    n -= 1;
+    const total = (dealer === SAC && service === "Used" ? 215 : PRICE[service]) ?? 0;
+    return {
+      id: `30000000-0000-4000-8000-0000000000${String(n).padStart(2, "0")}`,
+      display_number: `INV-${String(n).padStart(6, "0")}`,
+      status,
+      overdue: false,
+      total,
+      amount_paid: status === "paid" ? total : 0,
+      balance: status === "paid" || status === "void" ? 0 : total,
+      period_start: day(ago),
+      period_end: day(ago),
+      ro_po_number: null,
+      submitted_at: status === "draft" || status === "void" ? null : iso(ago),
+      paid_at: status === "paid" ? iso(Math.max(0, ago - 1)) : null,
+      created_at: iso(ago),
+      ...dealer,
+      car_count: 1,
+      cars: [{ tag, vin, vehicle, detailer }],
+      services: [service],
+      ...extra,
+    };
+  };
+  const M = "Marco R.";
+  const D = "Dee One";
+  const today: Spec[] = [
+    ["4821", "2024 Mercedes-Benz GLE 450", "W1KZF8DB3NA123456", M, "Used"],
+    ["4833", "2023 Mercedes-Benz GLC 300", "W1N0G8DB5PV220114", D, "Used"],
+    ["K-131", "2025 Mercedes-Benz E 350", "W1KZF8DB1RA331902", M, "Used", SAC],
+    ["4830", "2026 Mercedes-Benz GLB 250", "W1N4M4HB0PW412221", D, "PDI"],
+    ["4836", "2026 Mercedes-Benz GLE 350", "4JGFB4JB5SA901221", M, "PDI"],
+    ["4812", "2025 Mercedes-Benz C 300", null, D, "Sold"],
+    ["4819", "2024 Mercedes-Benz GLA 250", null, M, "Sold"],
+    ["K-128", "2025 Mercedes-Benz GLC 300", null, D, "Sold", SAC],
+    ["4827", "2026 Mercedes-Benz EQE 350", null, M, "Sold"],
   ];
+  const yesterday: Spec[] = [
+    ["4809", "2022 Mercedes-Benz S 580", "W1K6G7GB3NA000111", M, "Used"],
+    ["K-121", "2025 Mercedes-Benz E 350", "W1KZF8DB5NA777001", D, "Used", SAC],
+    ["4815", "2021 Mercedes-Benz GLE 450", "4JGFB4KB1MA228870", M, "Used"],
+    ["4838", "2026 Mercedes-Benz C 300", "W1KAF4HB3SR118204", D, "PDI"],
+    ["K-126", "2026 Mercedes-Benz GLC 300", "W1NKM4HB9SF334410", M, "PDI", SAC],
+    ["4801", "2025 Mercedes-Benz GLB 250", null, D, "Sold"],
+    ["4806", "2024 Mercedes-Benz E 350", null, M, "Sold"],
+    ["4811", "2025 Mercedes-Benz GLE 350", null, D, "Sold"],
+    ["K-119", "2024 Mercedes-Benz A 220", null, M, "Sold", SAC],
+    ["K-118", "2023 Mercedes-Benz C 300", null, D, "Service Loaner Detail", SAC],
+  ];
+  const twoDays: Spec[] = [
+    ["7702", "2023 Mercedes-Benz C-Class", "WDDGF4HB3CR227845", D, "Used"],
+    ["K-099", "2021 Mercedes-Benz GLC 300", "W1N0G8DB1MV555002", M, "Used", SAC],
+    ["4798", "2022 Mercedes-Benz GLA 250", "W1N4N4GB6NJ410233", D, "Used"],
+    ["4840", "2026 Mercedes-Benz GLE 450", "4JGFB4JB7SA905510", M, "PDI"],
+    ["4841", "2026 Mercedes-Benz EQB 300", "W1N9M0KB3SN220981", D, "PDI"],
+    ["4790", "2023 Mercedes-Benz C 300", null, M, "Sold"],
+    ["4793", "2024 Mercedes-Benz GLC 300", null, D, "Sold"],
+    ["K-110", "2025 Mercedes-Benz CLA 250", null, M, "Sold", SAC],
+    ["4796", "2022 Mercedes-Benz E 450", null, D, "Sold"],
+  ];
+  const rows: InvoiceListRow[] = [
+    ...today.map((sp) => row(0, "draft", sp)),
+    ...yesterday.map((sp) => row(1, "submitted", sp)),
+    ...twoDays.map((sp, i) => (i === 1 ? row(2, "partial", sp, { amount_paid: 100, balance: 115 }) : row(2, i % 3 === 0 ? "paid" : "submitted", sp))),
+    row(9, "paid", ["9051", "2022 Mercedes-Benz E 350", null, D, "Service Loaner Detail"]),
+    row(14, "void", ["K-087", "2026 Mercedes-Benz GLA 250", null, M, "PDI", SAC]),
+    row(34, "submitted", ["3310", "2026 Mercedes-Benz GLB 250", "W1N4M4HB0PW412221", M, "Used"], { overdue: true }),
+    row(41, "paid", ["K-070", "2024 Mercedes-Benz A 220", null, M, "PDI", SAC]),
+  ];
+  // The old multi-car batch invoice (INV-000012), partly paid and overdue.
+  n = 13;
+  rows.push(
+    row(45, "partial", ["4821", "2024 Mercedes-Benz GLE 450", "W1KZF8DB3NA123456", M, "Used"], {
+      total: 790,
+      amount_paid: 500,
+      balance: 290,
+      overdue: true,
+      period_start: day(75),
+      period_end: day(45),
+      car_count: 6,
+      cars: [
+        { tag: "4821", vin: "W1KZF8DB3NA123456", vehicle: "2024 Mercedes-Benz GLE 450", detailer: M },
+        { tag: "4829", vin: "W1KZF8DB3NA123457", vehicle: "2026 Mercedes-Benz GLE 450", detailer: D },
+        { tag: "K-118", vin: null, vehicle: "2025 Mercedes-Benz C 300", detailer: M },
+        { tag: "7702", vin: "WDDGF4HB3CR227845", vehicle: "2023 Mercedes-Benz C-Class", detailer: D },
+      ],
+      services: ["Used", "PDI", "Service Loaner Detail", "Sold"],
+    }),
+  );
+  return rows;
 }
 
 /** The seeded menu, as the price list RPC returns it (previews). */

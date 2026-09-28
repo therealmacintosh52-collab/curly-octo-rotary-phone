@@ -94,6 +94,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
   const [intent, setIntent] = useState<SaveIntent>("next");
   const [savedCount, setSavedCount] = useState(0);
   const [savedTotal, setSavedTotal] = useState(0);
+  const [savedByService, setSavedByService] = useState<Record<string, number>>({});
   const [lastSaved, setLastSaved] = useState<SavedCar | null>(null);
 
   const dealership = dealerships.find((d) => d.id === dealershipId) ?? null;
@@ -276,6 +277,11 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
     const celebrate = () => {
       setSavedCount((c) => c + 1);
       setSavedTotal((t) => t + total);
+      setSavedByService((m) => {
+        const next = { ...m };
+        for (const s of services) next[s.name] = (next[s.name] ?? 0) + 1;
+        return next;
+      });
       haptic([20]);
       fireConfetti({ y: 0.25 });
     };
@@ -370,6 +376,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, isAdmi
           {savedCount > 0 && (
             <m.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="shrink-0 rounded-full bg-accent-soft px-3 py-1 text-caption font-medium tabular-nums text-primary" data-testid="today-pill">
               {savedCount} {savedCount === 1 ? "car" : "cars"} · {formatMoney(savedTotal)} today
+              {Object.keys(savedByService).length > 0 && ` · ${priceList.filter((s) => savedByService[s.name]).map((s) => `${s.name} ${savedByService[s.name]}`).join(" · ")}`}
             </m.span>
           )}
         </AnimatePresence>

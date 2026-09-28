@@ -419,6 +419,8 @@ export type DashboardStats = {
   month: { jobs: number; revenue: number };
   /** Totals for the selected range. */
   income: { jobs: number; revenue: number; collected: number; payments: number; avg_per_car: number };
+  /** Logged today, split by service in menu order. A normal day is about 3 Used, 2 PDI, 4 Sold. */
+  today: { jobs: number; revenue: number; by_service: { service_id: string; name: string; jobs: number; revenue: number }[] };
   collected_by_day: { day: string; payments: number; amount: number }[];
   uninvoiced_total: number;
   uninvoiced_jobs: number;
