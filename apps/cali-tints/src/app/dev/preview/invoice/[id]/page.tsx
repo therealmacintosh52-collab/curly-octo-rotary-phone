@@ -36,7 +36,6 @@ const common = (base: ReturnType<typeof invoiceBundleFixture>) => ({
   ],
   isAdmin: true,
   reminderDays: 30,
-  photos: [],
   clover: { enabled: true, card: { publicKey: "demo", merchantId: "7G9V9DP834ZY2", sdkUrl: "about:blank" }, device: true, payLink: true, orderUrl: null as string | null },
 });
 

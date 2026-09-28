@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeftIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
-import type { Company, Dealership, Invoice, InvoiceItem, InvoicePayment, InvoiceSubmission, JobPhoto, PaymentMethod, PriceListRow } from "@/lib/db/types";
+import type { Company, Dealership, Invoice, InvoiceItem, InvoicePayment, InvoiceSubmission, PaymentMethod, PriceListRow } from "@/lib/db/types";
 import { formatMoney, formatTaxRate } from "@/lib/money";
 import { formatDate, formatDateOnly, formatDateTime, nowMs } from "@/lib/dates";
 import { balanceBreakdown } from "@/lib/invoices/breakdown";
@@ -14,7 +14,6 @@ import { PaymentsCard } from "./payments-card";
 import { SubmissionsCard } from "./submissions-card";
 import { CloverPanel } from "./clover-panel";
 import type { CloverCardConfig } from "./charge-card-dialog";
-import { JobPhotos } from "@/components/jobs/job-photos";
 import type { EditableCar } from "@/components/jobs/edit-car-sheet";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +29,6 @@ export interface InvoiceDetailProps {
   submissions: (InvoiceSubmission & { created_by_name: string | null; confirmation_url: string | null })[];
   /** The one car on this invoice (older invoices may carry several → null). */
   car: (EditableCar & { detailer_name: string | null }) | null;
-  photos: (JobPhoto & { url: string | null })[];
   priceList: PriceListRow[];
   detailers: { id: string; full_name: string }[];
   isAdmin: boolean;
@@ -50,7 +48,7 @@ const days = (iso: string) => Math.max(0, Math.floor((nowMs() - new Date(iso).ge
  * Admins get the money actions; a detailer sees their car read-only.
  */
 export function InvoiceDetail(p: InvoiceDetailProps) {
-  const { invoice, items, dealership, company, payments, submissions, car, photos, isAdmin } = p;
+  const { invoice, items, dealership, company, payments, submissions, car, isAdmin } = p;
   const balance = Math.round((Number(invoice.total) - Number(invoice.amount_paid)) * 100) / 100;
   const overdue = (invoice.status === "submitted" || invoice.status === "partial") && !!invoice.submitted_at && days(invoice.submitted_at) > p.reminderDays;
   const lastSent = submissions.find((s) => s.status === "sent") ?? null;
@@ -59,19 +57,6 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
   const performedOn = car ? car.performed_at : (items[0]?.performed_at ?? invoice.created_at);
   const cars = groupByCar(items);
   const title = car ? `${car.tag_number}${vehicle(car) ? ` · ${vehicle(car)}` : ""}` : cars.length === 1 ? `${cars[0].tag}${cars[0].vehicle ? ` · ${cars[0].vehicle}` : ""}` : `${cars.length} cars`;
-
-  // One plain sentence about where this invoice stands.
-  const standing = ((): { tone: "muted" | "success" | "warning" | "info"; text: string } => {
-    if (invoice.status === "void") return { tone: "muted" as const, text: `Voided ${formatDate(invoice.voided_at ?? invoice.updated_at)}${invoice.void_reason ? ` · ${invoice.void_reason}` : ""}. Nothing is billed for this car.` };
-    if (invoice.status === "paid") return { tone: "success" as const, text: `Paid in full${invoice.paid_at ? ` on ${formatDateOnly(invoice.paid_at)}` : ""}${lastPayment ? ` by ${METHOD[lastPayment.method]}${lastPayment.reference ? ` #${lastPayment.reference}` : ""}` : ""}.` };
-    if (invoice.status === "draft") return { tone: "muted" as const, text: `Not sent to ${dealership.name} yet. Logged ${formatDate(invoice.created_at)}${detailerName ? ` by ${detailerName}` : ""}.` };
-    const sentBit = invoice.submitted_at ? `Sent ${formatDate(invoice.submitted_at)}${lastSent ? ` ${SUBMIT_METHOD[lastSent.method]}` : ""}` : "Sent";
-    const n = invoice.submitted_at ? days(invoice.submitted_at) : 0;
-    const waiting = invoice.submitted_at ? (n === 0 ? "today" : n === 1 ? "yesterday" : `${n} days ago`) : "";
-    if (invoice.status === "partial") return { tone: overdue ? ("warning" as const) : ("info" as const), text: `${sentBit}${waiting ? ` (${waiting})` : ""}. ${formatMoney(invoice.amount_paid)} of ${formatMoney(invoice.total)} paid so far; ${formatMoney(balance)} still due${overdue ? `, past ${invoice.payment_terms}` : ""}.` };
-    return { tone: overdue ? ("warning" as const) : ("info" as const), text: `${sentBit}${waiting ? ` (${waiting})` : ""}. Waiting on ${formatMoney(balance)}${overdue ? `, past ${invoice.payment_terms}` : ` · ${invoice.payment_terms}`}.` };
-  })();
-  standing.text = standing.text.replace(/\.\.(\s|$)/g, ".$1"); // "Marco R.." when a name ends in a period
 
   // Steps: logged → sent → paid (or voided).
   const steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[] = [
@@ -104,9 +89,6 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
             <h1 className="text-title tracking-wide">{title}</h1>
             <InvoiceStatusBadge status={invoice.status} overdue={overdue} />
           </div>
-          <p className={cn("mt-2 max-w-prose text-sm", standing.tone === "success" && "text-success", standing.tone === "warning" && "text-warning", standing.tone === "info" && "text-foreground", standing.tone === "muted" && "text-muted-foreground")} data-testid="invoice-standing">
-            {standing.text}
-          </p>
         </div>
         {isAdmin ? (
           <div className="grid shrink-0 grid-cols-3 gap-2 sm:gap-3">
@@ -281,18 +263,6 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
             </CardContent>
           </Card>
 
-          {car && (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  Photos <Badge variant="muted">{photos.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <JobPhotos photos={photos} jobId={car.id} canEdit={p.canEdit} />
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {isAdmin && (

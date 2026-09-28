@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
-import type { JobPhoto, PriceListRow } from "@/lib/db/types";
+import type { PriceListRow } from "@/lib/db/types";
 import { InvoiceDetail } from "@/components/invoices/invoice-detail";
 import { cloverContext } from "@/lib/clover/invoices";
 import { cloverPublicKey, orderDashboardUrl } from "@/lib/clover/client";
@@ -45,7 +45,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
   const { invoice, items, dealership, company, payments, submissions } = bundle;
   const supabase = await createClient();
 
-  // The cars on this invoice (for Edit / Delete and photos). Usually one.
+  // The cars on this invoice (for Edit / Delete). Usually one.
   const { data: carRows } = await supabase
     .from("jobs")
     .select("id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, deleted_at, detailer:profiles!jobs_detailer_id_fkey(full_name), job_services(service_id, price, override_reason, service:services(name))")
@@ -54,8 +54,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
   const cars = (carRows ?? []) as unknown as CarRow[];
   const car = cars.length === 1 ? cars[0] : null;
 
-  const [{ data: photos }, priceListRes, { data: detailers }, submissionsWithUrls] = await Promise.all([
-    car ? supabase.from("job_photos").select("*").eq("job_id", car.id).order("created_at") : Promise.resolve({ data: [] as JobPhoto[] }),
+  const [priceListRes, { data: detailers }, submissionsWithUrls] = await Promise.all([
     car ? supabase.rpc("dealership_price_list", { p_dealership_id: car.dealership_id }) : Promise.resolve({ data: [] as PriceListRow[] }),
     session.isAdmin && car ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
     // Signed URLs for uploaded confirmations.
@@ -67,13 +66,6 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
       }),
     ),
   ]);
-  // Photos are private: hand the client short-lived signed URLs.
-  const signedPhotos = await Promise.all(
-    ((photos ?? []) as JobPhoto[]).map(async (ph) => {
-      const { data: s } = await supabase.storage.from("job-photos").createSignedUrl(ph.storage_path, 60 * 60);
-      return { ...ph, url: s?.signedUrl ?? null };
-    }),
-  );
 
   const clover = session.isAdmin ? cloverContext(company) : null;
   const ecomPublicKey = clover ? await cloverPublicKey(clover) : null;
@@ -114,7 +106,6 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
             }
           : null
       }
-      photos={signedPhotos}
       priceList={(priceListRes.data ?? []) as PriceListRow[]}
       detailers={detailers ?? []}
       isAdmin={session.isAdmin}
