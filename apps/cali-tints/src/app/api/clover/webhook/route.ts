@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cloverSecrets } from "@/lib/clover/env";
 import { fromCents } from "@/lib/clover/money";
+import { autoReceipt, type AutoReceiptCompany } from "@/lib/terminal/auto-receipt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
   const payments = Array.isArray(data.payments) ? (data.payments as Loose[]) : Array.isArray((data.payment as Loose | undefined)?.elements) ? ((data.payment as Loose).elements as Loose[]) : data.payment ? [data.payment as Loose] : [data];
   const balance = Number(invoice.total) - Number(invoice.amount_paid);
   let applied = 0;
+  const recorded: string[] = [];
   for (const p of payments) {
     const paymentId = str(p.id) ?? str(p.paymentId) ?? `hc_${sessionId}`;
     const cents = num(p.amount);
@@ -77,9 +79,17 @@ export async function POST(request: NextRequest) {
       },
       { onConflict: "company_id,clover_payment_id", ignoreDuplicates: true },
     );
-    const { error } = await admin.rpc("apply_clover_payment", { p_company_id: invoice.company_id, p_clover_payment_id: paymentId, p_invoice_id: invoice.id, p_matched_by: "checkout" });
+    const { data: recordedId, error } = await admin.rpc("apply_clover_payment", { p_company_id: invoice.company_id, p_clover_payment_id: paymentId, p_invoice_id: invoice.id, p_matched_by: "checkout" });
     if (error) console.warn(`clover webhook apply ${paymentId}: ${error.message}`);
-    else applied += 1;
+    else {
+      applied += 1;
+      if (recordedId) recorded.push(recordedId);
+    }
+  }
+  // Settings → Receipts: the dealership paid on the link, so it gets the receipt right away when that is on.
+  if (recorded.length) {
+    const { data: company } = await admin.from("companies").select("name, email, phone, address_line1, address_line2, city, state, postal_code, auto_receipt").eq("id", invoice.company_id).maybeSingle();
+    if (company) await autoReceipt(admin, company as AutoReceiptCompany, recorded);
   }
   return NextResponse.json({ ok: true, invoice: invoice.display_number, applied });
 }

@@ -12,6 +12,7 @@ import { invoiceEmailEnvelope, invoiceEmailHtml, sendInvoiceEmail, sendPayLinkEm
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { updateJobSchema, type UpdateJobInput } from "@/lib/jobs/schema";
 import { cloverContext, createInvoiceCheckout, pushInvoiceOrder } from "@/lib/clover/invoices";
+import { autoReceipt } from "@/lib/terminal/auto-receipt";
 import { syncCloverPayments, type SyncResult } from "@/lib/clover/sync";
 import { cancelDevice, deleteOrder } from "@/lib/clover/client";
 import { chargeCardToQueue, deviceToQueue } from "@/lib/clover/charges";
@@ -291,12 +292,12 @@ const paymentSchema = z.object({
 export type PaymentInput = z.input<typeof paymentSchema>;
 
 export async function recordPaymentAction(input: PaymentInput): Promise<ActionResult> {
-  await requireAdmin();
+  const session = await requireAdmin();
   const parsed = paymentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const p = parsed.data;
   const supabase = await createClient();
-  const { error } = await supabase.rpc("record_payment", {
+  const { data: paymentId, error } = await supabase.rpc("record_payment", {
     p_invoice_id: p.invoice_id,
     p_amount: p.amount,
     p_paid_at: p.paid_at,
@@ -305,6 +306,7 @@ export async function recordPaymentAction(input: PaymentInput): Promise<ActionRe
     p_note: p.note || null,
   });
   if (error) return { ok: false, error: errorMessage(error) };
+  if (paymentId) await autoReceipt(supabase, session.company, [paymentId]);
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${p.invoice_id}`);
   revalidatePath("/");
@@ -480,8 +482,9 @@ export async function matchCloverPaymentAction(cloverPaymentId: string, invoiceI
   const parsed = z.object({ cloverPaymentId: z.string().min(1).max(80), invoiceId: z.uuid() }).safeParse({ cloverPaymentId, invoiceId });
   if (!parsed.success) return { ok: false, error: "Pick an invoice" };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: parsed.data.cloverPaymentId, p_invoice_id: parsed.data.invoiceId, p_matched_by: "manual" });
+  const { data: paymentId, error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: parsed.data.cloverPaymentId, p_invoice_id: parsed.data.invoiceId, p_matched_by: "manual" });
   if (error) return { ok: false, error: errorMessage(error) };
+  if (paymentId) await autoReceipt(supabase, session.company, [paymentId]);
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${invoiceId}`);
   revalidatePath("/");
@@ -524,8 +527,9 @@ export async function chargeCardAction(input: { invoiceId: string; token: string
       idempotencyKey: `${bundle.invoice.id}:${parsed.data.token}`,
       status: "unmatched",
     });
-    const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: take.cloverPaymentId, p_invoice_id: bundle.invoice.id, p_matched_by: "card" });
+    const { data: paymentId, error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: take.cloverPaymentId, p_invoice_id: bundle.invoice.id, p_matched_by: "card" });
     if (error) return { ok: false, error: `Card charged (${take.chargeId}) but the payment could not be recorded: ${error.message}. Use Sync Clover or match it from the queue.` };
+    if (paymentId) await autoReceipt(supabase, session.company, [paymentId]);
     revalidatePath(`/invoices/${bundle.invoice.id}`);
     revalidatePath("/invoices");
     revalidatePath("/");
@@ -558,8 +562,9 @@ export async function payOnDeviceAction(input: { invoiceId: string; amount: numb
       orderId: bundle.invoice.clover_order_id,
       status: "unmatched",
     });
-    const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: take.cloverPaymentId, p_invoice_id: bundle.invoice.id, p_matched_by: "device" });
+    const { data: paymentId, error } = await supabase.rpc("apply_clover_payment", { p_company_id: session.company.id, p_clover_payment_id: take.cloverPaymentId, p_invoice_id: bundle.invoice.id, p_matched_by: "device" });
     if (error) return { ok: false, error: `The terminal took the payment (${take.cloverPaymentId}) but it could not be recorded: ${error.message}. Use Sync Clover or match it from the queue.` };
+    if (paymentId) await autoReceipt(supabase, session.company, [paymentId]);
     revalidatePath(`/invoices/${bundle.invoice.id}`);
     revalidatePath("/invoices");
     revalidatePath("/");

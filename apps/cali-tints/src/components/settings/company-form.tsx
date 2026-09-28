@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 const TIMEZONES = ["America/Los_Angeles", "America/Denver", "America/Phoenix", "America/Chicago", "America/New_York", "America/Anchorage", "Pacific/Honolulu"];
 
@@ -43,6 +44,7 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
     invoice_prefix: company.invoice_prefix,
     reminder_days: String(company.reminder_days),
     timezone: company.timezone,
+    auto_receipt: company.auto_receipt,
   });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
   const fileRef = useRef<HTMLInputElement>(null);
@@ -136,6 +138,24 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
                 </SelectContent>
               </Select>
             </Field>
+          </CardContent>
+        </Card>
+
+        <Card id="receipts" className="scroll-mt-24">
+          <CardHeader>
+            <CardTitle>Receipts</CardTitle>
+            <CardDescription>What happens the moment a payment lands on an invoice.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <label className="flex cursor-pointer items-start justify-between gap-4">
+              <span className="grid gap-1">
+                <span className="text-sm font-medium">Email a receipt automatically</span>
+                <span className="text-xs text-muted-foreground">
+                  Every payment on an invoice (Terminal, card in the app, Clover device, pay link, cash or check) emails the receipt to the dealership&apos;s AP contact right away. Off: send receipts yourself from the Paid dialog or the Terminal.
+                </span>
+              </span>
+              <Switch checked={f.auto_receipt} onCheckedChange={(v) => setF((s) => ({ ...s, auto_receipt: v }))} aria-label="Email a receipt automatically" data-testid="auto-receipt" />
+            </label>
           </CardContent>
         </Card>
 

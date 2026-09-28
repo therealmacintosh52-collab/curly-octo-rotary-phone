@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CloverMatchedBy, Company, Database } from "@/lib/db/types";
+import { autoReceipt, type AutoReceiptCompany } from "@/lib/terminal/auto-receipt";
 import { listPaymentsSince, type CloverPayment } from "./client";
 import { cloverContext } from "./invoices";
 import { matchPayment, type OpenInvoice } from "./matcher";
@@ -46,13 +47,13 @@ export async function syncCloverPayments(supabase: SupabaseClient<Database>, com
     }
   }
 
-  const { matched, unmatched } = await matchQueue(supabase, company.id);
+  const { matched, unmatched } = await matchQueue(supabase, company.id, company);
   await supabase.from("companies").update({ clover_last_sync_at: new Date().toISOString() }).eq("id", company.id);
   return { pulled: payments.length, queued, matched, unmatched };
 }
 
-/** Try to match every unmatched queue row against open invoices. */
-export async function matchQueue(supabase: SupabaseClient<Database>, companyId: string): Promise<{ matched: number; unmatched: number }> {
+/** Try to match every unmatched queue row against open invoices. With the company, matched payments also get the automatic receipt (Settings → Receipts) when that is on. */
+export async function matchQueue(supabase: SupabaseClient<Database>, companyId: string, company?: AutoReceiptCompany): Promise<{ matched: number; unmatched: number }> {
   const [{ data: queue }, { data: invoices }] = await Promise.all([
     supabase.from("clover_payments").select("*").eq("company_id", companyId).eq("status", "unmatched").order("paid_at"),
     supabase.from("invoices").select("id, display_number, clover_order_id, total, amount_paid").eq("company_id", companyId).in("status", ["draft", "submitted", "partial"]),
@@ -60,23 +61,26 @@ export async function matchQueue(supabase: SupabaseClient<Database>, companyId: 
   const open: OpenInvoice[] = (invoices ?? []).map((i) => ({ id: i.id, display_number: i.display_number, clover_order_id: i.clover_order_id, balance: Number(i.total) - Number(i.amount_paid) }));
   let matched = 0;
   let unmatched = 0;
+  const recorded: string[] = [];
   for (const q of queue ?? []) {
     const m = matchPayment({ amount: Number(q.amount), orderId: q.clover_order_id, reference: q.reference, note: null }, open);
     if (!m) {
       unmatched += 1;
       continue;
     }
-    const { error } = await supabase.rpc("apply_clover_payment", { p_company_id: companyId, p_clover_payment_id: q.clover_payment_id, p_invoice_id: m.invoiceId, p_matched_by: m.matchedBy as CloverMatchedBy });
+    const { data: paymentId, error } = await supabase.rpc("apply_clover_payment", { p_company_id: companyId, p_clover_payment_id: q.clover_payment_id, p_invoice_id: m.invoiceId, p_matched_by: m.matchedBy as CloverMatchedBy });
     if (error) {
       console.warn(`apply_clover_payment ${q.clover_payment_id}: ${error.message}`);
       unmatched += 1;
       continue;
     }
     matched += 1;
+    if (paymentId) recorded.push(paymentId);
     // Keep balances current for the next row in this pass.
     const inv = open.find((i) => i.id === m.invoiceId);
     if (inv) inv.balance = Math.round((inv.balance - Number(q.amount)) * 100) / 100;
   }
+  if (company && recorded.length) await autoReceipt(supabase, company, recorded);
   return { matched, unmatched };
 }
 

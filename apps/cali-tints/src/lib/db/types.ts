@@ -50,6 +50,8 @@ export type Company = {
   clover_pos_id: string;
   /** Every car logged becomes its own invoice on save (0015). */
   auto_invoice: boolean;
+  /** Email the dealership a receipt the moment a payment lands on an invoice (0022, off by default). */
+  auto_receipt: boolean;
   created_at: string;
   updated_at: string;
 }

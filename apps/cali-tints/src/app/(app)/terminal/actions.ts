@@ -6,12 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
-import type { InvoicePayment, PaymentMethod, PaymentSource, TerminalSale, TerminalTransaction } from "@/lib/db/types";
+import type { PaymentMethod, PaymentSource, TerminalTransaction } from "@/lib/db/types";
 import { cloverContext } from "@/lib/clover/invoices";
 import { chargeCardToQueue, deviceToQueue } from "@/lib/clover/charges";
 import { refundCharge, refundPayment } from "@/lib/clover/client";
 import { toCents } from "@/lib/clover/money";
 import { sendReceiptEmail } from "@/lib/terminal/send-receipt";
+import { autoReceipt } from "@/lib/terminal/auto-receipt";
+import { LEDGER_SELECT, PAYMENT_SELECT, paymentToTransaction, toTransaction, type LedgerRow, type PaymentRow } from "@/lib/terminal/ledger";
 
 /*
   Terminal actions: take a payment (card in app, card on the device, cash,
@@ -47,35 +49,8 @@ function todayIn(tz: string): string {
   }
 }
 
-type LedgerRow = TerminalSale & { invoice: { display_number: string; dealership: { name: string } | null } | null };
-const LEDGER_SELECT = "*, invoice:invoices(display_number, dealership:dealerships(name))";
-
-function toTransaction(row: LedgerRow): TerminalTransaction {
-  return {
-    id: row.id,
-    kind: row.kind,
-    status: row.status,
-    amount: Number(row.amount),
-    refunded_amount: Number(row.refunded_amount),
-    method: row.method,
-    source: row.source,
-    invoice_id: row.invoice_id,
-    invoice_number: row.invoice?.display_number ?? null,
-    dealership: row.invoice?.dealership?.name ?? null,
-    payment_id: row.payment_id,
-    refund_of: row.refund_of,
-    group_id: row.group_id,
-    description: row.description,
-    customer_name: row.customer_name,
-    customer_email: row.customer_email,
-    reference: row.reference,
-    card_brand: row.card_brand,
-    last4: row.last4,
-    clover_payment_id: row.clover_payment_id,
-    receipt_sent_at: row.receipt_sent_at,
-    at: row.created_at,
-  };
-}
+/** Settings → Receipts: the receipt went out by itself; show it as sent on the Paid dialog. */
+const markSent = (tx: TerminalTransaction, to: string | null): TerminalTransaction => (to ? { ...tx, receipt_sent_at: new Date().toISOString(), customer_email: to } : tx);
 
 function revalidate(invoiceId?: string | null) {
   revalidatePath("/terminal");
@@ -183,8 +158,9 @@ export async function takeSaleAction(input: SaleInput): Promise<ActionResult<Sal
       .select(LEDGER_SELECT)
       .single();
     if (error || !row) return { ok: false, error: `Payment taken but the ledger row failed: ${error?.message ?? "unknown"}` };
+    const { sentTo } = invoice && paymentId ? await autoReceipt(supabase, company, [paymentId]) : { sentTo: null };
     revalidate(invoice?.id);
-    return { ok: true, data: toTransaction(row as unknown as LedgerRow) };
+    return { ok: true, data: markSent(toTransaction(row as unknown as LedgerRow), sentTo) };
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }
@@ -272,7 +248,10 @@ async function takeBatch(session: Awaited<ReturnType<typeof requireAdmin>>, d: z
     });
     const { data: inserted, error: insErr } = await supabase.from("terminal_sales").insert(rows).select(LEDGER_SELECT);
     if (insErr || !inserted?.length) return { ok: false, error: `Payment recorded but the ledger rows failed: ${insErr?.message ?? "unknown"}` };
-    const group = (inserted as unknown as LedgerRow[]).map(toTransaction).sort((a, b) => split.findIndex((x) => x.payment_id === a.payment_id) - split.findIndex((x) => x.payment_id === b.payment_id));
+    const { sentTo } = await autoReceipt(supabase, company, split.map((x) => x.payment_id));
+    const group = (inserted as unknown as LedgerRow[])
+      .map((r) => markSent(toTransaction(r), sentTo))
+      .sort((a, b) => split.findIndex((x) => x.payment_id === a.payment_id) - split.findIndex((x) => x.payment_id === b.payment_id));
     for (const i of open) revalidatePath(`/invoices/${i.id}`);
     revalidate();
     return { ok: true, data: { ...group[0], group } };
@@ -366,33 +345,10 @@ export async function emailReceiptAction(input: { id: string; to: string }): Pro
   const { data: row } = await supabase.from("terminal_sales").select(LEDGER_SELECT).eq("id", parsed.data.id).maybeSingle();
   if (row) tx = toTransaction(row as unknown as LedgerRow);
   else {
-    const { data: rawP } = await supabase.from("invoice_payments").select("*, invoice:invoices(display_number, dealership:dealerships(name))").eq("id", parsed.data.id).maybeSingle();
-    const p = rawP as unknown as (InvoicePayment & { invoice: { display_number: string; dealership: { name: string } | null } | null }) | null;
+    const { data: rawP } = await supabase.from("invoice_payments").select(PAYMENT_SELECT).eq("id", parsed.data.id).maybeSingle();
+    const p = rawP as unknown as PaymentRow | null;
     if (!p) return { ok: false, error: "Transaction not found" };
-    tx = {
-      id: p.id,
-      kind: "sale",
-      status: "captured",
-      amount: Number(p.amount),
-      refunded_amount: 0,
-      method: p.method,
-      source: p.source,
-      invoice_id: p.invoice_id,
-      invoice_number: p.invoice?.display_number ?? null,
-      dealership: p.invoice?.dealership?.name ?? null,
-      payment_id: p.id,
-      refund_of: null,
-      group_id: null,
-      description: p.note,
-      customer_name: null,
-      customer_email: null,
-      reference: p.reference,
-      card_brand: null,
-      last4: null,
-      clover_payment_id: p.clover_payment_id,
-      receipt_sent_at: null,
-      at: p.created_at,
-    };
+    tx = paymentToTransaction(p);
   }
   let group: TerminalTransaction[] | null = null;
   if (tx.group_id) {

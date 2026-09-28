@@ -769,4 +769,12 @@ begin
   select count(*) into n from storage.objects; assert n = 1, 'storage read scoped';
 end $$;
 
+-- 0022: automatic receipts are opt-in.
+do $$
+begin
+  assert (select auto_receipt from public.companies where id = '00000000-0000-4000-8000-000000000001') = false, 'auto receipts off by default';
+  update public.companies set auto_receipt = true where id = '00000000-0000-4000-8000-000000000001';
+  assert (select auto_receipt from public.companies where id = '00000000-0000-4000-8000-000000000001'), 'owner can turn auto receipts on';
+end $$;
+
 select pg_temp.logout();

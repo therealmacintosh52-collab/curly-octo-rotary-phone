@@ -30,6 +30,8 @@ const companySchema = z.object({
   invoice_prefix: z.string().trim().max(12),
   reminder_days: z.number().int().min(1).max(365),
   timezone: z.string().trim().min(1).max(64),
+  /** Email the dealership a receipt the moment a payment lands on an invoice. */
+  auto_receipt: z.boolean(),
 });
 export type CompanyInput = z.input<typeof companySchema>;
 
