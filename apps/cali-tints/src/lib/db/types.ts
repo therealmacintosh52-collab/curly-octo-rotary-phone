@@ -421,6 +421,8 @@ export type DashboardStats = {
   income: { jobs: number; revenue: number; collected: number; payments: number; avg_per_car: number };
   /** Logged today, split by service in menu order. A normal day is about 3 Used, 2 PDI, 4 Sold. */
   today: { jobs: number; revenue: number; by_service: { service_id: string; name: string; jobs: number; revenue: number }[] };
+  /** Each day of the current week (Mon–Sun) that has cars. */
+  week_by_day: { day: string; jobs: number; revenue: number }[];
   collected_by_day: { day: string; payments: number; amount: number }[];
   uninvoiced_total: number;
   uninvoiced_jobs: number;

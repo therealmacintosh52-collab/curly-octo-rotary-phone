@@ -3,6 +3,8 @@ import { AlertTriangleIcon, PlusIcon, WalletIcon } from "lucide-react";
 import type { DashboardStats } from "@/lib/db/types";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatDateOnly, presetRange, RANGE_PRESETS, type RangePreset } from "@/lib/dates";
+import { WeekTile } from "./week-tile";
+import { MonthPicker } from "./month-picker";
 import { Page, PageHeader, SectionHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +34,41 @@ export function resolveRange(sp: Record<string, string | string[] | undefined>):
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+/** The breakdown month (`?bm=YYYY-MM`), defaulting to the current month; `months` lists the last six for the picker. */
+export function resolveBreakdownMonth(sp: Record<string, string | string[] | undefined>, today: string): { month: string; start: string; end: string; label: string; months: { value: string; label: string }[] } {
+  const bm = typeof sp.bm === "string" && /^\d{4}-\d{2}$/.test(sp.bm) ? sp.bm : today.slice(0, 7);
+  const [ty, tm] = today.split("-").map(Number);
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(ty, tm - 1 - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return { value, label: i === 0 ? "This month" : formatDateOnly(`${value}-01`, d.getFullYear() === ty ? "MMM" : "MMM yy") };
+  });
+  const [y, m] = bm.split("-").map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return { month: bm, start: `${bm}-01`, end: `${bm}-${String(last).padStart(2, "0")}`, label: formatDateOnly(`${bm}-01`, "MMMM yyyy"), months: months.some((x) => x.value === bm) ? months : [{ value: bm, label: formatDateOnly(`${bm}-01`, "MMM yy") }, ...months] };
+}
+
+/** The weeks of a month (Mon–Sun, clipped to the month) with the cars and revenue logged in each. */
+export function weeksOfMonth(start: string, end: string, byDay: { day: string; jobs: number; revenue: number }[]) {
+  const [y, m] = start.split("-").map(Number);
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const weeks: { from: string; to: string; jobs: number; revenue: number }[] = [];
+  const cursor = new Date(y, m - 1, 1);
+  const last = new Date(end + "T00:00:00");
+  while (cursor <= last) {
+    const from = ymd(cursor);
+    const dow = (cursor.getDay() + 6) % 7; // Monday = 0
+    const to = new Date(cursor);
+    to.setDate(to.getDate() + (6 - dow));
+    const toYmd = to > last ? end : ymd(to);
+    const inWeek = byDay.filter((d) => d.day >= from && d.day <= toYmd);
+    weeks.push({ from, to: toYmd, jobs: inWeek.reduce((s, d) => s + Number(d.jobs), 0), revenue: inWeek.reduce((s, d) => s + Number(d.revenue), 0) });
+    cursor.setTime(to.getTime());
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return weeks;
+}
+
 /**
  * Owner dashboard. All numbers come from one dashboard_stats() call; every
  * tile and bar links to the filtered invoice list behind it (a car is an
@@ -40,13 +77,30 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * Hierarchy: the primary row is what the owner checks daily (this week, this
  * month, what is unpaid, what is coming in). The second row is context.
  */
-export function Dashboard({ stats, range, companyName, cloverUnmatched = 0 }: { stats: DashboardStats; range: DashboardRange; companyName: string; cloverUnmatched?: number }) {
+export function Dashboard({
+  stats,
+  range,
+  companyName,
+  cloverUnmatched = 0,
+  today,
+  breakdown,
+}: {
+  stats: DashboardStats;
+  range: DashboardRange;
+  companyName: string;
+  cloverUnmatched?: number;
+  /** Today in the company timezone (yyyy-mm-dd). */
+  today: string;
+  /** The month the breakdown shows, with its own stats (by service, by day). */
+  breakdown: ReturnType<typeof resolveBreakdownMonth> & { stats: Pick<DashboardStats, "by_service" | "by_day"> };
+}) {
   const rangeLabel = range.preset === "all" ? "All time" : `${formatDateOnly(range.start, "MMM d")} – ${formatDateOnly(range.end, "MMM d, yyyy")}`;
   const week = presetRange("this_week");
   const month = presetRange("this_month");
   // "All time" links to the unfiltered list instead of a from=2000 filter.
   const rangeQ = range.preset === "all" ? "" : `from=${range.start}&to=${range.end}`;
-  const drill = range.preset === "all" ? null : { start: range.start, end: range.end };
+  const pageQ = range.preset === "all" ? "preset=all" : `${rangeQ}${range.preset !== "custom" ? `&preset=${range.preset}` : ""}`;
+  const weeks = weeksOfMonth(breakdown.start, breakdown.end, breakdown.stats.by_day);
 
   return (
     <Page>
@@ -74,10 +128,8 @@ export function Dashboard({ stats, range, companyName, cloverUnmatched = 0 }: { 
             tone={stats.today.jobs > 0 ? "accent" : undefined}
             href="/invoices?q=today"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)}`} href={`/invoices?from=${week.start}&to=${week.end}`} />
-            <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/invoices?from=${month.start}&to=${month.end}`} />
-          </div>
+          <WeekTile jobs={stats.week.jobs} revenue={stats.week.revenue} weekStart={week.start} today={today} days={stats.week_by_day} />
+          <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/invoices?from=${month.start}&to=${month.end}`} />
         </section>
 
         <section className="flex flex-col gap-3">
@@ -165,34 +217,42 @@ export function Dashboard({ stats, range, companyName, cloverUnmatched = 0 }: { 
           href="/invoices?status=unpaid"
         />
       </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Income received per day</CardTitle>
+            <CardTitle>Invoices received per day</CardTitle>
           </CardHeader>
           <CardContent>
             <DailyBarsChart data={stats.collected_by_day.map((d) => ({ day: d.day, value: Number(d.amount), count: d.payments }))} start={range.start} end={range.end} drill="paid" />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue logged per day</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DailyBarsChart data={stats.by_day.map((d) => ({ day: d.day, value: Number(d.revenue), count: d.jobs }))} start={range.start} end={range.end} />
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Breakdowns */}
-      <SectionHeader className="mt-8" title="Breakdown" />
-      <div className="mt-4 grid gap-4">
+      {/* Breakdown: one month at a time, by service and by week */}
+      <SectionHeader className="mt-8" title={<span>Breakdown · {breakdown.label}</span>} aside={<MonthPicker months={breakdown.months} value={breakdown.month} baseQuery={pageQ} />} />
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Revenue by service</CardTitle>
           </CardHeader>
           <CardContent>
-            <HorizontalBars data={stats.by_service.map((s) => ({ id: s.service_id, name: s.name, jobs: s.jobs, revenue: s.revenue }))} money linkParam="service" range={drill} />
+            <HorizontalBars data={breakdown.stats.by_service.map((s) => ({ id: s.service_id, name: s.name, jobs: s.jobs, revenue: s.revenue }))} money linkParam="service" range={{ start: breakdown.start, end: breakdown.end }} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>By week</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0 pb-0 sm:px-0">
+            <StatList
+              className="rounded-none border-0 bg-transparent shadow-none"
+              rows={weeks.map((w, i) => ({
+                label: `Week ${i + 1} · ${formatDateOnly(w.from, "MMM d")} – ${formatDateOnly(w.to, "MMM d")}`,
+                hint: w.jobs === 0 ? (w.from > today ? "still to come" : "no cars") : plural(w.jobs, "car", "cars"),
+                value: w.jobs === 0 ? "—" : formatMoney(w.revenue),
+                href: `/invoices?from=${w.from}&to=${w.to}`,
+              }))}
+            />
           </CardContent>
         </Card>
       </div>

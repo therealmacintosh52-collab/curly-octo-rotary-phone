@@ -712,6 +712,7 @@ begin
   assert (stats ->> 'draft_invoices')::int = (select count(*) from public.invoices where company_id = public.current_company_id() and status = 'draft'), 'draft count';
   -- today, by service (DEL1 above was logged today with "Sold", then deleted; OWN1 was yesterday; ONE1/ONE2/BAT* are today with "Used")
   assert stats ? 'today' and (stats -> 'today') ? 'by_service', 'today keys';
+  assert stats ? 'week_by_day' and (select sum((e ->> 'jobs')::int) from jsonb_array_elements(stats -> 'week_by_day') e) = (stats -> 'week' ->> 'jobs')::int, 'week days add up to the week';
   assert (stats -> 'today' ->> 'jobs')::int >= 1, 'cars today';
   assert (select count(*) from jsonb_array_elements(stats -> 'today' -> 'by_service') e where e ->> 'name' = 'Used' and (e ->> 'jobs')::int >= 1) = 1, 'today split by service';
   assert (select sum((e ->> 'jobs')::int) from jsonb_array_elements(stats -> 'today' -> 'by_service') e) >= (stats -> 'today' ->> 'jobs')::int, 'service lines cover every car';

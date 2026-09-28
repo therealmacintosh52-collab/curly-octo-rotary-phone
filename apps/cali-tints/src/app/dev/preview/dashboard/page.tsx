@@ -1,13 +1,17 @@
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
-import { Dashboard, resolveRange } from "@/components/dashboard/dashboard";
+import { Dashboard, resolveBreakdownMonth, resolveRange } from "@/components/dashboard/dashboard";
+import { toDateInput } from "@/lib/dates";
 import type { DashboardStats, Profile } from "@/lib/db/types";
 import { invoiceBundleFixture } from "@/test/fixtures";
 
 /** Dev-only dashboard with fixture stats (guest preview in production). The range picker works; the sample numbers stay the same. */
 export default async function DevDashboardPreview(props: PageProps<"/dev/preview/dashboard">) {
-  const range = resolveRange(await props.searchParams);
+  const sp = await props.searchParams;
+  const range = resolveRange(sp);
+  const today = toDateInput(new Date());
+  const bm = resolveBreakdownMonth(sp, today);
   const { company } = invoiceBundleFixture();
   const profile = { id: "u1", company_id: company.id, role: "owner", full_name: "Owner (preview)", email: null, active: true } as Profile;
 
@@ -60,6 +64,12 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
       { detailer_id: "u4", name: "Dee Two", jobs: 27, revenue: 3810 },
     ],
     by_day: days,
+    week_by_day: Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + i);
+      const jobs = [9, 8, 6, 0, 0, 0, 0][i];
+      return { day: toDateInput(d), jobs, revenue: jobs * 90 };
+    }).filter((d) => d.jobs > 0),
     overdue: [
       { id: "i1", display_number: "INV-000009", dealership: "Mercedes-Benz of El Dorado Hills", total: 4210, amount_paid: 0, submitted_at: "2026-08-02T17:00:00Z", days_outstanding: 55 },
       { id: "i2", display_number: "INV-000011", dealership: "Mercedes-Benz of Sacramento", total: 1875.5, amount_paid: 500, submitted_at: "2026-08-20T17:00:00Z", days_outstanding: 37 },
@@ -71,7 +81,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
     <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
       <SyncProvider>
         <AppShell>
-          <Dashboard stats={stats} range={range} companyName={company.name} />
+          <Dashboard stats={stats} range={range} companyName={company.name} today={today} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>
