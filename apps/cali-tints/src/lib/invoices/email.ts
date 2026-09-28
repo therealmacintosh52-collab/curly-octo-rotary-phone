@@ -82,6 +82,63 @@ export function invoiceEmailText(b: InvoiceBundle, payUrl: string | null = null)
     .join("\n");
 }
 
+/** A short "pay by card" email: the amount, the button, nothing attached. */
+export function payLinkEmailHtml(b: InvoiceBundle, payUrl: string, note: string | null): string {
+  const { invoice, company, dealership } = b;
+  const e = escapeHtml;
+  const balance = Number(invoice.total) - Number(invoice.amount_paid);
+  return `<!doctype html>
+<html><body style="margin:0;background:#f3f4f6;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#111827">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0">
+<tr><td align="center">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;overflow:hidden">
+  <tr><td style="background:#0b0d0f;padding:22px 28px;border-bottom:3px solid #82d955">
+    <div style="font-size:18px;font-weight:700;color:#ffffff">${e(company.name)}</div>
+    <div style="font-size:12px;color:#9aa3ab;margin-top:2px">Payment link · Invoice ${e(invoice.display_number)}</div>
+  </td></tr>
+  <tr><td style="padding:28px">
+    <p style="margin:0 0 14px;font-size:15px">Hello${dealership.ap_contact_name ? " " + e(dealership.ap_contact_name) : ""},</p>
+    <p style="margin:0 0 18px;font-size:14px;line-height:1.5">Invoice <strong>${e(invoice.display_number)}</strong> for <strong>${e(dealership.name)}</strong> can be paid by card with the button below.</p>
+    ${note ? `<p style="margin:0 0 18px;font-size:14px;line-height:1.5;white-space:pre-wrap">${e(note)}</p>` : ""}
+    <div style="font-size:30px;font-weight:700;letter-spacing:-0.01em;margin:0 0 16px">${formatMoney(balance)}</div>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="background:#82d955;border-radius:8px"><a href="${e(payUrl)}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:700;color:#06120a;text-decoration:none">Pay ${formatMoney(balance)} by card</a></td></tr></table>
+    <p style="margin:8px 0 0;text-align:center;font-size:12px;color:#6b7280">Secure checkout by Clover. Check and ACH are still welcome.</p>
+    <p style="margin:18px 0 0;font-size:13px;line-height:1.5;color:#374151">Please reference <strong>${e(invoice.display_number)}</strong> on your remittance. Reply to this email with any questions.</p>
+    <p style="margin:22px 0 0;font-size:14px">Thank you,<br><strong>${e(company.name)}</strong>${company.phone ? `<br><span style="color:#6b7280">${e(company.phone)}</span>` : ""}</p>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+}
+
+export function payLinkEmailText(b: InvoiceBundle, payUrl: string, note: string | null): string {
+  const balance = Number(b.invoice.total) - Number(b.invoice.amount_paid);
+  return [`Invoice ${b.invoice.display_number} from ${b.company.name}`, ``, note, note ? `` : null, `Amount due: ${formatMoney(balance)}`, `Pay by card (secure Clover checkout): ${payUrl}`, ``, `Please reference ${b.invoice.display_number} on remittance.`, ``, `Thank you,`, b.company.name].filter((l) => l !== null).join("\n");
+}
+
+/** Send the pay-by-card link on its own (no PDF): to the AP contact, or to anyone the owner types in. */
+export async function sendPayLinkEmail(b: InvoiceBundle, to: string[], payUrl: string, note: string | null): Promise<SendResult | SendFailure> {
+  const cc = b.company.email ? [b.company.email] : [];
+  if (to.length === 0) return { ok: false, error: "Add at least one email address", to, cc };
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!apiKey || !from) return { ok: false, error: "Email is not configured: set RESEND_API_KEY and EMAIL_FROM", to, cc };
+  const balance = Number(b.invoice.total) - Number(b.invoice.amount_paid);
+  const resend = new Resend(apiKey);
+  const { data, error } = await resend.emails.send({
+    from,
+    to,
+    cc: cc.length ? cc : undefined,
+    replyTo: b.company.email ?? undefined,
+    subject: `Pay ${formatMoney(balance)} by card — Invoice ${b.invoice.display_number} — ${b.company.name}`,
+    html: payLinkEmailHtml(b, payUrl, note),
+    text: payLinkEmailText(b, payUrl, note),
+    headers: { "X-Entity-Ref-ID": `${b.invoice.id}:paylink` },
+  });
+  if (error || !data) return { ok: false, error: error?.message ?? "Email provider returned no message id", to, cc };
+  return { ok: true, messageId: data.id, to, cc };
+}
+
 /** Who gets it, what it says: the parts of the email that are worth previewing. */
 export function invoiceEmailEnvelope(b: InvoiceBundle): { to: string[]; cc: string[]; subject: string; stem: string } {
   return {

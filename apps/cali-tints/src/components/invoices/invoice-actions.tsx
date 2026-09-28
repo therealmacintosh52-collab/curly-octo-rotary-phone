@@ -3,11 +3,12 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BanIcon, BanknoteIcon, ChevronDownIcon, CreditCardIcon, DownloadIcon, FileCheckIcon, ListTreeIcon, MailIcon, MoreHorizontalIcon, PrinterIcon, SendIcon, TabletSmartphoneIcon, WalletIcon } from "lucide-react";
+import { BanIcon, BanknoteIcon, ChevronDownIcon, CreditCardIcon, DownloadIcon, FileCheckIcon, LinkIcon, ListTreeIcon, MailIcon, MoreHorizontalIcon, PrinterIcon, SendIcon, TabletSmartphoneIcon, WalletIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { InvoiceStatus, SubmissionMethod } from "@/lib/db/types";
 import { markSubmittedAction, submitInvoiceByEmailAction, voidInvoiceAction } from "@/app/(app)/invoices/actions";
 import { useSession } from "@/components/app/session-provider";
+import { SendPayLinkDialog } from "@/components/invoices/send-pay-link-dialog";
 import { formatMoney, formatTaxRate } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
   const [emailOpen, setEmailOpen] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [payLinkOpen, setPayLinkOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const isVoid = invoice.status === "void";
   const canVoid = !isVoid && invoice.amount_paid === 0;
@@ -144,6 +146,10 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
             <DropdownMenuItem onSelect={() => setEmailOpen(true)}>
               <MailIcon /> Email invoice{collect.payLink ? " with pay-by-card link" : ""}
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setPayLinkOpen(true)} disabled={!collect.payLink} data-testid="send-pay-link">
+              <LinkIcon /> Send payment link
+              {!collect.payLink && <span className="ml-auto text-caption text-subtle">set up</span>}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -240,6 +246,13 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Payment link on its own: email, copy or text */}
+      {canCollect && (
+        <Dialog open={payLinkOpen} onOpenChange={setPayLinkOpen}>
+          {payLinkOpen && <SendPayLinkDialog invoiceId={invoice.id} number={invoice.display_number} dealership={dealership.name} apEmails={dealership.ap_emails} balance={balance} onDone={() => setPayLinkOpen(false)} />}
+        </Dialog>
+      )}
 
       {/* Manual submission */}
       <Dialog open={manualOpen} onOpenChange={setManualOpen}>

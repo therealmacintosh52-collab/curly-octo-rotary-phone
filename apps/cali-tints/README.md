@@ -197,7 +197,7 @@ Limits: hosted checkout cannot refund or void through the API, so refunds are do
 2. The **Terminal** opens with that invoice selected and the balance on the keypad. Tap **Terminal** (the Clover device), **Card**, or **Cash / Check / ACH**.
 3. The customer taps their card. The payment lands on the invoice, the receipt is one tap from the dealership's AP email or the printer.
 
-Also: **Collect** on every open invoice (invoice page and list) opens the Terminal with that invoice ready; the invoice page's **Collect** menu offers the terminal, card in the app, cash/check, or emailing the invoice with a pay-by-card link. A **Clover setup** checklist sits on the Terminal and Settings until every piece (tokens, merchant ID, connection test, device serial, card keys, webhook) is in place.
+Also: **Collect** on every open invoice (invoice page and list) opens the Terminal with that invoice ready; the invoice page's **Collect** menu offers the terminal, card in the app, cash/check, emailing the invoice with a pay-by-card link, or **Send payment link** on its own: the Clover checkout link (made on the spot if the invoice has none) emailed to the AP contact or any address typed in, copied, or shared to Messages from a phone. Every send is logged in the invoice's history. A **Clover setup** checklist sits on the Terminal and Settings until every piece (tokens, merchant ID, connection test, device serial, card keys, webhook) is in place.
 
 ## Charge several invoices at once
 
@@ -236,7 +236,7 @@ Rules: UTF-8 with BOM, CRLF, RFC 4180 quoting, dates as `yyyy-mm-dd`, amounts wi
 
 ## Operations notes
 
-- **Locked cars**: a car on a sent or paid invoice cannot be edited. While the invoice is an unsent draft, **Edit invoice** / **Delete invoice** on the invoice page do the right thing. After that, void the invoice (only if no payments are recorded) to unlock the car; it then shows under *Cars with no invoice* on the dashboard and `/invoices/new` re-invoices it.
+- **Locked cars**: a car on a sent or paid invoice cannot be edited. While the invoice is an unsent draft, **Edit invoice** / **Delete invoice** on the invoice page do the right thing; when Clover order push is on, an edited invoice's Clover order is replaced with the new lines (the old order is deleted and any pay-by-card link is remade). After that, void the invoice (only if no payments are recorded) to unlock the car; it then shows under *Cars with no invoice* on the dashboard and `/invoices/new` re-invoices it.
 - **Applying 0015 to an existing database**: `pnpm db:push` (or paste the migration in the SQL editor). The backfill gives every uninvoiced car its own draft invoice, in `performed_at` order, so invoice numbers follow the calendar.
 - **Tax**: company default is 0 %; set per dealership if a dealer requires it. Rates are fractional in the database (`0.0775`), percentages in the UI.
 - **Timezone**: `companies.timezone` decides which calendar day a job belongs to for invoice periods and the dashboard.

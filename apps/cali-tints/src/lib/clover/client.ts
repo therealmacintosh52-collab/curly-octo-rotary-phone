@@ -172,6 +172,11 @@ export async function createOrder(ctx: CloverContext, order: { title: string; no
   return created;
 }
 
+/** Remove an open order (an invoice was edited: the mirror is re-made from the new lines). */
+export async function deleteOrder(ctx: CloverContext, orderId: string): Promise<void> {
+  await call<unknown>(`${CLOVER_HOSTS[ctx.env].api}/v3/merchants/${ctx.merchantId}/orders/${encodeURIComponent(orderId)}`, { method: "DELETE", token: await apiToken(ctx), ctx });
+}
+
 // --- Payments -----------------------------------------------------------------
 
 export interface CloverPayment {

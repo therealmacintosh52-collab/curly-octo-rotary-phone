@@ -8,12 +8,12 @@ import { errorMessage } from "@/lib/utils";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
 import { invoicePdf } from "@/lib/invoices/pdf";
 import { invoiceCsv } from "@/lib/invoices/csv";
-import { invoiceEmailEnvelope, invoiceEmailHtml, sendInvoiceEmail } from "@/lib/invoices/email";
+import { invoiceEmailEnvelope, invoiceEmailHtml, sendInvoiceEmail, sendPayLinkEmail } from "@/lib/invoices/email";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { updateJobSchema, type UpdateJobInput } from "@/lib/jobs/schema";
 import { cloverContext, createInvoiceCheckout, pushInvoiceOrder } from "@/lib/clover/invoices";
 import { syncCloverPayments, type SyncResult } from "@/lib/clover/sync";
-import { cancelDevice } from "@/lib/clover/client";
+import { cancelDevice, deleteOrder } from "@/lib/clover/client";
 import { chargeCardToQueue, deviceToQueue } from "@/lib/clover/charges";
 import { cloverSecrets } from "@/lib/clover/env";
 import type { InvoiceBundle } from "@/lib/invoices/load";
@@ -50,11 +50,88 @@ export async function editInvoiceCarAction(input: UpdateJobInput & { invoice_id:
   const supabase = await createClient();
   const { error } = await supabase.rpc("edit_invoice_car", { p_invoice_id: invoice_id, p });
   if (error) return { ok: false, error: errorMessage(error) };
+  const session = await getSession();
+  if (session.isAdmin) await resyncCloverAfterEdit(invoice_id, session.company);
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${invoice_id}`);
   revalidatePath("/terminal");
   revalidatePath("/");
   return { ok: true, data: undefined };
+}
+
+/**
+ * An edited invoice has new lines and a new total: its Clover mirror must
+ * follow. The old open order is removed and a fresh one pushed; a pay link
+ * made for the old amount is dropped so the next one is right. Best effort:
+ * a Clover hiccup never blocks the edit (the invoice page offers a push).
+ */
+async function resyncCloverAfterEdit(invoiceId: string, company: Company) {
+  const ctx = cloverContext(company);
+  if (!ctx) return;
+  const supabase = await createClient();
+  const { data: inv } = await supabase.from("invoices").select("clover_order_id, clover_checkout_url").eq("id", invoiceId).maybeSingle();
+  if (!inv) return;
+  if (inv.clover_order_id) {
+    try {
+      await deleteOrder(ctx, inv.clover_order_id);
+    } catch (err) {
+      console.warn(`Clover: could not remove order ${inv.clover_order_id} for edited invoice ${invoiceId}: ${errorMessage(err)}`);
+    }
+  }
+  await supabase.from("invoices").update({ clover_order_id: null, clover_pushed_at: null, clover_checkout_session_id: null, clover_checkout_url: null, clover_checkout_expires_at: null }).eq("id", invoiceId);
+  if (company.clover_push_orders) await autoPushToClover([invoiceId], company);
+}
+
+/** The pay-by-card link for an invoice (made now if there is none), for copying or sharing by text. */
+export async function getPaymentLinkAction(id: string): Promise<ActionResult<{ url: string; expiresAt: string | null; balance: number }>> {
+  const session = await requireAdmin();
+  if (!cloverContext(session.company)) return { ok: false, error: "Clover is not enabled (Settings → Clover)" };
+  const bundle = await loadInvoiceBundle(id);
+  if (!bundle) return { ok: false, error: "Invoice not found" };
+  try {
+    const link = await ensureCheckoutLink(session.company, bundle);
+    if (!link) return { ok: false, error: "Nothing left to pay on this invoice, or pay links are turned off in Settings → Clover" };
+    revalidatePath(`/invoices/${id}`);
+    return { ok: true, data: { ...link, balance: Number(bundle.invoice.total) - Number(bundle.invoice.amount_paid) } };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+/** Email the pay-by-card link on its own (no PDF) to the addresses given, and log it in the submission history. */
+export async function sendPaymentLinkAction(input: { invoiceId: string; to: string[]; note?: string }): Promise<ActionResult<{ recipients: string[] }>> {
+  const session = await requireAdmin();
+  const parsed = z.object({ invoiceId: z.uuid(), to: z.array(z.string().trim().email()).min(1).max(10), note: z.string().trim().max(500).optional() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the email addresses" };
+  if (!cloverContext(session.company)) return { ok: false, error: "Clover is not enabled (Settings → Clover)" };
+  const bundle = await loadInvoiceBundle(parsed.data.invoiceId);
+  if (!bundle) return { ok: false, error: "Invoice not found" };
+  let link: { url: string } | null;
+  try {
+    link = await ensureCheckoutLink(session.company, bundle);
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+  if (!link) return { ok: false, error: "Nothing left to pay on this invoice, or pay links are turned off in Settings → Clover" };
+  const result = await sendPayLinkEmail(bundle, parsed.data.to, link.url, parsed.data.note || null);
+  const supabase = await createClient();
+  await supabase.from("invoice_submissions").insert({
+    company_id: bundle.invoice.company_id,
+    invoice_id: bundle.invoice.id,
+    method: "email",
+    status: result.ok ? "sent" : "failed",
+    recipients: result.to,
+    cc: result.cc,
+    provider: "resend",
+    message_id: result.ok ? result.messageId : null,
+    error: result.ok ? null : result.error,
+    note: "Payment link",
+    created_by: session.userId,
+  });
+  revalidatePath(`/invoices/${bundle.invoice.id}`);
+  revalidatePath("/invoices");
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, data: { recipients: result.to } };
 }
 
 /** A car that should never have been logged: void its invoice and soft-delete the car (kept for audit). */
