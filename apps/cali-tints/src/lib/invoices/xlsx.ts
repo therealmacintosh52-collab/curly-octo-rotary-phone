@@ -38,7 +38,7 @@ export async function invoiceXlsx(b: InvoiceBundle): Promise<Buffer> {
   if (dealership.ap_contact_name) ws.addRow(["", "", `Attn: ${dealership.ap_contact_name}`]);
   ws.addRow([]);
 
-  const header = ws.addRow(["Date", "Tag", "VIN", "Vehicle", "Service", "Amount"]);
+  const header = ws.addRow(["Date", "Stock #", "VIN", "Vehicle", "Service", "Amount"]);
   header.font = { bold: true };
   header.eachCell((c) => {
     c.border = { bottom: { style: "thin" } };

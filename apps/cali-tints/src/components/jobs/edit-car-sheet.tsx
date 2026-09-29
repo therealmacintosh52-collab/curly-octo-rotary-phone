@@ -97,7 +97,7 @@ export function EditCarSheet({
   );
 
   function submit() {
-    if (!tag.trim()) return toast.error("Tag number is required");
+    if (!tag.trim()) return toast.error("Stock number is required");
     if (vin && vinStatus(vin) === "invalid") return toast.error("VIN must be 17 characters");
     if (services.length === 0) return toast.error("Select at least one service");
     start(async () => {
@@ -138,7 +138,7 @@ export function EditCarSheet({
         <div className="grid gap-4 px-5">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="e-tag">Tag</Label>
+              <Label htmlFor="e-tag">Stock number</Label>
               <Input id="e-tag" value={tag} onChange={(e) => setTag(e.target.value.toUpperCase())} autoCapitalize="characters" />
             </div>
             <div className="grid gap-1.5">

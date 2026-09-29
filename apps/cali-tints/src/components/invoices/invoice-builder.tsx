@@ -358,7 +358,7 @@ function PreviewRows({
               <span className="sr-only">Include</span>
             </TableHead>
             <TableHead>Date</TableHead>
-            <TableHead>Tag</TableHead>
+            <TableHead>Stock #</TableHead>
             <TableHead>Vehicle</TableHead>
             <TableHead>Services</TableHead>
             <TableHead>Detailer</TableHead>

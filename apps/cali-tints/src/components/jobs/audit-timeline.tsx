@@ -4,7 +4,7 @@ import { formatMoney } from "@/lib/money";
 
 const HIDDEN = new Set(["id", "company_id", "job_id", "client_id", "created_at", "updated_at", "created_by", "updated_by", "deleted_by", "dup_reviewed_by"]);
 const LABELS: Record<string, string> = {
-  tag_number: "Tag",
+  tag_number: "Stock number",
   vin: "VIN",
   year: "Year",
   make: "Make",

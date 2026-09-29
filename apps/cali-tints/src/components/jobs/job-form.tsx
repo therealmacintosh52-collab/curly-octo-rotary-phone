@@ -202,7 +202,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
   // --- validation --------------------------------------------------------------
   function validate(): string | null {
     if (!dealershipId) return "Pick a dealership";
-    if (!tag.trim()) return "Key tag number is required";
+    if (!tag.trim()) return "Stock number is required";
     if (vin && vinState === "invalid") return "VIN must be 17 characters (no I, O or Q)";
     if (services.length === 0) return "Select at least one service";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performedAt)) return "Date is invalid";
@@ -381,7 +381,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
       <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-title">New invoice</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Tag, services, save. The car you log is the invoice.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Stock number, services, save. The car you log is the invoice.</p>
         </div>
         <AnimatePresence>
           {savedCount > 0 && (
@@ -472,7 +472,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
       <section className="flex flex-col gap-4">
         <h2 className="text-label text-subtle">Vehicle</h2>
         <div className="grid gap-1.5">
-          <Label htmlFor="tag">Key tag number</Label>
+          <Label htmlFor="tag">Stock number</Label>
           <Input
             ref={tagRef}
             id="tag"

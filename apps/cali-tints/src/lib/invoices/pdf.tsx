@@ -41,9 +41,9 @@ function styles(variant: PdfVariant) {
       thead: { flexDirection: "row", backgroundColor: headFill, color: headText, paddingVertical: 6, paddingHorizontal: 6, fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 0.6, borderBottomWidth: variant === "print" ? 0.75 : 0, borderBottomColor: rule },
       tr: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 6, borderBottomWidth: 0.5, borderBottomColor: rule },
       cDate: { width: "10%", paddingRight: 4 },
-      cTag: { width: "9%", fontFamily: "Helvetica-Bold", paddingRight: 4 },
+      cTag: { width: "11%", fontFamily: "Helvetica-Bold", paddingRight: 4 },
       cVin: { width: "19%", fontSize: 8, paddingRight: 4 },
-      cVeh: { width: "27%", paddingRight: 6 },
+      cVeh: { width: "25%", paddingRight: 6 },
       cSvc: { width: "24%", paddingRight: 6 },
       cAmt: { width: "11%", textAlign: "right" },
       totals: { marginTop: 12, alignSelf: "flex-end", width: 220 },
@@ -132,7 +132,7 @@ export function InvoiceDocument({ bundle, variant }: { bundle: InvoiceBundle; va
         <View style={s.table}>
           <View style={s.thead}>
             <Text style={s.cDate}>DATE</Text>
-            <Text style={s.cTag}>TAG</Text>
+            <Text style={s.cTag}>STOCK #</Text>
             <Text style={s.cVin}>VIN</Text>
             <Text style={s.cVeh}>VEHICLE</Text>
             <Text style={s.cSvc}>SERVICE</Text>

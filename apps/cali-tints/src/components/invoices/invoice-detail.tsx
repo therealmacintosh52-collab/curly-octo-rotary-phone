@@ -177,7 +177,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
             <CardContent>
               {car ? (
                 <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-                  <Fact label="Key tag" value={<span className="text-base font-semibold tracking-wide">{car.tag_number}</span>} />
+                  <Fact label="Stock number" value={<span className="text-base font-semibold tracking-wide">{car.tag_number}</span>} />
                   <Fact label="Vehicle" value={vehicle(car) || "—"} />
                   <Fact label="Color" value={car.color ?? "—"} />
                   <Fact label="VIN" value={car.vin ? <span className="font-mono">{car.vin}</span> : "—"} />

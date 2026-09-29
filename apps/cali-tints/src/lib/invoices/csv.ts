@@ -17,7 +17,7 @@ export const INVOICE_CSV_COLUMNS = [
   { key: "dealership_address", header: "Dealership Address" },
   { key: "line", header: "Line" },
   { key: "service_date", header: "Service Date" },
-  { key: "tag_number", header: "Key Tag" },
+  { key: "tag_number", header: "Stock Number" },
   { key: "vin", header: "VIN" },
   { key: "year", header: "Year" },
   { key: "make", header: "Make" },

@@ -2,7 +2,7 @@
 
 A mobile-first, offline-capable PWA that replaces handwritten invoices for a detailing vendor working inside Mercedes-Benz dealerships.
 
-- **A car is an invoice.** Log a car from the lot in seconds (key tag, scan the VIN, tap services, Save) and it *is* its invoice, numbered and ready. Works with no signal; the invoice is made the moment the car syncs.
+- **A car is an invoice.** Log a car from the lot in seconds (stock number, scan the VIN, tap services, Save) and it *is* its invoice, numbered and ready. Works with no signal; the invoice is made the moment the car syncs.
 - **One list.** The Invoices tab is every car ever logged: search by tag, VIN, model or invoice number; filter by dealership, service, dates and where the money stands (Unpaid · Overdue · Paid). Fix a typo or remove a car while the invoice is still an unsent draft.
 - **Collect.** Send the PDF + CSV by email, take the card on the Clover terminal or in the app, or settle every unpaid invoice for a dealership with one payment. Partial payments, refunds, receipts and overdue reminders are built in.
 
@@ -235,7 +235,7 @@ pnpm build
 
 Per-invoice CSV (`/api/invoices/{id}/csv`, also attached to emails) and the *Invoice line items* export share the same columns, in this fixed order:
 
-`Invoice Number, Invoice Date, Period Start, Period End, Vendor, Vendor EIN, Dealership, Dealership Address, Line, Service Date, Key Tag, VIN, Year, Make, Model, Color, RO/PO, Service, Detailer, Amount, Invoice Subtotal, Invoice Tax, Invoice Total, Payment Terms, Status`
+`Invoice Number, Invoice Date, Period Start, Period End, Vendor, Vendor EIN, Dealership, Dealership Address, Line, Service Date, Stock Number, VIN, Year, Make, Model, Color, RO/PO, Service, Detailer, Amount, Invoice Subtotal, Invoice Tax, Invoice Total, Payment Terms, Status`
 
 Rules: UTF-8 with BOM, CRLF, RFC 4180 quoting, dates as `yyyy-mm-dd`, amounts with two decimals, one row per service line. New columns are only ever appended. A future DMS/AP integration can consume this file unchanged or read `invoice_items` directly.
 

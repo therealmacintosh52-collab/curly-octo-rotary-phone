@@ -133,7 +133,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
         <Section id="new" title="New invoice" intro="Every car you log becomes its own invoice the moment you save. There is no separate invoicing step.">
           <Inputs>
             <Row what="Dealership" does="Who gets billed. Remembers your last pick." />
-            <Row what="Tag / stock number" does="The number on the car. Required. Type it or tap Scan barcode and point the camera at the window sticker or the key tag." />
+            <Row what="Stock number" does="The dealership's stock number for the car. Required. Type it or tap Scan barcode and point the camera at the window sticker or the stock tag." />
             <Row what="VIN" does="Optional. Type the 17 characters or scan the barcode; the year, make and model fill in on their own." />
             <Row what="Year · Make · Model · Color" does="Filled by the VIN when you scan. Make lists the common ones; pick Other to type a make that is not there." />
             <Row what="Services" does="Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. The price comes from the price list. Pick Other and type what was done when it is not on the menu." />
@@ -190,7 +190,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             <Inputs>
               <Row what="Keypad" does="Type the amount like a register: 4 5 00 is $45.00. It fills itself when you tick invoices." />
               <Row what="Invoices · Quick sale" does="Invoices: pay open invoices. Quick sale: a walk-in or anything not on an invoice, with a description, name and email for the receipt." />
-              <Row what="Search box" does="Tag, model, invoice number, dealership, or a date." />
+              <Row what="Search box" does="Stock number, model, invoice number, dealership, or a date." />
               <Row what="Date chips · day picker" does="All dates, Today, Yesterday, This week, Last week, This month, Last month, or any day. The list keeps its day headers." />
               <Row what="The list" does="Tick one or several invoices. The amount becomes their balance. Select all unpaid ticks everything shown." />
               <Row what="Card" does="Type the card into Clover's secure form. The number never touches this app." />

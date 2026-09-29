@@ -411,7 +411,7 @@ export function Terminal({
                 <div className="grid gap-2">
                   <div className="relative">
                     <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle" />
-                    <Input className="pl-9" placeholder="Tag, model, invoice, dealership or a date" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find an open invoice" />
+                    <Input className="pl-9" placeholder="Stock number, model, invoice, dealership or a date" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find an open invoice" />
                   </div>
                   {/* Date filter: quick picks plus a day picker; the list keeps its day headers within the range. */}
                   <div className="flex flex-wrap items-center gap-2" data-testid="terminal-date-filter">

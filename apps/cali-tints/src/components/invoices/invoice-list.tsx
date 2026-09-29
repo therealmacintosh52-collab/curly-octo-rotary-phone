@@ -159,7 +159,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, canCollect = i
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
               <TableHead scope="col">Date</TableHead>
-              <TableHead scope="col">Tag</TableHead>
+              <TableHead scope="col">Stock #</TableHead>
               <TableHead scope="col">Vehicle</TableHead>
               <TableHead scope="col">Services</TableHead>
               <TableHead scope="col">Dealership</TableHead>
