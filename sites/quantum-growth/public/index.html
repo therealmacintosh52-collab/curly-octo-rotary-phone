@@ -151,6 +151,13 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .brand svg{display:block;flex:none}
 .brand b{font-family:var(--display);font-weight:400;font-size:1.32rem;text-transform:uppercase;
   letter-spacing:.01em;line-height:1;display:block}
+/* Wordmark leads the intro. No mask on the header, so this one fades as it
+   rises. Scoped to .site-header: the footer carries a second .brand. */
+.site-header .brand b .w{display:inline-block;white-space:nowrap}
+.site-header .brand b .l{display:inline-block;opacity:0;transform:translateY(.42em);
+  animation:markIn .5s var(--ease) forwards;
+  animation-delay:calc(.06s + var(--i)*.026s)}
+@keyframes markIn{to{opacity:1;transform:translateY(0)}}
 .brand small{display:block;font-size:.62rem;font-weight:800;letter-spacing:.24em;
   text-transform:uppercase;color:var(--neutral);margin-top:3px}
 .nav{display:flex;align-items:center;gap:2px}
@@ -186,12 +193,23 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .hero .hero-grid{grid-template-columns:1.06fr .94fr;gap:46px;align-items:center}
 .hero h1{color:#fff;margin-bottom:.34em}
 .hero h1 .line{display:block;overflow:hidden;padding-bottom:.04em}
-.hero h1 .line>span{display:block;transform:translateY(106%);
-  animation:lineUp .95s var(--ease) forwards}
-.hero h1 .line:nth-child(1)>span{animation-delay:.05s}
-.hero h1 .line:nth-child(2)>span{animation-delay:.14s}
-.hero h1 .line:nth-child(3)>span{animation-delay:.23s}
-@keyframes lineUp{to{transform:translateY(0)}}
+.hero h1 .w{display:inline-block;white-space:nowrap}   /* never break a word mid-letter */
+/* Letters ride up from behind the .line mask. Transform only — the mask does
+   the reveal, so there is no opacity to composite and each letter is pure
+   compositor work. Stagger comes from an inline --i per letter plus a --d base
+   per line, which beats an nth-child ladder and survives a copy change. */
+.hero h1 .l{display:inline-block;transform:translateY(105%);
+  animation:letterIn .58s var(--ease) forwards;
+  animation-delay:calc(var(--d,0s) + var(--i)*.022s)}
+.hero h1 .line-2{--d:.18s}
+@keyframes letterIn{to{transform:translateY(0)}}
+/* Line 3 carries the gradient through background-clip:text, and a transform or
+   an opacity on ANY descendant makes that clip paint nothing — measured, both
+   of them. So the payoff line moves as one block, which reads better anyway:
+   the letters assemble, then it lands. */
+.hero h1 .line-3>em{display:inline-block;opacity:0;transform:translateY(38px);
+  animation:blockIn .62s var(--ease) .56s forwards}
+@keyframes blockIn{to{opacity:1;transform:translateY(0)}}
 .hero h1 em{font-style:normal;background:linear-gradient(100deg,#FFC078,#F26419);
   -webkit-background-clip:text;background-clip:text;color:transparent}
 .hero p.sub{color:#C9BFB4;font-size:1.16rem;max-width:52ch}
@@ -517,10 +535,6 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .reveal .compare tbody tr:nth-child(6).rv-in{transition-delay:.275s}
 .reveal .compare tbody tr:nth-child(7).rv-in{transition-delay:.33s}
 .reveal .compare tbody tr:nth-child(n+8).rv-in{transition-delay:.385s}
-/* Section headings sweep up from behind their own edge, like the hero. */
-.reveal .sec-head h2{overflow:hidden;padding-bottom:.06em}
-.reveal .sec-head.rv-in h2{animation:lineUp .8s cubic-bezier(.16,1,.3,1) both}
-
 /* ---------- scroll-driven decoration ----------
    Ornament only. Where scroll-driven animations are unsupported none of it
    runs and nothing depends on it. No JS, no extra markup — the reading
@@ -556,13 +570,18 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   :root:not([data-motion="full"]) *{
     animation:none!important;transition:none!important;scroll-behavior:auto!important}
   :root:not([data-motion="full"]) body::before{display:none}
-  :root:not([data-motion="full"]) .hero h1 .line>span{transform:none}
+  :root:not([data-motion="full"]) .hero h1 .l{transform:none}
+  :root:not([data-motion="full"]) .hero h1 .line-3>em{opacity:1;transform:none}
+  :root:not([data-motion="full"]) .site-header .brand b .l{opacity:1;transform:none}
   :root:not([data-motion="full"]) .fab{transform:none;opacity:1;pointer-events:auto}
   :root:not([data-motion="full"]) .callbar{transform:none}
 }
 /* Same again for someone who switched the motion off from the control. */
 :root[data-motion="off"] *{animation:none!important;transition:none!important}
 :root[data-motion="off"] body::before{display:none}
+:root[data-motion="off"] .hero h1 .l{transform:none}
+:root[data-motion="off"] .hero h1 .line-3>em{opacity:1;transform:none}
+:root[data-motion="off"] .site-header .brand b .l{opacity:1;transform:none}
 :root[data-motion="off"] .fab{transform:none;opacity:1;pointer-events:auto}
 :root[data-motion="off"] .callbar{transform:none}
 
@@ -706,13 +725,13 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 <!-- ======================= HEADER ======================= -->
 <header class="site-header">
   <div class="header-inner">
-    <a class="brand" href="#top">
+    <a class="brand" href="#top" aria-label="Quantum Growth — Local Marketing">
       <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
           <circle cx="17.5" cy="17.5" r="11.2" fill="none" stroke="url(#qg)" stroke-width="4"/>
           <path d="M25.6 25.6 L33.2 33.2" fill="none" stroke="url(#qg)" stroke-width="4.6" stroke-linecap="round"/>
           <path d="M12.6 20.6 L16.4 16 L19.8 18.6 L23 12.9" fill="none" stroke="url(#qg)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      <span><b>Quantum Growth</b><small>Local Marketing</small></span>
+      <span aria-hidden="true"><b><span class="w"><span class="l" style="--i:0">Q</span><span class="l" style="--i:1">u</span><span class="l" style="--i:2">a</span><span class="l" style="--i:3">n</span><span class="l" style="--i:4">t</span><span class="l" style="--i:5">u</span><span class="l" style="--i:6">m</span></span> <span class="w"><span class="l" style="--i:7">G</span><span class="l" style="--i:8">r</span><span class="l" style="--i:9">o</span><span class="l" style="--i:10">w</span><span class="l" style="--i:11">t</span><span class="l" style="--i:12">h</span></span></b><small>Local Marketing</small></span>
     </a>
     <nav class="nav" id="nav">
       <a href="#pricing">Pricing</a>
@@ -734,10 +753,10 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   <div class="wrap hero-grid">
     <div>
       <p class="eyebrow">Any local business · Nationwide</p>
-      <h1>
-        <span class="line"><span>Your competitors are</span></span>
-        <span class="line"><span>winning the phone call.</span></span>
-        <span class="line"><span><em>Take it back.</em></span></span>
+      <h1 aria-label="Your competitors are winning the phone call. Take it back.">
+        <span class="line" aria-hidden="true"><span class="w"><span class="l" style="--i:0">Y</span><span class="l" style="--i:1">o</span><span class="l" style="--i:2">u</span><span class="l" style="--i:3">r</span></span> <span class="w"><span class="l" style="--i:4">c</span><span class="l" style="--i:5">o</span><span class="l" style="--i:6">m</span><span class="l" style="--i:7">p</span><span class="l" style="--i:8">e</span><span class="l" style="--i:9">t</span><span class="l" style="--i:10">i</span><span class="l" style="--i:11">t</span><span class="l" style="--i:12">o</span><span class="l" style="--i:13">r</span><span class="l" style="--i:14">s</span></span> <span class="w"><span class="l" style="--i:15">a</span><span class="l" style="--i:16">r</span><span class="l" style="--i:17">e</span></span></span>
+        <span class="line line-2" aria-hidden="true"><span class="w"><span class="l" style="--i:0">w</span><span class="l" style="--i:1">i</span><span class="l" style="--i:2">n</span><span class="l" style="--i:3">n</span><span class="l" style="--i:4">i</span><span class="l" style="--i:5">n</span><span class="l" style="--i:6">g</span></span> <span class="w"><span class="l" style="--i:7">t</span><span class="l" style="--i:8">h</span><span class="l" style="--i:9">e</span></span> <span class="w"><span class="l" style="--i:10">p</span><span class="l" style="--i:11">h</span><span class="l" style="--i:12">o</span><span class="l" style="--i:13">n</span><span class="l" style="--i:14">e</span></span> <span class="w"><span class="l" style="--i:15">c</span><span class="l" style="--i:16">a</span><span class="l" style="--i:17">l</span><span class="l" style="--i:18">l</span><span class="l" style="--i:19">.</span></span></span>
+        <span class="line line-3" aria-hidden="true"><em>Take it back.</em></span>
       </h1>
       <p class="sub">We build the website, run the Google profile, and show you the calls it produced — straight from Google's own numbers. You own every piece of it.</p>
       <div class="btn-row">
