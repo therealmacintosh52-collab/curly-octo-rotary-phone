@@ -425,7 +425,7 @@ export function Terminal({
                         { value: "yesterday", label: "Yesterday" },
                         { value: "this week", label: "This week" },
                         { value: "last week", label: "Last week" },
-                        { value: "this month", label: "This month" },
+                        { value: "last month", label: "Last month" },
                         ...(/^\d{4}-\d{2}-\d{2}$/.test(dateFilter) ? [{ value: dateFilter, label: formatDateOnly(dateFilter, "MMM d") }] : []),
                       ]}
                       value={dateFilter}
