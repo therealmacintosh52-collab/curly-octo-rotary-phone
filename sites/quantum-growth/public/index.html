@@ -654,9 +654,17 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
            '.fig','.statband-inner','.rv'];
   var e='cubic-bezier(.22,1.2,.36,1)';
   var st=d.createElement('style');
+  /* The visible rule is derived from the same list rather than written as a
+     bare '.reveal .rv-in'. That version loses the cascade to any hidden
+     selector carrying more than one class or a type: '.reveal .compare tbody
+     tr' is (0,2,2) and '.reveal .rv-in' only (0,2,0), so the row keeps
+     opacity 0 for ever no matter how many triggers add the class. Appending
+     .rv-in to each selector makes every visible rule exactly one class
+     stronger than its own hidden counterpart, whatever is in the list. */
   st.textContent=sel.map(function(x){return '.reveal '+x}).join(',')
     +'{opacity:0;transform:translateY(56px) scale(.94)}'
-    +'.reveal .rv-in{opacity:1;transform:none;'
+    +sel.map(function(x){return '.reveal '+x+'.rv-in'}).join(',')
+    +'{opacity:1;transform:none;'
     +'transition:opacity .52s ease-out,transform .72s '+e+'}';
   d.head.appendChild(st);
   el.className+=' reveal';
