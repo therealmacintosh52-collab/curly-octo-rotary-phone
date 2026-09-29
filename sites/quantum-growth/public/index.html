@@ -493,7 +493,8 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .finale p{color:var(--on-void-2);max-width:52ch;margin:0 auto 26px}
 
 /* ---------- footer ---------- */
-.site-footer{background:var(--void);color:#9B9186;padding:52px 0 30px;font-size:.92rem;font-weight:600}
+.site-footer{background:var(--void);color:#9B9186;padding:52px 0 30px;font-size:.92rem;
+  font-weight:600;position:relative}
 .foot-grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:space-between;align-items:flex-start}
 .site-footer a{color:#DCD3C9;text-decoration:none}
 .site-footer a:hover{color:var(--fire)}
@@ -571,8 +572,28 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   .aurora i:nth-child(3){display:none}
   .aurora i{filter:blur(32px)}
 }
+/* Light sections get the same idea at a whisper: a warm wash you read as
+   depth rather than as a shape, plus the hero's grid drifting behind it so the
+   eye has something alive to catch. Both are transforms on their own layer,
+   so neither costs a repaint. */
+.has-aur{overflow:hidden}
+.aurora.tint i{opacity:.085;filter:blur(66px)}
+.aurora.tint i:nth-child(3){opacity:.06}
+.aurora .mesh{position:absolute;left:-10%;top:-10%;width:120%;height:120%;opacity:.5;
+  background-image:linear-gradient(var(--rule) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--rule) 1px,transparent 1px);
+  background-size:58px 58px;
+  -webkit-mask-image:radial-gradient(70% 60% at 50% 40%,#000,transparent 78%);
+  mask-image:radial-gradient(70% 60% at 50% 40%,#000,transparent 78%);
+  animation:meshDrift 44s linear infinite alternate}
+@keyframes meshDrift{to{transform:translate3d(-58px,-58px,0)}}
+/* On a phone the light wash is close to invisible anyway, so it comes out
+   entirely rather than costing layers. The dark blocks keep theirs, where the
+   effect actually reads. */
+@media(max-width:700px){.aurora .mesh,.aurora.tint{display:none}}
 /* keep every block's own content above its aurora */
-.hero .wrap,.finale>*:not(.aurora),.basic>*:not(.aurora){position:relative;z-index:1}
+.hero .wrap,.finale>*:not(.aurora),.basic>*:not(.aurora),
+section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
 
 /* Headings rise a beat behind their section — the depth cue the old dead
    "sec-head sweep" rule promised and never delivered. */
@@ -842,8 +863,9 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 </div>
 
 <!-- ======================= SCENE 3 · PRICING ======================= -->
-<section class="bg-alt" id="pricing">
-  <div class="wrap">
+<section class="bg-alt has-aur" id="pricing">
+  <div class="aurora tint" aria-hidden="true"><i></i><i></i><i></i><span class="mesh"></span></div>
+    <div class="wrap">
     <div class="sec-head rv">
       <p class="eyebrow">Pricing</p>
       <h2>Four plans. No contracts. <span class="hl">Cancel any month.</span></h2>
@@ -961,8 +983,9 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 </section>
 
 <!-- ======================= APPS ======================= -->
-<section id="apps">
-  <div class="wrap">
+<section id="apps" class="has-aur">
+  <div class="aurora tint" aria-hidden="true"><i></i><i></i><i></i><span class="mesh"></span></div>
+    <div class="wrap">
     <div class="sec-head rv">
       <p class="eyebrow">Apps</p>
       <h2>Want an app <span class="hl">as well?</span></h2>
@@ -1005,8 +1028,9 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 </section>
 
 <!-- ======================= TERMS ======================= -->
-<section class="bg-alt" id="terms">
-  <div class="wrap">
+<section class="bg-alt has-aur" id="terms">
+  <div class="aurora tint" aria-hidden="true"><i></i><i></i><i></i><span class="mesh"></span></div>
+    <div class="wrap">
     <div class="sec-head rv">
       <p class="eyebrow">If you leave</p>
       <h2>You keep <span class="hl">all of it.</span></h2>
@@ -1028,8 +1052,9 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 </section>
 
 <!-- ======================= FAQ ======================= -->
-<section id="faq">
-  <div class="wrap">
+<section id="faq" class="has-aur">
+  <div class="aurora tint" aria-hidden="true"><i></i><i></i><i></i><span class="mesh"></span></div>
+    <div class="wrap">
     <div class="sec-head rv">
       <p class="eyebrow">Straight answers</p>
       <h2>The questions <span class="hl">everyone asks</span></h2>
@@ -1069,8 +1094,9 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   </div>
 </section>
 
-<footer class="site-footer">
-  <div class="wrap">
+<footer class="site-footer has-aur">
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="wrap">
     <div class="foot-grid">
       <div style="max-width:42ch">
         <a class="brand" href="#top" style="color:#fff">
