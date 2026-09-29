@@ -44,14 +44,14 @@ install to the home screen from a link, so there are no store fees, no review
 queue before a fix goes live, and nothing for a customer to download. The
 trade-off, stated plainly: no push notifications on iPhones below iOS 16.4 —
 reminders go by text and email instead, unless the store listings are added.
-- **Starter App** — $1,900 build, then $49/month. Booking and quote requests,
+- **Starter App** — $699.99 build, then $49/month. Booking and quote requests,
   installs to the home screen, works offline, client's own branding and domain,
   appointment reminders, requests landing in the same inbox as website leads.
-- **Business App** — $3,900 build, then $99/month. Everything in Starter plus
+- **Business App** — $999 build, then $99/month. Everything in Starter plus
   digital inspections with photos sent to the customer before they approve,
   customer accounts with order and service history, automated follow-up on
   quotes that went quiet, scheduled reminders, review requests on completion.
-- **Custom Build** — from $7,500, monthly quoted with the build. Client
+- **Custom Build** — from $1,499.99, monthly quoted with the build. Client
   portals, rotas and job boards for staff on the move, stock and supplier
   integrations. Begins with a $499 scoping session that produces a written spec
   the client owns, credited against the build.
