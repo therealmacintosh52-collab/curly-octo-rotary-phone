@@ -104,6 +104,8 @@ export function Terminal({
   // One or many invoices; several are settled with one payment, oldest first.
   const [selected, setSelected] = useState<string[]>(initialIds);
   const [query, setQuery] = useState("");
+  // "all", a quick pick ("today", "yesterday", "this week", "last week", "this month") or a picked day (yyyy-mm-dd).
+  const [dateFilter, setDateFilter] = useState("all");
   const [description, setDescription] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -130,12 +132,18 @@ export function Terminal({
   const valid = amount > 0 && amount <= max + 0.005;
   // The box takes text (tag, model, number, dealership) or a date ("today", "yesterday", "9/27", "sep 27", "last week").
   const searchDate = useMemo(() => parseSearchDate(query, today), [query, today]);
+  // Date filter chips under the box: a quick pick (today, yesterday, this week…) or a day from the picker. "all" = no filter.
+  const dateRange = useMemo(() => (dateFilter === "all" ? null : parseSearchDate(dateFilter, today)), [dateFilter, today]);
   const filteredInvoices = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return openInvoices;
-    if (searchDate) return openInvoices.filter((i) => !!i.date && i.date >= searchDate.from && i.date <= searchDate.to);
-    return openInvoices.filter((i) => [i.display_number, i.dealership, i.tag, i.vehicle, i.service].some((s) => s?.toLowerCase().includes(q)));
-  }, [openInvoices, query, searchDate]);
+    const inRange = (i: OpenInvoiceOption, r: { from: string; to: string }) => !!i.date && i.date >= r.from && i.date <= r.to;
+    let rows = dateRange ? openInvoices.filter((i) => inRange(i, dateRange)) : openInvoices;
+    if (!q) return rows;
+    if (searchDate) rows = rows.filter((i) => inRange(i, searchDate));
+    else rows = rows.filter((i) => [i.display_number, i.dealership, i.tag, i.vehicle, i.service].some((s) => s?.toLowerCase().includes(q)));
+    return rows;
+  }, [openInvoices, query, searchDate, dateRange]);
+  const filtering = !!query.trim() || !!dateRange;
   /** Rows under their day: "Today · Mon, Sep 28", "Yesterday · …", "Fri, Sep 25"; undated rows last. */
   const dayRows = useMemo(() => {
     const out: { day: string; label: string; rows: OpenInvoiceOption[] }[] = [];
@@ -405,8 +413,28 @@ export function Terminal({
                     <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle" />
                     <Input className="pl-9" placeholder="Tag, model, invoice, dealership or a date" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find an open invoice" />
                   </div>
+                  {/* Date filter: quick picks plus a day picker; the list keeps its day headers within the range. */}
+                  <div className="flex flex-wrap items-center gap-2" data-testid="terminal-date-filter">
+                    <Segmented
+                      aria-label="Filter by date"
+                      size="sm"
+                      wrap
+                      items={[
+                        { value: "all", label: "All dates" },
+                        { value: "today", label: "Today" },
+                        { value: "yesterday", label: "Yesterday" },
+                        { value: "this week", label: "This week" },
+                        { value: "last week", label: "Last week" },
+                        { value: "this month", label: "This month" },
+                        ...(/^\d{4}-\d{2}-\d{2}$/.test(dateFilter) ? [{ value: dateFilter, label: formatDateOnly(dateFilter, "MMM d") }] : []),
+                      ]}
+                      value={dateFilter}
+                      onValueChange={setDateFilter}
+                    />
+                    <Input type="date" max={today} value={/^\d{4}-\d{2}-\d{2}$/.test(dateFilter) ? dateFilter : ""} onChange={(e) => setDateFilter(e.target.value || "all")} className="h-8 w-36 text-sm" aria-label="Pick a day" />
+                  </div>
                   {filteredInvoices.length === 0 ? (
-                    <p className="px-1 py-2 text-sm text-muted-foreground">{searchDate ? `No open invoices for ${searchDate.label}.` : "No open invoices match."}</p>
+                    <p className="px-1 py-2 text-sm text-muted-foreground">{dateRange && !query.trim() ? `No open invoices for ${dateRange.label}.` : searchDate ? `No open invoices for ${searchDate.label}.` : "No open invoices match."}</p>
                   ) : (
                     <div className="overflow-hidden rounded-lg border border-border">
                       <button
@@ -419,7 +447,7 @@ export function Terminal({
                           <span className={cn("flex size-4 items-center justify-center rounded border", allFilteredSelected ? "border-primary bg-primary text-primary-foreground" : "border-border-strong")} aria-hidden>
                             {allFilteredSelected && <CheckIcon className="size-3" />}
                           </span>
-                          {allFilteredSelected ? "Clear selection" : `Select all unpaid${query.trim() ? " shown" : ""}`}
+                          {allFilteredSelected ? "Clear selection" : `Select all unpaid${filtering ? " shown" : ""}`}
                         </span>
                         <span className="shrink-0 text-caption text-muted-foreground">
                           {filteredInvoices.length} · {formatMoney(filteredBalance)}
