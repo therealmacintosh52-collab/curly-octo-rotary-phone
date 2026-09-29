@@ -225,8 +225,26 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   font-size:1.18rem;letter-spacing:.02em;line-height:1.05;color:#fff;flex:1}
 .pick span:not(.pick-ico){flex-basis:100%;margin-top:7px;font-size:.85rem;
   line-height:1.45;color:var(--on-void-2);font-weight:600}
+/* The cards are links and nothing said so. It rides the top right corner,
+   level with the icon, so it never comes between a title and its description.
+   An <em> rather than a <span> because .pick span:not(.pick-ico) above would
+   otherwise give it flex-basis:100% and knock it onto its own row. */
+.pick-more{flex:none;margin-left:auto;align-self:flex-start;font-style:normal;
+  font-size:.66rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--fire);white-space:nowrap;opacity:.82;
+  display:inline-flex;align-items:center;gap:5px;transition:opacity .18s ease}
+.pick-more::after{content:"\2192";font-size:.92rem;line-height:1;
+  display:inline-block;transition:transform .18s var(--ease)}
+.pick:hover .pick-more{opacity:1}
+.pick:hover .pick-more::after{transform:translateX(3px)}
 @media(max-width:940px){.hero .hero-grid{grid-template-columns:1fr;gap:34px}}
-@media(max-width:700px){.pick{padding:14px 15px}}
+@media(max-width:700px){
+  .pick{padding:14px 15px}
+  /* On a phone the corner would leave the title ~150px and wrap the longest
+     one to three lines, so it drops to its own right-aligned row instead. */
+  .pick-more{order:1;flex-basis:100%;margin:9px 0 0;align-self:auto;
+    justify-content:flex-end}
+}
 
 /* ---------- stat band ---------- */
 .statband{position:relative;z-index:2;margin-top:calc(-1 * clamp(44px,4.6vw,72px))}
@@ -730,16 +748,19 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
         <a class="pick" href="#website">
           <span class="pick-ico"><svg class="ico"><use href="#i-door"/></svg></span>
           <b>A website</b>
+          <em class="pick-more" aria-hidden="true">Click to read more</em>
           <span>Built properly, on your own domain, and it stays yours</span>
         </a>
         <a class="pick" href="#apps">
           <span class="pick-ico"><svg class="ico"><use href="#i-phone"/></svg></span>
           <b>An app</b>
+          <em class="pick-more" aria-hidden="true">Click to read more</em>
           <span>Booking, ordering, loyalty, accounts — installs from a link, App Store optional</span>
         </a>
         <a class="pick" href="#plans">
           <span class="pick-ico"><svg class="ico"><use href="#i-chart"/></svg></span>
           <b>More customers finding me</b>
+          <em class="pick-more" aria-hidden="true">Click to read more</em>
           <span>Google, Apple Maps, Bing and the AI answers — found without paying per click</span>
         </a>
       </div>
