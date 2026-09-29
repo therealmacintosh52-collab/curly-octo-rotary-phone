@@ -808,6 +808,13 @@ begin
   select count(*) into n from storage.objects; assert n = 1, 'storage read scoped';
 end $$;
 
+-- 0026: anyone may mark the guide as seen on their own row; not on someone else's.
+do $$
+begin
+  update public.profiles set guide_seen_at = now() where id = auth.uid();
+  assert (select guide_seen_at from public.profiles where id = auth.uid()) is not null, 'guide seen on own row';
+end $$;
+
 -- 0022: automatic receipts are opt-in.
 do $$
 begin

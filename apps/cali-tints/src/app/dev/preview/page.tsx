@@ -39,6 +39,7 @@ export default function DevPreviewPage() {
     full_name: "Mike",
     email: "owner@example.com",
     active: true,
+    guide_seen_at: null,
     created_at: "",
     updated_at: "",
   };

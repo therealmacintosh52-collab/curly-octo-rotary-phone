@@ -64,6 +64,8 @@ export type Profile = {
   full_name: string;
   email: string | null;
   active: boolean;
+  /** When they first opened "How it works" (0026); null → offer the guide on sign-in. */
+  guide_seen_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -109,7 +109,7 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Account created</DialogTitle>
-          <DialogDescription>Share these with the detailer now. The password is not shown again, but you can reset it any time.</DialogDescription>
+          <DialogDescription>Share these now. The password is not shown again, but you can reset it any time. On their first sign-in they are offered a five-minute guide to their screens.</DialogDescription>
         </DialogHeader>
         <div className="rounded-lg border border-border bg-muted/40 p-4 font-mono text-sm">
           <div>

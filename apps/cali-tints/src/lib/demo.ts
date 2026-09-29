@@ -40,6 +40,7 @@ const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
   ["/invoices", "/dev/preview/invoices", true],
   ["/invoices", "/dev/preview/invoice"],
   ["/settings", "/dev/preview/settings"],
+  ["/guide", "/dev/preview/guide"],
   ["/terminal", "/dev/preview/terminal"],
   ["/login", "/dev/preview/dashboard"],
   ["/", "/dev/preview/dashboard"],

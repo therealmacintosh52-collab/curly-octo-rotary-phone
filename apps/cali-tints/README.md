@@ -110,6 +110,8 @@ Create the owner in *Supabase → Authentication → Users → Add user* (email 
 
 - **Set a password** — for detailers without email access on the lot; you hand them the credentials.
 
+**How it works (`/guide`).** A role-aware guide to every screen: what to type or tap and what comes out. Offered once on first sign-in (migration `0026`, `profiles.guide_seen_at`; "Skip for now" also marks it) and always reachable from the ? in the top bar. The guest preview has a role picker.
+
 **What a detailer sees.** Three tabs: their own **Dashboard** (today's cars by service, this week, this month, their cars per day for the last 30 days, and today's cars; no money, no one else's work; migration `0023`, `my_dashboard()`), **New invoice**, and **Invoices** limited to the cars they logged. Terminal and Settings are hidden, redirect to their dashboard if typed, and are blocked at the database. **manager** (migrations `0024`, `0025`) runs invoicing: the owner's dashboard, every invoice, sending, pay links, recording a payment that arrived, matching Clover payments; but no Terminal (no Collect, Save & charge, card or device charges, refunds; the `terminal_sales` ledger is owner/admin only) and no Settings (company, dealerships, prices, users, Clover, export), enforced by `is_owner_admin()` policies. **admin** gets everything the owner has.
 - **Email an invite** — Supabase sends a link; they choose a password at `/auth/reset`.
 

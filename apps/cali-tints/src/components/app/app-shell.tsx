@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, TabletSmartphoneIcon } from "lucide-react";
+import { CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, TabletSmartphoneIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
@@ -87,6 +87,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="mt-auto flex flex-col gap-3 px-1">
+          <Link href="/guide" className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
+            <CircleHelpIcon className="size-4" /> How it works
+          </Link>
           <StatusPill />
           <SignOutButton variant="ghost" className="justify-start px-2 text-muted-foreground" />
         </div>
@@ -99,7 +102,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Logo size={30} />
             <span className="text-sm font-semibold">{company.name}</span>
           </Link>
-          <StatusPill />
+          <span className="flex items-center gap-1.5">
+            <StatusPill />
+            <Link href="/guide" aria-label="How it works" title="How it works" className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
+              <CircleHelpIcon className="size-5" />
+            </Link>
+          </span>
         </header>
 
         <main className="flex-1 pb-24 md:pb-0">{children}</main>
