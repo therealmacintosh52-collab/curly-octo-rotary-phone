@@ -544,6 +544,46 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .reveal .compare tbody tr:nth-child(6).rv-in{transition-delay:.275s}
 .reveal .compare tbody tr:nth-child(7).rv-in{transition-delay:.33s}
 .reveal .compare tbody tr:nth-child(n+8).rv-in{transition-delay:.385s}
+/* ---------- ambient background ----------
+   Three blurred blobs drifting on long, offset loops inside each dark block.
+   No file, no request: the whole effect is a gradient and a transform, so it
+   is compositor work and stays smooth on a phone. Under reduced motion the
+   blobs simply stop — they are decoration, so stillness is the right fallback
+   rather than hiding them. */
+.aurora{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  border-radius:inherit}
+.aurora i{position:absolute;display:block;aspect-ratio:1;border-radius:50%;
+  filter:blur(44px);opacity:.30;
+  background:radial-gradient(circle,var(--au,#F5A623),transparent 70%)}
+.aurora i:nth-child(1){width:52%;left:-12%;top:-22%;--au:#F26419;
+  animation:au-a 26s ease-in-out infinite alternate}
+.aurora i:nth-child(2){width:40%;right:-10%;top:8%;--au:#F5A623;
+  animation:au-b 32s ease-in-out infinite alternate}
+.aurora i:nth-child(3){width:34%;left:28%;bottom:-26%;--au:#FFC078;opacity:.20;
+  animation:au-c 38s ease-in-out infinite alternate}
+@keyframes au-a{to{transform:translate3d(18%,12%,0) scale(1.18)}}
+@keyframes au-b{to{transform:translate3d(-14%,16%,0) scale(1.10)}}
+@keyframes au-c{to{transform:translate3d(12%,-14%,0) scale(1.22)}}
+/* A blurred layer that animates forever is cheap to composite but not free to
+   hold in memory. Phones drop the third blob and blur less, which keeps the
+   effect and roughly a third of the cost. */
+@media(max-width:700px){
+  .aurora i:nth-child(3){display:none}
+  .aurora i{filter:blur(32px)}
+}
+/* keep every block's own content above its aurora */
+.hero .wrap,.finale>*:not(.aurora),.basic>*:not(.aurora){position:relative;z-index:1}
+
+/* Headings rise a beat behind their section — the depth cue the old dead
+   "sec-head sweep" rule promised and never delivered. */
+.reveal .sec-head.rv-in h2{animation:headSweep .8s var(--ease) .06s both}
+@keyframes headSweep{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+
+/* Plan cards land left to right instead of all at once. */
+.reveal .plan:nth-child(2).rv-in{transition-delay:.08s}
+.reveal .plan:nth-child(3).rv-in{transition-delay:.16s}
+.reveal .plan:nth-child(4).rv-in{transition-delay:.24s}
+
 /* ---------- scroll-driven decoration ----------
    Ornament only. Where scroll-driven animations are unsupported none of it
    runs and nothing depends on it. No JS, no extra markup — the reading
@@ -556,6 +596,12 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
   .hero::before{animation:sc-drift linear both;animation-timeline:scroll(root block);
     animation-range:0 95vh}
   @keyframes sc-drift{to{transform:translate3d(0,8%,0) scale(1.06)}}
+  /* Each dark block's glow slides as the block crosses the viewport. view()
+     needs no JS and no listener; browsers without it simply get the ambient
+     drift and nothing looks missing. */
+  .finale .aurora,.basic .aurora{animation:au-par linear both;
+    animation-timeline:view();animation-range:cover 0% cover 100%}
+  @keyframes au-par{from{transform:translate3d(0,-7%,0)}to{transform:translate3d(0,7%,0)}}
 }
 
 /* The header tightens, and the floating CTA and call bar arrive once the
@@ -744,6 +790,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 
 <!-- ======================= SCENE 1 · HERO ======================= -->
 <div class="hero" id="top">
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="wrap hero-grid">
     <div>
       <p class="eyebrow">Any local business · Nationwide</p>
@@ -889,6 +936,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
     </div>
 
     <div class="basic rv" id="website">
+      <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
       <h3>Just want the website?</h3>
       <p>Some businesses do not want anything managed. They want a site that works, on their own domain, and to be left alone. That is a fair thing to want.</p>
       <div class="basic-prices">
@@ -913,7 +961,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 </section>
 
 <!-- ======================= APPS ======================= -->
-<section id="apps" class="bg-alt">
+<section id="apps">
   <div class="wrap">
     <div class="sec-head rv">
       <p class="eyebrow">Apps</p>
@@ -957,7 +1005,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 </section>
 
 <!-- ======================= TERMS ======================= -->
-<section id="terms">
+<section class="bg-alt" id="terms">
   <div class="wrap">
     <div class="sec-head rv">
       <p class="eyebrow">If you leave</p>
@@ -965,6 +1013,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
       <p class="lede">The domain, the Google profile, the email and the website files are in your name, so none of it is ours to take back. We send you the whole site as a zip. Hosting is part of the monthly, so that stops — keep it live with us for <b>$29</b> a month or point the files at your own.</p>
     </div>
     <div class="basic rv">
+      <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
       <h3>The one thing you might owe</h3>
       <p>On <b>Starter</b> you paid for your build up front, so there is never a fee. On the plans where the build was free, the unearned part of that <b>$699</b> becomes payable if you leave early — and nothing at all after six months.</p>
       <div class="basic-prices">
@@ -979,7 +1028,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 </section>
 
 <!-- ======================= FAQ ======================= -->
-<section class="bg-alt" id="faq">
+<section id="faq">
   <div class="wrap">
     <div class="sec-head rv">
       <p class="eyebrow">Straight answers</p>
@@ -1009,6 +1058,7 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 
 <!-- ======================= FINALE ======================= -->
 <section class="finale" id="contact">
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="wrap">
     <p class="eyebrow" style="justify-content:center;display:inline-flex">Free, and genuinely free</p>
     <h2>Find out where you <span class="hl">actually rank</span></h2>
