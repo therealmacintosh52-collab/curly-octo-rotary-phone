@@ -1,23 +1,23 @@
 # Quantum Growth
 
 > Websites, Google Business Profile management and local search for small local
-> businesses of any kind — trades, retail, clinics, salons, restaurants, gyms. Nationwide, month to month, and the client owns
-> the domain, site, profile and email.
+> businesses. Nationwide, month to month, and the client owns everything.
 
-- **Phone:** (916) 868-2447
-- **Serves:** United States, remote
-- **Model:** Monthly subscription, no contract, cancel any month
-- **Annual:** One month free on any plan
+Phone: (916) 868-2447
+Site: https://replace-with-your-domain.com/
+
+## What it is
+A one-person agency that builds the website, runs the Google Business Profile
+and reports the calls it produced using Google's own numbers. The domain, the
+site, the Google listing and the phone number are registered in the client's
+name from day one, so nothing is switched off if they leave.
 
 ## Plans
-- **Basic Site** — $599 one-time, or $400 if decided on the call, plus $29/month
-  hosting and upkeep. The 25-page website on the client's domain with hosting,
-  SSL, backups and 30 days of free text edits. No email, no profile
-  management, no posts or reporting.
-- **Starter** — $79/month or $869/year, $699 one-time build. 25-page website,
-  business email with two mailboxes, social profiles, hosting and maintenance.
-- **Local** — $299/month or $3,289/year, build included free (no build fee; the first month is charged on day one, there is no free trial period). Everything in
-  Starter plus managed Google Business Profile, 8 social posts a month,
+- **Starter** — $699 build one time, then $79/month, or $869/year. A 25-page
+  website on the client's own domain, business email, social profiles, hosting,
+  SSL, backups and unlimited text edits.
+- **Local** — $299/month or $3,289/year, build included free. Everything in
+  Starter plus Google Business Profile management, 8 social posts a month,
   citations across 40+ directories, review generation, and a monthly report
   built from Google's own data.
 - **Growth** — $599/month or $6,589/year, build included free. Everything in
@@ -25,92 +25,41 @@
   month, and follow-up campaigns for quotes and enquiries that went quiet.
 - **Market Leader** — $999/month or $10,989/year, build included free.
   Everything in Growth plus 24 posts a month with video, every town the client
-  serves written up individually on the service-area page rather than only
-  listed, managed Google Ads or Local Services Ads, and missed-call text-back.
-
-## Consulting
-- **Visibility Audit** — $499 one-time. Written teardown of map-pack position,
-  profile gaps and what the site is missing.
-- **Strategy and advisory** — $175/hour, no retainer or minimum.
+  serves written up individually on the service-area page, managed Google Ads or
+  Local Services Ads, and missed-call text-back.
+- **Basic Site** — $599 one time, or $400 same day, then $29/month hosting. A
+  website with no marketing plan attached.
 
 ## Apps
-Built as installable web apps (PWAs) by default, with App Store and Google Play
-listings available as a paid add-on rather than the standard route.
-Used for booking and orders, loyalty and repeat custom, customer accounts and
-history, and photo updates — whatever a business's customers do more than once. They
-install to the home screen from a link, so there are no store fees, no review
-queue before a fix goes live, and nothing for a customer to download. The
-trade-off, stated plainly: no push notifications on iPhones below iOS 16.4 —
-reminders go by text and email instead, unless the store listings are added.
-- **Starter App** — $699.99 build, then $49/month. Booking and quote requests,
-  installs to the home screen, works offline, client's own branding and domain,
-  appointment reminders, requests landing in the same inbox as website leads.
-- **Business App** — $999 build, then $99/month. Everything in Starter plus
-  digital inspections with photos sent to the customer before they approve,
-  customer accounts with order and service history, automated follow-up on
-  quotes that went quiet, scheduled reminders, review requests on completion.
-- **Custom Build** — from $1,499.99, monthly quoted with the build. Client
-  portals, rotas and job boards for staff on the move, stock and supplier
-  integrations, quote calculators, lead routing and AI phone answering. Begins with a $499 scoping session that produces a written spec
-  the client owns, credited against the build.
+Built as installable web apps by default: they install to the home screen from a
+link, so there are no store fees and nothing for a customer to download.
+- **Starter App** — $699.99 build, then $49/month. Booking, ordering and quote
+  requests on the client's own domain, works offline.
+- **Business App** — $999 build, then $99/month. Adds photo updates sent to the
+  customer, customer accounts with history, and automatic follow-up.
+- **Custom Build** — from $1,499.99, monthly quoted with the build. Portals,
+  bookings, stock and integrations. Begins with a $499 scoping session that
+  produces a written spec the client owns, credited against the build.
 - **App Store and Google Play listing** — optional add-on, $499 one time then
-  $25/month. The same app wrapped and submitted under developer accounts
-  registered in the client's own business name, so the listings are the
-  client's property. Apple's $99/year and Google's one-time $25 are passed
-  through at cost and paid in the client's own accounts. Adds proper push
-  notifications on every iPhone. Stated plainly on the page: Apple rejects
-  anything it reads as a repackaged website under Guideline 4.2, so native
-  functionality is built in before submission, a first listing takes two to
-  four weeks mostly in account verification, and if Apple cannot be cleared
-  $250 is refunded while the client keeps the Play listing and the web app.
+  $25/month, submitted under developer accounts in the client's own name.
 
-Quantum Growth's stated position is that most small local businesses do not
-need an app, and that it says so rather than selling one — a business whose customers
-visit twice a year will not install anything. Where an app does pay
-is usually staff-facing rather than customer-facing: sending the customer a
-picture before they decide — the problem for a trade, the finished result for a
-salon, the new stock for a shop — converts better than a booking button.
+Quantum Growth's stated position is that most small local businesses do not need
+an app, and it says so rather than selling one.
 
 ## Terms
-- No contract. Cancel any month.
-- Pause for up to two months a year at $29/month; the site and email stay live.
-- Downgrade to a smaller plan at any time.
-- Cancellation: no notice period, and the client can leave any month. On
-  Starter there is never an exit fee, because the $699 build was paid up
-  front. On the plans where the build is free, it is discounted to nothing
-  across the first six months, so leaving early makes the undiscounted part
-  payable — $600 in months one or two, $400 in three or four, $200 in five or
-  six, nothing after six months. It is a subsidy that unwinds, not a contract.
-- On cancellation the client keeps the domain, Google profile, email and the
-  website files, delivered as a zip with setup instructions. Hosting is part
-  of the monthly, so it stops — the client either moves the files to their own
-  hosting or keeps the site live for $29/month.
-- Domain, website, Google Business Profile and email are registered in the
-  client's name and stay with them if they leave.
+Month to month. No contract, no notice period, cancel any month. Paying a year
+up front gives one month free, and unused full months are refunded on leaving.
+The client keeps the domain, the Google profile, the email and the website
+files, delivered as a zip. Hosting is part of the monthly, so it stops on
+cancelling — the files can stay hosted for $29/month or move to the client's own
+hosting.
 
-## Compared to a typical national vendor
-Figures on the right reflect pricing and terms quoted to a shop owner on a
-sales call in 2026, not a survey of the industry.
-- Website build: free from $299/month, or $699 on Starter — vendor: $1,000 one time
-- Hosting and maintenance: in every plan — vendor: $99/month on top
-- Entry marketing plan: $299/month with the build included — vendor: $350/month, build extra
-- Domain registered to: the client — vendor: often the vendor
-- Google Business Profile role: the client is Owner — vendor: the client is often only Manager
-- On cancellation: the client keeps the domain, listing, email and the site files — vendor: the site goes dark, and was never the client's to begin with
-- Contract: none, month to month — vendor: a term with a notice period
-- Pause: $29/month for up to two months a year — vendor: cancel or keep paying
-- Contact: the person who builds the site — vendor: a rotating account manager
-- Reporting: Google's own numbers, verifiable by the client — vendor: a vendor dashboard
-- Pages built: 25, each targeting a real search — vendor: five and a contact form
+On Starter there is never a cancellation fee, because the build was paid up
+front. On the plans where the build was free, the unearned part of that $699
+becomes payable: $600 if the client leaves in months one or two, $400 in months
+three or four, $200 in months five or six, and nothing after six months.
 
-## Free visibility check
-A no-obligation review of a business's Google profile and website — map-pack
-position, profile gaps, who ranks ahead and why. Requested by phone or text on
-(916) 868-2447, or through the form at the top of the site. Reply within one
-business day.
-
-## What every build includes
-25 indexable pages, 12 types of structured data, a 25 KB compressed first
-load, no
-external scripts, a full Spanish version, and keyboard and screen-reader
-accessibility throughout.
+## Consulting
+- **Visibility Audit** — $499 one time. A written teardown of map-pack position,
+  profile gaps and what the site is missing.
+- **Strategy and advisory** — $175/hour, no retainer or minimum.
