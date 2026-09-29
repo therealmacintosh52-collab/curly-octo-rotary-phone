@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BanknoteIcon, CheckIcon, CreditCardIcon, DeleteIcon, FileTextIcon, LandmarkIcon, LayersIcon, PlugZapIcon, ReceiptTextIcon, SearchIcon, TabletSmartphoneIcon, Undo2Icon, XIcon } from "lucide-react";
@@ -9,7 +9,8 @@ import type { PaymentMethod, TerminalTransaction } from "@/lib/db/types";
 import { takeSaleAction, type SaleInput, type SaleResult } from "@/app/(app)/terminal/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatMoney } from "@/lib/money";
-import { formatDate, formatDateOnly, nowMs } from "@/lib/dates";
+import { dayHeading, formatDate, formatDateOnly, nowMs } from "@/lib/dates";
+import { parseSearchDate } from "@/lib/invoices/query";
 import { METHOD_LABELS, paidWith, receiptSubject, receiptTotal, type ReceiptCompany } from "@/lib/terminal/receipt";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -127,10 +128,25 @@ export function Terminal({
   const selectedBalance = Math.round(selectedInvoices.reduce((s, i) => s + i.balance, 0) * 100) / 100;
   const max = selectedInvoices.length ? selectedBalance : 1_000_000;
   const valid = amount > 0 && amount <= max + 0.005;
+  // The box takes text (tag, model, number, dealership) or a date ("today", "yesterday", "9/27", "sep 27", "last week").
+  const searchDate = useMemo(() => parseSearchDate(query, today), [query, today]);
   const filteredInvoices = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? openInvoices.filter((i) => [i.display_number, i.dealership, i.tag, i.vehicle, i.service].some((s) => s?.toLowerCase().includes(q))) : openInvoices;
-  }, [openInvoices, query]);
+    if (!q) return openInvoices;
+    if (searchDate) return openInvoices.filter((i) => !!i.date && i.date >= searchDate.from && i.date <= searchDate.to);
+    return openInvoices.filter((i) => [i.display_number, i.dealership, i.tag, i.vehicle, i.service].some((s) => s?.toLowerCase().includes(q)));
+  }, [openInvoices, query, searchDate]);
+  /** Rows under their day: "Today · Mon, Sep 28", "Yesterday · …", "Fri, Sep 25"; undated rows last. */
+  const dayRows = useMemo(() => {
+    const out: { day: string; label: string; rows: OpenInvoiceOption[] }[] = [];
+    for (const i of filteredInvoices) {
+      const day = i.date ?? "";
+      const last = out[out.length - 1];
+      if (last && last.day === day) last.rows.push(i);
+      else out.push({ day, label: day ? dayHeading(day, today) : "No date", rows: [i] });
+    }
+    return out;
+  }, [filteredInvoices, today]);
   const filteredBalance = Math.round(filteredInvoices.reduce((s, i) => s + i.balance, 0) * 100) / 100;
   const allFilteredSelected = filteredInvoices.length > 0 && filteredInvoices.every((i) => selected.includes(i.id));
   /** For a partial batch: which invoices get paid, and where the money runs out (oldest first). */
@@ -387,10 +403,10 @@ export function Terminal({
                 <div className="grid gap-2">
                   <div className="relative">
                     <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle" />
-                    <Input className="pl-9" placeholder="Tag, model, invoice number or dealership" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find an open invoice" />
+                    <Input className="pl-9" placeholder="Tag, model, invoice, dealership or a date" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find an open invoice" />
                   </div>
                   {filteredInvoices.length === 0 ? (
-                    <p className="px-1 py-2 text-sm text-muted-foreground">No open invoices match.</p>
+                    <p className="px-1 py-2 text-sm text-muted-foreground">{searchDate ? `No open invoices for ${searchDate.label}.` : "No open invoices match."}</p>
                   ) : (
                     <div className="overflow-hidden rounded-lg border border-border">
                       <button
@@ -409,27 +425,41 @@ export function Terminal({
                           {filteredInvoices.length} · {formatMoney(filteredBalance)}
                         </span>
                       </button>
-                      <ul className="max-h-56 divide-y divide-border overflow-y-auto" role="listbox" aria-label="Open invoices" aria-multiselectable="true">
-                        {filteredInvoices.map((i) => {
-                          const on = selected.includes(i.id);
-                          return (
-                            <li key={i.id}>
-                              <button type="button" role="option" aria-selected={on} onClick={() => toggleInvoice(i)} className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/50", on && "bg-accent-soft")}>
-                                <span className={cn("flex size-4 shrink-0 items-center justify-center rounded border", on ? "border-primary bg-primary text-primary-foreground" : "border-border-strong")} aria-hidden>
-                                  {on && <CheckIcon className="size-3" />}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate">
-                                    <span className="font-semibold tracking-wide">{invoiceTitle(i)}</span>
-                                    {i.tag && (i.car_count ?? 1) > 1 ? <span className="text-muted-foreground"> · {i.car_count} cars</span> : i.tag && i.vehicle ? <span className="text-muted-foreground"> · {shortVehicle(i.vehicle)}</span> : null}
-                                  </span>
-                                  <span className="block truncate text-caption text-muted-foreground">{[i.tag ? i.display_number : null, i.dealership, i.service, i.date ? formatDateOnly(i.date, "MMM d") : null].filter(Boolean).join(" · ")}</span>
-                                </span>
-                                <span className="shrink-0 tabular-nums">{formatMoney(i.balance)}</span>
-                              </button>
+                      <ul className="max-h-64 divide-y divide-border overflow-y-auto" role="listbox" aria-label="Open invoices" aria-multiselectable="true">
+                        {dayRows.map((g) => (
+                          <Fragment key={g.day || "none"}>
+                            <li role="presentation" data-testid="terminal-day" className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-surface-2 px-3 py-1.5 text-caption font-medium text-muted-foreground">
+                              <span>{g.label}</span>
+                              <span className="tabular-nums">
+                                {g.rows.length} · {formatMoney(g.rows.reduce((s, i) => s + i.balance, 0))}
+                              </span>
                             </li>
-                          );
-                        })}
+                            {g.rows.map((i) => {
+                              const on = selected.includes(i.id);
+                              return (
+                                <li key={i.id}>
+                                  <button type="button" role="option" aria-selected={on} onClick={() => toggleInvoice(i)} className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/50", on && "bg-accent-soft")}>
+                                    <span className={cn("flex size-4 shrink-0 items-center justify-center rounded border", on ? "border-primary bg-primary text-primary-foreground" : "border-border-strong")} aria-hidden>
+                                      {on && <CheckIcon className="size-3" />}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate">
+                                        <span className="font-semibold tracking-wide">{invoiceTitle(i)}</span>
+                                        {i.tag && (i.car_count ?? 1) > 1 ? <span className="text-muted-foreground"> · {i.car_count} cars</span> : i.tag && i.vehicle ? <span className="text-muted-foreground"> · {shortVehicle(i.vehicle)}</span> : null}
+                                      </span>
+                                      <span className="block truncate text-caption text-muted-foreground">{[i.tag ? i.display_number : null, i.dealership, i.service].filter(Boolean).join(" · ")}</span>
+                                    </span>
+                                    <span className="shrink-0 text-right">
+                                      <span className="block tabular-nums">{formatMoney(i.balance)}</span>
+                                      {/* The date sits under the amount so it can never be cut off by a long dealership name. */}
+                                      {i.date && <span className="block text-caption tabular-nums text-subtle">{formatDateOnly(i.date, "MMM d")}</span>}
+                                    </span>
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </Fragment>
+                        ))}
                       </ul>
                     </div>
                   )}

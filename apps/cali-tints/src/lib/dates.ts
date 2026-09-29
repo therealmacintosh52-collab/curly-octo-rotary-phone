@@ -129,6 +129,19 @@ export function todayIn(tz: string, now: Date = new Date()): string {
   }
 }
 
+/** yyyy-mm-dd shifted by n days (calendar days, no timezone maths). */
+export function addDaysYmd(ymd: string, n: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
+/** Day header for a list grouped by day: "Today · Mon, Sep 28", "Yesterday · Sun, Sep 27", else "Fri, Sep 25". */
+export function dayHeading(day: string, today: string): string {
+  const date = formatDateOnly(day, "EEE, MMM d");
+  return day === today ? `Today · ${date}` : day === addDaysYmd(today, -1) ? `Yesterday · ${date}` : date;
+}
+
 /** Current epoch ms (see isoDaysAgo). */
 export function nowMs(): number {
   return Date.now();

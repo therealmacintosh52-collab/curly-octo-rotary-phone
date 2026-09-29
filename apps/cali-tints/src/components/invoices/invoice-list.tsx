@@ -3,7 +3,7 @@ import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon, PlusIcon, WalletIcon }
 import type { InvoiceListRow } from "@/lib/db/types";
 import { INVOICE_PAGE_SIZE } from "@/lib/invoices/query";
 import { formatMoney } from "@/lib/money";
-import { formatDateOnly } from "@/lib/dates";
+import { dayHeading, formatDateOnly } from "@/lib/dates";
 import { Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -25,15 +25,8 @@ function periodLabel(r: Pick<InvoiceListRow, "period_start" | "period_end">) {
 
 const collectable = (r: InvoiceListRow) => r.status !== "void" && r.status !== "paid" && r.balance > 0;
 
-function addDays(ymd: string, n: number) {
-  const [y, m, d] = ymd.split("-").map(Number);
-  const dt = new Date(y, m - 1, d + n);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-}
-
 /** Header for the first row of each day: "Today · Mon, Sep 28", "Yesterday · Sun, Sep 27", "Fri, Sep 25". Keyed by that row's id. */
 function dayGroups(rows: InvoiceListRow[], today: string) {
-  const yesterday = addDays(today, -1);
   const totals = new Map<string, { first: string; count: number; total: number }>();
   for (const r of rows) {
     const day = r.period_end;
@@ -43,10 +36,7 @@ function dayGroups(rows: InvoiceListRow[], today: string) {
     totals.set(day, g);
   }
   const out = new Map<string, { label: string; count: number; total: number }>();
-  for (const [day, g] of totals) {
-    const date = formatDateOnly(day, "EEE, MMM d");
-    out.set(g.first, { label: day === today ? `Today · ${date}` : day === yesterday ? `Yesterday · ${date}` : date, count: g.count, total: g.total });
-  }
+  for (const [day, g] of totals) out.set(g.first, { label: dayHeading(day, today), count: g.count, total: g.total });
   return out;
 }
 
