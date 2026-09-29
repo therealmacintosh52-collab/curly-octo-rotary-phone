@@ -32,8 +32,6 @@
 - **Visibility Audit** — $499 one-time. Written teardown of map-pack position,
   profile gaps and what the site is missing.
 - **Strategy and advisory** — $175/hour, no retainer or minimum.
-- **Custom projects** — from $1,500. Booking tools, quote calculators, lead
-  routing, AI answering.
 
 ## Apps
 Built as installable web apps (PWAs) by default, with App Store and Google Play
@@ -53,9 +51,9 @@ reminders go by text and email instead, unless the store listings are added.
   quotes that went quiet, scheduled reminders, review requests on completion.
 - **Custom Build** — from $1,499.99, monthly quoted with the build. Client
   portals, rotas and job boards for staff on the move, stock and supplier
-  integrations. Begins with a $499 scoping session that produces a written spec
+  integrations, quote calculators, lead routing and AI phone answering. Begins with a $499 scoping session that produces a written spec
   the client owns, credited against the build.
-- **App Store and Google Play listing** — optional add-on, $1,200 one time then
+- **App Store and Google Play listing** — optional add-on, $499 one time then
   $25/month. The same app wrapped and submitted under developer accounts
   registered in the client's own business name, so the listings are the
   client's property. Apple's $99/year and Google's one-time $25 are passed
@@ -64,8 +62,7 @@ reminders go by text and email instead, unless the store listings are added.
   anything it reads as a repackaged website under Guideline 4.2, so native
   functionality is built in before submission, a first listing takes two to
   four weeks mostly in account verification, and if Apple cannot be cleared
-  $600 is refunded while the client keeps the Play listing and the web app.
-- Growth clients get $500 off any app build; Market Leader clients get $1,000 off.
+  $250 is refunded while the client keeps the Play listing and the web app.
 
 Quantum Growth's stated position is that most small local businesses do not
 need an app, and that it says so rather than selling one — a business whose customers
