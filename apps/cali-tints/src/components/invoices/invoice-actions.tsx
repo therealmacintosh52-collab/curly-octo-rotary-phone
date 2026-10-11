@@ -1,14 +1,12 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BanIcon, BanknoteIcon, ChevronDownIcon, CreditCardIcon, DownloadIcon, FileCheckIcon, LinkIcon, ListTreeIcon, MailIcon, MoreHorizontalIcon, PrinterIcon, SendIcon, TabletSmartphoneIcon, WalletIcon } from "lucide-react";
+import { BanIcon, ChevronDownIcon, DownloadIcon, FileCheckIcon, ListTreeIcon, MailIcon, MoreHorizontalIcon, PrinterIcon, SendIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { InvoiceStatus, SubmissionMethod } from "@/lib/db/types";
 import { markSubmittedAction, submitInvoiceByEmailAction, voidInvoiceAction } from "@/app/(app)/invoices/actions";
 import { useSession } from "@/components/app/session-provider";
-import { SendPayLinkDialog } from "@/components/invoices/send-pay-link-dialog";
 import { formatMoney, formatTaxRate } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,31 +31,23 @@ interface Props {
   invoice: { id: string; status: InvoiceStatus; display_number: string; amount_paid: number; total: number; notes: string | null };
   dealership: { name: string; ap_emails: string[]; submission_method: SubmissionMethod };
   companyEmail: string | null;
-  /** Which Clover routes are ready; drives the "Collect payment" menu. */
-  collect?: { device: boolean; card: boolean; payLink: boolean };
-  /** Enables "See breakdown" in the Collect menu. */
+  /** Enables "See what makes up the balance". */
   breakdown?: BalanceBreakdown | null;
-  /** Owner/admin may collect (Terminal, card, cash). A manager gets email and pay links only. */
-  allowCollect?: boolean;
 }
 
-export function InvoiceActions({ invoice, dealership, companyEmail, collect = { device: false, card: false, payLink: false }, breakdown = null, allowCollect = true }: Props) {
+export function InvoiceActions({ invoice, dealership, companyEmail, breakdown = null }: Props) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
   const [emailOpen, setEmailOpen] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [payLinkOpen, setPayLinkOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const isVoid = invoice.status === "void";
   const canVoid = !isVoid && invoice.amount_paid === 0;
   const hasBeenSent = invoice.status !== "draft";
   const balance = Math.round((invoice.total - invoice.amount_paid) * 100) / 100;
-  const owed = !isVoid && balance > 0;
-  const canCollect = owed && allowCollect;
   const dl = (kind: string, extra = "") => `/api/invoices/${invoice.id}/${kind}${extra}`;
-  const collectHref = (method?: "card" | "device") => `/terminal?invoice=${invoice.id}${method ? `&method=${method}` : ""}`;
 
   function sendEmail() {
     if (demo) {
@@ -109,62 +99,9 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
 
   return (
     <div className="flex flex-wrap gap-2">
-      {/* While money is owed, collecting it is the primary action. */}
-      {canCollect && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button disabled={pending} className="flex-1 sm:flex-none">
-              <WalletIcon /> Collect {formatMoney(balance)} <ChevronDownIcon className="opacity-60" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-72">
-            {breakdown && (
-              <>
-                <DropdownMenuItem onSelect={() => setBreakdownOpen(true)}>
-                  <ListTreeIcon /> See what makes up {formatMoney(balance)}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuLabel>Charge now</DropdownMenuLabel>
-            <DropdownMenuItem asChild disabled={!collect.device}>
-              <Link href={collectHref("device")}>
-                <TabletSmartphoneIcon /> On the Clover terminal
-                {!collect.device && <span className="ml-auto text-caption text-subtle">set up</span>}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild disabled={!collect.card}>
-              <Link href={collectHref("card")}>
-                <CreditCardIcon /> Card typed in the app
-                {!collect.card && <span className="ml-auto text-caption text-subtle">set up</span>}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={collectHref()}>
-                <BanknoteIcon /> Cash, check or ACH
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Bill the dealership</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setEmailOpen(true)}>
-              <MailIcon /> Email invoice{collect.payLink ? " with pay-by-card link" : ""}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setPayLinkOpen(true)} disabled={!collect.payLink} data-testid="send-pay-link">
-              <LinkIcon /> Send payment link
-              {!collect.payLink && <span className="ml-auto text-caption text-subtle">set up</span>}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-      {/* A manager cannot collect, but can still send the pay-by-card link on its own. */}
-      {owed && !allowCollect && collect.payLink && (
-        <Button onClick={() => setPayLinkOpen(true)} disabled={pending} className="flex-1 sm:flex-none" data-testid="send-pay-link">
-          <LinkIcon /> Send payment link
-        </Button>
-      )}
-      {/* Send it (draft) or send it again; secondary once a balance can be collected. */}
+      {/* Send it (draft) or send it again. */}
       {!isVoid && (
-        <Button variant={canCollect || (owed && !allowCollect && collect.payLink) ? "outline" : "default"} onClick={() => setEmailOpen(true)} disabled={pending} className={canCollect ? "hidden sm:inline-flex" : "flex-1 sm:flex-none"}>
+        <Button onClick={() => setEmailOpen(true)} disabled={pending} className="flex-1 sm:flex-none">
           {hasBeenSent ? <SendIcon /> : <MailIcon />}
           {hasBeenSent ? "Resend by email" : "Submit by email"}
         </Button>
@@ -178,6 +115,11 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
+          {breakdown && (
+            <DropdownMenuItem onSelect={() => setBreakdownOpen(true)}>
+              <ListTreeIcon /> See what makes up {formatMoney(balance)}
+            </DropdownMenuItem>
+          )}
           {!isVoid && (
             <DropdownMenuItem onSelect={() => setManualOpen(true)}>
               <FileCheckIcon /> Mark as submitted
@@ -210,6 +152,11 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">{downloads}</DropdownMenuContent>
       </DropdownMenu>
+      {breakdown && (
+        <Button variant="outline" className="hidden sm:inline-flex" onClick={() => setBreakdownOpen(true)}>
+          <ListTreeIcon /> Breakdown
+        </Button>
+      )}
       {canVoid && (
         <Button variant="ghost" className="hidden text-destructive sm:inline-flex" onClick={() => setVoidOpen(true)}>
           <BanIcon /> Void
@@ -255,13 +202,6 @@ export function InvoiceActions({ invoice, dealership, companyEmail, collect = { 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Payment link on its own: email, copy or text */}
-      {owed && (
-        <Dialog open={payLinkOpen} onOpenChange={setPayLinkOpen}>
-          {payLinkOpen && <SendPayLinkDialog invoiceId={invoice.id} number={invoice.display_number} dealership={dealership.name} apEmails={dealership.ap_emails} balance={balance} onDone={() => setPayLinkOpen(false)} />}
-        </Dialog>
-      )}
 
       {/* Manual submission */}
       <Dialog open={manualOpen} onOpenChange={setManualOpen}>

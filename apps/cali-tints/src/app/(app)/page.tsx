@@ -21,13 +21,12 @@ export default async function HomePage(props: PageProps<"/">) {
   const sp = await props.searchParams;
   const range = resolveRange(sp);
   const bm = resolveBreakdownMonth(sp, today);
-  const [{ data, error }, { data: monthData }, { data: cloverUnmatched }] = await Promise.all([
+  const [{ data, error }, { data: monthData }] = await Promise.all([
     supabase.rpc("dashboard_stats", { p_start: range.start, p_end: range.end }),
     // The breakdown month is usually not the income range: one more call, same function.
     supabase.rpc("dashboard_stats", { p_start: bm.start, p_end: bm.end }),
-    session.company.clover_enabled ? supabase.rpc("clover_unmatched_count") : Promise.resolve({ data: 0 }),
   ]);
   if (error || !data) throw new Error(error?.message ?? "Could not load dashboard");
   const month = (monthData as DashboardStats | null) ?? (data as DashboardStats);
-  return <Dashboard stats={data as DashboardStats} range={range} cloverUnmatched={Number(cloverUnmatched ?? 0)} today={today} who={who} breakdown={{ ...bm, stats: { by_service: month.by_service, by_day: month.by_day } }} />;
+  return <Dashboard stats={data as DashboardStats} range={range} today={today} who={who} breakdown={{ ...bm, stats: { by_service: month.by_service, by_day: month.by_day } }} />;
 }

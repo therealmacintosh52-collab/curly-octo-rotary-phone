@@ -47,14 +47,10 @@ describe("invoice renderers", () => {
     expect(html).toContain("$790.00");
     expect(invoiceEmailText(b)).toContain("Total due: $790.00");
     expect(html).not.toContain("Pay by card");
-    const withPay = invoiceEmailHtml(b, "https://app.example.com", "https://checkout.example/pay/abc");
-    expect(withPay).toContain("Pay by card");
     // Invoices carry no payment terms.
-    expect(withPay).not.toMatch(/Payment terms|Net 30/);
+    expect(html).not.toMatch(/Payment terms|Net 30/);
     expect(invoiceEmailText(b)).not.toMatch(/Payment terms|Net 30/);
-    expect(withPay).toContain('href="https://checkout.example/pay/abc"');
-    expect(invoiceEmailText(b, "https://checkout.example/pay/abc")).toContain("Pay by card (secure Clover checkout): https://checkout.example/pay/abc");
-    if (OUT) writeFileSync(`${OUT}/invoice-email.html`, withPay);
+    if (OUT) writeFileSync(`${OUT}/invoice-email.html`, html);
   });
 
   it("helpers", () => {

@@ -1,5 +1,5 @@
 import type { InvoiceBundle } from "@/lib/invoices/load";
-import type { InvoiceListRow, PriceListRow, TerminalTransaction } from "@/lib/db/types";
+import type { InvoiceListRow, PriceListRow } from "@/lib/db/types";
 
 /** A realistic invoice bundle for renderer tests and previews. */
 export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): InvoiceBundle {
@@ -23,12 +23,7 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
       next_invoice_number: 13,
       reminder_days: 30,
       timezone: "America/Los_Angeles",
-      clover_enabled: false,
-      clover_env: "sandbox",
-      clover_merchant_id: null,
-      clover_push_orders: true,
-      clover_hosted_checkout: true,
-      clover_last_sync_at: null, clover_verified_at: null, clover_connected_at: null, clover_merchant_name: null, clover_device_id: null, clover_pos_id: "Cali Tints app", auto_invoice: true, auto_receipt: false,
+      auto_invoice: true,
       logo_path: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
@@ -75,11 +70,6 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
       paid_at: null,
       voided_at: null,
       void_reason: null,
-      clover_order_id: null,
-      clover_pushed_at: null,
-      clover_checkout_session_id: null,
-      clover_checkout_url: null,
-      clover_checkout_expires_at: null,
       created_by: null,
       created_at: "2026-10-01T16:30:00Z",
       updated_at: "2026-10-01T16:30:00Z",
@@ -122,9 +112,6 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
         reference: "10442",
         note: null,
         created_by: null,
-        source: "manual",
-        clover_payment_id: null,
-        clover_charge_id: null,
         created_at: "2026-10-20T00:00:00Z",
       },
     ],
@@ -132,24 +119,6 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
     logoDataUri: null,
   };
   return { ...base, ...overrides };
-}
-
-/** A day at the till for the Terminal preview: sales, a partial refund, an invoice payment recorded elsewhere. */
-export function terminalTransactionsFixture(): TerminalTransaction[] {
-  const day = new Date();
-  const at = (h: number, m: number) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m).toISOString();
-  const base = { refund_of: null, group_id: null, customer_email: null, reference: null, receipt_sent_at: null, refunded_amount: 0, status: "captured" as const, kind: "sale" as const };
-  const g = "70000000-0000-4000-8000-00000000000a";
-  return [
-    { ...base, id: "70000000-0000-4000-8000-000000000008", group_id: g, amount: 4210, method: "card", source: "clover_pos", invoice_id: "30000000-0000-4000-8000-000000000003", invoice_number: "INV-000010", dealership: "Mercedes-Benz of Sacramento", payment_id: "70000000-0000-4000-8000-000000000018", description: null, customer_name: "Mercedes-Benz of Sacramento", customer_email: "ap@mbsacramento.example", card_brand: "VISA", last4: "9010", clover_payment_id: "DEMO-POS-8", at: at(16, 20) },
-    { ...base, id: "70000000-0000-4000-8000-000000000007", group_id: g, amount: 1375.5, method: "card", source: "clover_pos", invoice_id: "30000000-0000-4000-8000-000000000002", invoice_number: "INV-000011", dealership: "Mercedes-Benz of Sacramento", payment_id: "70000000-0000-4000-8000-000000000017", description: null, customer_name: "Mercedes-Benz of Sacramento", customer_email: "ap@mbsacramento.example", card_brand: "VISA", last4: "9010", clover_payment_id: "DEMO-POS-8", at: at(16, 20) },
-    { ...base, id: "70000000-0000-4000-8000-000000000006", amount: 285, method: "card", source: "clover_pos", invoice_id: null, invoice_number: null, dealership: null, payment_id: null, description: "Full detail · black GLE 450", customer_name: "R. Alvarez", card_brand: "VISA", last4: "4242", clover_payment_id: "DEMO-POS-6", at: at(15, 40) },
-    { ...base, id: "70000000-0000-4000-8000-000000000005", kind: "refund", amount: 40, method: "card", source: "clover_card", invoice_id: null, invoice_number: null, dealership: null, payment_id: null, refund_of: "70000000-0000-4000-8000-000000000003", description: "Tint · 2 front windows", customer_name: "Walk-in", card_brand: "MC", last4: "1111", clover_payment_id: "charge_DEMO3", at: at(14, 5) },
-    { ...base, id: "70000000-0000-4000-8000-000000000004", amount: 1875.5, method: "check", source: "manual", invoice_id: "30000000-0000-4000-8000-000000000002", invoice_number: "INV-000011", dealership: "Mercedes-Benz of Sacramento", payment_id: "70000000-0000-4000-8000-000000000004", description: null, customer_name: null, reference: "10488", card_brand: null, last4: null, clover_payment_id: null, at: at(13, 12) },
-    { ...base, id: "70000000-0000-4000-8000-000000000003", status: "partially_refunded", refunded_amount: 40, amount: 160, method: "card", source: "clover_card", invoice_id: null, invoice_number: null, dealership: null, payment_id: null, description: "Tint · 2 front windows", customer_name: "Walk-in", card_brand: "MC", last4: "1111", clover_payment_id: "charge_DEMO3", receipt_sent_at: at(11, 31), customer_email: "walkin@example.com", at: at(11, 30) },
-    { ...base, id: "70000000-0000-4000-8000-000000000002", amount: 500, method: "card", source: "clover_pos", invoice_id: "30000000-0000-4000-8000-000000000001", invoice_number: "INV-000012", dealership: "Mercedes-Benz of El Dorado Hills", payment_id: "70000000-0000-4000-8000-000000000012", description: null, customer_name: null, card_brand: "AMEX", last4: "0005", clover_payment_id: "DEMO-POS-2", at: at(10, 2) },
-    { ...base, id: "70000000-0000-4000-8000-000000000001", amount: 60, method: "cash", source: "manual", invoice_id: null, invoice_number: null, dealership: null, payment_id: null, description: "Headlight restoration", customer_name: "J. Kim", card_brand: null, last4: null, clover_payment_id: null, at: at(9, 15) },
-  ];
 }
 
 /**

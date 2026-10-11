@@ -36,7 +36,6 @@ const common = (base: ReturnType<typeof invoiceBundleFixture>) => ({
   ],
   isAdmin: true,
   reminderDays: 30,
-  clover: { enabled: true, card: { publicKey: "demo", merchantId: "7G9V9DP834ZY2", sdkUrl: "about:blank" }, device: true, payLink: true, orderUrl: null as string | null },
 });
 
 /** The bundle fixture as-is: INV-000012, six cars, partly paid, overdue. */
@@ -55,7 +54,6 @@ function legacyProps(base: ReturnType<typeof invoiceBundleFixture>): InvoiceDeta
     canDelete: false,
     lockedReason: null,
     archived: false,
-    clover: { ...common(base).clover, orderUrl: "https://sandbox.dev.clover.com/orders/m/7G9V9DP834ZY2/ABC123" },
   };
 }
 
@@ -109,16 +107,12 @@ function carProps(row: InvoiceListRow, base: ReturnType<typeof invoiceBundleFixt
     paid_at: row.paid_at ? row.paid_at.slice(0, 10) : null, // a date column in the database
     voided_at: row.status === "void" ? row.created_at : null,
     void_reason: row.status === "void" ? "Logged twice" : null,
-    clover_order_id: row.status === "draft" ? null : `ORD${row.display_number.slice(-3)}`,
-    clover_pushed_at: row.status === "draft" ? null : row.created_at,
-    clover_checkout_url: null,
-    clover_checkout_expires_at: null,
     created_at: row.created_at,
     updated_at: row.created_at,
   };
   const payments: InvoicePayment[] =
     row.amount_paid > 0
-      ? [{ id: `pay-${row.id}`, company_id: base.company.id, invoice_id: row.id, amount: row.amount_paid, paid_at: (row.paid_at ?? row.created_at).slice(0, 10), method: row.status === "paid" ? "card" : "check", reference: row.status === "paid" ? null : "10488", note: null, created_by: null, source: row.status === "paid" ? "clover_pos" : "manual", clover_payment_id: row.status === "paid" ? "DEMO-POS-2" : null, clover_charge_id: null, created_at: row.paid_at ?? row.created_at }]
+      ? [{ id: `pay-${row.id}`, company_id: base.company.id, invoice_id: row.id, amount: row.amount_paid, paid_at: (row.paid_at ?? row.created_at).slice(0, 10), method: row.status === "paid" ? "card" : "check", reference: row.status === "paid" ? null : "10488", note: null, created_by: null, created_at: row.paid_at ?? row.created_at }]
       : [];
   const isDraft = row.status === "draft" && row.amount_paid === 0;
   return {

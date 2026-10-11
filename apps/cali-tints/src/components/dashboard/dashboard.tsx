@@ -88,14 +88,12 @@ export function weeksOfMonth(start: string, end: string, byDay: { day: string; j
 export function Dashboard({
   stats,
   range,
-  cloverUnmatched = 0,
   today,
   who,
   breakdown,
 }: {
   stats: DashboardStats;
   range: DashboardRange;
-  cloverUnmatched?: number;
   /** Today in the company timezone (yyyy-mm-dd). */
   today: string;
   /** The signed-in person and the company clock: the title is "Good afternoon, Mike" and follows the time of day. */
@@ -158,7 +156,6 @@ export function Dashboard({
           <StatTile label="Collected" value={formatMoney(stats.paid_last_90)} sub="last 90 days" tone="accent" href="/invoices?status=paid" />
           <StatList
             rows={[
-              ...(cloverUnmatched > 0 ? [{ label: "Clover payments to match", hint: "card payments not yet on an invoice", value: String(cloverUnmatched), tone: "warning" as const, href: "/invoices" }] : []),
               { label: "Overdue", hint: `unpaid > ${stats.reminder_days} days`, value: String(stats.overdue.length), tone: stats.overdue.length ? "warning" : undefined, href: "/invoices?status=overdue" },
               { label: "Avg days to payment", hint: "submitted → paid", value: stats.avg_days_to_pay === null ? "—" : `${stats.avg_days_to_pay}`, href: "/invoices?status=paid" },
             ]}

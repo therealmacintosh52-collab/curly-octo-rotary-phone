@@ -4,19 +4,17 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Company, Profile } from "@/lib/db/types";
-import { canManageSettings, canTakePayments, isCompanyWide } from "@/lib/roles";
+import { canManageSettings, isCompanyWide } from "@/lib/roles";
 
 export interface Session {
   userId: string;
   email: string | null;
   profile: Profile;
   company: Company;
-  /** owner, admin or manager: the whole company's cars, invoices and money. */
+  /** owner, admin or manager: the whole company's cars and invoices. */
   isAdmin: boolean;
-  /** owner or admin: Settings (company, dealerships, prices, users, Clover, export). */
+  /** owner or admin: Settings (company, dealerships, prices, users, export). */
   canSettings: boolean;
-  /** owner or admin: the Terminal and every button that takes a payment. */
-  canTerminal: boolean;
 }
 
 /**
@@ -43,7 +41,6 @@ export const getSession = cache(async (): Promise<Session> => {
     company,
     isAdmin: isCompanyWide(profile.role),
     canSettings: canManageSettings(profile.role),
-    canTerminal: canTakePayments(profile.role),
   };
 });
 
@@ -54,7 +51,7 @@ export async function requireAdmin(): Promise<Session> {
   return session;
 }
 
-/** Settings and the Terminal: owner and admin only. Managers and detailers go to their dashboard. */
+/** Settings: owner and admin only. Managers and detailers go to their dashboard. */
 export async function requireOwnerAdmin(): Promise<Session> {
   const session = await getSession();
   if (!session.canSettings) redirect("/");

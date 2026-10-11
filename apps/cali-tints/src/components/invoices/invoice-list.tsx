@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon, PlusIcon, WalletIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon, PlusIcon } from "lucide-react";
 import type { InvoiceListRow } from "@/lib/db/types";
 import { INVOICE_PAGE_SIZE } from "@/lib/invoices/query";
 import { formatMoney } from "@/lib/money";
@@ -22,8 +22,6 @@ export function carsLabel(r: Pick<InvoiceListRow, "cars" | "car_count">): { tag:
 function periodLabel(r: Pick<InvoiceListRow, "period_start" | "period_end">) {
   return r.period_start === r.period_end ? formatDateOnly(r.period_start, "MMM d, yyyy") : `${formatDateOnly(r.period_start, "MMM d")} – ${formatDateOnly(r.period_end, "MMM d, yyyy")}`;
 }
-
-const collectable = (r: InvoiceListRow) => r.status !== "void" && r.status !== "paid" && r.balance > 0;
 
 /** Header for the first row of each day: "Today · Mon, Sep 28", "Yesterday · Sun, Sep 27", "Fri, Sep 25". Keyed by that row's id. */
 function dayGroups(rows: InvoiceListRow[], today: string) {
@@ -71,15 +69,15 @@ function PageLinks({ page, count, params }: { page: number; count: number; param
 
 /**
  * The one list: every car, as its invoice. Desktop: dense table. Phone:
- * tappable cards with Collect on anything still owed (admins).
+ * tappable cards.
  */
-export function InvoiceList({ rows, page, count, params, isAdmin, canCollect = isAdmin, filtered, groupByDay = null }: { rows: InvoiceListRow[]; page: number; count: number; params: string; isAdmin: boolean; /** Owner/admin: show Collect on open rows (managers see the rows, not the button). */ canCollect?: boolean; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers (Today, Yesterday, weekday) when set. */ groupByDay?: string | null }) {
+export function InvoiceList({ rows, page, count, params, isAdmin, filtered, groupByDay = null }: { rows: InvoiceListRow[]; page: number; count: number; params: string; isAdmin: boolean; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers (Today, Yesterday, weekday) when set. */ groupByDay?: string | null }) {
   if (rows.length === 0) {
     return (
       <EmptyState
         icon={FileTextIcon}
         title={filtered ? "Nothing matches" : "No cars yet"}
-        description={filtered ? "Try a different search or clear the filters." : "Log a car and it shows up here as its own invoice, ready to send or collect."}
+        description={filtered ? "Try a different search or clear the filters." : "Log a car and it shows up here as its own invoice, ready to send."}
         action={
           <Button asChild>
             <Link href="/jobs/new">
@@ -112,7 +110,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, canCollect = i
               </li>
             )}
             <StaggerItem index={i} as="li">
-              {/* Stretched link: the card opens the invoice; "Collect" sits above it. */}
+              {/* Stretched link: the card opens the invoice. */}
               <div className="relative rounded-xl border border-border bg-card p-4 surface-raised transition-[border-color] duration-150 hover:border-border-strong">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -138,13 +136,6 @@ export function InvoiceList({ rows, page, count, params, isAdmin, canCollect = i
                   </span>
                   <span className="shrink-0">{periodLabel(r)}</span>
                 </div>
-                {canCollect && collectable(r) && (
-                  <Button asChild size="sm" variant="soft" className="relative z-10 mt-3 w-full">
-                    <Link href={`/terminal?invoice=${r.id}`}>
-                      <WalletIcon /> Collect {formatMoney(r.balance)}
-                    </Link>
-                  </Button>
-                )}
                 {isAdmin && r.deleted && <RestoreInvoiceButton invoiceId={r.id} number={r.display_number} className="relative z-10 mt-3 w-full" />}
               </div>
             </StaggerItem>
@@ -170,7 +161,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, canCollect = i
               </TableHead>
               {isAdmin && (
                 <TableHead scope="col" className="w-28">
-                  <span className="sr-only">Collect</span>
+                  <span className="sr-only">Actions</span>
                 </TableHead>
               )}
             </TableRow>
@@ -216,13 +207,6 @@ export function InvoiceList({ rows, page, count, params, isAdmin, canCollect = i
                   </TableCell>
                   {isAdmin && (
                     <TableCell className="text-right">
-                      {canCollect && collectable(r) && (
-                        <Button asChild size="sm" variant="soft">
-                          <Link href={`/terminal?invoice=${r.id}`}>
-                            <WalletIcon /> Collect
-                          </Link>
-                        </Button>
-                      )}
                       {r.deleted && <RestoreInvoiceButton invoiceId={r.id} number={r.display_number} />}
                     </TableCell>
                   )}

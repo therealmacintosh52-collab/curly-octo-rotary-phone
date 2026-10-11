@@ -1,7 +1,4 @@
-import Link from "next/link";
-import { WalletIcon } from "lucide-react";
 import { SessionProvider } from "@/components/app/session-provider";
-import { Button } from "@/components/ui/button";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { Page } from "@/components/app/page-header";
@@ -9,8 +6,6 @@ import { InvoiceActions } from "@/components/invoices/invoice-actions";
 import { balanceBreakdown } from "@/lib/invoices/breakdown";
 import { PaymentsCard } from "@/components/invoices/payments-card";
 import { SubmissionsCard } from "@/components/invoices/submissions-card";
-import { CloverPanel } from "@/components/invoices/clover-panel";
-import { CloverQueue, CloverSyncButton } from "@/components/invoices/clover-queue";
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { InvoiceBuilder } from "@/components/invoices/invoice-builder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,23 +25,6 @@ export default function DevInvoicePreview() {
       <SyncProvider>
         <AppShell>
           <Page>
-            <div className="mb-5 flex flex-col gap-3">
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button asChild variant="soft">
-                  <Link href="/terminal?invoices=all">
-                    <WalletIcon /> Collect all unpaid · {formatMoney(balance + 1375.5 + 4210)}
-                  </Link>
-                </Button>
-                <CloverSyncButton lastSyncAt={isoDaysAgo(0)} />
-              </div>
-              <CloverQueue
-                payments={[{ id: "q1", clover_payment_id: "CLV-DEMO-1", amount: 1875.5, tip: 0, paid_at: isoDaysAgo(1), card_brand: "VISA", last4: "4242", reference: null }]}
-                invoices={[
-                  { id: b.invoice.id, display_number: b.invoice.display_number, dealership: b.dealership.name, balance },
-                  { id: "i9", display_number: "INV-000011", dealership: "Mercedes-Benz of Sacramento", balance: 1875.5 },
-                ]}
-              />
-            </div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-title">{b.invoice.display_number}</h1>
               <InvoiceStatusBadge status={b.invoice.status} overdue />
@@ -57,7 +35,6 @@ export default function DevInvoicePreview() {
                 invoice={{ id: b.invoice.id, status: b.invoice.status, display_number: b.invoice.display_number, amount_paid: 500, total: Number(b.invoice.total), notes: null }}
                 dealership={{ name: b.dealership.name, ap_emails: b.dealership.ap_emails, submission_method: "email" }}
                 companyEmail={b.company.email}
-                collect={{ device: true, card: true, payLink: true }}
                 breakdown={balanceBreakdown({ ...b, invoice: { ...b.invoice, total: Number(b.invoice.total) }, payments: b.payments })}
               />
             </div>
@@ -71,13 +48,7 @@ export default function DevInvoicePreview() {
                 </CardContent>
               </Card>
               <div className="flex flex-col gap-4">
-                <PaymentsCard invoiceId={b.invoice.id} invoiceNumber={b.invoice.display_number} payments={b.payments} balance={balance} status={b.invoice.status} cloverCard={{ publicKey: "demo", merchantId: "7G9V9DP834ZY2", sdkUrl: "about:blank" }} cloverDevice />
-                <CloverPanel
-                  enabled
-                  hostedCheckout
-                  orderUrl="https://sandbox.dev.clover.com/orders/m/7G9V9DP834ZY2/ABC123"
-                  invoice={{ id: b.invoice.id, status: b.invoice.status, balance, clover_order_id: "ABC123XYZ", clover_pushed_at: isoDaysAgo(3), clover_checkout_url: "https://checkout.sandbox.dev.clover.com/pay/example", clover_checkout_expires_at: null }}
-                />
+                <PaymentsCard invoiceId={b.invoice.id} invoiceNumber={b.invoice.display_number} payments={b.payments} balance={balance} status={b.invoice.status} />
                 <SubmissionsCard
                   submittedAt={b.invoice.submitted_at}
                   submissions={[

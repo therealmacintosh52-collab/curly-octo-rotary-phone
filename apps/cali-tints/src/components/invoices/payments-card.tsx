@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCardIcon, PlusIcon, TabletSmartphoneIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { InvoicePayment, InvoiceStatus, PaymentMethod } from "@/lib/db/types";
-import { chargeCardAction, deletePaymentAction, payOnDeviceAction, recordPaymentAction } from "@/app/(app)/invoices/actions";
+import { deletePaymentAction, recordPaymentAction } from "@/app/(app)/invoices/actions";
 import { formatMoney } from "@/lib/money";
 import { formatDateOnly, toDateInput } from "@/lib/dates";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChargeCardDialog, type CloverCardConfig } from "./charge-card-dialog";
-import { PayOnDeviceDialog } from "./pay-on-device-dialog";
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "check", label: "Check" },
@@ -25,29 +23,9 @@ const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-export function PaymentsCard({
-  invoiceId,
-  invoiceNumber,
-  payments,
-  balance,
-  status,
-  cloverCard = null,
-  cloverDevice = false,
-}: {
-  invoiceId: string;
-  invoiceNumber?: string;
-  payments: InvoicePayment[];
-  balance: number;
-  status: InvoiceStatus;
-  /** When set, a "Charge card" button opens the Clover card form. */
-  cloverCard?: CloverCardConfig | null;
-  /** When true, a "Pay on terminal" button sends the amount to the Clover device. */
-  cloverDevice?: boolean;
-}) {
+export function PaymentsCard({ invoiceId, payments, balance, status }: { invoiceId: string; invoiceNumber?: string; payments: InvoicePayment[]; balance: number; status: InvoiceStatus }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [chargeOpen, setChargeOpen] = useState(false);
-  const [deviceOpen, setDeviceOpen] = useState(false);
   const [pending, start] = useTransition();
 
   return (
@@ -55,16 +33,6 @@ export function PaymentsCard({
       <CardHeader>
         <CardTitle>Payments</CardTitle>
         <CardAction className="flex flex-wrap justify-end gap-2">
-          {status !== "void" && balance > 0 && cloverDevice && (
-            <Button size="sm" variant="outline" onClick={() => setDeviceOpen(true)}>
-              <TabletSmartphoneIcon /> Pay on terminal
-            </Button>
-          )}
-          {status !== "void" && balance > 0 && cloverCard && (
-            <Button size="sm" variant="outline" onClick={() => setChargeOpen(true)}>
-              <CreditCardIcon /> Charge card
-            </Button>
-          )}
           {status !== "void" && balance > 0 && (
             <Button size="sm" onClick={() => setOpen(true)}>
               <PlusIcon /> Add payment
@@ -74,7 +42,7 @@ export function PaymentsCard({
       </CardHeader>
       <CardContent>
         {payments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nothing received yet. Card payments taken in the app or on the Clover terminal show up here on their own.</p>
+          <p className="text-sm text-muted-foreground">Nothing received yet. Add the check, ACH or card payment when it arrives.</p>
         ) : (
           <ul className="divide-y divide-border text-sm">
             {payments.map((p) => (
@@ -82,7 +50,7 @@ export function PaymentsCard({
                 <div>
                   <div className="font-medium tabular-nums">{formatMoney(p.amount)}</div>
                   <div className="text-xs text-muted-foreground">
-                    {formatDateOnly(p.paid_at)} · {p.source && p.source !== "manual" ? "Clover" : METHODS.find((m) => m.value === p.method)?.label}
+                    {formatDateOnly(p.paid_at)} · {METHODS.find((m) => m.value === p.method)?.label}
                     {p.reference ? ` #${p.reference}` : ""}
                     {p.note ? ` · ${p.note}` : ""}
                   </div>
@@ -112,16 +80,6 @@ export function PaymentsCard({
       <Dialog open={open} onOpenChange={setOpen}>
         <PaymentDialog invoiceId={invoiceId} balance={balance} onDone={() => setOpen(false)} />
       </Dialog>
-      {cloverDevice && (
-        <Dialog open={deviceOpen} onOpenChange={setDeviceOpen}>
-          {deviceOpen && <PayOnDeviceDialog subtitle={`${invoiceNumber ?? "Invoice"} · balance ${formatMoney(balance)}`} balance={balance} onDone={() => setDeviceOpen(false)} send={(i) => payOnDeviceAction({ invoiceId, ...i })} />}
-        </Dialog>
-      )}
-      {cloverCard && (
-        <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
-          {chargeOpen && <ChargeCardDialog subtitle={`${invoiceNumber ?? "Invoice"} · balance ${formatMoney(balance)}`} balance={balance} config={cloverCard} onDone={() => setChargeOpen(false)} charge={(i) => chargeCardAction({ invoiceId, ...i })} />}
-        </Dialog>
-      )}
     </Card>
   );
 }
@@ -141,7 +99,7 @@ function PaymentDialog({ invoiceId, balance, onDone }: { invoiceId: string; bala
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Add a payment you received</DialogTitle>
-        <DialogDescription>For a check, ACH or cash that came in outside the app. Card payments taken here, on the Clover terminal or through the pay link add themselves. Balance due {formatMoney(balance)}; partial amounts are fine.</DialogDescription>
+        <DialogDescription>For a check, ACH, card or cash that came in. Balance due {formatMoney(balance)}; partial amounts are fine.</DialogDescription>
       </DialogHeader>
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">

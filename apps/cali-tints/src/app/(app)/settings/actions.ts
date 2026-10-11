@@ -7,9 +7,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
-import { getMerchant } from "@/lib/clover/client";
-import { cloverContext } from "@/lib/clover/invoices";
-import { disconnectClover, markConnection } from "@/lib/clover/connection";
 
 const optionalText = (max: number) => z.string().trim().max(max).transform((s) => s || null);
 
@@ -29,8 +26,6 @@ const companySchema = z.object({
   invoice_prefix: z.string().trim().max(12),
   reminder_days: z.number().int().min(1).max(365),
   timezone: z.string().trim().min(1).max(64),
-  /** Email the dealership a receipt the moment a payment lands on an invoice. */
-  auto_receipt: z.boolean(),
 });
 export type CompanyInput = z.input<typeof companySchema>;
 
@@ -246,76 +241,4 @@ export async function resetUserPasswordAction(userId: string, password: string):
   const { error } = await admin.auth.admin.updateUserById(userId, { password });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: undefined };
-}
-
-// --- Clover -------------------------------------------------------------------
-
-const cloverSettingsSchema = z.object({
-  clover_enabled: z.boolean(),
-  clover_env: z.enum(["sandbox", "production"]),
-  clover_merchant_id: z.string().trim().max(40).transform((s) => s || null),
-  clover_push_orders: z.boolean(),
-  clover_hosted_checkout: z.boolean(),
-  clover_device_id: z.string().trim().max(40).transform((s) => s || null),
-  clover_pos_id: z.string().trim().min(1).max(40).default("Cali Tints app"),
-});
-export type CloverSettingsInput = z.input<typeof cloverSettingsSchema>;
-
-export async function updateCloverSettingsAction(input: CloverSettingsInput): Promise<ActionResult> {
-  const session = await requireOwnerAdmin();
-  const parsed = cloverSettingsSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  if (parsed.data.clover_enabled && !parsed.data.clover_merchant_id) return { ok: false, error: "Enter the Clover merchant ID before enabling" };
-  const supabase = await createClient();
-  const { error } = await supabase.from("companies").update(parsed.data).eq("id", session.company.id);
-  if (error) return { ok: false, error: errorMessage(error) };
-  revalidatePath("/", "layout");
-  return { ok: true, data: undefined };
-}
-
-/** Calls GET /v3/merchants/{id} with the stored API token; proves the token, env and merchant id agree. */
-export async function testCloverConnectionAction(input: { clover_env: "sandbox" | "production"; clover_merchant_id: string }): Promise<ActionResult<{ name: string }>> {
-  const session = await requireOwnerAdmin();
-  const parsed = z.object({ clover_env: z.enum(["sandbox", "production"]), clover_merchant_id: z.string().trim().min(1).max(40) }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Enter the merchant ID" };
-  try {
-    const m = await getMerchant({ env: parsed.data.clover_env, merchantId: parsed.data.clover_merchant_id });
-    // Remember that the token, environment and merchant id agree (setup checklist).
-    const supabase = await createClient();
-    await supabase.from("companies").update({ clover_verified_at: new Date().toISOString() }).eq("id", session.company.id);
-    revalidatePath("/", "layout");
-    return { ok: true, data: { name: m.name } };
-  } catch (err) {
-    return { ok: false, error: errorMessage(err) };
-  }
-}
-
-/** Ping Clover with whatever credentials the company has (sign-in or manual tokens) and record the result. */
-export async function checkCloverConnectionAction(): Promise<ActionResult<{ name: string; ms: number }>> {
-  const session = await requireOwnerAdmin();
-  const ctx = cloverContext(session.company);
-  if (!ctx) return { ok: false, error: "Clover is not enabled yet" };
-  const t0 = Date.now();
-  try {
-    const m = await getMerchant(ctx);
-    const supabase = await createClient();
-    await supabase.from("companies").update({ clover_verified_at: new Date().toISOString() }).eq("id", session.company.id);
-    await markConnection(session.company.id, true).catch(() => {});
-    revalidatePath("/", "layout");
-    return { ok: true, data: { name: m.name, ms: Date.now() - t0 } };
-  } catch (err) {
-    return { ok: false, error: errorMessage(err) };
-  }
-}
-
-/** Forget the Clover sign-in (tokens are deleted). Manual tokens in the environment, if any, still apply. */
-export async function disconnectCloverAction(): Promise<ActionResult> {
-  const session = await requireOwnerAdmin();
-  try {
-    await disconnectClover(session.company.id);
-    revalidatePath("/", "layout");
-    return { ok: true, data: undefined };
-  } catch (err) {
-    return { ok: false, error: errorMessage(err) };
-  }
 }

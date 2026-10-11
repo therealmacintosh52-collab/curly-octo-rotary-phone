@@ -4,14 +4,9 @@ import { getSession } from "@/lib/auth";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
 import type { PriceListRow } from "@/lib/db/types";
 import { InvoiceDetail } from "@/components/invoices/invoice-detail";
-import { cloverContext } from "@/lib/clover/invoices";
-import { cloverPublicKey, orderDashboardUrl } from "@/lib/clover/client";
-import { CLOVER_HOSTS } from "@/lib/clover/env";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Invoice" };
-// "Pay on terminal" waits for the customer to tap; give server actions from this page up to 60 s.
-export const maxDuration = 60;
 
 type CarRow = {
   id: string;
@@ -71,10 +66,6 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
     ),
   ]);
 
-  const clover = session.isAdmin ? cloverContext(company) : null;
-  const ecomPublicKey = clover ? await cloverPublicKey(clover) : null;
-  const cloverCard = clover && ecomPublicKey ? { publicKey: ecomPublicKey, merchantId: clover.merchantId, sdkUrl: CLOVER_HOSTS[clover.env].sdk } : null;
-
   // Car edits: only while nothing has left the building.
   const isDraft = invoice.status === "draft" && Number(invoice.amount_paid) === 0;
   const ownCar = !!car && (session.isAdmin || car.detailer_id === session.userId);
@@ -113,19 +104,11 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
       priceList={(priceListRes.data ?? []) as PriceListRow[]}
       detailers={detailers ?? []}
       isAdmin={session.isAdmin}
-      canCollect={session.canTerminal}
       canEdit={canEdit}
       canDelete={canDelete}
       lockedReason={lockedReason}
       archived={archived}
       reminderDays={session.company.reminder_days}
-      clover={{
-        enabled: !!clover,
-        card: session.canTerminal ? cloverCard : null,
-        device: session.canTerminal && !!(clover && company.clover_device_id),
-        payLink: !!(clover && company.clover_hosted_checkout),
-        orderUrl: clover && invoice.clover_order_id ? orderDashboardUrl(clover, invoice.clover_order_id) : null,
-      }}
     />
   );
 }

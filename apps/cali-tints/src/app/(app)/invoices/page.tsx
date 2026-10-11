@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { PlusIcon, WalletIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceListResult } from "@/lib/db/types";
@@ -14,17 +14,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { InvoiceList } from "@/components/invoices/invoice-list";
 import { BulkDownloadBanner } from "@/components/invoices/bulk-download-banner";
-import { CloverQueue, CloverSyncButton, type OpenInvoiceOption } from "@/components/invoices/clover-queue";
 import { SendInvoicesButton, type UnsentGroup } from "@/components/invoices/send-invoices-button";
-import { cloverContext } from "@/lib/clover/invoices";
 
 export const metadata: Metadata = { title: "Invoices" };
 
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
 
 /**
- * The one list. Every car logged is an invoice; this page finds it, shows
- * where the money stands and collects it. Detailers see their own cars.
+ * The one list. Every car logged is an invoice; this page finds it and shows
+ * where the money stands. Detailers see their own cars.
  */
 export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const sp = await props.searchParams;
@@ -35,25 +33,17 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const spansDays = !!filters.from && !!filters.to && filters.from !== filters.to; // the week, a month: show it day by day
   const supabase = await createClient();
   const created = typeof sp.created === "string" ? sp.created.split(",").filter(Boolean) : [];
-  const clover = session.isAdmin ? cloverContext(session.company) : null;
 
-  const [{ data: list, error }, { data: services }, { data: dealerships }, { data: owed }, { data: queue }, { data: openInvoices }, { data: unsent }] = await Promise.all([
+  const [{ data: list, error }, { data: services }, { data: dealerships }, { data: unsent }] = await Promise.all([
     supabase.rpc("invoices_filtered", invoiceFilterArgs(filters)),
     supabase.from("services").select("id, name").order("sort_order"),
     supabase.from("dealerships").select("id, name").order("name"),
-    // Everything owed across all open invoices (not just this filter), for "Collect all unpaid".
-    session.isAdmin ? supabase.from("invoices").select("total, amount_paid").in("status", ["draft", "submitted", "partial"]) : Promise.resolve({ data: [] }),
-    // Clover: payments waiting to be matched, and the open invoices they could belong to.
-    clover ? supabase.from("clover_payments").select("id, clover_payment_id, amount, tip, paid_at, card_brand, last4, reference").eq("status", "unmatched").order("paid_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
-    clover ? supabase.from("invoices").select("id, display_number, total, amount_paid, dealership:dealerships(name)").in("status", ["draft", "submitted", "partial"]).order("number", { ascending: false }).limit(200) : Promise.resolve({ data: [] }),
     // Unsent invoices by dealership, for "Send invoices".
     session.isAdmin ? supabase.from("invoices").select("id, display_number, total, dealership_id, dealership:dealerships(name, ap_emails), invoice_items(tag_number, year, make, model)").eq("status", "draft").order("number").limit(200) : Promise.resolve({ data: [] }),
   ]);
   if (error) throw new Error(error.message);
   const result = (list as InvoiceListResult | null) ?? EMPTY_INVOICE_LIST;
 
-  const unpaid = (owed ?? []).map((i) => Number(i.total) - Number(i.amount_paid)).filter((b) => b > 0);
-  const unpaidTotal = unpaid.reduce((s, b) => s + b, 0);
   const unsentGroups: UnsentGroup[] = Object.values(
     (unsent ?? []).reduce<Record<string, UnsentGroup>>((acc, i) => {
       const d = i.dealership as unknown as { name: string; ap_emails: string[] } | null;
@@ -64,12 +54,6 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
       return acc;
     }, {}),
   ).sort((a, b) => a.name.localeCompare(b.name));
-  const openOptions: OpenInvoiceOption[] = (openInvoices ?? []).map((i) => ({
-    id: i.id,
-    display_number: i.display_number,
-    dealership: (i.dealership as unknown as { name: string } | null)?.name ?? "",
-    balance: Number(i.total) - Number(i.amount_paid),
-  }));
 
   // Header line: what this view adds up to, and which filters shaped it.
   const scope = [
@@ -94,14 +78,6 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         description={summary.join(" · ")}
         actions={
           <>
-            {clover && <CloverSyncButton lastSyncAt={session.company.clover_last_sync_at} />}
-            {session.canTerminal && unpaid.length > 1 && (
-              <Button asChild variant="soft">
-                <Link href="/terminal?invoices=all">
-                  <WalletIcon /> Collect all unpaid · {formatMoney(unpaidTotal)}
-                </Link>
-              </Button>
-            )}
             {session.isAdmin && <SendInvoicesButton groups={unsentGroups} />}
             <Button asChild>
               <Link href="/jobs/new">
@@ -112,11 +88,6 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         }
       />
       {created.length > 0 && <BulkDownloadBanner ids={created} />}
-      {clover && (queue ?? []).length > 0 && (
-        <div className="mt-5">
-          <CloverQueue payments={queue ?? []} invoices={openOptions} />
-        </div>
-      )}
       <div className="mt-5 flex flex-col gap-4">
         {/* useSearchParams streams this in after first paint; the fallback reserves the same height so nothing shifts. */}
         <Suspense
@@ -129,7 +100,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
         >
           <InvoiceFilters filters={typed} searchDate={filters.searchDate} services={services ?? []} dealerships={dealerships ?? []} isAdmin={session.isAdmin} />
         </Suspense>
-        <InvoiceList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} canCollect={session.canTerminal} filtered={filtered} groupByDay={spansDays ? today : null} />
+        <InvoiceList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} filtered={filtered} groupByDay={spansDays ? today : null} />
       </div>
     </Page>
   );

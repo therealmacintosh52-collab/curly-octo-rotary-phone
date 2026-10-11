@@ -4,7 +4,7 @@
  * keep this file in sync by hand; it is the single source of truth for the app.
  */
 
-/** owner/admin: everything. manager: the day (dashboard, invoices, Terminal) but not Settings. detailer: their own cars. */
+/** owner/admin: everything. manager: the day (dashboard, invoices) but not Settings. detailer: their own cars. */
 export type UserRole = "owner" | "admin" | "manager" | "detailer";
 export type JobStatus = "logged" | "invoiced";
 export type InvoiceStatus = "draft" | "submitted" | "partial" | "paid" | "void";
@@ -13,10 +13,6 @@ export type SubmissionMethod = "email" | "portal" | "paper";
 export type SubmissionStatus = "sent" | "failed";
 export type PhotoKind = "before" | "after";
 export type PaymentMethod = "check" | "ach" | "card" | "cash" | "other";
-export type PaymentSource = "manual" | "clover_pos" | "clover_checkout" | "clover_card";
-export type CloverEnv = "sandbox" | "production";
-export type CloverPaymentStatus = "unmatched" | "matched" | "ignored";
-export type CloverMatchedBy = "order" | "reference" | "amount" | "manual" | "checkout" | "card" | "device";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -38,21 +34,8 @@ export type Company = {
   reminder_days: number;
   timezone: string;
   logo_path: string | null;
-  clover_enabled: boolean;
-  clover_env: CloverEnv;
-  clover_merchant_id: string | null;
-  clover_push_orders: boolean;
-  clover_hosted_checkout: boolean;
-  clover_last_sync_at: string | null;
-  clover_verified_at: string | null;
-  clover_connected_at: string | null;
-  clover_merchant_name: string | null;
-  clover_device_id: string | null;
-  clover_pos_id: string;
   /** Every car logged becomes its own invoice on save (0015). */
   auto_invoice: boolean;
-  /** Email the dealership a receipt the moment a payment lands on an invoice (0022, off by default). */
-  auto_receipt: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -195,11 +178,6 @@ export type Invoice = {
   voided_at: string | null;
   void_reason: string | null;
   created_by: string | null;
-  clover_order_id: string | null;
-  clover_pushed_at: string | null;
-  clover_checkout_session_id: string | null;
-  clover_checkout_url: string | null;
-  clover_checkout_expires_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -234,105 +212,6 @@ export type InvoicePayment = {
   reference: string | null;
   note: string | null;
   created_by: string | null;
-  source: PaymentSource;
-  clover_payment_id: string | null;
-  clover_charge_id: string | null;
-  created_at: string;
-}
-
-export type TerminalKind = "sale" | "refund";
-export type TerminalStatus = "captured" | "partially_refunded" | "refunded";
-
-/** One row of the Terminal ledger (a sale or a refund). */
-export type TerminalSale = {
-  id: string;
-  company_id: string;
-  kind: TerminalKind;
-  status: TerminalStatus;
-  amount: number;
-  refunded_amount: number;
-  method: PaymentMethod;
-  source: PaymentSource;
-  invoice_id: string | null;
-  payment_id: string | null;
-  refund_of: string | null;
-  /** Rows of one combined payment across several invoices share a group id. */
-  group_id: string | null;
-  description: string | null;
-  customer_name: string | null;
-  customer_email: string | null;
-  reference: string | null;
-  card_brand: string | null;
-  last4: string | null;
-  clover_payment_id: string | null;
-  clover_charge_id: string | null;
-  clover_refund_id: string | null;
-  receipt_sent_at: string | null;
-  created_by: string | null;
-  created_at: string;
-}
-
-/** A row of terminal_transactions(): ledger rows plus invoice payments recorded elsewhere. */
-export type TerminalTransaction = {
-  id: string;
-  kind: TerminalKind;
-  status: TerminalStatus;
-  amount: number;
-  refunded_amount: number;
-  method: PaymentMethod;
-  source: PaymentSource;
-  invoice_id: string | null;
-  invoice_number: string | null;
-  dealership: string | null;
-  payment_id: string | null;
-  refund_of: string | null;
-  group_id: string | null;
-  description: string | null;
-  customer_name: string | null;
-  customer_email: string | null;
-  reference: string | null;
-  card_brand: string | null;
-  last4: string | null;
-  clover_payment_id: string | null;
-  receipt_sent_at: string | null;
-  at: string;
-}
-
-/** Server-only row (service role): OAuth tokens are encrypted before they get here. */
-export type CloverConnection = {
-  company_id: string;
-  env: CloverEnv;
-  merchant_id: string;
-  merchant_name: string | null;
-  access_token_enc: string;
-  refresh_token_enc: string | null;
-  access_expires_at: string | null;
-  refresh_expires_at: string | null;
-  pakms_key: string | null;
-  status: "ok" | "needs_reconnect";
-  last_ok_at: string | null;
-  last_error: string | null;
-  connected_by: string | null;
-  connected_at: string;
-  updated_at: string;
-}
-
-export type CloverPaymentRow = {
-  id: string;
-  company_id: string;
-  clover_payment_id: string;
-  clover_order_id: string | null;
-  source: Exclude<PaymentSource, "manual">;
-  amount: number;
-  tip: number;
-  paid_at: string;
-  card_brand: string | null;
-  last4: string | null;
-  reference: string | null;
-  raw: Json | null;
-  invoice_id: string | null;
-  status: CloverPaymentStatus;
-  matched_by: CloverMatchedBy | null;
   created_at: string;
 }
 
@@ -535,9 +414,6 @@ export type Database = {
       invoice_items: Table<InvoiceItem>;
       invoice_payments: Table<InvoicePayment>;
       invoice_submissions: Table<InvoiceSubmission>;
-      clover_payments: Table<CloverPaymentRow>;
-      terminal_sales: Table<TerminalSale>;
-      clover_connections: Table<CloverConnection>;
       vin_cache: Table<VinCache>;
       audit_log: Table<AuditLog>;
     };
@@ -566,10 +442,6 @@ export type Database = {
       find_invoice_conflicts: { Args: { p_job_ids: string[]; p_days?: number }; Returns: InvoiceConflictRow[] };
       review_job_duplicate: { Args: { p_id: string; p_note?: string | null }; Returns: undefined };
       void_invoice: { Args: { p_id: string; p_reason?: string | null }; Returns: undefined };
-      apply_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_invoice_id: string; p_matched_by?: CloverMatchedBy }; Returns: string };
-      ignore_clover_payment: { Args: { p_company_id: string; p_clover_payment_id: string; p_ignore?: boolean }; Returns: undefined };
-      clover_unmatched_count: { Args: Record<string, never>; Returns: number };
-      invoice_job: { Args: { p_job_id: string; p_notes?: string | null }; Returns: string };
       edit_invoice_car: { Args: { p_invoice_id: string; p: Partial<JobPayload> }; Returns: Invoice };
       delete_invoice_car: { Args: { p_invoice_id: string; p_reason?: string | null }; Returns: undefined };
       restore_invoice_car: { Args: { p_invoice_id: string }; Returns: Invoice };
@@ -587,12 +459,6 @@ export type Database = {
         };
         Returns: InvoiceListResult;
       };
-      record_batch_payment: {
-        Args: { p_invoice_ids: string[]; p_amount: number; p_method: PaymentMethod; p_reference?: string | null; p_note?: string | null; p_source?: PaymentSource };
-        Returns: { invoice_id: string; payment_id: string; amount: number }[];
-      };
-      refund_terminal_sale: { Args: { p_sale_id: string | null; p_payment_id: string | null; p_amount: number; p_clover_refund_id?: string | null }; Returns: string };
-      terminal_transactions: { Args: { p_start?: string | null; p_end?: string | null }; Returns: TerminalTransaction[] };
       record_payment: {
         Args: {
           p_invoice_id: string;

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { PlusIcon, WalletIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { InvoiceList } from "@/components/invoices/invoice-list";
-import { CloverSyncButton } from "@/components/invoices/clover-queue";
 import { SendInvoicesButton, type EmailPreview, type UnsentGroup } from "@/components/invoices/send-invoices-button";
 import { invoiceEmailEnvelope, invoiceEmailHtml } from "@/lib/invoices/email";
 import { invoiceBundleFixture } from "@/test/fixtures";
@@ -17,7 +16,7 @@ import { parseInvoiceFilters, resolveInvoiceFilters, STATUS_LABELS } from "@/lib
 import { invoiceListFixture } from "@/test/fixtures";
 import type { Company, Profile } from "@/lib/db/types";
 import { formatMoney } from "@/lib/money";
-import { isoDaysAgo, toDateInput } from "@/lib/dates";
+import { toDateInput } from "@/lib/dates";
 
 const SERVICES = [
   { id: "s1", name: "PDI" },
@@ -35,7 +34,7 @@ const DEALERSHIPS = [
 /** Fixture preview of the one list (guest demo in production). Filters come from the URL so the segmented control, chips and sheet behave like the real page. */
 export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/invoices">) {
   const typed = parseInvoiceFilters(await props.searchParams);
-  const company = { id: "c1", name: "Cali Tints", payment_terms: "", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles", clover_enabled: true, auto_invoice: true } as Company;
+  const company = { id: "c1", name: "Cali Tints", payment_terms: "", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles", auto_invoice: true } as Company;
   const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Mike", email: null, active: true } as Profile;
 
   // Apply the URL filters to the fixture the way the RPC would (a date in the search box becomes a range).
@@ -81,10 +80,9 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
         dealership: { ...base.dealership, id: r.dealership_id, name: r.dealership, ap_emails: emailsFor(r.dealership_id) },
       };
       const env = invoiceEmailEnvelope(b);
-      return [r.id, { to: env.to, cc: env.cc, subject: env.subject, html: invoiceEmailHtml(b, "cali-tints-demo.vercel.app", null), attachments: [{ name: `${env.stem}.pdf`, href: null }, { name: `${env.stem}.csv`, href: null }] }];
+      return [r.id, { to: env.to, cc: env.cc, subject: env.subject, html: invoiceEmailHtml(b, "cali-tints-demo.vercel.app"), attachments: [{ name: `${env.stem}.pdf`, href: null }, { name: `${env.stem}.csv`, href: null }] }];
     }),
   );
-  const unpaidAll = invoiceListFixture().filter((r) => r.status !== "void" && r.status !== "paid").reduce((s, r) => s + r.balance, 0);
   const scope = [filters.status !== "all" ? STATUS_LABELS[filters.status] : null, filters.dealership ? DEALERSHIPS.find((d) => d.id === filters.dealership)?.name : null, filters.service ? SERVICES.find((s) => s.id === filters.service)?.name : null, filters.searchDate?.label ?? null].filter(Boolean);
   const filtered = scope.length > 0 || !!filters.q || !!filters.from || !!filters.to;
   const summary = [`${rows.length} ${rows.length === 1 ? "car" : "cars"}`, formatMoney(total), balance > 0 ? `${formatMoney(balance)} unpaid` : rows.length ? "all paid" : null, ...scope].filter(Boolean);
@@ -99,12 +97,6 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
               description={summary.join(" · ")}
               actions={
                 <>
-                  <CloverSyncButton lastSyncAt={isoDaysAgo(0)} />
-                  <Button asChild variant="soft">
-                    <Link href="/terminal?invoices=all">
-                      <WalletIcon /> Collect all unpaid · {formatMoney(unpaidAll)}
-                    </Link>
-                  </Button>
                   <SendInvoicesButton groups={unsentGroups} previews={emailPreviews} />
                   <Button asChild>
                     <Link href="/jobs/new">

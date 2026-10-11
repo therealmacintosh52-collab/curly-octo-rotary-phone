@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, TabletSmartphoneIcon } from "lucide-react";
+import { CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
@@ -19,7 +19,7 @@ interface NavItem {
   short?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
-  /** Owner and admin only (managers run invoicing but never Settings or the Terminal). */
+  /** Owner and admin only (managers run invoicing but never Settings). */
   ownerAdminOnly?: boolean;
   /** Match nested routes too. */
   prefix?: boolean;
@@ -30,7 +30,6 @@ const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/jobs/new", label: "New invoice", short: "New", icon: PlusCircleIcon },
   { href: "/invoices", label: "Invoices", icon: FileTextIcon, prefix: true },
-  { href: "/terminal", label: "Terminal", icon: TabletSmartphoneIcon, adminOnly: true, ownerAdminOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, ownerAdminOnly: true, prefix: true },
 ];
 

@@ -313,244 +313,15 @@ begin
   assert v_ids is null or array_length(v_ids, 1) >= 0, 'per-job generation with empty exclude list';
 end $$;
 
--- One-tap billing: invoice_job ------------------------------------------------
-select pg_temp.login('10000000-0000-4000-8000-000000000001');
-do $$
-declare j public.jobs; k public.jobs; v_inv uuid; n int;
-begin
-  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ONE1',
-        'performed_at', now(), 'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-  k := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ONE2',
-        'performed_at', now(), 'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-  v_inv := public.invoice_job(j.id, 'charged at the till');
-  select count(*) into n from public.invoice_items where invoice_id = v_inv; assert n = 1, 'one-job invoice has one line';
-  assert (select invoice_id from public.jobs where id = j.id) = v_inv, 'job linked to its invoice';
-  assert (select invoice_id from public.jobs where id = k.id) is null, 'other job of the same day left alone';
-  assert (select total from public.invoices where id = v_inv) = (select sum(price) from public.job_services where job_id = j.id), 'total = job services';
-  assert (select notes from public.invoices where id = v_inv) = 'charged at the till', 'notes stored';
-  begin
-    perform public.invoice_job(j.id);
-    raise exception 'expected already-invoiced rejection';
-  exception when sqlstate '22023' then null; end;
-  begin
-    perform public.invoice_job(gen_random_uuid());
-    raise exception 'expected missing-job rejection';
-  exception when sqlstate 'P0002' then null; end;
-end $$;
-select pg_temp.login('10000000-0000-4000-8000-000000000003');
-do $$
-begin
-  begin
-    perform public.invoice_job(gen_random_uuid());
-    raise exception 'expected detailer rejection';
-  exception when sqlstate '42501' then null; end;
-end $$;
-
--- Clover payments ------------------------------------------------------------
--- Uses the draft invoice for El Dorado Hills created in the double-billing block.
-select pg_temp.logout();
-select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
-do $$
-declare v_inv uuid; v_total numeric; v_pay uuid; v_pay2 uuid; n int;
-begin
-  select id, total into v_inv, v_total from public.invoices
-   where company_id = '00000000-0000-4000-8000-000000000001' and dealership_id = '00000000-0000-4000-8000-000000000101' and status = 'draft'
-   order by created_at desc limit 1;
-  assert v_inv is not null and v_total > 120, 'draft invoice for the clover test';
-
-  -- The sync (service role) queues two Clover payments: 120 now, the rest later.
-  insert into public.clover_payments (company_id, clover_payment_id, clover_order_id, amount, paid_at, card_brand, last4, reference)
-  values ('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', 'ORD-1', 120.00, now(), 'VISA', '4242', null),
-         ('00000000-0000-4000-8000-000000000001', 'CLV-PAY-2', null, v_total - 120, now(), 'MC', '1111', 'INV ref');
-
-  -- Service role applies the first: invoice goes partial, queue row matched.
-  v_pay := public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', v_inv, 'order');
-  assert (select status from public.invoices where id = v_inv) = 'partial', 'partial after first clover payment';
-  assert (select amount_paid from public.invoices where id = v_inv) = 120, 'amount_paid 120';
-  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'matched', 'queue row matched';
-  assert (select source from public.invoice_payments where id = v_pay) = 'clover_pos', 'payment source recorded';
-
-  -- Applying the same Clover payment again is a no-op returning the same id.
-  v_pay2 := public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', v_inv, 'order');
-  assert v_pay2 = v_pay, 'idempotent apply';
-  select count(*) into n from public.invoice_payments where invoice_id = v_inv; assert n = 1, 'no duplicate payment rows';
-
-  -- Second payment settles it.
-  perform public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-2', v_inv, 'amount');
-  assert (select status from public.invoices where id = v_inv) = 'paid', 'paid after second clover payment';
-
-  -- Deleting the invoice payment sends the Clover payment back to the queue.
-  delete from public.invoice_payments where id = v_pay;
-  assert (select status from public.invoices where id = v_inv) = 'partial', 'partial again after unlink';
-  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'unmatched', 'queue row back to unmatched';
-
-  -- Ignore / un-ignore.
-  perform public.ignore_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', true);
-  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'ignored', 'ignored';
-  perform public.ignore_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', false);
-  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'unmatched', 'un-ignored';
-end $$;
-
--- Admin can see the queue and apply; detailer cannot see it at all.
-select pg_temp.login('10000000-0000-4000-8000-000000000001');
-do $$
-declare n int; v_inv uuid;
-begin
-  assert public.clover_unmatched_count() = 1, 'one unmatched for the owner';
-  select invoice_id into v_inv from public.clover_payments where clover_payment_id = 'CLV-PAY-2';
-  perform public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-1', v_inv, 'manual');
-  assert (select status from public.invoices where id = v_inv) = 'paid', 'owner matched it by hand';
-  assert public.clover_unmatched_count() = 0, 'queue empty';
-end $$;
-select pg_temp.login('10000000-0000-4000-8000-000000000003');
-do $$
-declare n int;
-begin
-  select count(*) into n from public.clover_payments; assert n = 0, 'detailer cannot see clover payments';
-  begin
-    perform public.apply_clover_payment('00000000-0000-4000-8000-000000000001', 'CLV-PAY-2', gen_random_uuid(), 'manual');
-    raise exception 'expected clover apply rejection';
-  exception when sqlstate '42501' then null; end;
-end $$;
--- Batch payments: one amount across several invoices, oldest first --------
-select pg_temp.login('10000000-0000-4000-8000-000000000001');
-do $$
-declare j public.jobs; a uuid; b uuid; c uuid; n int; v_sum numeric; v_first uuid; v_sale uuid; g uuid := gen_random_uuid();
-begin
-  -- three one-job invoices for Sacramento (per_job dealership), oldest first = a, b, c
-  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'BAT1', 'performed_at', now(),
-        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-  a := public.invoice_job(j.id);
-  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'BAT2', 'performed_at', now(),
-        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-  b := public.invoice_job(j.id);
-  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'BAT3', 'performed_at', now(),
-        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-  c := public.invoice_job(j.id);
-  select sum(total) into v_sum from public.invoices where id in (a, b, c);
-
-  -- over-pay rejected
-  begin
-    perform * from public.record_batch_payment(array[a, b, c], v_sum + 1, 'check', '9001', 'batch');
-    raise exception 'expected over-pay rejection';
-  exception when sqlstate '22023' then null; end;
-
-  -- partial: pays a in full, half of b, nothing on c
-  select count(*) into n from public.record_batch_payment(array[a, b, c], (select total from public.invoices where id = a) + (select total / 2 from public.invoices where id = b), 'check', '9001', 'batch');
-  assert n = 2, 'two payment rows for a partial batch, got ' || n;
-  assert (select status from public.invoices where id = a) = 'paid', 'oldest paid first';
-  assert (select status from public.invoices where id = b) = 'partial', 'second partial';
-  assert (select status from public.invoices where id = c) = 'draft', 'third untouched';
-  assert (select amount_paid from public.invoices where id = b) = (select total / 2 from public.invoices where id = b), 'half of b';
-
-  -- the rest, tagged as a card batch; every row carries the source
-  select count(*) into n from public.record_batch_payment(array[b, c], (select sum(total - amount_paid) from public.invoices where id in (b, c)), 'card', 'charge_X', 'batch', 'clover_card');
-  assert n = 2, 'two rows for the remainder';
-  assert (select status from public.invoices where id = b) = 'paid' and (select status from public.invoices where id = c) = 'paid', 'all paid after the second batch';
-  assert (select count(*) from public.invoice_payments where invoice_id in (b, c) and source = 'clover_card') = 2, 'batch rows carry the source';
-
-  -- nothing open → rejected
-  begin
-    perform * from public.record_batch_payment(array[a], 1, 'cash');
-    raise exception 'expected closed-invoice rejection';
-  exception when sqlstate 'P0002' then null; end;
-
-  -- ledger rows for a group, and refunding one of them still works per invoice
-  select id into v_first from public.invoice_payments where invoice_id = c order by created_at desc limit 1;
-  insert into public.terminal_sales (company_id, amount, method, source, invoice_id, payment_id, group_id, clover_charge_id)
-  values (public.current_company_id(), (select amount from public.invoice_payments where id = v_first), 'card', 'clover_card', c, v_first, g, 'X') returning id into v_sale;
-  perform public.refund_terminal_sale(v_sale, null, (select amount from public.invoice_payments where id = v_first));
-  assert (select status from public.invoices where id = c) = 'submitted' or (select status from public.invoices where id = c) = 'draft', 'c reopened after refunding its share: ' || (select status from public.invoices where id = c);
-  assert (select status from public.invoices where id = b) = 'paid', 'b untouched by c refund';
-  assert jsonb_array_length(public.terminal_transactions(current_date - 1, current_date + 1)) >= 2, 'group rows listed';
-  assert (select count(*) from jsonb_array_elements(public.terminal_transactions(current_date - 1, current_date + 1)) e where e ->> 'group_id' = g::text) = 2, 'group id on both rows (sale + refund)';
-end $$;
-select pg_temp.login('10000000-0000-4000-8000-000000000003');
-do $$
-begin
-  begin
-    perform * from public.record_batch_payment(array[gen_random_uuid()], 1, 'cash');
-    raise exception 'expected detailer rejection';
-  exception when sqlstate '42501' then null; end;
-end $$;
-
--- Terminal (counter sales and refunds) -------------------------------------
-select pg_temp.login('10000000-0000-4000-8000-000000000001');
-do $$
-declare v_before numeric; v_sale uuid; v_ref uuid; v_pay uuid; v_inv uuid; v_paid numeric; n int; tx jsonb;
-begin
-  select (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric into v_before;
-
-  -- Stand-alone cash sale counts as income; a partial refund nets it down.
-  insert into public.terminal_sales (company_id, amount, method, source, description, customer_name)
-  values (public.current_company_id(), 50, 'cash', 'manual', 'Counter sale', 'Walk-in') returning id into v_sale;
-  assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before + 50, 'counter sale adds to income';
-  v_ref := public.refund_terminal_sale(v_sale, null, 20);
-  assert (select status from public.terminal_sales where id = v_sale) = 'partially_refunded', 'partial refund status';
-  assert (select refunded_amount from public.terminal_sales where id = v_sale) = 20, 'refunded amount';
-  assert (select refund_of from public.terminal_sales where id = v_ref) = v_sale and (select kind from public.terminal_sales where id = v_ref) = 'refund', 'refund row';
-  assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before + 30, 'refund nets income';
-  begin
-    perform public.refund_terminal_sale(v_sale, null, 31);
-    raise exception 'expected over-refund rejection';
-  exception when sqlstate '22023' then null; end;
-  perform public.refund_terminal_sale(v_sale, null, 30);
-  assert (select status from public.terminal_sales where id = v_sale) = 'refunded', 'fully refunded';
-  assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before, 'full refund back to baseline';
-
-  -- Refund a Clover payment that was recorded on the invoice page (no ledger row yet):
-  -- partial shrinks the invoice payment, full removes it and parks the Clover row as ignored (not re-queued).
-  select p.id, p.invoice_id into v_pay, v_inv from public.invoice_payments p where p.clover_payment_id = 'CLV-PAY-1';
-  assert v_pay is not null, 'clover payment to refund';
-  assert (select status from public.invoices where id = v_inv) = 'paid', 'invoice paid before refund';
-  select amount_paid into v_paid from public.invoices where id = v_inv;
-  v_ref := public.refund_terminal_sale(null, v_pay, 20);
-  select id into v_sale from public.terminal_sales where payment_id = v_pay and kind = 'sale';
-  assert v_sale is not null, 'ledger row backfilled for the invoice payment';
-  assert (select amount from public.invoice_payments where id = v_pay) = 100, 'invoice payment shrunk by the partial refund';
-  assert (select amount_paid from public.invoices where id = v_inv) = v_paid - 20, 'invoice amount_paid reduced';
-  assert (select status from public.invoices where id = v_inv) = 'partial', 'invoice back to partial';
-  perform public.refund_terminal_sale(v_sale, null, 100);
-  select count(*) into n from public.invoice_payments where id = v_pay; assert n = 0, 'invoice payment removed on full refund';
-  assert (select status from public.clover_payments where clover_payment_id = 'CLV-PAY-1') = 'ignored', 'refunded clover payment is ignored, not re-queued';
-  assert public.clover_unmatched_count() = 0, 'queue still empty after refund';
-  assert (select status from public.terminal_sales where id = v_sale) = 'refunded', 'linked sale fully refunded';
-  -- linked sales never double count: income unchanged by the ledger rows themselves
-  assert (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric = v_before - 120, 'income reflects the refunded invoice payment once';
-
-  -- The day list shows ledger rows and the remaining invoice payment (recorded elsewhere) together.
-  tx := public.terminal_transactions(current_date - 1, current_date + 1);
-  assert jsonb_array_length(tx) >= 4, 'transactions listed: ' || jsonb_array_length(tx);
-  select count(*) into n from jsonb_array_elements(tx) e where e ->> 'clover_payment_id' = 'CLV-PAY-2' and e ->> 'kind' = 'sale' and (e ->> 'payment_id') is not null;
-  assert n = 1, 'unlinked invoice payment appears once';
-  select count(*) into n from jsonb_array_elements(tx) e where e ->> 'kind' = 'refund'; assert n >= 3, 'refund rows listed';
-end $$;
-select pg_temp.login('10000000-0000-4000-8000-000000000003');
-do $$
-declare n int;
-begin
-  select count(*) into n from public.terminal_sales; assert n = 0, 'detailer cannot see terminal sales';
-  begin
-    perform public.refund_terminal_sale(gen_random_uuid(), null, 1);
-    raise exception 'expected terminal refund rejection';
-  exception when sqlstate '42501' then null; end;
-end $$;
-
--- Clover connections (OAuth tokens): invisible to app users, even admins ----
+-- Two more owner-logged cars today, left uninvoiced for the backfill below.
 select pg_temp.login('10000000-0000-4000-8000-000000000001');
 do $$
 begin
-  begin
-    perform count(*) from public.clover_connections;
-    raise exception 'expected clover_connections to be off limits';
-  exception when sqlstate '42501' then null; end;
+  perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ONE1',
+    'performed_at', now(), 'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ONE2',
+    'performed_at', now(), 'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
 end $$;
-select pg_temp.logout();
-select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
-insert into public.clover_connections (company_id, env, merchant_id, merchant_name, access_token_enc)
-values ('00000000-0000-4000-8000-000000000001', 'sandbox', '7G9V9DP834ZY2', 'Test merchant', 'v1.enc');
-update public.clover_connections set status = 'needs_reconnect', last_error = 'expired' where company_id = '00000000-0000-4000-8000-000000000001';
-delete from public.clover_connections where company_id = '00000000-0000-4000-8000-000000000001';
 
 -- One car, one invoice (0015) -------------------------------------------------
 select pg_temp.logout();
@@ -742,7 +513,7 @@ begin
   assert (stats ->> 'uninvoiced_jobs')::int = 0, 'nothing uninvoiced';
   assert (stats ->> 'unpaid_total')::numeric = (select coalesce(sum(total - amount_paid), 0) from public.invoices where company_id = public.current_company_id() and status in ('draft','submitted','partial')), 'unpaid total';
   assert (stats ->> 'draft_invoices')::int = (select count(*) from public.invoices where company_id = public.current_company_id() and status = 'draft'), 'draft count';
-  -- today, by service (DEL1 above was logged today with "Sold", then deleted; OWN1 was yesterday; ONE1/ONE2/BAT* are today with "Used")
+  -- today, by service (DEL1 above was logged today with "Sold", then deleted; OWN1 was yesterday; ONE1/ONE2 are today with "Used")
   assert stats ? 'today' and (stats -> 'today') ? 'by_service', 'today keys';
   assert stats ? 'week_by_day' and (select sum((e ->> 'jobs')::int) from jsonb_array_elements(stats -> 'week_by_day') e) = (stats -> 'week' ->> 'jobs')::int, 'week days add up to the week';
   assert (stats -> 'today' ->> 'jobs')::int >= 1, 'cars today';
@@ -785,12 +556,6 @@ begin
     raise exception 'expected guard';
   exception when sqlstate '42501' then null; end;
   select * into r from public.profiles where id = auth.uid(); assert r.role::text = 'manager', 'still a manager';
-  -- 0025: no Terminal for managers (the ledger is invisible and cannot be written)
-  select count(*) into n from public.terminal_sales; assert n = 0, 'manager cannot see the terminal ledger';
-  begin
-    insert into public.terminal_sales (company_id, kind, amount, method, source) values ('00000000-0000-4000-8000-000000000001', 'sale', 1, 'cash', 'manual');
-    raise exception 'expected terminal rls block';
-  exception when sqlstate '42501' then null; end;
 end $$;
 
 -- Back to the owner for the storage checks below.
@@ -813,14 +578,6 @@ do $$
 begin
   update public.profiles set guide_seen_at = now() where id = auth.uid();
   assert (select guide_seen_at from public.profiles where id = auth.uid()) is not null, 'guide seen on own row';
-end $$;
-
--- 0022: automatic receipts are opt-in.
-do $$
-begin
-  assert (select auto_receipt from public.companies where id = '00000000-0000-4000-8000-000000000001') = false, 'auto receipts off by default';
-  update public.companies set auto_receipt = true where id = '00000000-0000-4000-8000-000000000001';
-  assert (select auto_receipt from public.companies where id = '00000000-0000-4000-8000-000000000001'), 'owner can turn auto receipts on';
 end $$;
 
 select pg_temp.logout();

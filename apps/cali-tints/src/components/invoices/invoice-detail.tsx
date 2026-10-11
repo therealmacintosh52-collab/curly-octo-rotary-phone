@@ -13,8 +13,6 @@ import { CarActions } from "./car-actions";
 import { RestoreInvoiceButton } from "./restore-invoice-button";
 import { PaymentsCard } from "./payments-card";
 import { SubmissionsCard } from "./submissions-card";
-import { CloverPanel } from "./clover-panel";
-import type { CloverCardConfig } from "./charge-card-dialog";
 import type { EditableCar } from "@/components/jobs/edit-car-sheet";
 import { cn } from "@/lib/utils";
 
@@ -33,15 +31,12 @@ export interface InvoiceDetailProps {
   priceList: PriceListRow[];
   detailers: { id: string; full_name: string }[];
   isAdmin: boolean;
-  /** Owner/admin: Collect menu, Charge card, Pay on terminal. Managers keep email, pay links and Add payment. Defaults to isAdmin. */
-  canCollect?: boolean;
   canEdit: boolean;
   canDelete: boolean;
   lockedReason: string | null;
   /** Deleted with "Delete invoice": in the archive, restorable. */
   archived: boolean;
   reminderDays: number;
-  clover: { enabled: boolean; card: CloverCardConfig | null; device: boolean; payLink: boolean; orderUrl: string | null };
 }
 
 const vehicle = (v: { year: number | null; make: string | null; model: string | null }) => [v.year, v.make, v.model].filter(Boolean).join(" ");
@@ -70,7 +65,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
       ? { label: p.archived ? "Deleted" : "Voided", detail: `${formatDate(invoice.voided_at ?? invoice.updated_at)}${invoice.void_reason ? ` · ${invoice.void_reason}` : ""}${p.archived ? " · in the archive" : ""}`, state: "off" }
       : invoice.submitted_at
         ? { label: "Sent to the dealership", detail: `${formatDate(invoice.submitted_at)}${lastSent ? ` ${SUBMIT_METHOD[lastSent.method]}${lastSent.recipients.length ? ` to ${lastSent.recipients.join(", ")}` : ""}` : ""}`, state: "done" }
-        : { label: "Send to the dealership", detail: isAdmin ? "Not sent yet · email it, or collect on the spot" : "Not sent yet", state: "now" },
+        : { label: "Send to the dealership", detail: isAdmin ? "Not sent yet · email it to the dealership" : "Not sent yet", state: "now" },
     invoice.status === "void"
       ? { label: "Paid", detail: "—", state: "off" }
       : invoice.status === "paid"
@@ -125,8 +120,6 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
             invoice={{ id: invoice.id, status: invoice.status, display_number: invoice.display_number, amount_paid: Number(invoice.amount_paid), total: Number(invoice.total), notes: invoice.notes }}
             dealership={{ name: dealership.name, ap_emails: dealership.ap_emails, submission_method: dealership.submission_method }}
             companyEmail={company.email}
-            collect={{ device: p.clover.device, card: !!p.clover.card, payLink: p.clover.payLink }}
-            allowCollect={p.canCollect ?? isAdmin}
             breakdown={balanceBreakdown({ invoice, items, payments })}
           />
         )}
@@ -258,7 +251,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
                     {payments.map((pm) => (
                       <div key={pm.id} className="flex justify-between text-muted-foreground">
                         <span>
-                          Paid {formatDateOnly(pm.paid_at)} · {pm.source && pm.source !== "manual" ? "Clover" : METHOD[pm.method]}
+                          Paid {formatDateOnly(pm.paid_at)} · {METHOD[pm.method]}
                           {pm.reference ? ` #${pm.reference}` : ""}
                         </span>
                         <span className="tabular-nums">-{formatMoney(pm.amount)}</span>
@@ -279,22 +272,8 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
 
         {isAdmin && (
           <div className="flex min-w-0 flex-col gap-4">
-            <PaymentsCard invoiceId={invoice.id} invoiceNumber={invoice.display_number} payments={payments} balance={balance} status={invoice.status} cloverCard={p.clover.card} cloverDevice={p.clover.device} />
+            <PaymentsCard invoiceId={invoice.id} invoiceNumber={invoice.display_number} payments={payments} balance={balance} status={invoice.status} />
             <SubmissionsCard submissions={submissions} submittedAt={invoice.submitted_at} />
-            <CloverPanel
-              enabled={p.clover.enabled}
-              hostedCheckout={company.clover_hosted_checkout}
-              orderUrl={p.clover.orderUrl}
-              invoice={{
-                id: invoice.id,
-                status: invoice.status,
-                balance,
-                clover_order_id: invoice.clover_order_id,
-                clover_pushed_at: invoice.clover_pushed_at,
-                clover_checkout_url: invoice.clover_checkout_url,
-                clover_checkout_expires_at: invoice.clover_checkout_expires_at,
-              }}
-            />
             <p className="px-1 text-caption text-subtle">
               Invoice created {formatDateTime(invoice.created_at)}
               {invoice.period_start !== invoice.period_end ? ` · period ${formatDateOnly(invoice.period_start)} – ${formatDateOnly(invoice.period_end)}` : ""}

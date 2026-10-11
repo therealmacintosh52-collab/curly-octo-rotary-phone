@@ -3,17 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { CheckIcon, CircleCheckBigIcon, CloudOffIcon, CreditCardIcon, ExternalLinkIcon, LoaderCircleIcon, ScanLineIcon, TriangleAlertIcon, WalletIcon, XIcon } from "lucide-react";
+import { CheckIcon, CircleCheckBigIcon, CloudOffIcon, ExternalLinkIcon, LoaderCircleIcon, ScanLineIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import type { Dealership, JobPayload, PriceListRow } from "@/lib/db/types";
 import { useSession } from "@/components/app/session-provider";
-import { canTakePayments } from "@/lib/roles";
 import { useSync } from "@/components/offline/sync-provider";
 import { enqueueJob, findLocalDuplicates, getOutboxItem, OUTBOX_EVENT, saveRecentJobs, saveReference } from "@/lib/offline/outbox";
 import { fireConfetti, haptic } from "@/components/motion/confetti";
-import { invoiceJobAction } from "@/app/(app)/invoices/actions";
 import type { OutboxItem, RecentJob } from "@/lib/offline/db";
 import { decodeVin } from "@/lib/vin-client";
 import { normalizeVin, vinStatus } from "@/lib/vin";
@@ -40,12 +37,7 @@ interface Props {
   priceLists: Record<string, PriceListRow[]>;
   detailers: { id: string; full_name: string }[];
   recentJobs: RecentJob[];
-  /** Admins also get "Save & charge": invoice this car now and open the Terminal. */
-  /** Owner/admin: "Save & charge" and Collect after save. Defaults from the signed-in role. */
-  canCharge?: boolean;
 }
-
-type SaveIntent = "next" | "charge";
 
 /** The car just saved, shown in the success card while the form is ready for the next one. */
 interface SavedCar {
@@ -65,14 +57,10 @@ interface SavedCar {
  * New invoice. Optimistic by design: "Save & next" writes to the local outbox and
  * returns immediately; the sync loop pushes it to Supabase, where the car
  * becomes its own invoice, and the success card fills in the invoice number.
- * "Save & charge" (admins, online) saves straight to the server and opens the
- * Terminal with the invoice ready to pay.
  */
-export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCharge: canChargeProp }: Props) {
-  const router = useRouter();
-  const { company, demo, profile } = useSession();
+export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Props) {
+  const { company, demo } = useSession();
   const { online } = useSync();
-  const canCharge = canChargeProp ?? canTakePayments(profile.role);
   const tagRef = useRef<HTMLInputElement>(null);
 
   // --- form state ------------------------------------------------------------
@@ -93,8 +81,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
   const [scannerMounted, setScannerMounted] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateHit[] | null>(null);
   const [saving, setSaving] = useState(false);
-  const [charging, setCharging] = useState(false);
-  const [intent, setIntent] = useState<SaveIntent>("next");
   const [savedCount, setSavedCount] = useState(0);
   const [savedTotal, setSavedTotal] = useState(0);
   const [savedByService, setSavedByService] = useState<Record<string, number>>({});
@@ -226,29 +212,27 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
     return [...remote, ...local.filter((l) => !seen.has(l.id))];
   }
 
-  async function onSubmit(e?: React.FormEvent, how: SaveIntent = "next") {
+  async function onSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     const problem = validate();
     if (problem) {
       toast.error(problem);
       return;
     }
-    setIntent(how);
-    const busy = how === "charge" ? setCharging : setSaving;
-    busy(true);
+    setSaving(true);
     try {
       const hits = await checkDuplicates();
       if (hits.length > 0) {
         setDuplicates(hits);
         return;
       }
-      await save(how);
+      await save();
     } finally {
-      busy(false);
+      setSaving(false);
     }
   }
 
-  async function save(how: SaveIntent = "next") {
+  async function save() {
     const clientId = crypto.randomUUID();
     const payload: JobPayload = {
       client_id: clientId,
@@ -299,38 +283,9 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
     if (demo) {
       // Guest preview: nothing is persisted; pretend the invoice came back.
       celebrate();
-      if (how === "charge") {
-        router.push("/terminal?invoice=demo&method=device");
-        return;
-      }
       setLastSaved({ ...saved, status: "ready", invoiceId: "demo", invoiceNumber: `INV-${String(125 + savedCount).padStart(6, "0")}` });
       toast.success(`Saved ${payload.tag_number} · guest preview, not actually saved`);
       resetForNext();
-      return;
-    }
-
-    if (how === "charge") {
-      // Straight to the server so we have the invoice, then go collect.
-      try {
-        const { createJobDirect } = await import("@/lib/offline/sync");
-        const car = await createJobDirect(item);
-        celebrate();
-        let invoiceId = car.invoice_id;
-        if (!invoiceId) {
-          // Auto-invoicing is off for this company: invoice the car explicitly.
-          const r = await invoiceJobAction(car.id);
-          if (!r.ok) {
-            toast.error(`Saved ${payload.tag_number}, but the invoice failed: ${r.error}`);
-            resetForNext();
-            return;
-          }
-          invoiceId = r.data;
-        }
-        toast.success(`${payload.tag_number} saved · ${car.invoice_number ?? "invoice"} ready to charge`);
-        router.push(`/terminal?invoice=${invoiceId}`);
-      } catch (err) {
-        toast.error(errorMessage(err, "Could not save the car"));
-      }
       return;
     }
 
@@ -416,13 +371,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
                   {lastSaved.status === "failed" && (lastSaved.error ?? "The server rejected this car")}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {lastSaved.status === "ready" && lastSaved.invoiceId && canCharge && (
-                    <Button asChild size="sm">
-                      <Link href={`/terminal?invoice=${lastSaved.invoiceId}`}>
-                        <WalletIcon /> Collect {formatMoney(lastSaved.total)}
-                      </Link>
-                    </Button>
-                  )}
                   {lastSaved.status === "ready" && lastSaved.invoiceId && (
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/invoices/${lastSaved.invoiceId}`}>
@@ -619,12 +567,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
             <div className="text-caption text-muted-foreground">{services.length === 0 ? "No services selected" : `${services.length} service${services.length > 1 ? "s" : ""}`}</div>
             <CountUp value={total} format={formatMoney} className="text-stat block" />
           </div>
-          {canCharge && (
-            <Button type="button" size="lg" variant="secondary" loading={charging} disabled={saving || !online} aria-label="Save & charge" title={online ? "Save this car and open the Terminal to charge its invoice" : "Charge when back online"} onClick={() => onSubmit(undefined, "charge")} className="shrink-0 px-4">
-              <CreditCardIcon /> <span className="hidden sm:inline">Save &amp; charge</span>
-            </Button>
-          )}
-          <Button type="submit" size="lg" loading={saving} disabled={charging} className="min-w-32 shrink-0 glow-primary sm:min-w-40">
+          <Button type="submit" size="lg" loading={saving} className="min-w-32 shrink-0 glow-primary sm:min-w-40">
             Save &amp; next
           </Button>
         </div>
@@ -636,12 +579,11 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs, canCha
         onCancel={() => setDuplicates(null)}
         onContinue={async () => {
           setDuplicates(null);
-          const busy = intent === "charge" ? setCharging : setSaving;
-          busy(true);
+          setSaving(true);
           try {
-            await save(intent);
+            await save();
           } finally {
-            busy(false);
+            setSaving(false);
           }
         }}
       />
