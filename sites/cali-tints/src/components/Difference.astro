@@ -1,0 +1,19 @@
+---
+/** Two-column before/after list: the difference a service makes, in words. */
+import Icon from './Icon.astro';
+export interface Props { before: string[]; after: string[]; heading?: string }
+const { before, after, heading = 'The difference' } = Astro.props;
+---
+<div class="diff">
+  <h2>{heading}</h2>
+  <div class="diff__cols">
+    <div class="diff__col diff__col--before">
+      <span class="diff__tag">Before</span>
+      <ul>{before.map((x) => <li><Icon name="arrow" /><span>{x}</span></li>)}</ul>
+    </div>
+    <div class="diff__col diff__col--after">
+      <span class="diff__tag">After</span>
+      <ul>{after.map((x) => <li><Icon name="check" /><span>{x}</span></li>)}</ul>
+    </div>
+  </div>
+</div>

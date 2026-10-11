@@ -215,6 +215,18 @@ function requestIdleCallbackShim(fn: () => void) {
   else setTimeout(fn, 320);
 }
 
+/* ---------------------------------------------------------- before/after
+   The range input is the handle. Any touch marks the figure as taken over by
+   the visitor, so the scroll-linked wipe (below) stops fighting their hand. */
+document.querySelectorAll<HTMLElement>('[data-compare]').forEach((fig) => {
+  const range = fig.querySelector<HTMLInputElement>('[data-compare-range]');
+  if (!range) return;
+  const set = (v: number) => fig.style.setProperty('--pos', `${v}%`);
+  range.addEventListener('input', () => { fig.dataset.touched = '1'; set(Number(range.value)); });
+  ['pointerdown', 'touchstart', 'keydown'].forEach((evt) =>
+    range.addEventListener(evt, () => { fig.dataset.touched = '1'; }, { passive: true }));
+});
+
 /* ---------------------------------------------------------------- motion
    Loaded dynamically and only where it earns its weight: never for a reader
    who asked for reduced motion, and Lenis only on a fine pointer. */
@@ -248,6 +260,43 @@ if (!prefersReduced) {
             scrollTrigger: { trigger: el, start: 'top 88%', once: true },
           });
         });
+
+        // Before/after sliders: wipe from "before" to "after" as the block
+        // crosses the viewport, until the visitor grabs the handle.
+        document.querySelectorAll<HTMLElement>('[data-compare]').forEach((fig) => {
+          const range = fig.querySelector<HTMLInputElement>('[data-compare-range]');
+          ScrollTrigger.create({
+            trigger: fig, start: 'top 90%', end: 'bottom 30%', scrub: 0.4,
+            onUpdate: (st) => {
+              if (fig.dataset.touched) return;
+              const pos = 100 - st.progress * 86;          // 100 → 14
+              fig.style.setProperty('--pos', `${pos}%`);
+              if (range) range.value = String(pos);
+            },
+          });
+        });
+
+        // Tint story: pin the section and scrub the film onto the glass.
+        const story = document.querySelector<HTMLElement>('[data-tint-story]');
+        if (story) {
+          const car = story.querySelector<HTMLElement>('.story__car')!;
+          const pin = story.querySelector<HTMLElement>('[data-story-pin]')!;
+          const vlts = story.querySelectorAll<HTMLElement>('[data-vlt]');
+          const steps = story.querySelectorAll<HTMLElement>('[data-step]');
+          const paint = (p: number) => {
+            car.style.setProperty('--tint', (p * 0.93).toFixed(3));
+            const vlt = Math.round(100 - p * 95);
+            vlts.forEach((el) => { el.textContent = String(vlt); });
+            const on = p < 0.34 ? 0 : p < 0.72 ? 1 : 2;
+            steps.forEach((li, i) => li.classList.toggle('is-on', i === on));
+          };
+          paint(0);
+          ScrollTrigger.create({
+            trigger: story, start: 'top top', end: '+=160%', pin: pin, scrub: 0.5,
+            anticipatePin: 1,
+            onUpdate: (st) => paint(st.progress),
+          });
+        }
 
         // Staggered groups: children of a grid reveal in sequence.
         document.querySelectorAll<HTMLElement>('[data-stagger]').forEach((group) => {

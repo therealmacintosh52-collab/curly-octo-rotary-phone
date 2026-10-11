@@ -1,0 +1,41 @@
+---
+/**
+ * Before/after comparison. The "after" image sits underneath; the "before"
+ * image is clipped to the left of --pos. A full-size range input is the
+ * handle, so it works by drag, touch and keyboard. src/scripts/site.ts moves
+ * --pos with the scroll while the block crosses the viewport, until the
+ * visitor touches it.
+ */
+export interface Props {
+  before: string;        // path without extension; .jpg and .webp both exist
+  after: string;
+  labelBefore: string;
+  labelAfter: string;
+  altBefore: string;
+  altAfter: string;
+  caption?: string;
+  id?: string;
+  compact?: boolean;     // smaller labels for the three-up grid on the home page
+}
+const { before, after, labelBefore, labelAfter, altBefore, altAfter, caption, id, compact = false } = Astro.props;
+---
+<figure class:list={['cmp', compact && 'cmp--compact']} data-compare style="--pos:50%">
+  <div class="cmp__stage">
+    <picture class="cmp__after">
+      <source srcset={`${after}.webp`} type="image/webp" />
+      <img src={`${after}.jpg`} width="1280" height="720" loading="lazy" decoding="async" alt={altAfter} />
+    </picture>
+    <picture class="cmp__before">
+      <source srcset={`${before}.webp`} type="image/webp" />
+      <img src={`${before}.jpg`} width="1280" height="720" loading="lazy" decoding="async" alt={altBefore} />
+    </picture>
+    <div class="cmp__divider" aria-hidden="true"><span class="cmp__handle">
+      <svg viewBox="0 0 24 24"><path d="M9 6 3 12l6 6M15 6l6 6-6 6"/></svg>
+    </span></div>
+    <span class="cmp__label cmp__label--before" aria-hidden="true">{labelBefore}</span>
+    <span class="cmp__label cmp__label--after" aria-hidden="true">{labelAfter}</span>
+    <input class="cmp__range" type="range" min="0" max="100" value="50" step="0.5"
+           id={id} aria-label={`Compare: ${labelBefore} and ${labelAfter}`} data-compare-range />
+  </div>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>

@@ -1,0 +1,52 @@
+---
+/**
+ * Scroll-driven tint reveal. The hero poster (already cached from the hero)
+ * sits under one overlay per pane of glass, each clipped to the polygon
+ * traced in src/data/masks.json. src/scripts/site.ts pins the section and
+ * scrubs --tint from 0 to .93 and the readout from 100% to 5% with the scroll.
+ * Without JS, or with reduced motion, the CSS defaults show the finished 5%.
+ */
+import data from '../data/site.json';
+import masks from '../data/masks.json';
+import Icon from './Icon.astro';
+const S = data.site;
+const T = S.tint_story;
+const polys = masks.polygons as Record<string, [number, number][]>;
+const pct = (pts: [number, number][]) =>
+  pts.map(([x, y]) => `${((x / masks.width) * 100).toFixed(2)}% ${((y / masks.height) * 100).toFixed(2)}%`).join(', ');
+const glass = masks.glass as string[];
+---
+<section class="story" data-tint-story>
+  <div class="story__pin" data-story-pin>
+    <div class="wrap story__grid">
+      <div class="story__copy">
+        <span class="eyebrow">{T.eyebrow}</span>
+        <h2>{T.heading}</h2>
+        <p>{T.text}</p>
+        <div class="story__vlt" aria-live="off">
+          <b><span data-vlt>5</span>%</b>
+          <span>of the light through the glass</span>
+        </div>
+        <ol class="story__steps">
+          {T.steps.map(([name, note], i) => (
+            <li data-step={i} class={i === T.steps.length - 1 ? 'is-on' : undefined}>
+              <b>{name}</b><span>{note}</span>
+            </li>
+          ))}
+        </ol>
+        <div class="btn-row">
+          <a class="btn btn-accent" href="/services/window-tinting/">Tint pricing <Icon name="arrow" /></a>
+          <a class="btn btn-ghost" href="/advice/california-window-tint-law/">What's legal in California</a>
+        </div>
+      </div>
+      <div class="story__car" style="--tint:.93">
+        <img src="/assets/img/hero-poster.jpg" width="1280" height="720" loading="lazy" decoding="async"
+             alt="The model car with every window going from factory glass to 5% film as the page scrolls" />
+        {glass.map((name) => (
+          <div class="story__glass" style={`clip-path: polygon(${pct(polys[name])})`} aria-hidden="true"></div>
+        ))}
+        <span class="story__badge" aria-hidden="true"><span data-vlt>5</span>% VLT</span>
+      </div>
+    </div>
+  </div>
+</section>

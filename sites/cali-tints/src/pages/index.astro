@@ -3,6 +3,8 @@ import data from '../data/site.json';
 import Base from '../layouts/Base.astro';
 import VideoHero from '../components/VideoHero.astro';
 import StatBand from '../components/StatBand.astro';
+import TintStory from '../components/TintStory.astro';
+import CompareSlider from '../components/CompareSlider.astro';
 import QuoteForm from '../components/QuoteForm.astro';
 import ServiceCards from '../components/ServiceCards.astro';
 import Faq from '../components/Faq.astro';
@@ -29,6 +31,8 @@ const faqs = data.home_faqs as [string, string][];
   <VideoHero hasVideo={true} focus="50% 30%" />
 
   <StatBand />
+
+  <TintStory />
 
   <!-- On phones this lands directly under the hero, which is the point. -->
   <section>
@@ -78,6 +82,34 @@ const faqs = data.home_faqs as [string, string][];
           </a>
         ))}
       </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">Before and after</span>
+        <h2>Scroll, or drag the handle</h2>
+        <p>The same car, before and after three of the things we do. Every service page has its own.</p>
+      </div>
+      <div class="grid g3">
+        {['window-tinting', 'vinyl-wraps', 'ceramic-coating'].map((slug) => {
+          const s = data.services.find((x) => x.slug === slug)!;
+          const c = s.compare!;
+          return (
+            <div>
+              <CompareSlider compact id={`cmp-home-${slug}`} before={c.before} after={c.after}
+                labelBefore={c.label_before} labelAfter={c.label_after}
+                altBefore={c.alt_before} altAfter={c.alt_after} />
+              <a class="cmp-link" href={`/services/${slug}/`}>
+                <h3>{s.nav}</h3>
+                <span class="more">See the service <Icon name="arrow" /></span>
+              </a>
+            </div>
+          );
+        })}
+      </div>
+      <p style="margin-top:18px;color:var(--slate);font-size:.86rem;text-align:center">Illustrations on the same model car, not customer vehicles.</p>
     </div>
   </section>
 

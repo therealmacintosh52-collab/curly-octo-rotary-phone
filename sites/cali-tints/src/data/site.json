@@ -106,7 +106,26 @@
         "text": "Paint correction takes the swirls out; a ceramic coating locks the result in against UV, bird droppings, tree sap and Sacramento dust.",
         "href": "/services/ceramic-coating/"
       }
-    ]
+    ],
+    "tint_story": {
+      "eyebrow": "Scroll to tint it",
+      "heading": "Watch the whole car go to 5%",
+      "text": "Scroll and the film goes on: every window from factory glass down to 5% ceramic. 5% is the darkest film we install; California requires 70% on the front side windows, so on your car the fronts stop there and the rest is your call.",
+      "steps": [
+        [
+          "Factory glass",
+          "Light, heat and eyes straight through"
+        ],
+        [
+          "35% carbon",
+          "Heat cut, privacy starting"
+        ],
+        [
+          "5% ceramic",
+          "Darkest we install — maximum heat rejection"
+        ]
+      ]
+    }
   },
   "nav": [
     [
@@ -190,6 +209,27 @@
         "vehicles": "Cars, trucks, SUVs, vans, motorcycles and business fleets",
         "pricing": "Quoted on your vehicle and the film you choose, before any work starts",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
+      },
+      "difference": {
+        "before": [
+          "Factory glass, 70–80% of the light and most of the heat straight into the cabin",
+          "Dashboard and seats in full sun every afternoon",
+          "Everything on the back seat visible from outside"
+        ],
+        "after": [
+          "Ceramic or carbon film on every window, front sides at California's 70% limit",
+          "Up to 99% of UV and most infrared heat stopped at the glass",
+          "Privacy behind the driver, a cooler car in ten minutes"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/window-tinting-before",
+        "after": "/assets/img/compare/window-tinting-after",
+        "label_before": "Factory glass",
+        "label_after": "5% ceramic, every window",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Factory glass: the model car before window tinting",
+        "alt_after": "5% ceramic, every window: the model car after window tinting"
       }
     },
     {
@@ -243,6 +283,27 @@
         "vehicles": "Cars, trucks, SUVs and vans, any film, any age",
         "pricing": "Quoted by the number of windows and what is on them, before we start",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
+      },
+      "difference": {
+        "before": [
+          "Old dyed film gone purple, bubbled and peeling at the edges",
+          "Rear defroster lines one razor blade away from being cut",
+          "A fix-it ticket waiting to happen on the front windows"
+        ],
+        "after": [
+          "Film steamed off, adhesive dissolved, glass clean",
+          "Defroster and antenna lines intact",
+          "Ready for new ceramic or carbon film the same day"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/tint-removal-repair-before",
+        "after": "/assets/img/compare/tint-removal-repair-after",
+        "label_before": "Purple, bubbled film",
+        "label_after": "Clean factory glass",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Purple, bubbled film: the model car before tint removal & repair",
+        "alt_after": "Clean factory glass: the model car after tint removal & repair"
       }
     },
     {
@@ -300,6 +361,27 @@
         "vehicles": "Cars, trucks, SUVs, motorcycles, vans and commercial vehicles",
         "pricing": "Quoted per vehicle and finish on real swatches, before any panel is touched",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
+      },
+      "difference": {
+        "before": [
+          "Factory gloss paint, every swirl and reflection on show",
+          "Stone chips land on the paint itself",
+          "Resale value tied to the colour you bought"
+        ],
+        "after": [
+          "Cast vinyl in satin, matte, gloss or colour-change over the original paint",
+          "Chips and scratches land on the film, not the car",
+          "Peels off clean for resale or the next look"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/vinyl-wraps-before",
+        "after": "/assets/img/compare/vinyl-wraps-after",
+        "label_before": "Gloss black paint",
+        "label_after": "Satin black wrap",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Gloss black paint: the model car before vinyl wraps",
+        "alt_after": "Satin black wrap: the model car after vinyl wraps"
       }
     },
     {
@@ -353,6 +435,26 @@
         "vehicles": "Vans, pickups, box trucks, trailers, buses and small fleets",
         "pricing": "Quoted per vehicle from your artwork and the coverage you want",
         "booking": "Call (916) 701-2005 or send the quote form with your logo"
+      },
+      "difference": {
+        "before": [
+          "Plain panels, no name, no number — nobody knows who you are at the light",
+          "Advertising that disappears when the month ends"
+        ],
+        "after": [
+          "Logo, services and phone laid out to the real body lines",
+          "Seen thousands of times a day in Sacramento traffic, paid for once",
+          "Matched across every vehicle in the fleet"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/commercial-wraps-before",
+        "after": "/assets/img/compare/commercial-wraps-after",
+        "label_before": "Plain panels",
+        "label_after": "Lettered and branded",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Plain panels: the model car before commercial & fleet wraps",
+        "alt_after": "Lettered and branded: the model car after commercial & fleet wraps"
       }
     },
     {
@@ -406,6 +508,26 @@
         "vehicles": "New and near-new cars, trucks and SUVs; any paint, gloss or matte",
         "pricing": "Quoted by coverage — partial front, full front or full body — on your vehicle",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
+      },
+      "difference": {
+        "before": [
+          "Rock chips peppered across the bumper, hood and mirrors after one season on Highway 50",
+          "Every chip a future rust spot or respray"
+        ],
+        "after": [
+          "Clear, self-healing urethane film over the front end",
+          "Chips land on the film and stay there; light scratches heal with heat",
+          "The front looks new for years, not months"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/paint-protection-film-before",
+        "after": "/assets/img/compare/paint-protection-film-after",
+        "label_before": "Chipped front end",
+        "label_after": "Protected under clear film",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Chipped front end: the model car before paint protection film (ppf)",
+        "alt_after": "Protected under clear film: the model car after paint protection film (ppf)"
       }
     },
     {
@@ -459,6 +581,26 @@
         "vehicles": "Cars, trucks, SUVs and motorcycles, any colour, new or corrected",
         "pricing": "Quoted on the vehicle's size, the paint's condition and the coating chosen",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
+      },
+      "difference": {
+        "before": [
+          "Dull, hazed paint that holds water spots, sap and bird droppings",
+          "An hour to wash, dirty again in a day"
+        ],
+        "after": [
+          "A hard, glass-like layer bonded to corrected paint",
+          "Water, dust and contamination slide off instead of sticking",
+          "A ten-minute wash and gloss that lasts years"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/ceramic-coating-before",
+        "after": "/assets/img/compare/ceramic-coating-after",
+        "label_before": "Dull, hazed paint",
+        "label_after": "Coated, deep gloss",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Dull, hazed paint: the model car before ceramic coating",
+        "alt_after": "Coated, deep gloss: the model car after ceramic coating"
       }
     },
     {
@@ -512,6 +654,26 @@
         "vehicles": "Cars, trucks, SUVs, vans and motorcycles",
         "pricing": "Quoted on the vehicle's size and condition — interior, exterior or both",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
+      },
+      "difference": {
+        "before": [
+          "Road grime and dust on the lower body, pollen bonded to the paint",
+          "Interior that smells of something you cannot find"
+        ],
+        "after": [
+          "Hand washed, decontaminated, polished and protected outside",
+          "Carpets, seats, vents and glass cleaned properly inside",
+          "The car you bought, not the car you have been driving"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/detailing-before",
+        "after": "/assets/img/compare/detailing-after",
+        "label_before": "Road grime",
+        "label_after": "Detailed and protected",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Road grime: the model car before auto detailing",
+        "alt_after": "Detailed and protected: the model car after auto detailing"
       }
     },
     {
@@ -565,6 +727,26 @@
         "vehicles": "Cars, trucks, SUVs and motorcycles, any age of paint",
         "pricing": "Quoted after we see and measure the paint — one, two or three stages",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
+      },
+      "difference": {
+        "before": [
+          "Swirl marks and fine scratches scattering light across dark paint",
+          "Water spots etched into the clear coat"
+        ],
+        "after": [
+          "Clear coat machine-levelled until it reflects properly again",
+          "Only as far as the measured paint allows",
+          "Sealed or coated so it does not come back"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/paint-correction-before",
+        "after": "/assets/img/compare/paint-correction-after",
+        "label_before": "Swirled clear coat",
+        "label_after": "Corrected and sealed",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Swirled clear coat: the model car before paint correction",
+        "alt_after": "Corrected and sealed: the model car after paint correction"
       }
     },
     {
@@ -618,6 +800,27 @@
         "vehicles": "Cars, trucks, SUVs and motorcycles",
         "pricing": "Quoted per job on your vehicle and the parts chosen",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
+      },
+      "difference": {
+        "before": [
+          "Clear factory headlights against dark paint",
+          "Chrome trim that fights the look",
+          "Dash cam cable hanging to the lighter socket"
+        ],
+        "after": [
+          "Smoked light film at a shade that stays legal and visible",
+          "Chrome delete, accent wraps and custom trim",
+          "Electronics hard-wired and hidden behind the trim"
+        ]
+      },
+      "compare": {
+        "before": "/assets/img/compare/customization-before",
+        "after": "/assets/img/compare/customization-after",
+        "label_before": "Factory headlights",
+        "label_after": "Smoked headlights",
+        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
+        "alt_before": "Factory headlights: the model car before customization & electronics",
+        "alt_after": "Smoked headlights: the model car after customization & electronics"
       }
     },
     {
@@ -671,7 +874,20 @@
         "vehicles": "Cars, trucks, SUVs, vans and classics",
         "pricing": "Quoted per panel or per seat on your vehicle and the material chosen",
         "booking": "Call (916) 701-2005 or send the quote form with a photo"
-      }
+      },
+      "difference": {
+        "before": [
+          "Headliner sagging onto your head",
+          "Driver's bolster split, stitching open",
+          "Steering wheel leather shiny and cracked"
+        ],
+        "after": [
+          "Headliner re-covered on a stripped board",
+          "Panel replaced in matched leather, vinyl or fabric",
+          "Wheel re-wrapped; full custom interiors by quote"
+        ]
+      },
+      "compare": null
     },
     {
       "slug": "inspections-mechanic",
@@ -724,7 +940,19 @@
         "vehicles": "Cars, trucks, SUVs and vans",
         "pricing": "Inspections at a set price per vehicle; repairs quoted before any work starts",
         "booking": "Call (916) 701-2005 or send the quote form on this page"
-      }
+      },
+      "difference": {
+        "before": [
+          "A used car you are about to buy on the seller's word",
+          "Brakes that squeal, a battery that struggles in the cold"
+        ],
+        "after": [
+          "Written inspection summary before you hand over money",
+          "Brakes, battery, filters, fluids and bulbs done while the car is in for tint",
+          "A straight answer on anything we do not take on, and who does"
+        ]
+      },
+      "compare": null
     }
   ],
   "guides": [
