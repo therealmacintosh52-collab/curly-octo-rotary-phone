@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon } from "lucide-react";
+import { CarFrontIcon, CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
@@ -25,17 +25,19 @@ interface NavItem {
   prefix?: boolean;
 }
 
-/** A car is an invoice: one list, one "New" button. Detailers see Dashboard (their own cars) + New + Invoices (their own cars). */
+/** Jobs by the day, invoices by the month. Detailers see Dashboard (their own jobs) + New + Jobs (their own). */
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/jobs/new", label: "New invoice", short: "New", icon: PlusCircleIcon },
-  { href: "/invoices", label: "Invoices", icon: FileTextIcon, prefix: true },
+  { href: "/jobs/new", label: "New job", short: "New", icon: PlusCircleIcon },
+  { href: "/jobs", label: "Jobs", icon: CarFrontIcon, prefix: true },
+  { href: "/invoices", label: "Invoices", icon: FileTextIcon, adminOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, ownerAdminOnly: true, prefix: true },
 ];
 
 function isActive(pathname: string, item: NavItem) {
   if (item.href === "/") return pathname === "/";
   if (pathname === item.href) return true;
+  if (item.href === "/jobs" && pathname === "/jobs/new") return false; // "New" has its own tab
   return !!item.prefix && pathname.startsWith(item.href + "/");
 }
 

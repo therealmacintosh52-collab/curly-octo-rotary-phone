@@ -27,7 +27,7 @@ export default function DevPreviewPage() {
     invoice_prefix: "INV-",
     next_invoice_number: 1,
     reminder_days: 30,
-    timezone: "America/Los_Angeles", auto_invoice: true,
+    timezone: "America/Los_Angeles", auto_invoice: false, auto_send_monthly: true,
     logo_path: null,
     created_at: "",
     updated_at: "",

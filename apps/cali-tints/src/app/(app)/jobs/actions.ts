@@ -9,7 +9,14 @@ import { errorMessage } from "@/lib/utils";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
-/** Edit an uninvoiced job (RLS + RPC enforce ownership and locking). */
+function revalidateJob(id?: string) {
+  revalidatePath("/jobs");
+  if (id) revalidatePath(`/jobs/${id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/");
+}
+
+/** Edit an open job (RLS + RPC enforce ownership and locking). */
 export async function updateJobAction(input: UpdateJobInput): Promise<ActionResult> {
   const parsed = updateJobSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -17,7 +24,7 @@ export async function updateJobAction(input: UpdateJobInput): Promise<ActionResu
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_job", { p_id: id, p });
   if (error) return { ok: false, error: errorMessage(error) };
-  revalidatePath("/invoices");
+  revalidateJob(id);
   return { ok: true, data: undefined };
 }
 
@@ -27,7 +34,7 @@ export async function softDeleteJobAction(id: string, reason: string): Promise<A
   const supabase = await createClient();
   const { error } = await supabase.rpc("soft_delete_job", { p_id: id, p_reason: reason.trim() || null });
   if (error) return { ok: false, error: errorMessage(error) };
-  revalidatePath("/invoices");
+  revalidateJob(id);
   return { ok: true, data: undefined };
 }
 
@@ -37,7 +44,7 @@ export async function restoreJobAction(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("restore_job", { p_id: id });
   if (error) return { ok: false, error: errorMessage(error) };
-  revalidatePath("/invoices");
+  revalidateJob(id);
   return { ok: true, data: undefined };
 }
 
@@ -48,8 +55,6 @@ export async function deletePhotoAction(photoId: string, jobId: string): Promise
   const { error } = await supabase.from("job_photos").delete().eq("id", photoId);
   if (error) return { ok: false, error: errorMessage(error) };
   await supabase.storage.from("job-photos").remove([photo.storage_path]);
-  // Photos live on the car's invoice page now.
-  const { data: job } = await supabase.from("jobs").select("invoice_id").eq("id", jobId).maybeSingle();
-  if (job?.invoice_id) revalidatePath(`/invoices/${job.invoice_id}`);
+  revalidateJob(jobId);
   return { ok: true, data: undefined };
 }

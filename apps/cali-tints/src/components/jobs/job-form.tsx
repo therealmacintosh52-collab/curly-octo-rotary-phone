@@ -46,17 +46,17 @@ interface SavedCar {
   model: string | null;
   dealership: string;
   total: number;
-  /** syncing: on its way to the server · queued: offline · ready: invoice made · failed: server said no */
+  /** syncing: on its way to the server · queued: offline · ready: saved on the server · failed: server said no */
   status: "syncing" | "queued" | "ready" | "failed";
-  invoiceId: string | null;
-  invoiceNumber: string | null;
+  jobId: string | null;
   error?: string | null;
 }
 
 /**
- * New invoice. Optimistic by design: "Save & next" writes to the local outbox and
- * returns immediately; the sync loop pushes it to Supabase, where the car
- * becomes its own invoice, and the success card fills in the invoice number.
+ * New job. Optimistic by design: "Save & next" writes to the local outbox and
+ * returns immediately; the sync loop pushes it to Supabase and the success
+ * card turns green. The month's jobs become one invoice per dealership on
+ * the 1st.
  */
 export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Props) {
   const { company, demo } = useSession();
@@ -115,7 +115,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       const item = await getOutboxItem(followId).catch(() => undefined);
       if (!alive || !item) return;
       if (item.status === "done") {
-        setLastSaved((c) => (c && c.clientId === followId ? { ...c, status: "ready", invoiceId: item.invoice_id ?? null, invoiceNumber: item.invoice_number ?? null } : c));
+        setLastSaved((c) => (c && c.clientId === followId ? { ...c, status: "ready", jobId: item.job_id ?? null } : c));
         haptic([15]);
       } else if (item.status === "error") {
         setLastSaved((c) => (c && c.clientId === followId ? { ...c, status: "failed", error: item.last_error } : c));
@@ -267,7 +267,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       job_id: null,
     };
 
-    const saved: SavedCar = { clientId, tag: payload.tag_number, model: payload.model ?? null, dealership: dealership?.name ?? "", total, status: online ? "syncing" : "queued", invoiceId: null, invoiceNumber: null };
+    const saved: SavedCar = { clientId, tag: payload.tag_number, model: payload.model ?? null, dealership: dealership?.name ?? "", total, status: online ? "syncing" : "queued", jobId: null };
     const celebrate = () => {
       setSavedCount((c) => c + 1);
       setSavedTotal((t) => t + total);
@@ -283,7 +283,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     if (demo) {
       // Guest preview: nothing is persisted; pretend the invoice came back.
       celebrate();
-      setLastSaved({ ...saved, status: "ready", invoiceId: "demo", invoiceNumber: `INV-${String(125 + savedCount).padStart(6, "0")}` });
+      setLastSaved({ ...saved, status: "ready", jobId: "demo" });
       toast.success(`Saved ${payload.tag_number} · guest preview, not actually saved`);
       resetForNext();
       return;
@@ -297,7 +297,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       try {
         const { createJobDirect } = await import("@/lib/offline/sync");
         const car = await createJobDirect(item);
-        setLastSaved({ ...saved, status: "ready", invoiceId: car.invoice_id, invoiceNumber: car.invoice_number });
+        setLastSaved({ ...saved, status: "ready", jobId: car.id });
       } catch (err) {
         toast.error(errorMessage(err, "Could not save the car"));
         return;
@@ -335,8 +335,8 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       {/* Title row */}
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-title">New invoice</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Stock number, services, save. The car you log is the invoice.</p>
+          <h1 className="text-title">New job</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Stock number, services, photos, save. The month&apos;s jobs become one invoice on the 1st.</p>
         </div>
         <AnimatePresence>
           {savedCount > 0 && (
@@ -363,18 +363,18 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {lastSaved.status === "ready" && (
                     <>
-                      <span className="font-medium text-foreground">{lastSaved.invoiceNumber ?? "Invoice"}</span> ready · {lastSaved.dealership}
+                      <span className="font-medium text-foreground">Saved</span> · {lastSaved.dealership}
                     </>
                   )}
-                  {lastSaved.status === "syncing" && "Saved · making the invoice…"}
-                  {lastSaved.status === "queued" && "Queued on this phone · the invoice is made when signal returns"}
+                  {lastSaved.status === "syncing" && "Saving…"}
+                  {lastSaved.status === "queued" && "Queued on this device · saved when signal returns"}
                   {lastSaved.status === "failed" && (lastSaved.error ?? "The server rejected this car")}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {lastSaved.status === "ready" && lastSaved.invoiceId && (
+                  {lastSaved.status === "ready" && lastSaved.jobId && (
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/invoices/${lastSaved.invoiceId}`}>
-                        <ExternalLinkIcon /> Open invoice
+                      <Link href={`/jobs/${lastSaved.jobId}`}>
+                        <ExternalLinkIcon /> Open job
                       </Link>
                     </Button>
                   )}
@@ -384,7 +384,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
                     </Button>
                   )}
                   <Button type="button" size="sm" variant="ghost" className="ml-auto text-muted-foreground" onClick={() => { setLastSaved(null); tagRef.current?.focus(); }}>
-                    Next invoice
+                    Next job
                   </Button>
                 </div>
               </div>

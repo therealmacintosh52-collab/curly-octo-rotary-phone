@@ -1,19 +1,17 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { PlusIcon } from "lucide-react";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { Page, PageHeader } from "@/components/app/page-header";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { InvoiceList } from "@/components/invoices/invoice-list";
+import { MonthSoFar } from "@/components/invoices/month-so-far";
 import { SendInvoicesButton, type EmailPreview, type UnsentGroup } from "@/components/invoices/send-invoices-button";
 import { invoiceEmailEnvelope, invoiceEmailHtml } from "@/lib/invoices/email";
 import { invoiceBundleFixture } from "@/test/fixtures";
 import { parseInvoiceFilters, resolveInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
-import { invoiceListFixture } from "@/test/fixtures";
+import { invoiceListFixture, jobListFixture } from "@/test/fixtures";
 import type { Company, Profile } from "@/lib/db/types";
 import { formatMoney } from "@/lib/money";
 import { toDateInput } from "@/lib/dates";
@@ -31,16 +29,15 @@ const DEALERSHIPS = [
   { id: "d2", name: "Mercedes-Benz of Sacramento" },
 ];
 
-/** Fixture preview of the one list (guest demo in production). Filters come from the URL so the segmented control, chips and sheet behave like the real page. */
+/** Fixture preview of the monthly invoices (guest demo in production). Filters come from the URL so the segmented control, chips and sheet behave like the real page. */
 export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/invoices">) {
   const typed = parseInvoiceFilters(await props.searchParams);
-  const company = { id: "c1", name: "Cali Tints", payment_terms: "", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles", auto_invoice: true } as Company;
+  const company = { id: "c1", name: "Cali Tints", payment_terms: "", tax_rate: 0, invoice_prefix: "INV-", next_invoice_number: 1, reminder_days: 30, timezone: "America/Los_Angeles", auto_invoice: false, auto_send_monthly: true } as Company;
   const profile = { id: "u1", company_id: "c1", role: "owner", full_name: "Mike", email: null, active: true } as Profile;
 
   // Apply the URL filters to the fixture the way the RPC would (a date in the search box becomes a range).
   const today = toDateInput(new Date());
   const filters = resolveInvoiceFilters(typed, today); // the fixture dates rows by the server's local day
-  const spansDays = !!filters.from && !!filters.to && filters.from !== filters.to;
   const q = filters.q?.toUpperCase();
   const rows = invoiceListFixture().filter((r) => {
     const st = filters.status;
@@ -65,7 +62,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
   const unsentGroups: UnsentGroup[] = Object.values(
     drafts.reduce<Record<string, UnsentGroup>>((acc, r) => {
       const g = acc[r.dealership_id] ?? { dealership_id: r.dealership_id, name: r.dealership, emails: emailsFor(r.dealership_id), invoices: [] };
-      g.invoices.push({ id: r.id, number: r.display_number, tag: r.cars[0]?.tag ?? "—", vehicle: r.cars[0]?.vehicle ?? null, total: r.total });
+      g.invoices.push({ id: r.id, number: r.display_number, tag: `${r.period_start.slice(0, 7)}`, vehicle: `${r.car_count} cars`, total: r.total });
       acc[r.dealership_id] = g;
       return acc;
     }, {}),
@@ -85,7 +82,13 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
   );
   const scope = [filters.status !== "all" ? STATUS_LABELS[filters.status] : null, filters.dealership ? DEALERSHIPS.find((d) => d.id === filters.dealership)?.name : null, filters.service ? SERVICES.find((s) => s.id === filters.service)?.name : null, filters.searchDate?.label ?? null].filter(Boolean);
   const filtered = scope.length > 0 || !!filters.q || !!filters.from || !!filters.to;
-  const summary = [`${rows.length} ${rows.length === 1 ? "car" : "cars"}`, formatMoney(total), balance > 0 ? `${formatMoney(balance)} unpaid` : rows.length ? "all paid" : null, ...scope].filter(Boolean);
+  const summary = [`${rows.length} ${rows.length === 1 ? "invoice" : "invoices"}`, formatMoney(total), balance > 0 ? `${formatMoney(balance)} unpaid` : rows.length ? "all paid" : null, ...scope].filter(Boolean);
+  const openJobs = jobListFixture().filter((j) => !j.invoice_id && !j.deleted);
+  const prices: Record<string, number> = { Used: 200, PDI: 60, Sold: 20, "Service Loaner Detail": 125, "Touch Up Detail": 30 };
+  const soFar = DEALERSHIPS.map((d) => {
+    const mine = openJobs.filter((j) => j.dealership_id === d.id);
+    return { dealership_id: d.id, dealership: d.name, cars: mine.length, total: mine.reduce((s, j) => s + j.services.reduce((t, n) => t + (d.id === "d2" && n === "Used" ? 215 : (prices[n] ?? 0)), 0), 0) };
+  });
 
   return (
     <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
@@ -95,17 +98,9 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
             <PageHeader
               title="Invoices"
               description={summary.join(" · ")}
-              actions={
-                <>
-                  <SendInvoicesButton groups={unsentGroups} previews={emailPreviews} />
-                  <Button asChild>
-                    <Link href="/jobs/new">
-                      <PlusIcon /> New invoice
-                    </Link>
-                  </Button>
-                </>
-              }
+              actions={<SendInvoicesButton groups={unsentGroups} previews={emailPreviews} />}
             />
+            {!filtered && <MonthSoFar rows={soFar} today={today} showMoney />}
             <div className="mt-5 flex flex-col gap-4">
               {/* useSearchParams streams this in after first paint; the fallback reserves the same height so nothing shifts. */}
               <Suspense
@@ -118,7 +113,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
               >
                 <InvoiceFilters filters={typed} searchDate={filters.searchDate} services={SERVICES} dealerships={DEALERSHIPS} isAdmin />
               </Suspense>
-              <InvoiceList rows={rows} page={1} count={rows.length} params="" isAdmin filtered={filtered} groupByDay={spansDays ? today : null} />
+              <InvoiceList rows={rows} page={1} count={rows.length} params="" isAdmin filtered={filtered} />
             </div>
           </Page>
         </AppShell>

@@ -1,21 +1,81 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
+import { PlusIcon } from "lucide-react";
+import { getSession } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import type { JobListResult } from "@/lib/db/types";
+import { EMPTY_JOB_LIST, JOB_STATUS_LABELS, jobFilterArgs, parseJobFilters, resolveJobFilters } from "@/lib/jobs/query";
+import { formatDateOnly, todayIn } from "@/lib/dates";
+import { Page, PageHeader } from "@/components/app/page-header";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { JobFilters } from "@/components/jobs/job-filters";
+import { JobList } from "@/components/jobs/job-list";
+
+export const metadata: Metadata = { title: "Jobs" };
+
+const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
 
 /**
- * Jobs and invoices are one thing now. Old links to the job list land on the
- * Invoices list with the closest filter.
+ * Every car logged, newest first under day headers. Admins and managers see
+ * the whole company; a detailer sees their own. No money here: the month's
+ * jobs become one invoice per dealership on the 1st (Invoices, owner only).
  */
-export default async function JobsRedirect(props: PageProps<"/jobs">) {
+export default async function JobsPage(props: PageProps<"/jobs">) {
   const sp = await props.searchParams;
-  const next = new URLSearchParams();
-  for (const [k, v] of Object.entries(sp)) {
-    if (typeof v !== "string" || !v) continue;
-    if (k === "status") {
-      if (v === "uninvoiced") next.set("status", "draft");
-      else if (v === "deleted") next.set("status", "void");
-      continue; // "invoiced" / "all" → every invoice
-    }
-    next.set(k, v);
-  }
-  const qs = next.toString();
-  redirect(qs ? `/invoices?${qs}` : "/invoices");
+  const typed = parseJobFilters(sp);
+  const session = await getSession();
+  const today = todayIn(session.company.timezone);
+  const filters = resolveJobFilters(typed, today);
+  const supabase = await createClient();
+
+  const [{ data: list, error }, { data: services }, { data: dealerships }, { data: detailers }] = await Promise.all([
+    supabase.rpc("jobs_filtered", jobFilterArgs(filters)),
+    supabase.from("services").select("id, name").order("sort_order"),
+    supabase.from("dealerships").select("id, name").order("name"),
+    session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+  ]);
+  if (error) throw new Error(error.message);
+  const result = (list as JobListResult | null) ?? EMPTY_JOB_LIST;
+
+  const scope = [
+    filters.status !== "all" ? JOB_STATUS_LABELS[filters.status] : null,
+    filters.dealership ? dealerships?.find((d) => d.id === filters.dealership)?.name : null,
+    filters.detailer ? detailers?.find((d) => d.id === filters.detailer)?.full_name : null,
+    filters.service ? services?.find((s) => s.id === filters.service)?.name : null,
+    filters.searchDate ? filters.searchDate.label : filters.from || filters.to ? `${filters.from ? formatDateOnly(filters.from, "MMM d, yyyy") : "…"} – ${filters.to ? formatDateOnly(filters.to, "MMM d, yyyy") : "…"}` : null,
+  ].filter(Boolean);
+  const filtered = scope.length > 0 || !!filters.q;
+  const summary = [plural(result.count, "car", "cars"), ...scope].filter(Boolean);
+  const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : []))).toString();
+
+  return (
+    <Page>
+      <PageHeader
+        title={session.isAdmin ? "Jobs" : "My jobs"}
+        description={summary.join(" · ")}
+        actions={
+          <Button asChild>
+            <Link href="/jobs/new">
+              <PlusIcon /> New job
+            </Link>
+          </Button>
+        }
+      />
+      <div className="mt-5 flex flex-col gap-4">
+        <Suspense
+          fallback={
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-11 w-full sm:w-96" />
+            </div>
+          }
+        >
+          <JobFilters filters={typed} searchDate={filters.searchDate} services={services ?? []} dealerships={dealerships ?? []} detailers={detailers ?? []} isAdmin={session.isAdmin} />
+        </Suspense>
+        <JobList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} filtered={filtered} today={today} />
+      </div>
+    </Page>
+  );
 }

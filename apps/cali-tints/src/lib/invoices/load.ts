@@ -1,7 +1,8 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import type { Company, Dealership, Invoice, InvoiceItem, InvoicePayment, InvoiceSubmission } from "@/lib/db/types";
+import type { Company, Database, Dealership, Invoice, InvoiceItem, InvoicePayment, InvoiceSubmission } from "@/lib/db/types";
 
 /** Everything the PDF / CSV / XLSX / email renderers need for one invoice. */
 export interface InvoiceBundle {
@@ -15,9 +16,13 @@ export interface InvoiceBundle {
   logoDataUri: string | null;
 }
 
-/** Load an invoice with all related rows. Returns null when not found / not visible under RLS. */
-export async function loadInvoiceBundle(id: string): Promise<InvoiceBundle | null> {
-  const supabase = await createClient();
+/**
+ * Load an invoice with all related rows. Returns null when not found / not
+ * visible under RLS. Pass a service-role client from jobs with no signed-in
+ * user (the month close).
+ */
+export async function loadInvoiceBundle(id: string, db?: SupabaseClient<Database>): Promise<InvoiceBundle | null> {
+  const supabase = db ?? (await createClient());
   const { data: invoice } = await supabase.from("invoices").select("*").eq("id", id).maybeSingle();
   if (!invoice) return null;
 

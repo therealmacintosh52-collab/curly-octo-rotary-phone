@@ -2,7 +2,9 @@ import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Dashboard, resolveBreakdownMonth, resolveRange } from "@/components/dashboard/dashboard";
 import { DetailerDashboard } from "@/components/dashboard/detailer-dashboard";
-import type { DashboardStats, DetailerStats } from "@/lib/db/types";
+import { TeamDashboard } from "@/components/dashboard/team-dashboard";
+import type { DashboardStats, DetailerStats, TeamStats } from "@/lib/db/types";
+import { isOwner } from "@/lib/roles";
 import { todayIn } from "@/lib/dates";
 
 export default async function HomePage(props: PageProps<"/">) {
@@ -16,6 +18,13 @@ export default async function HomePage(props: PageProps<"/">) {
     const { data, error } = await supabase.rpc("my_dashboard", {});
     if (error || !data) throw new Error(error?.message ?? "Could not load dashboard");
     return <DetailerDashboard stats={data as DetailerStats} today={today} who={who} />;
+  }
+
+  // Admins and managers: the whole team's day, still no money.
+  if (!isOwner(session.profile.role)) {
+    const { data, error } = await supabase.rpc("team_dashboard", {});
+    if (error || !data) throw new Error(error?.message ?? "Could not load dashboard");
+    return <TeamDashboard stats={data as TeamStats} today={today} who={who} />;
   }
 
   const sp = await props.searchParams;

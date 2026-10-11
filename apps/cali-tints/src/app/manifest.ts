@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Cali Tints — Cars & Invoices",
+    name: "Cali Tints — Jobs & Invoices",
     short_name: "Cali Tints",
-    description: "Log a car on the lot; it becomes its invoice. Send it, collect it.",
+    description: "Log each car on the lot. One invoice per dealership a month, sent to QuickBooks.",
     start_url: "/jobs/new",
     id: "/",
     scope: "/",
@@ -19,8 +19,8 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "New car", url: "/jobs/new", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Invoices", url: "/invoices" },
+      { name: "New job", url: "/jobs/new", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Jobs", url: "/jobs" },
     ],
   };
 }

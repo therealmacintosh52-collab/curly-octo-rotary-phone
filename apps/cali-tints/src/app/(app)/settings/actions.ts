@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
+import { closeMonth, type MonthCloseReport } from "@/lib/invoices/submit";
 
 const optionalText = (max: number) => z.string().trim().max(max).transform((s) => s || null);
 
@@ -26,6 +27,8 @@ const companySchema = z.object({
   invoice_prefix: z.string().trim().max(12),
   reminder_days: z.number().int().min(1).max(365),
   timezone: z.string().trim().min(1).max(64),
+  /** Email each month's invoice to the dealership the moment it is made on the 1st. */
+  auto_send_monthly: z.boolean(),
 });
 export type CompanyInput = z.input<typeof companySchema>;
 
@@ -241,4 +244,21 @@ export async function resetUserPasswordAction(userId: string, password: string):
   const { error } = await admin.auth.admin.updateUserById(userId, { password });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: undefined };
+}
+
+// --- Month close --------------------------------------------------------------
+
+/** Run the month close now instead of waiting for the daily job (every finished month, every dealership). */
+export async function runMonthCloseAction(): Promise<ActionResult<MonthCloseReport>> {
+  const session = await requireOwnerAdmin();
+  try {
+    const db = createAdminClient();
+    const report = await closeMonth(db, session.company.id);
+    revalidatePath("/invoices");
+    revalidatePath("/jobs");
+    revalidatePath("/");
+    return { ok: true, data: report };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
 }

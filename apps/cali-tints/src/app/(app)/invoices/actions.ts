@@ -6,9 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSession, requireAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
-import { invoicePdf } from "@/lib/invoices/pdf";
-import { invoiceCsv } from "@/lib/invoices/csv";
-import { invoiceEmailEnvelope, invoiceEmailHtml, sendInvoiceEmail } from "@/lib/invoices/email";
+import { invoiceEmailEnvelope, invoiceEmailHtml } from "@/lib/invoices/email";
+import { emailInvoice } from "@/lib/invoices/submit";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { updateJobSchema, type UpdateJobInput } from "@/lib/jobs/schema";
 
@@ -157,32 +156,27 @@ export async function deletePaymentAction(paymentId: string, invoiceId: string):
  */
 export async function submitInvoiceByEmailAction(id: string): Promise<ActionResult<{ recipients: string[] }>> {
   const session = await requireAdmin();
-  const bundle = await loadInvoiceBundle(id);
-  if (!bundle) return { ok: false, error: "Invoice not found" };
-  if (bundle.invoice.status === "void") return { ok: false, error: "Invoice is void" };
-
-  const [pdf, csv] = await Promise.all([invoicePdf(bundle, "branded"), Promise.resolve(invoiceCsv(bundle))]);
-  const result = await sendInvoiceEmail(bundle, { pdf, csv });
-
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, error: "Invalid invoice" };
   const supabase = await createClient();
-  const { error: insErr } = await supabase.from("invoice_submissions").insert({
-    company_id: bundle.invoice.company_id,
-    invoice_id: id,
-    method: "email",
-    status: result.ok ? "sent" : "failed",
-    recipients: result.to,
-    cc: result.cc,
-    provider: "resend",
-    message_id: result.ok ? result.messageId : null,
-    error: result.ok ? null : result.error,
-    created_by: session.userId,
-  });
+  const r = await emailInvoice(supabase, id, session.userId);
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/invoices");
   revalidatePath("/");
-  if (insErr) return { ok: false, error: `Sent but could not log the submission: ${insErr.message}` };
-  if (!result.ok) return { ok: false, error: result.error };
-  return { ok: true, data: { recipients: result.to } };
+  if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true, data: { recipients: r.recipients } };
+}
+
+/** The owner closes one dealership's month early: every open job through today goes on one invoice now. */
+export async function invoiceNowAction(dealershipId: string): Promise<ActionResult<string>> {
+  await requireAdmin();
+  if (!/^[0-9a-f-]{36}$/i.test(dealershipId)) return { ok: false, error: "Invalid dealership" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("invoice_now", { p_dealership_id: dealershipId });
+  if (error || !data) return { ok: false, error: error ? errorMessage(error) : "Nothing to invoice" };
+  revalidatePath("/invoices");
+  revalidatePath("/jobs");
+  revalidatePath("/");
+  return { ok: true, data };
 }
 
 /** The email as it will arrive. */

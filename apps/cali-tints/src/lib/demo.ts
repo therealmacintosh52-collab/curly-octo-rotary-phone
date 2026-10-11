@@ -34,8 +34,9 @@ export function isDemoCookieValid(value: string | undefined | null): boolean {
 /** Real app route → fixture preview route. Order matters (longest prefix first); `exact` entries match only that path. */
 const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
   ["/jobs/new", "/dev/preview"],
-  ["/jobs/outbox", "/dev/preview/invoices"],
-  ["/jobs", "/dev/preview/invoices"],
+  ["/jobs/outbox", "/dev/preview/jobs"],
+  ["/jobs", "/dev/preview/jobs", true],
+  ["/jobs", "/dev/preview/job"],
   ["/invoices/new", "/dev/preview/invoices"],
   ["/invoices", "/dev/preview/invoices", true],
   ["/invoices", "/dev/preview/invoice"],
@@ -50,6 +51,8 @@ export function demoRewriteTarget(pathname: string): string | null {
   // One invoice: keep the id so every row in the demo list opens its own page.
   const inv = pathname.match(/^\/invoices\/([^/]+)$/);
   if (inv && inv[1] !== "new") return `/dev/preview/invoice/${inv[1]}`;
+  const job = pathname.match(/^\/jobs\/([^/]+)$/);
+  if (job && job[1] !== "new" && job[1] !== "outbox") return `/dev/preview/job/${job[1]}`;
   for (const [prefix, target, exact] of DEMO_REWRITES) {
     if (pathname === prefix) return target;
     if (!exact && prefix !== "/" && pathname.startsWith(prefix + "/")) return target;

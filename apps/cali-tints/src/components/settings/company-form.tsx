@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { LoaderCircleIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Company } from "@/lib/db/types";
-import { removeLogoAction, updateCompanyAction, uploadLogoAction } from "@/app/(app)/settings/actions";
+import { removeLogoAction, runMonthCloseAction, updateCompanyAction, uploadLogoAction } from "@/app/(app)/settings/actions";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useSession } from "@/components/app/session-provider";
 
 const TIMEZONES = ["America/Los_Angeles", "America/Denver", "America/Phoenix", "America/Chicago", "America/New_York", "America/Anchorage", "Pacific/Honolulu"];
 
@@ -42,9 +44,27 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
     invoice_prefix: company.invoice_prefix,
     reminder_days: String(company.reminder_days),
     timezone: company.timezone,
+    auto_send_monthly: company.auto_send_monthly,
   });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
   const fileRef = useRef<HTMLInputElement>(null);
+  const { demo } = useSession();
+  const [closing, startClose] = useTransition();
+
+  function closeNow() {
+    startClose(async () => {
+      if (demo) {
+        toast.success("Month closed", { description: "Guest preview — nothing changed" });
+        return;
+      }
+      const r = await runMonthCloseAction();
+      if (!r.ok) return void toast.error(r.error);
+      const n = r.data.created.length;
+      if (n === 0) toast.success("Nothing to close: every finished month is already invoiced");
+      else toast.success(`${n} ${n === 1 ? "invoice" : "invoices"} made${r.data.emailed ? ` · ${r.data.emailed} emailed` : ""}`, { description: r.data.emailErrors.length ? `${r.data.emailErrors.length} could not be emailed: ${r.data.emailErrors[0].error}` : undefined });
+      router.refresh();
+    });
+  }
 
   function save(e: React.FormEvent) {
     e.preventDefault();
@@ -102,12 +122,28 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
           </CardContent>
         </Card>
 
-        <Card>
+        <Card id="invoicing" className="scroll-mt-24">
           <CardHeader>
-            <CardTitle>Invoicing defaults</CardTitle>
-            <CardDescription>Dealerships can override the tax rate individually. Invoices carry no payment terms.</CardDescription>
+            <CardTitle>Monthly invoicing</CardTitle>
+            <CardDescription>On the 1st, every dealership&apos;s jobs from the month become one invoice. Dealerships can override the tax rate individually.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
+            <label className="flex cursor-pointer items-start justify-between gap-4 sm:col-span-2">
+              <span className="grid gap-1">
+                <span className="text-sm font-medium">Email each month&apos;s invoice automatically</span>
+                <span className="text-xs text-muted-foreground">The moment the 1st&apos;s invoice is made it goes to the dealership&apos;s AP contact with the PDF and CSV. Off: it waits under Invoices as Not sent until you send it.</span>
+              </span>
+              <Switch checked={f.auto_send_monthly} onCheckedChange={(v) => setF((s) => ({ ...s, auto_send_monthly: v }))} aria-label="Email each month's invoice automatically" data-testid="auto-send-monthly" />
+            </label>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5 sm:col-span-2">
+              <span className="grid gap-0.5">
+                <span className="text-sm font-medium">Close the month now</span>
+                <span className="text-xs text-muted-foreground">Runs the 1st&apos;s job today for every finished month. Safe to press twice: nothing is invoiced twice.</span>
+              </span>
+              <Button type="button" size="sm" variant="outline" loading={closing} onClick={closeNow} data-testid="close-month">
+                Run month close
+              </Button>
+            </div>
             <Field label="Tax rate (%)" id="tax" hint="0 for labor-only services in most states.">
               <Input id="tax" type="number" step="0.001" min="0" max="50" value={f.tax_percent} onChange={set("tax_percent")} />
             </Field>

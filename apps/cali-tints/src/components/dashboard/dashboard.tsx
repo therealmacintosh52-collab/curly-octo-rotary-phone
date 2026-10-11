@@ -117,7 +117,7 @@ export function Dashboard({
         actions={
           <Button asChild>
             <Link href="/jobs/new">
-              <PlusIcon /> New invoice
+              <PlusIcon /> New job
             </Link>
           </Button>
         }
@@ -132,21 +132,21 @@ export function Dashboard({
             value={String(stats.today.jobs)}
             sub={stats.today.jobs === 0 ? "nothing logged yet · a normal day is about 3 Used, 2 PDI, 4 Sold" : `${formatMoney(stats.today.revenue)} · ${stats.today.by_service.map((s) => `${s.name} ${s.jobs}`).join(" · ")}`}
             tone={stats.today.jobs > 0 ? "accent" : undefined}
-            href="/invoices?q=today"
+            href="/jobs?q=today"
           />
-          {/* The whole week (Mon–Sun), day by day, on the Invoices list. */}
-          <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)} · day by day`} href={`/invoices?from=${week.start}&to=${addDaysYmd(week.start, 6)}`} />
-          <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/invoices?from=${month.start}&to=${month.end}`} />
+          {/* The whole week (Mon–Sun), day by day, on the Jobs list. */}
+          <StatTile label="This week" value={String(stats.week.jobs)} sub={`${plural(stats.week.jobs, "car", "cars")} · ${formatMoney(stats.week.revenue)} · day by day`} href={`/jobs?from=${week.start}&to=${addDaysYmd(week.start, 6)}`} />
+          <StatTile label="This month" value={String(stats.month.jobs)} sub={`${plural(stats.month.jobs, "car", "cars")} · ${formatMoney(stats.month.revenue)}`} href={`/jobs?from=${month.start}&to=${month.end}`} />
         </section>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-label text-subtle">Unpaid</h2>
-          <StatTile label="Still to collect" value={formatMoney(stats.unpaid_total)} sub={`${plural(stats.unpaid_invoices, "car", "cars")} not paid yet`} tone={stats.unpaid_total > 0 ? "accent" : undefined} href="/invoices?status=unpaid" />
+          <StatTile label="Still to collect" value={formatMoney(stats.unpaid_total)} sub={`${plural(stats.unpaid_invoices, "invoice", "invoices")} not paid yet`} tone={stats.unpaid_total > 0 ? "accent" : undefined} href="/invoices?status=unpaid" />
           <StatList
             rows={[
-              { label: "Not sent yet", hint: `${plural(stats.draft_invoices, "car", "cars")} logged, invoice not sent`, value: formatMoney(stats.draft_total), href: "/invoices?status=draft" },
+              { label: "Not sent yet", hint: `${plural(stats.draft_invoices, "invoice", "invoices")} made, not sent`, value: formatMoney(stats.draft_total), href: "/invoices?status=draft" },
               { label: "Sent, unpaid", hint: plural(stats.outstanding_invoices, "invoice", "invoices"), value: formatMoney(stats.outstanding_total), tone: stats.outstanding_total > 0 ? ("warning" as const) : undefined, href: "/invoices?status=outstanding" },
-              ...(stats.uninvoiced_jobs > 0 ? [{ label: "Cars with no invoice", hint: "logged before auto-invoicing", value: String(stats.uninvoiced_jobs), tone: "warning" as const, href: "/invoices/new" }] : []),
+              { label: "This month so far", hint: "jobs waiting for the 1st", value: formatMoney(stats.uninvoiced_total), href: "/jobs?status=open" },
             ]}
           />
         </section>
@@ -212,8 +212,8 @@ export function Dashboard({
       />
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Total income" value={formatMoney(stats.income.collected)} sub={`${plural(stats.income.payments, "payment", "payments")} received`} tone="accent" href="/invoices?status=paid" />
-        <StatTile label="Revenue logged" value={formatMoney(stats.income.revenue)} sub={`${plural(stats.income.jobs, "car", "cars")} detailed`} href={rangeQ ? `/invoices?${rangeQ}` : "/invoices"} />
-        <StatTile label="Avg per car" value={formatMoney(stats.income.avg_per_car)} sub="revenue ÷ cars" size="sm" href={rangeQ ? `/invoices?${rangeQ}` : "/invoices"} />
+        <StatTile label="Revenue logged" value={formatMoney(stats.income.revenue)} sub={`${plural(stats.income.jobs, "car", "cars")} detailed`} href={rangeQ ? `/jobs?${rangeQ}` : "/jobs"} />
+        <StatTile label="Avg per car" value={formatMoney(stats.income.avg_per_car)} sub="revenue ÷ cars" size="sm" href={rangeQ ? `/jobs?${rangeQ}` : "/jobs"} />
         <StatTile
           label="Still to collect"
           value={formatMoney(Math.max(0, stats.income.revenue - stats.income.collected))}
@@ -245,7 +245,7 @@ export function Dashboard({
                 label: `Week ${i + 1} · ${formatDateOnly(w.from, "MMM d")} – ${formatDateOnly(w.to, "MMM d")}`,
                 hint: w.jobs === 0 ? (w.from > today ? "still to come" : "no cars") : plural(w.jobs, "car", "cars"),
                 value: w.jobs === 0 ? "—" : formatMoney(w.revenue),
-                href: `/invoices?from=${w.from}&to=${w.to}`,
+                href: `/jobs?from=${w.from}&to=${w.to}`,
               }))}
             />
           </CardContent>

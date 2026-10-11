@@ -1,5 +1,5 @@
 import type { InvoiceBundle } from "@/lib/invoices/load";
-import type { InvoiceListRow, PriceListRow } from "@/lib/db/types";
+import type { InvoiceListRow, JobListRow, PriceListRow } from "@/lib/db/types";
 
 /** A realistic invoice bundle for renderer tests and previews. */
 export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): InvoiceBundle {
@@ -23,7 +23,8 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
       next_invoice_number: 13,
       reminder_days: 30,
       timezone: "America/Los_Angeles",
-      auto_invoice: true,
+      auto_invoice: false,
+      auto_send_monthly: true,
       logo_path: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
@@ -121,113 +122,163 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
   return { ...base, ...overrides };
 }
 
+const EDH = { dealership_id: "d1", dealership: "Mercedes-Benz of El Dorado Hills" };
+const SAC = { dealership_id: "d2", dealership: "Mercedes-Benz of Sacramento" };
+const PRICE: Record<string, number> = { Used: 200, PDI: 60, Sold: 20, "Service Loaner Detail": 125, "Touch Up Detail": 30, "Paint Correction (1-step)": 50 };
+const MODELS = ["GLE 450", "GLC 300", "E 350", "GLB 250", "C 300", "GLA 250", "EQE 350", "S 580", "GLE 350", "A 220", "CLA 250", "EQB 300"];
+const VINS = ["W1KZF8DB3NA123456", "W1N0G8DB5PV220114", "W1KZF8DB1RA331902", "W1N4M4HB0PW412221", "4JGFB4JB5SA901221", "W1K6G7GB3NA000111", "4JGFB4KB1MA228870", "W1KAF4HB3SR118204"];
+const DETAILERS = ["Victor", "Dee One", "Sam"];
+
+const ymdOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const daysAgo = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+};
+
+/** One day's worth of fixture cars for a dealership: about 3 Used, 2 PDI, 4 Sold, the odd loaner. Deterministic. */
+export interface FixtureCar {
+  tag: string;
+  vehicle: string;
+  vin: string | null;
+  detailer: string;
+  service: string;
+  price: number;
+  dealership_id: string;
+  dealership: string;
+  day: string;
+  performed_at: string;
+}
+export function fixtureCars(day: Date, dealer: typeof EDH, seed: number): FixtureCar[] {
+  const dow = day.getDay();
+  const count = dow === 0 ? 3 : dow === 6 ? 4 : 7 + (seed % 3); // a quiet Sunday, a short Saturday
+  const out: FixtureCar[] = [];
+  for (let i = 0; i < count; i++) {
+    const k = seed * 7 + i;
+    const service = i < 3 ? "Used" : i < 5 ? "PDI" : i === 5 && k % 4 === 0 ? "Service Loaner Detail" : "Sold";
+    const year = 2021 + (k % 6);
+    const model = MODELS[k % MODELS.length];
+    const tag = dealer === SAC ? `K-${100 + ((k * 13) % 90)}` : String(4700 + ((k * 37) % 160));
+    const price = dealer === SAC && service === "Used" ? 215 : PRICE[service];
+    const at = new Date(day);
+    at.setHours(8 + (i % 9), (k * 11) % 60, 0, 0);
+    out.push({ tag, vehicle: `${year} Mercedes-Benz ${model}`, vin: service === "Sold" ? null : VINS[k % VINS.length], detailer: DETAILERS[k % 3], service, price, ...dealer, day: ymdOf(day), performed_at: at.toISOString() });
+  }
+  return out;
+}
+
+/** Every car of a calendar month for a dealership (the month's invoice lines). */
+export function fixtureMonth(monthStart: Date, dealer: typeof EDH): FixtureCar[] {
+  const out: FixtureCar[] = [];
+  const d = new Date(monthStart);
+  while (d.getMonth() === monthStart.getMonth()) {
+    out.push(...fixtureCars(new Date(d), dealer, d.getDate() + (dealer === SAC ? 50 : 0)));
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
 /**
- * The Invoices list preview: three real days (a normal day is about 3 Used,
- * 2 PDI and 4 Sold), plus a few older rows so every state shows up: a loaner,
- * an overdue one, a paid one, a void one and the old multi-car batch.
+ * The Invoices list preview: one invoice per dealership per month for the
+ * last six months (never the month in progress), in every state: not sent,
+ * sent, partly paid, paid, overdue, and one deleted.
  */
 export function invoiceListFixture(): InvoiceListRow[] {
-  const day = (n: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() - n);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
-  const iso = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
-  const EDH = { dealership_id: "d1", dealership: "Mercedes-Benz of El Dorado Hills" };
-  const SAC = { dealership_id: "d2", dealership: "Mercedes-Benz of Sacramento" };
-  const PRICE: Record<string, number> = { Used: 200, PDI: 60, Sold: 20, "Service Loaner Detail": 125, "Paint Correction (1-step)": 50 };
-  type Spec = [tag: string, vehicle: string, vin: string | null, detailer: string, service: string, dealer?: typeof EDH];
+  const rows: InvoiceListRow[] = [];
+  const now = new Date();
   let n = 61;
-  const row = (ago: number, status: InvoiceListRow["status"], [tag, vehicle, vin, detailer, service, dealer = EDH]: Spec, extra: Partial<InvoiceListRow> = {}): InvoiceListRow => {
-    n -= 1;
-    const total = (dealer === SAC && service === "Used" ? 215 : PRICE[service]) ?? 0;
-    return {
-      id: `30000000-0000-4000-8000-0000000000${String(n).padStart(2, "0")}`,
-      display_number: `INV-${String(n).padStart(6, "0")}`,
-      status,
-      overdue: false,
-      deleted: false,
-      total,
-      amount_paid: status === "paid" ? total : 0,
-      balance: status === "paid" || status === "void" ? 0 : total,
-      period_start: day(ago),
-      period_end: day(ago),
-      ro_po_number: null,
-      submitted_at: status === "draft" || status === "void" ? null : iso(ago),
-      paid_at: status === "paid" ? iso(Math.max(0, ago - 1)) : null,
-      created_at: iso(ago),
-      ...dealer,
-      car_count: 1,
-      cars: [{ tag, vin, vehicle, detailer }],
-      services: [service],
-      ...extra,
-    };
+  for (let back = 1; back <= 6; back++) {
+    const start = new Date(now.getFullYear(), now.getMonth() - back, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - back + 1, 0);
+    for (const dealer of [EDH, SAC]) {
+      n -= 1;
+      // Sacramento invoices fewer cars: a smaller store.
+      const cars = fixtureMonth(start, dealer).filter((c, i) => dealer === EDH || i % 2 === 0);
+      const total = Math.round(cars.reduce((s, c) => s + c.price, 0) * 100) / 100;
+      const status: InvoiceListRow["status"] = back === 1 ? (dealer === EDH ? "submitted" : "draft") : back === 2 ? (dealer === SAC ? "partial" : "paid") : back === 3 && dealer === EDH ? "submitted" : back === 5 && dealer === SAC ? "void" : "paid";
+      const amount_paid = status === "paid" ? total : status === "partial" ? Math.round(total * 0.6) : 0;
+      const sentAt = new Date(end);
+      sentAt.setDate(sentAt.getDate() + 1);
+      sentAt.setHours(14, 5, 0, 0);
+      const paidAt = new Date(sentAt);
+      paidAt.setDate(paidAt.getDate() + 22);
+      const deleted = status === "void";
+      rows.push({
+        id: `30000000-0000-4000-8000-0000000000${String(n).padStart(2, "0")}`,
+        display_number: `INV-${String(n).padStart(6, "0")}`,
+        status,
+        overdue: status === "submitted" && back >= 3,
+        deleted,
+        total,
+        amount_paid,
+        balance: status === "paid" || status === "void" ? 0 : total - amount_paid,
+        period_start: ymdOf(start),
+        period_end: ymdOf(end),
+        ro_po_number: null,
+        submitted_at: status === "draft" || status === "void" ? null : sentAt.toISOString(),
+        paid_at: status === "paid" ? paidAt.toISOString() : null,
+        created_at: sentAt.toISOString(),
+        ...dealer,
+        car_count: cars.length,
+        cars: cars.slice(0, 4).map((c) => ({ tag: c.tag, vin: c.vin, vehicle: c.vehicle, detailer: c.detailer })),
+        services: [...new Set(cars.map((c) => c.service))],
+      });
+    }
+  }
+  return rows;
+}
+
+/**
+ * The Jobs list preview: the month in progress (today, yesterday, two days
+ * ago and back to the 1st, not invoiced yet) plus last month's cars, which
+ * sit on last month's invoices.
+ */
+export function jobListFixture(): JobListRow[] {
+  const rows: JobListRow[] = [];
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonth = invoiceListFixture().filter((r) => r.period_start === ymdOf(new Date(now.getFullYear(), now.getMonth() - 1, 1)));
+  let n = 0;
+  const push = (c: FixtureCar, invoice: InvoiceListRow | null, deleted = false) => {
+    n += 1;
+    rows.push({
+      id: `40000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
+      performed_at: c.performed_at,
+      day: c.day,
+      tag: c.tag,
+      vin: c.vin,
+      vehicle: c.vehicle,
+      color: n % 3 === 0 ? "Obsidian Black" : n % 3 === 1 ? "Polar White" : null,
+      ...{ dealership_id: c.dealership_id, dealership: c.dealership },
+      detailer_id: c.detailer === "Victor" ? "u2" : c.detailer === "Dee One" ? "u3" : "u5",
+      detailer: c.detailer,
+      services: c.service === "Used" && n % 5 === 0 ? [c.service, "Touch Up Detail"] : [c.service],
+      invoice_id: invoice?.id ?? null,
+      display_number: invoice?.display_number ?? null,
+      invoice_status: invoice?.status ?? null,
+      photo_count: n % 4 === 0 ? 2 : n % 7 === 0 ? 1 : 0,
+      deleted,
+    });
   };
-  const M = "Victor";
-  const D = "Dee One";
-  const today: Spec[] = [
-    ["4821", "2024 Mercedes-Benz GLE 450", "W1KZF8DB3NA123456", M, "Used"],
-    ["4833", "2023 Mercedes-Benz GLC 300", "W1N0G8DB5PV220114", D, "Used"],
-    ["K-131", "2025 Mercedes-Benz E 350", "W1KZF8DB1RA331902", M, "Used", SAC],
-    ["4830", "2026 Mercedes-Benz GLB 250", "W1N4M4HB0PW412221", D, "PDI"],
-    ["4836", "2026 Mercedes-Benz GLE 350", "4JGFB4JB5SA901221", M, "PDI"],
-    ["4812", "2025 Mercedes-Benz C 300", null, D, "Sold"],
-    ["4819", "2024 Mercedes-Benz GLA 250", null, M, "Sold"],
-    ["K-128", "2025 Mercedes-Benz GLC 300", null, D, "Sold", SAC],
-    ["4827", "2026 Mercedes-Benz EQE 350", null, M, "Sold"],
-  ];
-  const yesterday: Spec[] = [
-    ["4809", "2022 Mercedes-Benz S 580", "W1K6G7GB3NA000111", M, "Used"],
-    ["K-121", "2025 Mercedes-Benz E 350", "W1KZF8DB5NA777001", D, "Used", SAC],
-    ["4815", "2021 Mercedes-Benz GLE 450", "4JGFB4KB1MA228870", M, "Used"],
-    ["4838", "2026 Mercedes-Benz C 300", "W1KAF4HB3SR118204", D, "PDI"],
-    ["K-126", "2026 Mercedes-Benz GLC 300", "W1NKM4HB9SF334410", M, "PDI", SAC],
-    ["4801", "2025 Mercedes-Benz GLB 250", null, D, "Sold"],
-    ["4806", "2024 Mercedes-Benz E 350", null, M, "Sold"],
-    ["4811", "2025 Mercedes-Benz GLE 350", null, D, "Sold"],
-    ["K-119", "2024 Mercedes-Benz A 220", null, M, "Sold", SAC],
-    ["K-118", "2023 Mercedes-Benz C 300", null, D, "Service Loaner Detail", SAC],
-  ];
-  const twoDays: Spec[] = [
-    ["7702", "2023 Mercedes-Benz C-Class", "WDDGF4HB3CR227845", D, "Used"],
-    ["K-099", "2021 Mercedes-Benz GLC 300", "W1N0G8DB1MV555002", M, "Used", SAC],
-    ["4798", "2022 Mercedes-Benz GLA 250", "W1N4N4GB6NJ410233", D, "Used"],
-    ["4840", "2026 Mercedes-Benz GLE 450", "4JGFB4JB7SA905510", M, "PDI"],
-    ["4841", "2026 Mercedes-Benz EQB 300", "W1N9M0KB3SN220981", D, "PDI"],
-    ["4790", "2023 Mercedes-Benz C 300", null, M, "Sold"],
-    ["4793", "2024 Mercedes-Benz GLC 300", null, D, "Sold"],
-    ["K-110", "2025 Mercedes-Benz CLA 250", null, M, "Sold", SAC],
-    ["4796", "2022 Mercedes-Benz E 450", null, D, "Sold"],
-  ];
-  const rows: InvoiceListRow[] = [
-    ...today.map((sp) => row(0, "draft", sp)),
-    ...yesterday.map((sp) => row(1, "submitted", sp)),
-    ...twoDays.map((sp, i) => (i === 1 ? row(2, "partial", sp, { amount_paid: 100, balance: 115 }) : row(2, i % 3 === 0 ? "paid" : "submitted", sp))),
-    row(9, "paid", ["9051", "2022 Mercedes-Benz E 350", null, D, "Service Loaner Detail"]),
-    row(14, "void", ["K-087", "2026 Mercedes-Benz GLA 250", null, M, "PDI", SAC], { deleted: true }),
-    row(34, "submitted", ["3310", "2026 Mercedes-Benz GLB 250", "W1N4M4HB0PW412221", M, "Used"], { overdue: true }),
-    row(41, "paid", ["K-070", "2024 Mercedes-Benz A 220", null, M, "PDI", SAC]),
-  ];
-  // The old multi-car batch invoice (INV-000012), partly paid and overdue.
-  n = 13;
-  rows.push(
-    row(45, "partial", ["4821", "2024 Mercedes-Benz GLE 450", "W1KZF8DB3NA123456", M, "Used"], {
-      total: 790,
-      amount_paid: 500,
-      balance: 290,
-      overdue: true,
-      period_start: day(75),
-      period_end: day(45),
-      car_count: 6,
-      cars: [
-        { tag: "4821", vin: "W1KZF8DB3NA123456", vehicle: "2024 Mercedes-Benz GLE 450", detailer: M },
-        { tag: "4829", vin: "W1KZF8DB3NA123457", vehicle: "2026 Mercedes-Benz GLE 450", detailer: D },
-        { tag: "K-118", vin: null, vehicle: "2025 Mercedes-Benz C 300", detailer: M },
-        { tag: "7702", vin: "WDDGF4HB3CR227845", vehicle: "2023 Mercedes-Benz C-Class", detailer: D },
-      ],
-      services: ["Used", "PDI", "Service Loaner Detail", "Sold"],
-    }),
-  );
+  // This month, newest first, never later than now.
+  for (let back = 0; ; back++) {
+    const day = daysAgo(back);
+    if (day < monthStart) break;
+    for (const dealer of [EDH, SAC]) {
+      const cars = fixtureCars(day, dealer, day.getDate() + (dealer === SAC ? 50 : 0)).filter((c, i) => dealer === EDH || i % 2 === 0);
+      for (const c of cars) if (new Date(c.performed_at) <= now) push(c, null);
+    }
+  }
+  // One deleted one from yesterday, for the archive.
+  const yd = fixtureCars(daysAgo(1), EDH, 99)[0];
+  if (yd) push({ ...yd, tag: "4799" }, null, true);
+  // Last month: invoiced.
+  for (const inv of lastMonth) {
+    const dealer = inv.dealership_id === "d1" ? EDH : SAC;
+    const cars = fixtureMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1), dealer).filter((c, i) => dealer === EDH || i % 2 === 0);
+    for (const c of cars) push(c, inv);
+  }
+  rows.sort((a, b) => (a.performed_at < b.performed_at ? 1 : -1));
   return rows;
 }
 

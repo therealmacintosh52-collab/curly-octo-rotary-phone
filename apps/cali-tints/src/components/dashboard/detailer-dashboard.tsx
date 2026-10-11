@@ -25,7 +25,7 @@ const shortVehicle = (v: string | null) => v?.replace(/^(\d{4} )?Mercedes-Benz /
 /**
  * What a detailer sees when they open the app: their own cars, today and
  * lately, and a way to log the next one. No money, no one else's work; every
- * number opens their own invoices behind it.
+ * number opens their own jobs behind it.
  */
 export function DetailerDashboard({ stats, today, who }: { stats: DetailerStats; today: string; who: { name: string; tz: string } }) {
   const week = presetRange("this_week");
@@ -37,11 +37,11 @@ export function DetailerDashboard({ stats, today, who }: { stats: DetailerStats;
       <PageHeader
         eyebrow={<LiveDate initial={formatDate(new Date(), "EEEE, MMMM d")} />}
         title={<LiveGreeting name={who.name} tz={who.tz} initial={greetingFor(who.name, who.tz).replace(/\.$/, "")} />}
-        description="Your cars. Every number opens the invoices behind it."
+        description="Your cars. Every number opens the jobs behind it."
         actions={
           <Button asChild>
             <Link href="/jobs/new">
-              <PlusIcon /> New invoice
+              <PlusIcon /> New job
             </Link>
           </Button>
         }
@@ -53,10 +53,10 @@ export function DetailerDashboard({ stats, today, who }: { stats: DetailerStats;
           value={String(stats.today.cars)}
           sub={stats.today.cars === 0 ? "no cars logged yet" : stats.today.by_service.map((s) => `${s.name} ${s.cars}`).join(" · ")}
           tone={stats.today.cars > 0 ? "accent" : undefined}
-          href="/invoices?q=today"
+          href="/jobs?q=today"
         />
-        <StatTile label="This week" value={String(stats.week.cars)} sub={`${plural(stats.week.cars, "car", "cars")} · day by day`} href={`/invoices?from=${week.start}&to=${addDaysYmd(week.start, 6)}`} />
-        <StatTile label="This month" value={String(stats.month.cars)} sub={bestDay && bestDay.cars > 0 ? `best day ${formatDateOnly(bestDay.day, "MMM d")} · ${plural(bestDay.cars, "car", "cars")}` : plural(stats.month.cars, "car", "cars")} href={`/invoices?from=${month.start}&to=${month.end}`} />
+        <StatTile label="This week" value={String(stats.week.cars)} sub={`${plural(stats.week.cars, "car", "cars")} · day by day`} href={`/jobs?from=${week.start}&to=${addDaysYmd(week.start, 6)}`} />
+        <StatTile label="This month" value={String(stats.month.cars)} sub={bestDay && bestDay.cars > 0 ? `best day ${formatDateOnly(bestDay.day, "MMM d")} · ${plural(bestDay.cars, "car", "cars")}` : plural(stats.month.cars, "car", "cars")} href={`/jobs?from=${month.start}&to=${month.end}`} />
       </div>
 
       <Card className="mt-6">
@@ -65,7 +65,7 @@ export function DetailerDashboard({ stats, today, who }: { stats: DetailerStats;
         </CardHeader>
         <CardContent>
           {stats.today_cars.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing yet today. Tap New invoice when the first car is done.</p>
+            <p className="text-sm text-muted-foreground">Nothing yet today. Tap New job when the first car is done.</p>
           ) : (
             <ul className="divide-y divide-border text-sm" data-testid="today-cars">
               {stats.today_cars.map((c, i) => {
@@ -74,20 +74,16 @@ export function DetailerDashboard({ stats, today, who }: { stats: DetailerStats;
                     <div className="min-w-0">
                       <span className="font-semibold tracking-wide">{c.tag}</span>
                       {c.vehicle && <span className="text-muted-foreground"> · {shortVehicle(c.vehicle)}</span>}
-                      <div className="truncate text-caption text-subtle">{[c.services.join(", "), c.dealership, formatDate(c.performed_at, "h:mm a")].filter(Boolean).join(" · ")}</div>
+                      <div className="truncate text-caption text-subtle">{[c.services.join(", "), c.dealership].filter(Boolean).join(" · ")}</div>
                     </div>
-                    <div className="shrink-0 text-caption tabular-nums text-subtle">{c.display_number ?? "no invoice"}</div>
+                    <div className="shrink-0 text-caption tabular-nums text-subtle">{c.display_number ?? formatDate(c.performed_at, "h:mm a")}</div>
                   </>
                 );
                 return (
                   <StaggerItem key={c.id} index={i} as="li">
-                    {c.invoice_id ? (
-                      <Link href={`/invoices/${c.invoice_id}`} className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-accent/50">
-                        {row}
-                      </Link>
-                    ) : (
-                      <div className="-mx-2 flex items-center justify-between gap-3 px-2 py-2.5">{row}</div>
-                    )}
+                    <Link href={`/jobs/${c.id}`} className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-accent/50">
+                      {row}
+                    </Link>
                   </StaggerItem>
                 );
               })}

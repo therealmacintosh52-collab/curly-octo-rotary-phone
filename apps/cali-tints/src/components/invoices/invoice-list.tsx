@@ -13,14 +13,22 @@ import { InvoiceStatusBadge } from "./invoice-status-badge";
 import { RestoreInvoiceButton } from "./restore-invoice-button";
 import { cn } from "@/lib/utils";
 
-/** "4821 · 2024 Mercedes-Benz GLE 450", with "+2 more" for the old multi-car invoices. */
-export function carsLabel(r: Pick<InvoiceListRow, "cars" | "car_count">): { tag: string; vehicle: string; more: number } {
-  const first = r.cars[0];
-  return { tag: first?.tag ?? "—", vehicle: first?.vehicle ?? "", more: Math.max(0, r.car_count - 1) };
+const lastDayOfMonth = (ymd: string) => {
+  const [y, m] = ymd.split("-").map(Number);
+  return `${ymd.slice(0, 8)}${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`;
+};
+
+/** "September 2026" for a whole month, "Sep 1 – Sep 14, 2026" for part of one, the day for a one-day invoice. */
+export function periodLabel(r: Pick<InvoiceListRow, "period_start" | "period_end">) {
+  if (r.period_start.endsWith("-01") && r.period_end === lastDayOfMonth(r.period_start)) return formatDateOnly(r.period_start, "MMMM yyyy");
+  return r.period_start === r.period_end ? formatDateOnly(r.period_start, "MMM d, yyyy") : `${formatDateOnly(r.period_start, "MMM d")} – ${formatDateOnly(r.period_end, "MMM d, yyyy")}`;
 }
 
-function periodLabel(r: Pick<InvoiceListRow, "period_start" | "period_end">) {
-  return r.period_start === r.period_end ? formatDateOnly(r.period_start, "MMM d, yyyy") : `${formatDateOnly(r.period_start, "MMM d")} – ${formatDateOnly(r.period_end, "MMM d, yyyy")}`;
+/** What the row is about: the month (and how many cars), or the one car on a one-car invoice. */
+export function rowTitle(r: Pick<InvoiceListRow, "cars" | "car_count" | "period_start" | "period_end">): { title: string; sub: string } {
+  const first = r.cars[0];
+  if (r.car_count === 1 && first) return { title: first.tag, sub: first.vehicle ?? "" };
+  return { title: periodLabel(r), sub: `${r.car_count} ${r.car_count === 1 ? "car" : "cars"}` };
 }
 
 /** Header for the first row of each day: "Today · Mon, Sep 28", "Yesterday · Sun, Sep 27", "Fri, Sep 25". Keyed by that row's id. */
@@ -77,11 +85,11 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
       <EmptyState
         icon={FileTextIcon}
         title={filtered ? "Nothing matches" : "No cars yet"}
-        description={filtered ? "Try a different search or clear the filters." : "Log a car and it shows up here as its own invoice, ready to send."}
+        description={filtered ? "Try a different search or clear the filters." : "On the 1st, every dealership's jobs from the month become one invoice here, ready to send."}
         action={
           <Button asChild>
             <Link href="/jobs/new">
-              <PlusIcon /> New invoice
+              <PlusIcon /> New job
             </Link>
           </Button>
         }
@@ -97,7 +105,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
       {/* Mobile cards */}
       <ul className="flex flex-col gap-2 md:hidden">
         {rows.map((r, i) => {
-          const c = carsLabel(r);
+          const c = rowTitle(r);
           const head = groups?.get(r.id);
           return (
             <Fragment key={r.id}>
@@ -116,11 +124,10 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <Link href={`/invoices/${r.id}`} className="text-lg font-semibold tracking-wide after:absolute after:inset-0 after:rounded-xl">
-                        {c.tag}
+                        {c.title}
                       </Link>
-                      {c.more > 0 && <span className="text-caption text-muted-foreground">+{c.more} more</span>}
                     </div>
-                    <div className="mt-0.5 truncate text-sm">{c.vehicle || "—"}</div>
+                    <div className="mt-0.5 truncate text-sm">{c.sub || "—"}</div>
                     <div className="truncate text-caption text-muted-foreground">{r.services.join(", ") || "No services"}</div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -134,7 +141,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                   <span className="truncate">
                     {r.display_number} · {r.dealership}
                   </span>
-                  <span className="shrink-0">{periodLabel(r)}</span>
+                  {r.car_count === 1 && <span className="shrink-0">{periodLabel(r)}</span>}
                 </div>
                 {isAdmin && r.deleted && <RestoreInvoiceButton invoiceId={r.id} number={r.display_number} className="relative z-10 mt-3 w-full" />}
               </div>
@@ -149,9 +156,8 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead scope="col">Date</TableHead>
-              <TableHead scope="col">Stock #</TableHead>
-              <TableHead scope="col">Vehicle</TableHead>
+              <TableHead scope="col">Period</TableHead>
+              <TableHead scope="col">Cars</TableHead>
               <TableHead scope="col">Services</TableHead>
               <TableHead scope="col">Dealership</TableHead>
               <TableHead scope="col">Invoice</TableHead>
@@ -168,13 +174,13 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
           </TableHeader>
           <TableBody>
             {rows.map((r) => {
-              const c = carsLabel(r);
+              const c = rowTitle(r);
               const head = groups?.get(r.id);
               return (
                 <Fragment key={r.id}>
                 {head && (
                   <TableRow className="bg-muted/30 hover:bg-muted/30" data-testid="day-group">
-                    <TableCell colSpan={isAdmin ? 9 : 8} className="py-2 text-sm">
+                    <TableCell colSpan={isAdmin ? 8 : 7} className="py-2 text-sm">
                       <span className="font-semibold">{head.label}</span>
                       <span className="ml-2 text-caption tabular-nums text-muted-foreground">
                         {head.count} {head.count === 1 ? "car" : "cars"} · {formatMoney(head.total)}
@@ -183,14 +189,12 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                   </TableRow>
                 )}
                 <TableRow className={cn(r.status === "void" && !r.deleted && "opacity-60")}>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">{periodLabel(r)}</TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Link href={`/invoices/${r.id}`} className="font-semibold tracking-wide text-foreground hover:text-primary">
-                      {c.tag}
+                      {periodLabel(r)}
                     </Link>
-                    {c.more > 0 && <span className="ml-1.5 text-caption text-muted-foreground">+{c.more}</span>}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">{c.vehicle || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.car_count === 1 ? `${c.title}${c.sub ? ` · ${c.sub}` : ""}` : c.sub}</TableCell>
                   <TableCell className="max-w-64 truncate">{r.services.join(", ")}</TableCell>
                   <TableCell className="text-muted-foreground">{r.dealership}</TableCell>
                   <TableCell>

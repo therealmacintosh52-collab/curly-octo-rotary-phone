@@ -36,6 +36,8 @@ export type Company = {
   logo_path: string | null;
   /** Every car logged becomes its own invoice on save (0015). */
   auto_invoice: boolean;
+  /** Email each month's invoice to the dealership the moment it is made. */
+  auto_send_monthly: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -374,6 +376,44 @@ export type InvoiceListRow = {
 
 export type InvoiceListResult = { count: number; total: number; balance: number; rows: InvoiceListRow[] };
 
+/** One row of the Jobs list (jobs_filtered). No money. */
+export type JobListRow = {
+  id: string;
+  performed_at: string;
+  /** The company-timezone day (yyyy-mm-dd). */
+  day: string;
+  tag: string;
+  vin: string | null;
+  vehicle: string | null;
+  color: string | null;
+  dealership_id: string;
+  dealership: string;
+  detailer_id: string;
+  detailer: string;
+  services: string[];
+  invoice_id: string | null;
+  display_number: string | null;
+  invoice_status: InvoiceStatus | null;
+  photo_count: number;
+  deleted: boolean;
+};
+
+export type JobListResult = { count: number; rows: JobListRow[] };
+
+/** The whole company's day for admins and managers (team_dashboard): counts only, no money. */
+export type TeamStats = {
+  today: { cars: number; by_service: { service_id: string; name: string; cars: number }[] };
+  week: { cars: number };
+  month: { cars: number };
+  /** Jobs not yet on an invoice. */
+  open_jobs: number;
+  week_by_day: { day: string; cars: number }[];
+  by_day: { day: string; cars: number }[];
+  by_detailer: { detailer_id: string; name: string; today: number; cars: number }[];
+  today_cars: { id: string; invoice_id: string | null; display_number: string | null; tag: string; vehicle: string | null; dealership: string | null; detailer: string | null; performed_at: string; services: string[] }[];
+  range: { start: string; end: string };
+};
+
 /** Payload accepted by create_job() / update_job(). */
 export type JobPayload = {
   client_id?: string;
@@ -476,6 +516,23 @@ export type Database = {
       };
       dashboard_stats: { Args: { p_start?: string | null; p_end?: string | null }; Returns: DashboardStats };
       my_dashboard: { Args: Record<string, never>; Returns: DetailerStats };
+      team_dashboard: { Args: Record<string, never>; Returns: TeamStats };
+      jobs_filtered: {
+        Args: {
+          p_q?: string | null;
+          p_service?: string | null;
+          p_dealership?: string | null;
+          p_detailer?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_status?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: JobListResult;
+      };
+      close_month: { Args: { p_company: string; p_through?: string | null }; Returns: string[] };
+      invoice_now: { Args: { p_dealership_id: string }; Returns: string };
       jobs_filter_summary: {
         Args: {
           p_q?: string | null;

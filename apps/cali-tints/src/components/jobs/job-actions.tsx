@@ -1,0 +1,148 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { LockIcon, PencilIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
+import type { PriceListRow } from "@/lib/db/types";
+import { restoreJobAction, softDeleteJobAction, updateJobAction } from "@/app/(app)/jobs/actions";
+import { useSession } from "@/components/app/session-provider";
+import { EditCarSheet, type EditableCar } from "@/components/jobs/edit-car-sheet";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+/**
+ * Edit or delete a job while it is still open (not on an invoice). Once the
+ * month closes, the job is locked and the invoice is the record.
+ */
+export function JobActions({
+  job,
+  priceList,
+  detailers,
+  isAdmin,
+  canEdit,
+  canDelete,
+  canRestore,
+  lockedReason,
+}: {
+  job: EditableCar;
+  priceList: PriceListRow[];
+  detailers: { id: string; full_name: string }[];
+  isAdmin: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canRestore: boolean;
+  lockedReason: string | null;
+}) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [pending, start] = useTransition();
+
+  if (!canEdit && !canDelete && !canRestore && !lockedReason) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {canEdit && (
+        <Button variant="outline" onClick={() => setEditOpen(true)}>
+          <PencilIcon /> Edit job
+        </Button>
+      )}
+      {canDelete && (
+        <Button variant="ghost" className="text-destructive" onClick={() => setDeleteOpen(true)}>
+          <Trash2Icon /> Delete job
+        </Button>
+      )}
+      {canRestore && (
+        <Button
+          variant="outline"
+          disabled={pending}
+          onClick={() =>
+            start(async () => {
+              if (demo) {
+                toast.success("Job restored", { description: "Guest preview — nothing changed" });
+                return;
+              }
+              const r = await restoreJobAction(job.id);
+              if (r.ok) {
+                toast.success("Job restored");
+                router.refresh();
+              } else toast.error(r.error);
+            })
+          }
+        >
+          <RotateCcwIcon /> Restore
+        </Button>
+      )}
+      {!canEdit && lockedReason && (
+        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground" title={lockedReason}>
+          <LockIcon className="size-4" /> {lockedReason}
+        </span>
+      )}
+
+      {editOpen && (
+        <EditCarSheet
+          car={job}
+          priceList={priceList}
+          detailers={detailers}
+          isAdmin={isAdmin}
+          title={`Edit job · ${job.tag_number}`}
+          description="Fix the stock number, VIN, car, date, services or notes. The change shows on the month's invoice."
+          save={async (input) => {
+            if (demo) return { ok: true, data: undefined };
+            return updateJobAction(input);
+          }}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete the job for {job.tag_number}?</DialogTitle>
+            <DialogDescription>It moves to the archive (Jobs → Archive), where you can restore it any time. Nothing is billed for it.</DialogDescription>
+          </DialogHeader>
+          <DeleteReason
+            pending={pending}
+            onConfirm={(reason) =>
+              start(async () => {
+                if (demo) {
+                  toast.success("Job deleted", { description: "Guest preview — nothing changed" });
+                  setDeleteOpen(false);
+                  return;
+                }
+                const r = await softDeleteJobAction(job.id, reason);
+                if (r.ok) {
+                  toast.success("Job deleted");
+                  setDeleteOpen(false);
+                  router.push("/jobs");
+                  router.refresh();
+                } else toast.error(r.error);
+              })
+            }
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DeleteReason({ onConfirm, pending }: { onConfirm: (reason: string) => void; pending: boolean }) {
+  const [reason, setReason] = useState("");
+  return (
+    <>
+      <div className="grid gap-2">
+        <Label htmlFor="delete-reason">Reason (optional)</Label>
+        <Input id="delete-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Logged twice, wrong dealership…" />
+      </div>
+      <DialogFooter>
+        <Button variant="destructive" disabled={pending} onClick={() => onConfirm(reason)}>
+          Delete job
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}

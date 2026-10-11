@@ -581,3 +581,94 @@ begin
 end $$;
 
 select pg_temp.logout();
+
+-- 0028: jobs by the day, one invoice per dealership per month --------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+update public.companies set auto_invoice = false where id = '00000000-0000-4000-8000-000000000001';
+do $$
+declare j public.jobs; n int; f jsonb; v_last timestamptz := date_trunc('month', now()) - interval '10 days'; v_this timestamptz := date_trunc('month', now()) + interval '1 day 6 hours';
+begin
+  assert (select auto_invoice from public.companies where id = '00000000-0000-4000-8000-000000000001') = false, '0028: auto-invoice off';
+  -- Last month: two cars at El Dorado Hills, one at Sacramento. This month: one at each.
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'LM1', 'performed_at', v_last,
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  assert j.invoice_id is null and j.status = 'logged', '0028: a job is not invoiced on save';
+  perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'LM2', 'performed_at', v_last + interval '1 day',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000204'))));
+  perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'LM3', 'performed_at', v_last,
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'TM1', 'performed_at', v_this,
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'TM2', 'performed_at', v_this,
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000209'))));
+
+  -- The Jobs list: open jobs, searchable, no money.
+  f := public.jobs_filtered(p_status => 'open');
+  assert (f ->> 'count')::int >= 5, '0028: open jobs listed: ' || (f ->> 'count');
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'tag' = 'LM1' and (r ->> 'invoice_id') is null and r -> 'services' ? 'Used') = 1, '0028: open row shape';
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ? 'total' or r ? 'price' or r ? 'balance') = 0, '0028: jobs list carries no money';
+  f := public.jobs_filtered(p_q => 'LM');
+  assert (f ->> 'count')::int = 3, '0028: search by stock number';
+  f := public.jobs_filtered(p_dealership => '00000000-0000-4000-8000-000000000102', p_status => 'open');
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'tag' in ('LM3', 'TM2')) = 2, '0028: filter by dealership';
+
+  -- close_month is not for signed-in users.
+  begin
+    perform public.close_month('00000000-0000-4000-8000-000000000001', current_date);
+    raise exception 'expected close_month to be off limits';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
+-- The daily job runs as the service role.
+select pg_temp.logout();
+select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
+do $$
+declare ids uuid[]; n int; v_inv uuid;
+begin
+  select array_agg(x) into ids from public.close_month('00000000-0000-4000-8000-000000000001', current_date) x;
+  assert ids is not null and array_length(ids, 1) >= 2, '0028: one invoice per dealership for last month: ' || coalesce(array_length(ids, 1), 0);
+  select invoice_id into v_inv from public.jobs where tag_number = 'LM1';
+  assert v_inv is not null and v_inv = (select invoice_id from public.jobs where tag_number = 'LM2'), '0028: both El Dorado Hills cars on the same invoice';
+  assert (select invoice_id from public.jobs where tag_number = 'LM3') is not null and (select invoice_id from public.jobs where tag_number = 'LM3') <> v_inv, '0028: Sacramento gets its own invoice';
+  assert (select period_start from public.invoices where id = v_inv) = date_trunc('month', date_trunc('month', now()) - interval '10 days')::date
+     and (select period_end from public.invoices where id = v_inv) = (date_trunc('month', now()) - interval '1 day')::date, '0028: period is the calendar month';
+  assert (select count(*) from public.invoice_items where invoice_id = v_inv and tag_number in ('LM1', 'LM2')) = 2, '0028: every car on the month''s invoice';
+  assert (select invoice_id from public.jobs where tag_number = 'TM1') is null, '0028: this month stays open';
+  select count(*) into n from public.close_month('00000000-0000-4000-8000-000000000001', current_date);
+  assert n = 0, '0028: second run finds nothing';
+end $$;
+select set_config('request.jwt.claims', '', false);
+
+-- The owner closes one dealership early; the team dashboard has no money; a detailer sees only their own jobs.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_inv uuid; f jsonb;
+begin
+  v_inv := public.invoice_now('00000000-0000-4000-8000-000000000101');
+  assert (select invoice_id from public.jobs where tag_number = 'TM1') = v_inv, '0028: invoice_now closes the dealership through today';
+  assert (select invoice_id from public.jobs where tag_number = 'TM2') is null, '0028: the other dealership stays open';
+  begin
+    perform public.invoice_now('00000000-0000-4000-8000-000000000101');
+    raise exception 'expected nothing to invoice';
+  exception when sqlstate 'P0002' then null; end;
+  f := public.jobs_filtered(p_status => 'invoiced', p_q => 'TM1');
+  assert (f ->> 'count')::int = 1 and (f -> 'rows' -> 0 ->> 'display_number') like 'INV-%', '0028: invoiced job shows its number';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare t jsonb;
+begin
+  t := public.team_dashboard();
+  assert t ? 'today' and t ? 'by_detailer' and t ? 'open_jobs', '0028: team dashboard keys';
+  assert not (t ? 'income') and not (t ? 'unpaid_total') and not (t -> 'today' ? 'revenue'), '0028: team dashboard has no money';
+  assert (public.jobs_filtered() ->> 'count')::int >= 5, '0028: manager sees every job';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare f jsonb;
+begin
+  f := public.jobs_filtered();
+  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'detailer_id' <> '10000000-0000-4000-8000-000000000002') = 0, '0028: detailer sees only their own jobs';
+  assert (public.jobs_filtered(p_status => 'deleted') ->> 'count')::int = 0, '0028: no archive for detailers';
+end $$;
+select pg_temp.logout();
