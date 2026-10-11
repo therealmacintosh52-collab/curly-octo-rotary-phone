@@ -1,0 +1,33 @@
+{
+  "timezone": "America/Los_Angeles",
+  "start_day_offset": 1,
+  "max_posts_per_platform_per_day": 2,
+  "min_hours_between_posts_same_platform": 6,
+  "stagger_minutes_between_platforms": 20,
+  "platforms": {
+    "youtube_shorts": {
+      "best_windows": [
+        {"days": ["mon","tue","wed","thu","fri"], "times": ["12:00", "17:30"]},
+        {"days": ["sat","sun"], "times": ["10:00", "15:00"]}
+      ]
+    },
+    "instagram_reels": {
+      "best_windows": [
+        {"days": ["mon","tue","wed","thu","fri"], "times": ["11:00", "19:00"]},
+        {"days": ["sat","sun"], "times": ["09:30", "18:00"]}
+      ]
+    },
+    "tiktok": {
+      "best_windows": [
+        {"days": ["mon","tue","wed","thu","fri"], "times": ["07:30", "18:30", "21:00"]},
+        {"days": ["sat","sun"], "times": ["11:00", "20:00"]}
+      ]
+    },
+    "facebook_reels": {
+      "best_windows": [
+        {"days": ["mon","tue","wed","thu","fri"], "times": ["09:00", "13:00"]},
+        {"days": ["sat","sun"], "times": ["12:00"]}
+      ]
+    }
+  }
+}
