@@ -6,16 +6,28 @@ and a stagger between platforms so the same clip doesn't go live everywhere at o
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .. import settings
+
+log = logging.getLogger("clipforge.schedule")
+
+
+def resolve_tz(name: str | None):
+    """IANA zone → tzinfo, falling back to UTC (e.g. Windows without the tzdata package)."""
+    try:
+        return ZoneInfo(name or "UTC")
+    except (ZoneInfoNotFoundError, ValueError):
+        log.warning("timezone %r not found (install the tzdata package); scheduling in UTC", name)
+        return timezone.utc
 
 DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
 
-def _slots_for(platform: str, cfg: dict, tz: ZoneInfo, now: datetime, days: int) -> list[datetime]:
+def _slots_for(platform: str, cfg: dict, tz, now: datetime, days: int) -> list[datetime]:
     pcfg = cfg["platforms"].get(platform) or {}
     windows = pcfg.get("best_windows", [])
     first = (now + timedelta(days=int(cfg.get("start_day_offset", 1)))).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -37,7 +49,7 @@ def build_schedule(clips: list[dict], platforms: list[str], *, cfg: dict | None 
                    now: Optional[datetime] = None, horizon_days: int = 21) -> dict[str, dict[str, dict]]:
     """Returns {clip_id: {platform: {"at": iso, "local": "Tue Oct 14, 12:00 PM", "weekday": "tue"}}}"""
     cfg = cfg or settings.load_config("schedule")
-    tz = ZoneInfo(settings.TIMEZONE or cfg.get("timezone", "UTC"))
+    tz = resolve_tz(settings.TIMEZONE or cfg.get("timezone", "UTC"))
     now = (now or datetime.now(tz)).astimezone(tz)
     max_per_day = int(cfg.get("max_posts_per_platform_per_day", 2))
     min_gap = timedelta(hours=float(cfg.get("min_hours_between_posts_same_platform", 6)))
@@ -79,7 +91,6 @@ def build_schedule(clips: list[dict], platforms: list[str], *, cfg: dict | None 
 
 def to_ics(job: dict, clips: list[dict], platform_labels: dict[str, str]) -> str:
     """Minimal iCalendar export: one event per clip per platform."""
-    from datetime import timezone
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ClipForge//EN", "CALSCALE:GREGORIAN"]
     for c in clips:
         for platform, s in (c.get("schedule") or {}).items():

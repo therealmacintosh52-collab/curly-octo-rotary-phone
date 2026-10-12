@@ -7,6 +7,8 @@ machine at http://localhost:8000. Nothing is uploaded anywhere.
 **What it does**
 
 1. Downloads the video with yt-dlp (or takes your upload) and normalises it to H.264 MP4.
+   Vertical phone videos keep their full resolution. Audio-only files (podcasts, voice memos)
+   get a dark 9:16 canvas so you still get captioned clips.
 2. Transcribes it with faster-whisper (word-level timestamps).
 3. Finds shot cuts (PySceneDetect) and the audio energy curve (librosa).
 4. Builds candidate windows on sentence boundaries and scores them on hooks, energy,
@@ -115,6 +117,8 @@ To exercise the real whisper model once: `CLIPFORGE_TEST_REAL_WHISPER=1 pytest t
 
 - Face detection uses the bundled YuNet ONNX model (`app/assets`), falling back to OpenCV's
   Haar cascade. Both come from the OpenCV project.
+- Cancelling a job mid-render leaves unrendered clips as "pending"; re-run the job to finish them.
+  Re-render and trim are refused while the job itself is still processing.
 - One master 9:16 render is produced per clip and shared across platforms; the copy for each
   platform flags clips that exceed that platform's duration limit (e.g. Shorts at 60 s).
 - Scoring weights learned from feedback are stored in the database and override

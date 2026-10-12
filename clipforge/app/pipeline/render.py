@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
+import threading
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -24,7 +26,7 @@ ProgressFn = Callable[[float, str], None]
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 _detector = None          # ("yunet", FaceDetectorYN) | ("haar", CascadeClassifier)
-_detector_size = None
+_detector_lock = threading.Lock()   # OpenCV detectors are not safe for concurrent use
 
 
 def _noop(_: float, __: str) -> None:
@@ -74,21 +76,22 @@ def detector_name() -> str | None:
 def _detect_faces_in_frame(frame_bgr) -> list[tuple[int, int, int, int]]:
     """Return face boxes (x, y, w, h) in the given frame. Split out so tests can stub it."""
     import cv2
-    kind, det = _load_detector()
     h, w = frame_bgr.shape[:2]
     scale = 640.0 / max(1, w)
     small = cv2.resize(frame_bgr, (int(w * scale), int(h * scale))) if scale < 1 else frame_bgr
     sh, sw = small.shape[:2]
     inv = 1.0 / scale if scale < 1 else 1.0
-    if kind == "yunet":
-        det.setInputSize((sw, sh))
-        _, faces = det.detect(small)
-        if faces is None:
-            return []
-        return [(int(f[0] * inv), int(f[1] * inv), int(f[2] * inv), int(f[3] * inv)) for f in faces]
-    gray = cv2.equalizeHist(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY))
-    faces = det.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(32, 32))
-    return [(int(x * inv), int(y * inv), int(fw * inv), int(fh * inv)) for (x, y, fw, fh) in faces]
+    with _detector_lock:
+        kind, det = _load_detector()
+        if kind == "yunet":
+            det.setInputSize((sw, sh))
+            _, faces = det.detect(small)
+            if faces is None:
+                return []
+            return [(int(f[0] * inv), int(f[1] * inv), int(f[2] * inv), int(f[3] * inv)) for f in faces]
+        gray = cv2.equalizeHist(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY))
+        faces = det.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(32, 32))
+        return [(int(x * inv), int(y * inv), int(fw * inv), int(fh * inv)) for (x, y, fw, fh) in faces]
 
 
 def detect_face_center(video_path: str | Path, start: float, end: float, samples: int = 12) -> dict:
@@ -153,7 +156,7 @@ def measure_loudness(src: str | Path, start: float, dur: float, target_i: float,
     import subprocess
     cmd = ["ffmpeg", "-hide_banner", "-nostats", "-ss", f"{start:.3f}", "-i", str(src), "-t", f"{dur:.3f}", "-vn",
            "-af", f"loudnorm=I={target_i}:TP={target_tp}:LRA=11:print_format=json", "-f", "null", "-"]
-    proc = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, check=False)
+    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=cwd, check=False)
     blocks = _JSON_RE.findall(proc.stderr or "")
     for b in reversed(blocks):
         try:
@@ -170,11 +173,15 @@ def loudnorm_filter(measured: Optional[dict], target_i: float, target_tp: float)
     if not measured:
         return base
     try:
-        return (f"{base}:measured_I={float(measured['input_i']):.2f}:measured_TP={float(measured['input_tp']):.2f}"
-                f":measured_LRA={float(measured['input_lra']):.2f}:measured_thresh={float(measured['input_thresh']):.2f}"
-                f":offset={float(measured.get('target_offset', 0.0)):.2f}:linear=true")
-    except (KeyError, ValueError):
+        vals = {k: float(measured[k]) for k in ("input_i", "input_tp", "input_lra", "input_thresh")}
+        vals["offset"] = float(measured.get("target_offset", 0.0))
+    except (KeyError, ValueError, TypeError):
         return base
+    if not all(math.isfinite(v) for v in vals.values()):
+        return base  # digitally silent audio measures as -inf; single-pass handles it without blowing up
+    return (f"{base}:measured_I={vals['input_i']:.2f}:measured_TP={vals['input_tp']:.2f}"
+            f":measured_LRA={vals['input_lra']:.2f}:measured_thresh={vals['input_thresh']:.2f}"
+            f":offset={vals['offset']:.2f}:linear=true")
 
 
 # ----------------------------------------------------------------------------- render

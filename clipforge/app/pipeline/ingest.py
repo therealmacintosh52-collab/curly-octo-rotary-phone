@@ -49,9 +49,9 @@ def _download(url: str, job_dir: Path, progress: ProgressFn, max_height: int) ->
 
     ydl_opts = {
         "outtmpl": out_tmpl,
-        "format": (f"bv*[height<={max_height}][ext=mp4]+ba[ext=m4a]/"
-                   f"b[height<={max_height}][ext=mp4]/"
-                   f"bv*[height<={max_height}]+ba/b[height<={max_height}]/b"),
+        # "res" sorts by the SHORTER side, so vertical Shorts get their 1080x1920 rendition, not 608x1080.
+        "format": "bv*+ba/b",
+        "format_sort": [f"res:{max_height}", "ext:mp4:m4a", "codec:h264:aac"],
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
@@ -89,7 +89,7 @@ def _download(url: str, job_dir: Path, progress: ProgressFn, max_height: int) ->
 
 def _needs_transcode(info: ff.MediaInfo) -> bool:
     if not info.has_video:
-        raise RuntimeError("source has no video stream")
+        return True  # audio-only: a canvas is synthesised during transcode
     ok_video = info.video_codec in ("h264",)
     ok_audio = (not info.has_audio) or info.audio_codec in ("aac",)
     ok_container = "mp4" in info.container or "mov" in info.container
@@ -127,12 +127,14 @@ def ingest(job_dir: str | Path, *, url: Optional[str] = None, upload_path: Optio
     raw_info = ff.probe(raw)
     if raw_info.duration <= 0.5:
         raise RuntimeError("source is empty or too short")
+    if not raw_info.has_video and not raw_info.has_audio:
+        raise RuntimeError("source has neither video nor audio streams")
 
     out = job_dir / SOURCE_MP4
-    if _needs_transcode(raw_info) or raw_info.height > max_height:
-        progress(0.72, "transcoding to h264 mp4")
-        ff.transcode_to_mp4(raw, out, max_height=max_height)
-        normalised = "transcode"
+    if _needs_transcode(raw_info) or min(raw_info.width, raw_info.height) > max_height:
+        progress(0.72, "transcoding to h264 mp4" if raw_info.has_video else "audio only: painting a canvas")
+        ff.transcode_to_mp4(raw, out, max_height=max_height, synth_video=not raw_info.has_video)
+        normalised = "transcode" if raw_info.has_video else "audio-only"
     else:
         progress(0.72, "remuxing")
         ff.remux_to_mp4(raw, out)

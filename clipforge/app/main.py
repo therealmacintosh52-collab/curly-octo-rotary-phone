@@ -48,6 +48,7 @@ async def lifespan(_: FastAPI):
     for j in db.list_jobs():
         if j["status"] in ("running", "queued"):
             db.update_job(j["id"], status="failed", error="server restarted mid-job", message="interrupted")
+    db.fail_stale_clips("server restarted mid-render")
     yield
 
 
@@ -103,6 +104,9 @@ def config() -> dict:
 
 
 # ----------------------------------------------------------------------------- jobs
+
+_rerender_locks: set[str] = set()      # clip ids with an in-flight re-render
+_rerender_guard = threading.Lock()
 
 def _parse_options(raw: Optional[str], platforms: Optional[str]) -> dict:
     opts: dict = {}
@@ -181,8 +185,12 @@ def run_job(job_id: str) -> dict:
     job = db.get_job(job_id)
     if not job:
         raise HTTPException(404, "job not found")
-    if job["status"] == "running":
+    if job["status"] == "running" or runner.is_active(job_id):
         raise HTTPException(409, "job already running")
+    with _rerender_guard:
+        busy = [c["id"] for c in db.list_clips(job_id) if c["id"] in _rerender_locks]
+    if busy:
+        raise HTTPException(409, "a clip of this job is still re-rendering; wait for it to finish")
     db.update_job(job_id, status="queued", progress=0.0, error=None, message="queued")
     runner.start_job(job_id)
     return db.get_job(job_id)  # type: ignore[return-value]
@@ -233,10 +241,6 @@ class FeedbackIn(BaseModel):
     note: Optional[str] = Field(None, max_length=1000)
 
 
-_rerender_locks: set[str] = set()
-_rerender_guard = threading.Lock()
-
-
 def _clip_or_404(clip_id: str) -> dict:
     clip = db.get_clip(clip_id)
     if not clip:
@@ -255,6 +259,8 @@ def patch_clip(clip_id: str, body: ClipPatch) -> dict:
     clip = _clip_or_404(clip_id)
     fields: dict = {}
     if body.start_s is not None or body.end_s is not None:
+        if runner.is_active(clip["job_id"]):
+            raise HTTPException(409, "job is still processing; trim after it finishes")
         start = body.start_s if body.start_s is not None else clip["start_s"]
         end = body.end_s if body.end_s is not None else clip["end_s"]
         job = db.get_job(clip["job_id"]) or {}
@@ -275,6 +281,8 @@ def patch_clip(clip_id: str, body: ClipPatch) -> dict:
 @app.post("/api/clips/{clip_id}/rerender")
 def rerender_clip(clip_id: str, reframe: Optional[str] = Query(None, pattern="^(auto|center|blur)$")) -> dict:
     clip = _clip_or_404(clip_id)
+    if runner.is_active(clip["job_id"]):
+        raise HTTPException(409, "job is still processing; re-render after it finishes")
     with _rerender_guard:
         if clip_id in _rerender_locks:
             raise HTTPException(409, "clip is already rendering")

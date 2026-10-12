@@ -28,7 +28,8 @@ def check_ffmpeg() -> dict:
             "  Ubuntu:  sudo apt install ffmpeg\n"
             "  Windows: winget install Gyan.FFmpeg   (then reopen the terminal)"
         )
-    out = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, check=False).stdout
+    out = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, encoding="utf-8",
+                         errors="replace", check=False).stdout
     m = re.search(r"ffmpeg version (\S+)", out)
     return {"ffmpeg": shutil.which("ffmpeg"), "ffprobe": shutil.which("ffprobe"),
             "version": m.group(1) if m else "unknown"}
@@ -36,7 +37,8 @@ def check_ffmpeg() -> dict:
 
 def run(cmd: Sequence[str], *, timeout: int | None = None, cwd: str | Path | None = None) -> subprocess.CompletedProcess:
     """Run an ffmpeg/ffprobe command, raising FFmpegError with stderr tail on failure."""
-    proc = subprocess.run(list(cmd), capture_output=True, text=True, timeout=timeout, check=False, cwd=cwd)
+    proc = subprocess.run(list(cmd), capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          timeout=timeout, check=False, cwd=cwd)
     if proc.returncode != 0:
         tail = "\n".join(proc.stderr.strip().splitlines()[-12:])
         raise FFmpegError(f"command failed ({proc.returncode}): {' '.join(cmd[:6])} ...\n{tail}")
@@ -49,7 +51,8 @@ def run_with_progress(cmd: Sequence[str], *, total_seconds: float, on_progress=N
     full = list(cmd)
     if "-progress" not in full:
         full[1:1] = ["-progress", "pipe:1", "-nostats"]
-    proc = subprocess.Popen(full, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd)
+    proc = subprocess.Popen(full, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                            errors="replace", cwd=cwd)
     try:
         assert proc.stdout is not None
         for line in proc.stdout:
@@ -109,7 +112,13 @@ def probe(path: str | Path) -> MediaInfo:
     data = json.loads(proc.stdout or "{}")
     fmt = data.get("format", {})
     streams = data.get("streams", [])
-    v = next((s for s in streams if s.get("codec_type") == "video"), None)
+    # Embedded cover art (mp3/m4a) shows up as a 1-frame image "video" stream next to the audio; it is
+    # not video. A standalone image file (cover.jpg) still probes as a one-frame video.
+    has_audio_stream = any(s.get("codec_type") == "audio" for s in streams)
+    image_codecs = ("mjpeg", "png", "bmp", "gif", "tiff", "webp")
+    v = next((s for s in streams if s.get("codec_type") == "video"
+              and not (s.get("disposition") or {}).get("attached_pic")
+              and not (has_audio_stream and s.get("codec_name") in image_codecs)), None)
     a = next((s for s in streams if s.get("codec_type") == "audio"), None)
     duration = float(fmt.get("duration") or (v or {}).get("duration") or (a or {}).get("duration") or 0.0)
     return MediaInfo(
@@ -137,10 +146,22 @@ def extract_audio_wav(src: str | Path, dst: str | Path, sample_rate: int = 16000
     return dst
 
 
-def transcode_to_mp4(src: str | Path, dst: str | Path, *, max_height: int = 1080, crf: int = 20) -> Path:
-    """Normalise any input into an H.264/AAC MP4 so later stages only deal with one format."""
+def transcode_to_mp4(src: str | Path, dst: str | Path, *, max_height: int = 1080, crf: int = 20,
+                     synth_video: bool = False) -> Path:
+    """Normalise any input into an H.264/AAC MP4 so later stages only deal with one format.
+
+    `max_height` caps the SHORTER side, so a 1080x1920 phone video stays 1080x1920 and a 4K landscape
+    source becomes 1920x1080. `synth_video=True` (audio-only sources) paints a dark 1080x1920 canvas.
+    """
     dst = Path(dst)
-    vf = f"scale=-2:'min({max_height},ih)'"
+    if synth_video:
+        run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "color=c=0x14171d:s=1080x1920:r=30", "-i", str(src),
+             "-map", "0:v", "-map", "1:a", "-shortest", "-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf),
+             "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(dst)])
+        return dst
+    m = max_height
+    vf = (f"scale=w='if(gt(iw,ih),-2,min(iw,{m}))':h='if(gt(iw,ih),min(ih,{m}),-2)':flags=lanczos,"
+          "scale=trunc(iw/2)*2:trunc(ih/2)*2")
     run(["ffmpeg", "-y", "-v", "error", "-i", str(src),
          "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf), "-pix_fmt", "yuv420p",
          "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(dst)])

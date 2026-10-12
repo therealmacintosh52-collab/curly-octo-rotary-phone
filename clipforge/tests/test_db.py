@@ -43,7 +43,8 @@ def test_clips_cascade_and_json_fields():
     db.add_feedback(c1["id"], j["id"], 1, "great hook", {"audio_energy": 0.9})
     assert len(db.list_feedback()) == 1
     db.delete_job(j["id"])
-    assert db.list_clips(j["id"]) == [] and db.list_feedback() == []
+    assert db.list_clips(j["id"]) == []
+    assert len(db.list_feedback()) == 1  # ratings are kept: they feed the learned weights
 
 
 def test_kv_store():

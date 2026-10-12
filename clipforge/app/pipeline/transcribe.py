@@ -71,15 +71,19 @@ def transcribe(audio_path: str | Path, out_path: str | Path | None = None, *, pr
         return result
 
     progress(0.05, "transcribing")
-    seg_iter, info = model.transcribe(
-        str(audio_path),
-        word_timestamps=True,
-        vad_filter=True,
-        vad_parameters={"min_silence_duration_ms": 400},
-        beam_size=5,
-        language=language,
-        condition_on_previous_text=False,
-    )
+    kwargs = dict(word_timestamps=True, vad_filter=True, vad_parameters={"min_silence_duration_ms": 400},
+                  beam_size=5, condition_on_previous_text=False)
+    supported = getattr(model, "supported_languages", None)
+    if language and supported and language.lower() not in supported:
+        log.warning("language %r not supported by whisper; auto-detecting instead", language)
+        language = None
+    try:
+        seg_iter, info = model.transcribe(str(audio_path), language=language, **kwargs)
+    except ValueError as exc:  # faster-whisper rejects unknown language codes here
+        if not language:
+            raise
+        log.warning("whisper rejected language %r (%s); auto-detecting instead", language, exc)
+        seg_iter, info = model.transcribe(str(audio_path), language=None, **kwargs)
     total = duration_hint or getattr(info, "duration", None) or 0.0
     segments: list[dict] = []
     words: list[dict] = []

@@ -150,6 +150,9 @@ def render_one_clip(job_id: str, clip: dict, *, reframe: str | None = None, prog
         meta["render"] = {"reframe": res["reframe"], "duration": res["duration"], "n_caption_words": caps["n_words"]}
         db.update_clip(clip["id"], score_breakdown=meta)
         return res
+    except JobCancelled:
+        db.update_clip(clip["id"], status="pending", error=None)
+        raise
     except Exception as exc:  # noqa: BLE001
         log.error("clip %s render failed: %s", clip["id"], exc)
         db.update_clip(clip["id"], status="failed", error=str(exc)[:1500])
@@ -168,6 +171,8 @@ def _run_render(ctx: JobContext) -> None:
             ctx.progress((i + f) / n, m)
         try:
             render_one_clip(ctx.job_id, clip, progress=prog)
+        except JobCancelled:
+            raise
         except Exception:  # noqa: BLE001 - recorded on the clip; keep going
             failures += 1
     if failures == n:
@@ -270,3 +275,8 @@ def cancel_job(job_id: str) -> bool:
 def active_job_ids() -> list[str]:
     with _active_lock:
         return list(_active)
+
+
+def is_active(job_id: str) -> bool:
+    with _active_lock:
+        return job_id in _active
