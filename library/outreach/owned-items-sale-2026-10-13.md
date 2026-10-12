@@ -4,7 +4,7 @@ Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is posted by
 ## COMPLIANCE — confirm before you post
 - [ ] A-004 Q5 (which apps you use) and Q8 (what you own) answered. No new A-### needed: you post your own items from your own account. Agents create no account.
 - [ ] Items are things YOU already own and used. Never buy anything to resell (permit needed, CDTFA Pub 107 [VERIFIED https://www.cdtfa.ca.gov/formspubs/pub107 2026-10-12 "items you purchased for the purpose of reselling to others"]).
-- [ ] ONE sweep only (C8). CDTFA occasional-sale wording: "no more than two sales in a 12-month period" [VERIFIED same URL]. Whether 5 items in one sweep = one occasion is red-team's reading, not a legal ruling. Do not run a second sweep within 12 months without asking CDTFA (number 1-800-400-7115 [UNVERIFIED, search summary only]).
+- [ ] ONE sweep only (C8). CDTFA occasional-sale wording: "no more than two sales in a 12-month period" [VERIFIED same URL]. Whether 5 items sold to different buyers in one sweep counts as one occasion is UNCONFIRMED (red-team's reading, not a ruling): verify with CDTFA or a tax professional BEFORE the first sale. No second sweep within 12 months. CDTFA number 1-800-400-7115 [UNVERIFIED, search summary only].
 - [ ] No personal info in the listing: no home address, phone, last name, plates, mail or serial numbers in photos. Use the app's own messaging.
 - [ ] Fill before posting: [ITEM], [MODEL], [CONDITION + flaws], [PRICE], [PICKUP AREA = "Elk Grove" only].
 - [ ] Platform fee/rules: local pickup fee-free is UNVERIFIED (scout b7). Read the app's own fee line before listing.
@@ -34,7 +34,7 @@ Electronics (I-016): screenshot one in-app trade-in quote if a retailer app give
 - "I can meet in Elk Grove, daylight hours, at the police department's exchange zone (8400 Laguna Palms Way). What day works?"
 - "Cash only, or Zelle that shows in my balance before you take the item."
 - "Please test it there. No holds, no shipping, no deposits."
-- Fact: EGPD Community Exchange Zone, front parking lot, 8400 Laguna Palms Way, two marked stalls, camera [VERIFIED https://elkgrove.gov/community-safety-programs-and-services/community-exchange-zone 2026-10-12, search summary "front parking lot of the police department at 8400 Laguna Palms Way"]. Source articles are several years old: confirm current status with EGPD before relying on it.
+- Fact: EGPD Community Exchange Zone, front parking lot, 8400 Laguna Palms Way [VERIFIED https://elkgrove.gov/community-safety-programs-and-services/community-exchange-zone 2026-10-12, search summary "front parking lot of the police department at 8400 Laguna Palms Way"]. Marked stalls and camera: UNVERIFIED, not in that snippet. Source articles are several years old: confirm current status with EGPD before relying on it.
 - Police tips from the same results: daylight, bring a friend, keep your phone with you.
 - Walk away on: checks, gift cards, "send a code", overpay-and-refund, pressure to move off the app, buyer wants to come to your home.
 
