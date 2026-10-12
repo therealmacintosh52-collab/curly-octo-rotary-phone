@@ -12,6 +12,7 @@ Two tables. Approvals carry IDs `A-###`; an agent may act on a hard-gate item on
 | 2026-10-12 | D-005 | ClipForge parked | Needs a PC; owner is phone-only | Active |
 | 2026-10-12 | D-006 | "Viral" is not an optimization target; growth optimizes deposits per owner-hour | Virality without a payment path is a vanity metric | Active |
 | 2026-10-12 | D-007 | Red-team auto-rejects any handoff with an untagged claim | Deliberate test that the Repair Protocol round-trips on the first cycle | Active |
+| 2026-10-12 | D-008 | Session 1 runs agents as general-purpose subagents with the matching model tier, each told to adopt its `.claude/agents/<name>.md` definition | Claude Code loads custom agent types at session start; files created mid-session are not invocable by name until the next session. From session 2 use the named types directly | Active (session 1 only) |
 
 ## Owner approvals (`A-###`)
 | ID | Asked | Item | Owner answer | Date answered | Scope / expiry |
