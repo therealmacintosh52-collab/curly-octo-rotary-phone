@@ -196,3 +196,93 @@ export const RETAIL_JOB_CUSTOMER: Record<string, { id: string; name: string; veh
   "R-101": { id: C1, name: "Ana Lopez", vehicle_id: V1 },
   "R-102": { id: C2, name: "Marcus Reed", vehicle_id: V2 },
 };
+
+// ---------------------------------------------------------------------------
+// 0038: the shop menu, size prices, modifiers, booking settings, resources
+// ---------------------------------------------------------------------------
+import type { PriceListRow, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
+import { DEFAULT_TEMPLATES } from "@/lib/retail/templates";
+
+type Seed = [name: string, benefit: string, minutes: number, kinds: ("bay" | "lift")[], skill: string | null, win: [string, string] | null, taxable: boolean, prices: [number, number, number, number]];
+const RETAIL_SEED: Seed[] = [
+  ["Full detail", "Inside and out, done properly", 240, ["bay"], null, null, false, [180, 200, 240, 290]],
+  ["Paint correction (1-stage)", "Single-stage machine polish: swirls and light scratches", 360, ["bay"], "correction", ["08:00", "10:00"], false, [350, 400, 475, 550]],
+  ["Paint correction (2-stage)", "Compound then polish: deeper defects, maximum gloss", 540, ["bay"], "correction", ["08:00", "09:00"], false, [550, 600, 700, 800]],
+  ["Clay bar", "Decontaminate the paint so it feels like glass", 60, ["bay"], null, null, false, [60, 70, 85, 100]],
+  ["Water spot removal", "Mineral etching lifted from paint and glass", 60, ["bay"], null, null, false, [80, 90, 110, 130]],
+  ["Headlight restoration", "Yellowed lenses brought back to clear", 45, ["bay"], null, null, false, [60, 60, 60, 60]],
+  ["Trim restore", "Faded plastic trim back to black", 45, ["bay"], null, null, false, [50, 60, 70, 85]],
+  ["Tire shine", "Dressed tires, no sling", 15, ["bay"], null, null, false, [15, 15, 15, 15]],
+  ["Odor bomb", "Odor treatment for smoke, pets and spills", 30, ["bay"], null, null, false, [35, 35, 35, 35]],
+  ["Oil change", "Oil and filter with a fluid check", 45, ["bay", "lift"], "mechanic", null, true, [55, 60, 75, 90]],
+  ["Brakes (per axle)", "Pads and rotors on one axle", 90, ["bay", "lift"], "mechanic", null, true, [180, 190, 220, 260]],
+  ["Brake / noise inspection", "We find the squeak and tell you what it needs", 30, ["bay", "lift"], "mechanic", null, false, [40, 40, 40, 40]],
+];
+
+export const RETAIL_SERVICE_ID = (i: number) => `80000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`;
+
+export function retailServicesFixture(owner: boolean): RetailCatalogService[] {
+  return RETAIL_SEED.map(([name, benefit, minutes, kinds, skill, win, taxable, p], i) => ({
+    id: RETAIL_SERVICE_ID(i),
+    name,
+    description: benefit,
+    benefit_text: benefit,
+    category: "retail",
+    duration_minutes: minutes,
+    retail: true,
+    dealer: false,
+    taxable,
+    placeholder: i !== 0, // the owner has confirmed the full detail price in the demo
+    required_resource_kinds: kinds,
+    required_skill: skill,
+    start_window_from: win?.[0] ?? null,
+    start_window_to: win?.[1] ?? null,
+    active: true,
+    sort_order: 310 + i * 10,
+    open_amount: false,
+    prices: owner ? { compact: p[0], sedan: p[1], suv_truck: p[2], xl: p[3] } : null,
+    default_price: owner ? p[1] : null,
+  }));
+}
+
+/** The shop's chips on New job (dealership_price_list for the retail row): the retail menu, no prices. */
+export function retailPriceListFixture(): PriceListRow[] {
+  return [
+    ...retailServicesFixture(false).map((s, i) => ({ service_id: s.id, name: s.name, description: s.benefit_text, category: "retail" as const, price: null, price_min: null, price_max: null, is_override: false, sort_order: 310 + i * 10, open_amount: false })),
+    { service_id: "s8", name: "Other", description: "Anything not on the menu", category: "addon", price: null, price_min: null, price_max: null, is_override: false, sort_order: 900, open_amount: true },
+  ];
+}
+
+export function retailCatalogFixture(owner: boolean): RetailCatalog {
+  const dealer: RetailCatalogService[] = [
+    ["s1", "PDI", "new", 10],
+    ["s3", "Used", "used", 30],
+    ["s7", "Paint Correction (1-step)", "addon", 70],
+  ].map(([id, name, category, sort]) => ({ id: id as string, name: name as string, description: null, benefit_text: null, category: category as RetailCatalogService["category"], duration_minutes: 60, retail: false, dealer: true, taxable: false, placeholder: false, required_resource_kinds: ["bay"], required_skill: null, start_window_from: null, start_window_to: null, active: true, sort_order: sort as number, open_amount: false, prices: owner ? {} : null, default_price: owner ? 50 : null }));
+  const other: RetailCatalogService = { id: "s8", name: "Other", description: "Anything not on the menu", benefit_text: null, category: "addon", duration_minutes: 60, retail: true, dealer: true, taxable: false, placeholder: false, required_resource_kinds: ["bay"], required_skill: null, start_window_from: null, start_window_to: null, active: true, sort_order: 900, open_amount: true, prices: owner ? {} : null, default_price: owner ? 0 : null };
+  const now = new Date().toISOString();
+  const res = (id: string, kind: "bay" | "lift" | "tech", name: string, sort: number, profile_id: string | null = null, skills: string[] = []) => ({ id, company_id: "c1", kind, name, profile_id, skills, active: true, sort_order: sort, created_at: now, updated_at: now });
+  return {
+    services: [...dealer, ...retailServicesFixture(owner), other],
+    modifiers: [
+      { id: "m1", company_id: "c1", code: "soil_heavy", label: "Heavy soil", description: "Mud, sand, heavy grime: extra time on the interior", kind: "percent", amount: 25, active: true, sort_order: 10, created_at: now, updated_at: now },
+      { id: "m2", company_id: "c1", code: "pet_hair", label: "Pet hair", description: "Embedded pet hair in carpet and seats", kind: "flat", amount: 40, active: true, sort_order: 20, created_at: now, updated_at: now },
+      { id: "m3", company_id: "c1", code: "biohazard", label: "Biohazard", description: "Vomit, mold, spills needing extraction", kind: "flat", amount: 75, active: true, sort_order: 30, created_at: now, updated_at: now },
+    ],
+    settings: { id: "rs1", company_id: "c1", deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, hold_minutes: 30, cancel_hours: 24, slot_step_minutes: 30, lead_time_hours: 2, max_days_ahead: 60, reminder_hours: [24, 2], online_booking_enabled: true, estimate_valid_days: 14, tax_all_lines: false, signature_required_estimate: true, signature_required_receipt: true, policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", email_templates: DEFAULT_TEMPLATES, updated_at: now },
+    resources: [
+      ...[1, 2, 3, 4, 5, 6].map((n) => res(`bay${n}`, "bay", `Bay ${n}`, n)),
+      res("lift1", "lift", "Lift 1", 11),
+      res("lift2", "lift", "Lift 2", 12),
+      res("tech-u2", "tech", "Victor", 21, "u2", ["detail", "correction"]),
+      res("tech-u3", "tech", "Dee One", 22, "u3", ["detail", "mechanic"]),
+      res("tech-u5", "tech", "Sam", 23, "u5", ["detail"]),
+    ],
+    hours: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ id: `h${d}`, company_id: "c1", dow: d, opens: "08:00:00", closes: "17:00:00", closed: d === 0 })),
+    blackouts: [{ id: "b1", company_id: "c1", day: `${new Date().getFullYear()}-11-26`, reason: "Thanksgiving", created_at: now }],
+    time_off: [],
+    tax_rate: 0,
+  };
+}
+
+export const SIZE_LABEL_FIXTURE: Record<VehicleSize, string> = { compact: "Compact", sedan: "Sedan", suv_truck: "SUV / truck", xl: "XL" };

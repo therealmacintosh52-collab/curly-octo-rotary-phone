@@ -309,7 +309,7 @@ begin
 
   -- admin can change prices; audit captures it
   update public.services set default_price = 205 where id = '00000000-0000-4000-8000-000000000201';
-  select count(*) into n from public.audit_log where table_name = 'services' and action = 'update'; assert n = 1, 'service price audited';
+  select count(*) into n from public.audit_log where table_name = 'services' and action = 'update' and row_id = '00000000-0000-4000-8000-000000000201'; assert n = 1, 'service price audited';
 end $$;
 
 -- Double-billing guard -------------------------------------------------------

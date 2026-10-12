@@ -5,7 +5,7 @@ import Link from "next/link";
 import { JobForm } from "@/components/jobs/job-form";
 import type { Company, Dealership, Profile } from "@/lib/db/types";
 import { priceListFixture } from "@/test/fixtures";
-import { pickedCustomersFixture } from "@/test/retail-fixtures";
+import { pickedCustomersFixture, retailPriceListFixture } from "@/test/retail-fixtures";
 
 /**
  * Fixture preview of New job (guest demo in production). `?as=detailer`
@@ -127,7 +127,7 @@ export default async function DevPreviewPage(props: PageProps<"/dev/preview">) {
         <AppShell>
           <JobForm
             dealerships={dealerships}
-            priceLists={{ d1: list, d2: list, d3: list }}
+            priceLists={{ d1: list, d2: list, d3: retailPriceListFixture() }}
             detailers={[
               { id: profile.id, full_name: profile.full_name },
               { id: "u2", full_name: "Victor" },

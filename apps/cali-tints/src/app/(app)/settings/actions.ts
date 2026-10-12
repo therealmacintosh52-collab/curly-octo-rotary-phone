@@ -124,7 +124,7 @@ const serviceSchema = z.object({
   id: z.uuid().optional(),
   name: z.string().trim().min(1).max(80),
   description: optionalText(200),
-  category: z.enum(["new", "used", "service", "addon"]),
+  category: z.enum(["new", "used", "service", "addon", "retail"]),
   default_price: z.number().min(0),
   price_min: z.number().min(0).nullable(),
   price_max: z.number().min(0).nullable(),

@@ -91,7 +91,7 @@ export type Dealership = {
   updated_at: string;
 }
 
-export type ServiceCategory = "new" | "used" | "service" | "addon";
+export type ServiceCategory = "new" | "used" | "service" | "addon" | "retail";
 
 export type Service = {
   id: string;
@@ -107,7 +107,99 @@ export type Service = {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  /** Retail catalog (0038): how long it takes, what it needs, which menus it is on. */
+  duration_minutes?: number;
+  benefit_text?: string | null;
+  retail?: boolean;
+  dealer?: boolean;
+  taxable?: boolean;
+  /** Seeded price not yet confirmed by the owner. */
+  placeholder?: boolean;
+  required_resource_kinds?: ResourceKind[];
+  required_skill?: string | null;
+  start_window_from?: string | null;
+  start_window_to?: string | null;
 }
+
+export type ResourceKind = "bay" | "lift" | "tech";
+
+/** The retail price of a service for one size class (0038). Owner only. */
+export type ServicePriceBySize = { id: string; company_id: string; service_id: string; size_class: VehicleSize; price: number; created_at: string; updated_at: string };
+
+export type PriceModifier = { id: string; company_id: string; code: string; label: string; description: string | null; kind: "percent" | "flat"; amount: number; active: boolean; sort_order: number; created_at: string; updated_at: string };
+
+export type RetailSettings = {
+  id: string;
+  company_id: string;
+  deposit_kind: "percent" | "flat" | "none";
+  deposit_value: number;
+  deposit_refundable: boolean;
+  hold_minutes: number;
+  cancel_hours: number;
+  slot_step_minutes: 15 | 30 | 60;
+  lead_time_hours: number;
+  max_days_ahead: number;
+  reminder_hours: number[];
+  online_booking_enabled: boolean;
+  estimate_valid_days: number;
+  tax_all_lines: boolean;
+  signature_required_estimate: boolean;
+  signature_required_receipt: boolean;
+  policy_text: string | null;
+  email_templates: Record<string, { subject?: string; body?: string }>;
+  updated_at: string;
+};
+
+export type Resource = { id: string; company_id: string; kind: ResourceKind; name: string; profile_id: string | null; skills: string[]; active: boolean; sort_order: number; created_at: string; updated_at: string };
+export type BusinessHour = { id: string; company_id: string; dow: number; opens: string; closes: string; closed: boolean };
+export type BlackoutDay = { id: string; company_id: string; day: string; reason: string | null; created_at: string };
+export type TimeOff = { id: string; company_id: string; resource_id: string; starts_at: string; ends_at: string; reason: string | null; created_at: string };
+
+/** retail_catalog(): the shop menu with size prices (owner/admin), modifiers, settings, resources, hours. */
+export type RetailCatalogService = {
+  id: string;
+  name: string;
+  description: string | null;
+  benefit_text: string | null;
+  category: ServiceCategory;
+  duration_minutes: number;
+  retail: boolean;
+  dealer: boolean;
+  taxable: boolean;
+  placeholder: boolean;
+  required_resource_kinds: ResourceKind[];
+  required_skill: string | null;
+  start_window_from: string | null;
+  start_window_to: string | null;
+  active: boolean;
+  sort_order: number;
+  open_amount: boolean;
+  /** Null unless owner/admin. */
+  prices: Partial<Record<VehicleSize, number>> | null;
+  default_price: number | null;
+};
+export type RetailCatalog = {
+  services: RetailCatalogService[];
+  modifiers: PriceModifier[];
+  settings: RetailSettings | null;
+  resources: Resource[];
+  hours: BusinessHour[];
+  blackouts: BlackoutDay[];
+  time_off: TimeOff[];
+  tax_rate: number;
+};
+
+/** quote_total(): a retail quote priced by size. */
+export type QuoteResult = {
+  size_class: VehicleSize;
+  lines: { service_id: string; name: string; benefit_text: string | null; unit_price: number; qty: number; modifiers: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; line_total: number; taxable: boolean; duration_minutes: number; placeholder: boolean }[];
+  subtotal: number;
+  tax_rate: number;
+  tax: number;
+  total: number;
+  duration_minutes: number;
+  placeholder: boolean;
+};
 
 export type DealershipServicePrice = {
   id: string;
@@ -684,6 +776,13 @@ export type Database = {
       customers: Table<Customer>;
       vehicles: Table<Vehicle>;
       odometer_readings: Table<OdometerReading>;
+      service_prices_by_size: Table<ServicePriceBySize>;
+      price_modifiers: Table<PriceModifier>;
+      retail_settings: Table<RetailSettings>;
+      resources: Table<Resource>;
+      business_hours: Table<BusinessHour>;
+      blackout_days: Table<BlackoutDay>;
+      time_off: Table<TimeOff>;
       jobs: Table<Job>;
       job_services: Table<JobService>;
       job_photos: Table<JobPhoto>;
@@ -716,6 +815,8 @@ export type Database = {
       customers_filtered: { Args: { p_q?: string | null; p_archived?: boolean; p_limit?: number; p_offset?: number }; Returns: CustomerListResult };
       customer_timeline: { Args: { p_id: string }; Returns: CustomerTimeline };
       save_vehicle: { Args: { p: VehiclePayload }; Returns: Vehicle };
+      retail_catalog: { Args: Record<string, never>; Returns: RetailCatalog };
+      quote_total: { Args: { p_size: VehicleSize; p_lines: { service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[] }[] }; Returns: QuoteResult };
       add_odometer: { Args: { p_vehicle: string; p_reading: number; p_read_at?: string | null; p_job?: string | null }; Returns: OdometerReading };
       is_member: { Args: Record<string, never>; Returns: boolean };
       resolve_service_price: { Args: { p_dealership_id: string; p_service_id: string }; Returns: number | null };

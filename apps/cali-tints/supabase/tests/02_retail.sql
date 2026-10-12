@@ -159,3 +159,135 @@ begin
   assert (public.customers_filtered() -> 'rows' -> 0 -> 'lifetime_spend') = 'null'::jsonb, '0037: manager sees no money';
 end $$;
 select pg_temp.logout();
+
+-- =============================================================================
+-- 0038: catalog, size-class prices, modifiers, settings, resources
+-- =============================================================================
+create or replace function pg_temp.size_price(p_service uuid, p_size public.vehicle_size) returns numeric
+language sql security definer as $$
+  select price from public.service_prices_by_size where service_id = p_service and size_class = p_size;
+$$;
+
+-- Seeded defaults exist once, and only once after a re-run.
+select pg_temp.logout();
+-- The fixture users were created after the seed: a re-run adds them as techs and nothing else.
+select public.seed_retail_defaults('00000000-0000-4000-8000-000000000001');
+do $$
+declare n int; v_company uuid := '00000000-0000-4000-8000-000000000001';
+begin
+  select count(*) into n from public.services where company_id = v_company and retail; assert n = 13, '0038: twelve retail services + Other on the shop menu: ' || n;
+  select count(*) into n from public.services where company_id = v_company and placeholder; assert n = 12, '0038: placeholders flagged';
+  select count(*) into n from public.service_prices_by_size where company_id = v_company; assert n = 48, '0038: four sizes per retail service';
+  select count(*) into n from public.resources where company_id = v_company and kind = 'bay'; assert n = 6, '0038: six bays';
+  select count(*) into n from public.resources where company_id = v_company and kind = 'lift'; assert n = 2, '0038: two lifts';
+  select count(*) into n from public.resources where company_id = v_company and kind = 'tech' and profile_id is not null; assert n >= 2, '0038: a tech per active detailer: ' || n;
+  select count(*) into n from public.business_hours where company_id = v_company and not closed; assert n = 6, '0038: Mon–Sat open';
+  assert (select deposit_value from public.retail_settings where company_id = v_company) = 20, '0038: 20% deposit default';
+  assert (select email_templates ? 'booking_confirmed' from public.retail_settings where company_id = v_company), '0038: templates seeded';
+  perform public.seed_retail_defaults(v_company);
+  select count(*) into n from public.services where company_id = v_company and retail; assert n = 13, '0038: seeding again adds nothing';
+  select count(*) into n from public.resources where company_id = v_company; assert n = 8 + (select count(*) from public.profiles where company_id = v_company and active and role in ('detailer','manager')), '0038: resources seeded once';
+end $$;
+
+-- The owner prices by size, quotes, and sees the catalog with money.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_full uuid; v_oil uuid; v_other uuid; q jsonb; cat jsonb; n int;
+begin
+  select id into v_full from public.services where name = 'Full detail';
+  select id into v_oil from public.services where name = 'Oil change';
+  select id into v_other from public.services where name = 'Other';
+  assert pg_temp.size_price(v_full, 'suv_truck') = 240, '0038: matrix seeded';
+
+  q := public.quote_total('suv_truck', jsonb_build_array(jsonb_build_object('service_id', v_full, 'modifiers', jsonb_build_array('soil_heavy', 'pet_hair', 'nope')), jsonb_build_object('service_id', v_oil)));
+  assert (q ->> 'subtotal')::numeric = 240 + 60 + 40 + 75, '0038: quote subtotal: ' || (q ->> 'subtotal');
+  assert (q ->> 'tax')::numeric = 0, '0038: company tax rate 0 → no tax';
+  assert (q -> 'lines' -> 1 ->> 'taxable')::boolean, '0038: oil change is a parts line';
+  assert (q ->> 'duration_minutes')::int = 285, '0038: quote duration';
+  assert (q ->> 'placeholder')::boolean, '0038: placeholder flag surfaces';
+
+  update public.companies set tax_rate = 0.0875 where id = public.current_company_id();
+  q := public.quote_total('suv_truck', jsonb_build_array(jsonb_build_object('service_id', v_full), jsonb_build_object('service_id', v_oil)));
+  assert (q ->> 'tax')::numeric = 6.56 and (q ->> 'total')::numeric = 321.56, '0038: tax on the parts line only: ' || (q ->> 'tax');
+  update public.retail_settings set tax_all_lines = true where company_id = public.current_company_id();
+  q := public.quote_total('suv_truck', jsonb_build_array(jsonb_build_object('service_id', v_full), jsonb_build_object('service_id', v_oil)));
+  assert (q ->> 'tax')::numeric = 27.56, '0038: tax on every line when set: ' || (q ->> 'tax');
+  update public.retail_settings set tax_all_lines = false where company_id = public.current_company_id();
+  update public.companies set tax_rate = 0 where id = public.current_company_id();
+
+  q := public.quote_total('sedan', jsonb_build_array(jsonb_build_object('service_id', v_other, 'price', 45, 'label', 'Headlight resto'), jsonb_build_object('service_id', v_full, 'price', 1)));
+  assert (q -> 'lines' -> 0 ->> 'line_total')::numeric = 45 and (q -> 'lines' -> 0 ->> 'name') = 'Headlight resto' and (q -> 'lines' -> 1 ->> 'line_total')::numeric = 200, '0038: Other takes the typed amount, list lines ignore it';
+
+  -- the owner changes a size price; the placeholder flag is theirs to clear
+  update public.service_prices_by_size set price = 210 where service_id = v_full and size_class = 'sedan';
+  update public.services set placeholder = false where id = v_full;
+  assert pg_temp.size_price(v_full, 'sedan') = 210, '0038: owner edits the matrix';
+
+  cat := public.retail_catalog();
+  assert jsonb_array_length(cat -> 'services') >= 13 and (cat -> 'settings' ->> 'hold_minutes')::int = 30 and jsonb_array_length(cat -> 'hours') = 7, '0038: catalog shape';
+  assert (select (s -> 'prices' ->> 'sedan')::numeric from jsonb_array_elements(cat -> 'services') s where s ->> 'name' = 'Full detail') = 210, '0038: owner sees matrix prices in the catalog';
+
+  -- the shop's chips are the retail menu; a dealership's chips are the dealer menu
+  select count(*) into n from public.dealership_price_list('00000000-0000-4000-8000-000000000103') where name in ('Full detail', 'Oil change'); assert n = 2, '0038: shop menu';
+  select count(*) into n from public.dealership_price_list('00000000-0000-4000-8000-000000000103') where name = 'PDI'; assert n = 0, '0038: no dealer items at the shop';
+  select count(*) into n from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Full detail'; assert n = 0, '0038: no retail items on a dealership';
+  select count(*) into n from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Other'; assert n = 1, '0038: Other on both menus';
+  -- a service flagged for both menus shows on both
+  update public.services set retail = true where name = 'Paint Correction (1-step)';
+  select count(*) into n from public.dealership_price_list('00000000-0000-4000-8000-000000000103') where name = 'Paint Correction (1-step)'; assert n = 1, '0038: separate but addable';
+  update public.services set retail = false where name = 'Paint Correction (1-step)';
+end $$;
+
+-- A retail job is priced from the vehicle's size; dealer jobs unchanged.
+do $$
+declare v_full uuid; v_ana uuid := (select v from r_ids where k = 'cust_ana'); v_mazda uuid := (select v from r_ids where k = 'veh_mazda'); v_truck uuid; j public.jobs; veh public.vehicles;
+begin
+  select id into v_full from public.services where name = 'Full detail';
+  -- the Mazda was set to sedan by hand in the 0037 block → 210 (edited above)
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000103', 'tag_number', 'R-300', 'vehicle_id', v_mazda,
+        'services', jsonb_build_array(jsonb_build_object('service_id', v_full, 'price', 5))));
+  assert pg_temp.js_price(j.id) = 210, '0038: retail job priced by the vehicle size (sedan): ' || pg_temp.js_price(j.id);
+  veh := public.save_vehicle(jsonb_build_object('customer_id', v_ana, 'model', 'F-150', 'make', 'Ford', 'year', 2021, 'body_class', 'Pickup'));
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000103', 'tag_number', 'R-301', 'vehicle_id', veh.id,
+        'services', jsonb_build_array(jsonb_build_object('service_id', v_full))));
+  assert pg_temp.js_price(j.id) = 240, '0038: retail job priced by the vehicle size (suv_truck): ' || pg_temp.js_price(j.id);
+  -- editing the services re-prices by the same vehicle
+  perform public.update_job(j.id, jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', (select id from public.services where name = 'Oil change')))));
+  assert pg_temp.js_price(j.id) = 75, '0038: edit re-prices by size: ' || pg_temp.js_price(j.id);
+  -- no vehicle → sedan price
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000103', 'tag_number', 'R-302', 'customer_id', v_ana, 'color', 'Red',
+        'services', jsonb_build_array(jsonb_build_object('service_id', v_full))));
+  assert pg_temp.js_price(j.id) = 210, '0038: retail job without a vehicle uses the sedan price';
+  -- a dealership job is untouched by the matrix
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'DX1', 'color', 'Red',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  assert pg_temp.js_price(j.id) = 205, '0038: dealer job still at the dealer price: ' || pg_temp.js_price(j.id);
+end $$;
+
+-- Admin: sees catalog prices (can_price_jobs) but cannot write them; manager sees none.
+select pg_temp.login('10000000-0000-4000-8000-000000000005');
+do $$
+declare cat jsonb; n int;
+begin
+  cat := public.retail_catalog();
+  assert (select s -> 'prices' from jsonb_array_elements(cat -> 'services') s where s ->> 'name' = 'Full detail') is not null, '0038: admin reads catalog prices';
+  begin
+    insert into public.service_prices_by_size (company_id, service_id, size_class, price) values (public.current_company_id(), (select id from public.services where name = 'Tire shine'), 'xl', 99);
+    raise exception 'expected owner-only matrix';
+  exception when sqlstate '42501' then null; end;
+  update public.retail_settings set hold_minutes = 45 where company_id = public.current_company_id();
+  get diagnostics n = row_count; assert n = 1, '0038: admin edits booking policy';
+  update public.retail_settings set hold_minutes = 30 where company_id = public.current_company_id();
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare cat jsonb; n int;
+begin
+  cat := public.retail_catalog();
+  assert (select s -> 'prices' from jsonb_array_elements(cat -> 'services') s where s ->> 'name' = 'Full detail') = 'null'::jsonb, '0038: manager sees no prices';
+  select count(*) into n from public.service_prices_by_size; assert n = 0, '0038: matrix hidden from a manager';
+  select count(*) into n from public.resources; assert n > 0, '0038: manager reads resources (for the calendar)';
+  update public.retail_settings set hold_minutes = 45 where company_id = public.current_company_id();
+  get diagnostics n = row_count; assert n = 0, '0038: manager cannot edit booking policy';
+end $$;
+select pg_temp.logout();

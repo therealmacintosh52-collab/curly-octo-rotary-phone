@@ -6,6 +6,7 @@ export const SERVICE_CATEGORIES: { value: ServiceCategory; label: string; hint: 
   { value: "used", label: "Used", hint: "Reconditioning for used, CPO and wholesale units" },
   { value: "service", label: "Service lane", hint: "Service washes, loaners, showroom" },
   { value: "addon", label: "Add-ons", hint: "Tint, correction and extras on any car" },
+  { value: "retail", label: "Shop menu", hint: "Walk-in customers at the shop" },
 ];
 
 export function categoryLabel(c: ServiceCategory | string): string {

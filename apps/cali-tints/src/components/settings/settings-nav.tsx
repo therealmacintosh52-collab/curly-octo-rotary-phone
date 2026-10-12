@@ -10,6 +10,8 @@ const ITEMS = [
   { value: "/settings", label: "Company", href: "/settings" },
   { value: "/settings/dealerships", label: "Dealerships", href: "/settings/dealerships" },
   { value: "/settings/services", label: "Services & prices", href: "/settings/services", ownerOnly: true },
+  { value: "/settings/retail", label: "Shop menu", href: "/settings/retail", ownerOnly: true },
+  { value: "/settings/booking", label: "Booking", href: "/settings/booking" },
   { value: "/settings/users", label: "Users", href: "/settings/users" },
   { value: "/settings/export", label: "Export", href: "/settings/export", ownerOnly: true },
 ];
