@@ -5,7 +5,7 @@ Re-verify before reuse after 2026-11-12. Drafted by growth. No separate send: th
 - [ ] Ask EVERY customer. No picking who gets asked. No "if you were happy". No private-feedback detour that sends unhappy customers away from Google (L2 / L3 below).
 - [ ] No reward, discount, entry or favor for a review, positive or not.
 - [ ] Never post or write reviews for a customer. The kit only carries the link.
-- [ ] Sale: add-on line only inside an approved text, or as a reply-only line after a yes. No stand-alone cold text.
+- [ ] Sale: add-on line only inside an approved text, or as a reply-only line after a yes. No stand-alone cold text. You type and send every message yourself from your own phone: no bulk app, no automation, no scheduled sends.
 - [ ] Fill: [BUSINESS] · [REVIEW LINK] (from the business's own Google profile share option; menu path UNVERIFIED. The Place-ID link form is also UNVERIFIED) · [PAYMENT LINK].
 - [ ] FTC rule: incentives conditioned on review sentiment are barred, up to $53,088 per violation [UNVERIFIED, summary quote; candidate source ftc.gov final rule on consumer reviews]. Google bars selective solicitation and incentives [UNVERIFIED, agency blogs, e.g. https://demandhub.co/articles/google-review-policy 2026-10-12 "selectively soliciting positive reviews from customers"]. This kit follows the stricter reading, so the tag gap does not change the wording.
 

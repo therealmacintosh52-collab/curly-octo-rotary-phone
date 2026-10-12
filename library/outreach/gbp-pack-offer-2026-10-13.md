@@ -17,9 +17,9 @@ Hi, I'm [YOUR NAME] in Elk Grove. Your Google profile for [THEIR BUSINESS] has [
 ```
 Keep your fill-ins under 60 characters total so it stays under 300.
 
-### Version B, with the review-card add-on (EXP-A5). Same rules; longer, so it may send as 2-3 segments.
+### Version B, with the review-card add-on (EXP-A5). Same rules.
 ```
-Hi, I'm [YOUR NAME] in Elk Grove. Your Google profile for [THEIR BUSINESS] has [ONE TRUE THING]. I prepare copy-paste profile packs (description, services, 4 post drafts) for $99. Optional $29 add-on: a printable QR card that asks every customer for an honest Google review. Interested? One text only; reply STOP to opt out.
+Hi, I'm [YOUR NAME] in Elk Grove. [THEIR BUSINESS]'s Google profile has [ONE TRUE THING]. I write copy-paste profile packs for $99. Optional $29 add-on: a QR card asking every customer for an honest Google review. One text only; reply STOP to opt out.
 ```
 
 ## Follow-up (send ONLY if they replied with interest or a question; never on silence)
@@ -36,7 +36,7 @@ Personal-to-personal mode may break the app's terms for service payments [UNVERI
 1. Exact services (up to 8). 2. Hours and service area. 3. Years in business or what makes them different, in their words. 4. Anything they do NOT want said. 5. Whether they have a booking/website link to include.
 
 ## What the pack contains (deliverable checklist, growth/builder produce; you read and forward)
-- [ ] Business description, under 750 characters. Limit [VERIFIED multiple guides in search results e.g. https://www.brightlocal.com/learn/google-business-profile-description/ 2026-10-12 "750-character limit"]. First ~250 characters carry the key facts (the 250 cutoff is third-party blog advice, UNVERIFIED). No URLs or HTML in it.
+- [ ] Business description, under 750 characters. Limit [VERIFIED multiple guides in search results e.g. https://www.brightlocal.com/learn/google-business-profile-description/ 2026-10-12 "750-character limit"]. First ~250 characters carry the key facts (the 250 cutoff is third-party blog advice, UNVERIFIED). No URLs or HTML in it [UNVERIFIED, Google's rule not searched; a precaution, not a stated rule].
 - [ ] Primary category + 2-3 additional category suggestions, chosen from Google's list in the app.
 - [ ] Services list: name + one line each. No prices unless the client gave them.
 - [ ] 4 post drafts (what's new / a service explainer / a seasonal note / a "how to book"). No offers or discounts the client did not state.

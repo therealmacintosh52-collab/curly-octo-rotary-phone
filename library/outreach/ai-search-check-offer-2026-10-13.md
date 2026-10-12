@@ -7,7 +7,7 @@ Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is sent by a
 - [ ] Fill: [YOUR NAME] · [THEIR BUSINESS] · [TRADE] (e.g. "plumber").
 - [ ] Recipient: a business with a public site, number from its own Google Maps card. Pick 3 from the cache list (`library/research/income-lanes-2026-10-12.md` line 99): Maita Motorsports, Rob And Sons Soft Wash, EcoTech Enterprises, Lee's Air/Plumbing, Elk Grove Plumbing Drain Heating Air. Skip franchises and anyone in EXP-A2/A4 (C3).
 - [ ] Public pages only. You are looking at pages anyone can open. Do not log in, scrape, or send tools at their site.
-- [ ] Send from your own phone, ONE text each. Silence or "no/stop" = never contact again.
+- [ ] Send from your own phone, by hand, ONE text each. No bulk app, no auto-dialer, no group text, no scheduled sends. Silence or "no/stop" = never contact again.
 - [ ] The report states observed facts only. It never promises rankings, AI citations, traffic or leads.
 
 ## What you collect first (agents cannot open client sites; the sandbox blocks them, scout E13). 10 min per site, Wed by 20:00

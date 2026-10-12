@@ -6,8 +6,8 @@ Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is sent by a
 - [ ] A-004 Q1-Q4 answered. License held, or A-010 logged, before the first payment (C2).
 - [ ] A-003 (SP-2, preview deploy) is needed only AFTER a deposit, for the private preview link. Not needed to send the text.
 - [ ] Fill: [YOUR NAME] · [STUDIO] exact name from its Maps card · [SAMPLE LINK 1], [SAMPLE LINK 2] (only if they reply).
-- [ ] Recipients: 3 Elk Grove lash/nail studios (barbers if short) whose Google Maps card shows NO Website button, YOU checked on your phone. Candidates from the cache (`library/research/income-lanes-2026-10-12.md` rows 1-8): Unique Beauty, Lashme Brows, P'Inked, Ink.me Aesthetics, Ella Blue, Embellish Nails Studio, Razor Sharp Kutz Barber Lounge, Barberz Dreme Co. Has-website is UNKNOWN until you check. Use the number on the Maps card, not the directory number. Row 8 is a shop; text the shop, not the individual barber.
-- [ ] Not in EXP-A2/A3 (C3). ONE text each from your own phone. "No/stop"/silence = never again.
+- [ ] Recipients: 3 Elk Grove lash/nail studios whose Google Maps card shows NO Website button, YOU checked on your phone. Candidates from the cache (library/research/income-lanes-2026-10-12.md rows 1-6): Unique Beauty, Lashme Brows, P'Inked, Ink.me Aesthetics, Ella Blue, Embellish Nails Studio. Has-website is UNKNOWN until you check. Use the number on the Maps card, not the directory number.
+- [ ] Not in EXP-A2/A3 (C3). Send from your own phone, by hand, ONE text each: no bulk app, no auto-dialer, no group text, no scheduled sends. "No/stop"/silence = never again.
 - [ ] No fake urgency: no "limited spots", no countdowns, no "today only".
 - [ ] Portfolio wording (C6): the two sites are "sample builds" unless A-004 Q1 says that client paid AND agreed to be shown. Until then describe by trade only ("a window-tint shop", "an auto repair shop"). Do NOT use the real business names, logos or any "client" or "testimonial" wording.
 - [ ] Terms line below is shown BEFORE they pay (C7). Fill every [OWNER DECIDES]; do not send a term you will not honor.
@@ -16,8 +16,10 @@ Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is sent by a
 ```
 Hi, I'm [YOUR NAME], I build simple websites for Elk Grove small businesses. [STUDIO] shows no website button on Google Maps. Founding-client price: $450 one-page site, $150 deposit, and you approve a private preview before paying the rest. Interested? One text only; reply STOP to opt out.
 ```
-With the review-card add-on (EXP-A5), append after "preview before paying the rest.":
-`Optional $29 add-on: a QR card that asks every customer for an honest Google review.`
+For the review-card add-on (EXP-A5) send THIS text instead of the one above (290 chars before fills):
+```
+Hi, I'm [YOUR NAME]. I build simple Elk Grove websites. [STUDIO] shows no website button on Google Maps. Founding price: $450 site, $150 deposit, approve a private preview before paying the rest. Optional $29 QR card asking every customer for an honest Google review. Reply STOP to opt out.
+```
 
 ## If they reply with interest: deposit-first line + sample builds
 ```
@@ -27,7 +29,7 @@ If A-004 Q1 confirms a client paid and agreed to be shown, swap "sample builds, 
 
 ## Annual prepay alternative ($590, one payment, no auto-renew)
 ```
-Other option: $590 once covers the site build plus a year of hosting and small text edits [OWNER CONFIRMS SCOPE]. It does not renew by itself; I text you 14 days before it ends and you choose. Terms below.
+Other option: $590 once covers the site build plus a year of hosting and small text edits [OWNER CONFIRMS SCOPE]. It does not renew by itself; I text you 14 days before it ends and you choose. Terms below. Reply STOP anytime.
 ```
 
 ## Terms line (must appear in the message or a linked page BEFORE payment, C7)
