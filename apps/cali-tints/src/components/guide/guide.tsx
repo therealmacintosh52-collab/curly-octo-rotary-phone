@@ -146,7 +146,6 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             <Row what="Year · Make · Model · Color" does="Required. Year, make and model are filled by the VIN when you scan; otherwise pick them. Make lists the common ones; pick Other to type a make that is not there." />
             <Row what="Services" does={prices ? "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. The price comes from the price list. Pick Other and type what was done when it is not on the menu." : "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. No prices here; the owner's price list does that. Pick Other and type what was done when it is not on the menu."} />
             {prices && <Row what="Price" does="Pre-filled from the dealership's price list. Change it only when the job was different; a reason is asked when the price is outside the normal range. Other logged by someone else shows Needs a price until you set it." />}
-            {wide && <Row what="Detailer" does="Who did the car. Defaults to you." />}
             <Row what="RO / PO number" does="Optional. The dealership's repair or purchase order, printed on the invoice." />
             <Row what="Notes" does="Optional. Anything the office should know. Printed on the invoice." />
             <Row what="Photos" does="Optional. Take a photo opens the camera (inside the app on a Clover Flex); up to eight per car. A photo settles any damage question." />

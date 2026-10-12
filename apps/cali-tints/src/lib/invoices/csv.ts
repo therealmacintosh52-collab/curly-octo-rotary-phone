@@ -57,7 +57,7 @@ export function invoiceCsvRows(b: InvoiceBundle): InvoiceCsvRow[] {
     color: it.color,
     ro_po_number: it.ro_po_number,
     service: it.service_name,
-    detailer: it.detailer_name,
+    detailer: "",
     amount: Number(it.price).toFixed(2),
     invoice_subtotal: Number(invoice.subtotal).toFixed(2),
     invoice_tax: Number(invoice.tax).toFixed(2),

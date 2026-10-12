@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 export interface JobDetailProps {
   job: EditableCar & {
     dealership_name: string;
-    detailer_name: string | null;
     invoice: { id: string; display_number: string; status: string } | null;
     /** The QuickBooks invoice number this job sits on (live, kept by the app). */
     quickbooks_doc_number?: string | null;
@@ -55,7 +54,7 @@ export function JobDetail(p: JobDetailProps) {
   const paidAtCounter = !!job.payment?.paid_at;
   const steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[] = retail
     ? [
-        { label: "Logged", detail: `${formatDate(job.performed_at)}${job.detailer_name ? ` · ${job.detailer_name}` : ""} · ${job.dealership_name}`, state: "done" },
+        { label: "Logged", detail: `${formatDate(job.performed_at)} · ${job.dealership_name}`, state: "done" },
         deleted
           ? { label: "Deleted", detail: `${formatDate(job.deleted_at)}${job.deleted_reason ? ` · ${job.deleted_reason}` : ""} · in the archive`, state: "off" }
           : paidAtCounter
@@ -64,7 +63,7 @@ export function JobDetail(p: JobDetailProps) {
         { label: "Done", detail: paidAtCounter ? "Nothing else to do" : "—", state: deleted ? "off" : paidAtCounter ? "done" : "todo" },
       ]
     : [
-    { label: "Logged", detail: `${formatDate(job.performed_at)}${job.detailer_name ? ` · ${job.detailer_name}` : ""} · ${job.dealership_name}`, state: "done" },
+    { label: "Logged", detail: `${formatDate(job.performed_at)} · ${job.dealership_name}`, state: "done" },
     deleted
       ? { label: "Deleted", detail: `${formatDate(job.deleted_at)}${job.deleted_reason ? ` · ${job.deleted_reason}` : ""} · in the archive`, state: "off" }
       : inv
@@ -164,7 +163,6 @@ export function JobDetail(p: JobDetailProps) {
                 <Fact label="Color" value={job.color ?? "—"} />
                 <Fact label="VIN" value={job.vin ? <span className="font-mono">{job.vin}</span> : "—"} />
                 <Fact label="Dealership" value={job.dealership_name} />
-                {isAdmin && job.detailer_name && <Fact label="Detailer" value={job.detailer_name} />}
                 {job.ro_po_number && <Fact label="RO / PO" value={job.ro_po_number} />}
                 {job.notes && <Fact label="Notes" value={<span className="whitespace-pre-wrap">{job.notes}</span>} />}
               </dl>

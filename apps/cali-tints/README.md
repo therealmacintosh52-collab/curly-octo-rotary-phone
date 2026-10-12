@@ -50,7 +50,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 ```
 apps/cali-tints
 ├── supabase/
-│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice · 0016 search by service · 0017–0026 today by service, paint correction, week, "Other" label, archive, detailer dashboard, manager role, guide · 0027 removes the Terminal and Clover · 0028 jobs by the day, one invoice a month · 0029 only the owner sees money · 0030 photos (client_id, detailer file removal) · 0031 QuickBooks Online · 0032 jobs live in QuickBooks, photo kind · 0033 owner and admin see job prices · 0034 retail location, counter payments
+│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice · 0016 search by service · 0017–0026 today by service, paint correction, week, "Other" label, archive, detailer dashboard, manager role, guide · 0027 removes the Terminal and Clover · 0028 jobs by the day, one invoice a month · 0029 only the owner sees money · 0030 photos (client_id, detailer file removal) · 0031 QuickBooks Online · 0032 jobs live in QuickBooks, photo kind · 0033 owner and admin see job prices · 0034 retail location, counter payments · 0035 no employee names on jobs
 │   ├── seed.sql         company, 2 dealerships, 8 services, price overrides
 │   └── tests/           SQL test suite runnable on plain Postgres (run.sh)
 ├── scripts/seed-demo.mjs   demo users + 60 days of jobs + invoices (uses the real RPCs)
@@ -208,6 +208,8 @@ pnpm build
 Per-invoice CSV (`/api/invoices/{id}/csv`, also attached to emails) and the *Invoice line items* export share the same columns, in this fixed order:
 
 `Invoice Number, Invoice Date, Period Start, Period End, Vendor, Vendor EIN, Dealership, Dealership Address, Line, Service Date, Stock Number, VIN, Year, Make, Model, Color, RO/PO, Service, Detailer, Amount, Invoice Subtotal, Invoice Tax, Invoice Total, Payment Terms, Status`
+
+`Detailer` is kept for the import contract but is always empty since migration `0035`: employee names do not travel with jobs or invoice lines (who did a car stays an id for the owner's filters and the team dashboard's counts).
 
 Rules: UTF-8 with BOM, CRLF, RFC 4180 quoting, dates as `yyyy-mm-dd`, amounts with two decimals, one row per service line. New columns are only ever appended. A future DMS/AP integration can consume this file unchanged or read `invoice_items` directly.
 

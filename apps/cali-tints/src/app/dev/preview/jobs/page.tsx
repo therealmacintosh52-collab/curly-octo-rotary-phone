@@ -100,7 +100,7 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
               >
                 <JobFilters filters={typed} searchDate={filters.searchDate} services={SERVICES} dealerships={DEALERSHIPS} detailers={DETAILERS} isAdmin={isAdmin} />
               </Suspense>
-              <JobList rows={rows.slice(0, 50)} page={1} count={rows.length} params={params} isAdmin={isAdmin} filtered={filtered} today={today} flagged={flagged} />
+              <JobList rows={rows.slice(0, 50)} page={1} count={rows.length} params={params} filtered={filtered} today={today} flagged={flagged} />
             </div>
           </Page>
         </AppShell>

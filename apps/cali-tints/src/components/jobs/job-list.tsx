@@ -70,7 +70,7 @@ function JobState({ r, short, flagged }: { r: JobListRow; short?: boolean; flagg
  * The Jobs list: every car logged, newest first under day headers. Desktop:
  * dense table. Phone: tappable cards. No money anywhere.
  */
-export function JobList({ rows, page, count, params, isAdmin, filtered, today, flagged }: { rows: JobListRow[]; page: number; count: number; params: string; isAdmin: boolean; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers. */ today: string; /** Owner only: job ids with a line still needing a price. */ flagged?: string[] }) {
+export function JobList({ rows, page, count, params, filtered, today, flagged }: { rows: JobListRow[]; page: number; count: number; params: string; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers. */ today: string; /** Owner only: job ids with a line still needing a price. */ flagged?: string[] }) {
   const needsPrice = new Set(flagged ?? []);
   if (rows.length === 0) {
     return (
@@ -127,10 +127,7 @@ export function JobList({ rows, page, count, params, isAdmin, filtered, today, f
                     </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-2 text-caption text-subtle">
-                    <span className="truncate">
-                      {r.dealership}
-                      {isAdmin ? ` · ${r.detailer}` : ""}
-                    </span>
+                    <span className="truncate">{r.dealership}</span>
                     <span className="shrink-0">{formatDate(r.performed_at, "h:mm a")}</span>
                   </div>
                 </div>
@@ -150,7 +147,6 @@ export function JobList({ rows, page, count, params, isAdmin, filtered, today, f
               <TableHead scope="col">Vehicle</TableHead>
               <TableHead scope="col">Services</TableHead>
               <TableHead scope="col">Dealership</TableHead>
-              {isAdmin && <TableHead scope="col">Detailer</TableHead>}
               <TableHead scope="col">Photos</TableHead>
               <TableHead scope="col">Invoice</TableHead>
             </TableRow>
@@ -158,7 +154,7 @@ export function JobList({ rows, page, count, params, isAdmin, filtered, today, f
           <TableBody>
             {rows.map((r) => {
               const head = groups.get(r.id);
-              const cols = isAdmin ? 8 : 7;
+              const cols = 7;
               return (
                 <Fragment key={r.id}>
                   {head && (
@@ -181,7 +177,6 @@ export function JobList({ rows, page, count, params, isAdmin, filtered, today, f
                     <TableCell className="whitespace-nowrap">{r.vehicle || "—"}</TableCell>
                     <TableCell className="max-w-64 truncate">{r.services.join(", ")}</TableCell>
                     <TableCell className="text-muted-foreground">{r.dealership}</TableCell>
-                    {isAdmin && <TableCell className="text-muted-foreground">{r.detailer}</TableCell>}
                     <TableCell className="text-muted-foreground">{r.photo_count > 0 ? r.photo_count : "—"}</TableCell>
                     <TableCell>
                       {r.invoice_id ? (

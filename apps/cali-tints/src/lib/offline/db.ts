@@ -31,7 +31,6 @@ export interface RecentJob {
   dealership_id: string;
   performed_at: string;
   model: string | null;
-  detailer_name: string;
 }
 
 /** Reference data snapshot so the form renders with no signal. */

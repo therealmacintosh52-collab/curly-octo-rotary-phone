@@ -23,7 +23,6 @@ type CarRow = {
   ro_po_number: string | null;
   notes: string | null;
   deleted_at: string | null;
-  detailer: { full_name: string } | null;
   job_services: { id: string; service_id: string; label: string | null; service: { name: string } | null }[];
 };
 
@@ -44,7 +43,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
   // The cars on this invoice (for Edit / Delete). Usually one.
   const { data: carRows } = await supabase
     .from("jobs")
-    .select("id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, deleted_at, detailer:profiles!jobs_detailer_id_fkey(full_name), job_services(id, service_id, label, service:services(name))")
+    .select("id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, deleted_at, job_services(id, service_id, label, service:services(name))")
     .eq("invoice_id", id)
     .is("deleted_at", null);
   const cars = (carRows ?? []) as unknown as CarRow[];
@@ -100,7 +99,6 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
               performed_at: car.performed_at,
               ro_po_number: car.ro_po_number,
               notes: car.notes,
-              detailer_name: car.detailer?.full_name ?? null,
               services: car.job_services.map((s) => ({ service_id: s.service_id, name: s.service?.name ?? "", price: Number(priceOf.get(s.id)?.price ?? 0), override_reason: priceOf.get(s.id)?.override_reason ?? null, label: s.label })),
             }
           : null

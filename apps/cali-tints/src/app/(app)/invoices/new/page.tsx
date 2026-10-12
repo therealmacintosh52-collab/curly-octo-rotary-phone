@@ -18,7 +18,6 @@ export interface PreviewJob {
   model: string | null;
   performed_at: string;
   ro_po_number: string | null;
-  detailer: string;
   services: { name: string; price: number }[];
   total: number;
   dup_review_note: string | null;
@@ -48,7 +47,7 @@ export default async function NewInvoicePage(props: PageProps<"/invoices/new">) 
   let conflicts: InvoiceConflictRow[] = [];
   if (dealership) {
     const sel =
-      "id, tag_number, vin, year, make, model, performed_at, ro_po_number, dup_review_note, detailer:profiles!jobs_detailer_id_fkey(full_name), job_services(id, service:services(name))";
+      "id, tag_number, vin, year, make, model, performed_at, ro_po_number, dup_review_note, job_services(id, service:services(name))";
     const base = supabase.from("jobs").select(sel).eq("dealership_id", dealership.id).is("deleted_at", null).is("invoice_id", null).order("performed_at");
     // Batch mode previews the range; per-job mode shows everything pending.
     const { data } =
@@ -68,7 +67,6 @@ export default async function NewInvoicePage(props: PageProps<"/invoices/new">) 
         model: j.model,
         performed_at: j.performed_at,
         ro_po_number: j.ro_po_number,
-        detailer: (j.detailer as unknown as { full_name: string } | null)?.full_name ?? "",
         services,
         total: sumPrices(services),
         dup_review_note: (j as { dup_review_note?: string | null }).dup_review_note ?? null,

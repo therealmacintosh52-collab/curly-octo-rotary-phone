@@ -39,12 +39,12 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/[file]">
         type Row = {
           id: string; tag_number: string; vin: string | null; year: number | null; make: string | null; model: string | null; color: string | null;
           performed_at: string; ro_po_number: string | null; notes: string | null; status: string; deleted_at: string | null; delete_reason: string | null; created_at: string;
-          dealership: { name: string } | null; detailer: { full_name: string } | null; invoice: { display_number: string } | null;
+          dealership: { name: string } | null; invoice: { display_number: string } | null;
         };
         const rows = await all<Row>((f, t) =>
           supabase
             .from("jobs")
-            .select("id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, status, deleted_at, delete_reason, created_at, dealership:dealerships(name), detailer:profiles!jobs_detailer_id_fkey(full_name), invoice:invoices(display_number)")
+            .select("id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, status, deleted_at, delete_reason, created_at, dealership:dealerships(name), invoice:invoices(display_number)")
             .order("performed_at")
             .range(f, t) as unknown as PromiseLike<{ data: Row[] | null; error: { message: string } | null }>,
         );
@@ -54,7 +54,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/[file]">
         csv = toCsv(
           rows.map((r) => ({
             job_id: r.id, performed_at: r.performed_at, tag_number: r.tag_number, vin: r.vin, year: r.year, make: r.make, model: r.model, color: r.color,
-            dealership: r.dealership?.name ?? null, detailer: r.detailer?.full_name ?? null, ro_po_number: r.ro_po_number, notes: r.notes,
+            dealership: r.dealership?.name ?? null, detailer: "", ro_po_number: r.ro_po_number, notes: r.notes,
             total: (totals.get(r.id) ?? 0).toFixed(2), status: r.status, invoice_number: r.invoice?.display_number ?? null,
             deleted_at: r.deleted_at, delete_reason: r.delete_reason, created_at: r.created_at,
           })),
@@ -88,7 +88,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/[file]">
         type Row = { id: string; invoice_id: string; job_id: string | null; sort_order: number; performed_at: string; tag_number: string; vin: string | null; year: number | null; make: string | null; model: string | null; color: string | null; ro_po_number: string | null; detailer_name: string | null; service_name: string; price: number; invoice: { display_number: string; status: string; dealership: { name: string } | null } | null };
         const rows = await all<Row>((f, t) => supabase.from("invoice_items").select("id, invoice_id, job_id, sort_order, performed_at, tag_number, vin, year, make, model, color, ro_po_number, detailer_name, service_name, price, invoice:invoices(display_number, status, dealership:dealerships(name))").order("invoice_id").order("sort_order").range(f, t) as unknown as PromiseLike<{ data: Row[] | null; error: { message: string } | null }>);
         csv = toCsv(
-          rows.map((r) => ({ invoice_number: r.invoice?.display_number ?? null, invoice_status: r.invoice?.status ?? null, dealership: r.invoice?.dealership?.name ?? null, line: r.sort_order, job_id: r.job_id, service_date: r.performed_at, tag_number: r.tag_number, vin: r.vin, year: r.year, make: r.make, model: r.model, color: r.color, ro_po_number: r.ro_po_number, service: r.service_name, detailer: r.detailer_name, amount: Number(r.price).toFixed(2) })),
+          rows.map((r) => ({ invoice_number: r.invoice?.display_number ?? null, invoice_status: r.invoice?.status ?? null, dealership: r.invoice?.dealership?.name ?? null, line: r.sort_order, job_id: r.job_id, service_date: r.performed_at, tag_number: r.tag_number, vin: r.vin, year: r.year, make: r.make, model: r.model, color: r.color, ro_po_number: r.ro_po_number, service: r.service_name, detailer: "", amount: Number(r.price).toFixed(2) })),
           cols(["invoice_number", "invoice_status", "dealership", "line", "job_id", "service_date", "tag_number", "vin", "year", "make", "model", "color", "ro_po_number", "service", "detailer", "amount"]),
         );
         break;

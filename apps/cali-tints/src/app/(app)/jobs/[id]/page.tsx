@@ -30,7 +30,6 @@ type JobRow = {
   payment_ref: string | null;
   created_at: string;
   dealership: { name: string; retail: boolean } | null;
-  detailer: { full_name: string } | null;
   invoice: { display_number: string; status: string } | null;
   job_services: { id: string; service_id: string; label: string | null; needs_price: boolean; service: { name: string } | null }[];
 };
@@ -48,7 +47,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .from("jobs")
     .select(
       // Prices are not readable here (column privileges); the owner gets them from job_service_prices_v below.
-      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), detailer:profiles!jobs_detailer_id_fkey(full_name), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, service:services(name))",
+      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, service:services(name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -90,7 +89,6 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       notes: job.notes,
       services: job.job_services.map((s) => ({ service_id: s.service_id, name: s.service?.name ?? "", price: Number(priceOf.get(s.id)?.price ?? 0), override_reason: priceOf.get(s.id)?.override_reason ?? null, label: s.label, needs_price: s.needs_price })),
       dealership_name: job.dealership?.name ?? "",
-      detailer_name: job.detailer?.full_name ?? null,
       invoice: job.invoice_id ? { id: job.invoice_id, display_number: job.invoice?.display_number ?? invoiceNumber ?? "", status: job.invoice?.status ?? "" } : null,
       quickbooks_doc_number: job.quickbooks_doc_number,
       retail: !!job.dealership?.retail,

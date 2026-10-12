@@ -48,7 +48,7 @@ function monthProps(row: InvoiceListRow, base: ReturnType<typeof invoiceBundleFi
       model: model.join(" ") || null,
       color: null,
       ro_po_number: null,
-      detailer_name: c.detailer,
+      detailer_name: null,
       service_name: c.service,
       price: c.price,
     };

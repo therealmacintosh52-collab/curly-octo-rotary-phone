@@ -379,7 +379,8 @@ export type DuplicateJobRow = {
   make: string | null;
   model: string | null;
   performed_at: string;
-  detailer_name: string;
+  /** Always null since 0035: no employee names on jobs. */
+  detailer_name: string | null;
   services: string | null;
   /** Set when the earlier job is already on a live invoice. */
   invoice_number: string | null;
@@ -469,7 +470,7 @@ export type InvoiceListRow = {
   dealership_id: string;
   dealership: string;
   car_count: number;
-  cars: { tag: string; vin: string | null; vehicle: string | null; detailer: string | null }[];
+  cars: { tag: string; vin: string | null; vehicle: string | null; /** Always null since 0035. */ detailer: string | null }[];
   services: string[];
   /** In QuickBooks (0031). Older rows may lack the keys. */
   quickbooks_invoice_id?: string | null;
@@ -492,7 +493,8 @@ export type JobListRow = {
   dealership_id: string;
   dealership: string;
   detailer_id: string;
-  detailer: string;
+  /** Always null since 0035: no employee names on jobs (filter by detailer_id). */
+  detailer: string | null;
   services: string[];
   invoice_id: string | null;
   display_number: string | null;
@@ -518,7 +520,7 @@ export type TeamStats = {
   week_by_day: { day: string; cars: number }[];
   by_day: { day: string; cars: number }[];
   by_detailer: { detailer_id: string; name: string; today: number; cars: number }[];
-  today_cars: { id: string; invoice_id: string | null; display_number: string | null; tag: string; vehicle: string | null; dealership: string | null; detailer: string | null; performed_at: string; services: string[] }[];
+  today_cars: { id: string; invoice_id: string | null; display_number: string | null; tag: string; vehicle: string | null; dealership: string | null; /** Always null since 0035. */ detailer: string | null; performed_at: string; services: string[] }[];
   range: { start: string; end: string };
 };
 

@@ -106,7 +106,6 @@ export async function findLocalDuplicates(tag: string, vin: string | null): Prom
       dealership_id: o.payload.dealership_id,
       performed_at: o.payload.performed_at ?? new Date(o.created_at).toISOString(),
       model: o.payload.model ?? null,
-      detailer_name: "You (unsynced)",
     }));
   return [...fromOutbox, ...fromCache].slice(0, 5);
 }

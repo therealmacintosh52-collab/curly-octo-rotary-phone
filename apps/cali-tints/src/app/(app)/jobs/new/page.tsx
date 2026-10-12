@@ -25,7 +25,7 @@ export default async function NewJobPage() {
       : Promise.resolve({ data: [{ id: session.profile.id, full_name: session.profile.full_name }] }),
     supabase
       .from("jobs")
-      .select("id, tag_number, vin, dealership_id, performed_at, model, detailer:profiles!jobs_detailer_id_fkey(full_name)")
+      .select("id, tag_number, vin, dealership_id, performed_at, model")
       .is("deleted_at", null)
       .gte("performed_at", since)
       .order("performed_at", { ascending: false })
@@ -47,7 +47,6 @@ export default async function NewJobPage() {
     dealership_id: j.dealership_id,
     performed_at: j.performed_at,
     model: j.model,
-    detailer_name: (j.detailer as unknown as { full_name: string } | null)?.full_name ?? "",
   }));
 
   return <JobForm dealerships={dealerships ?? []} priceLists={priceLists} detailers={detailers ?? []} recentJobs={recentJobs} />;

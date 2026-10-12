@@ -361,7 +361,6 @@ function PreviewRows({
             <TableHead>Stock #</TableHead>
             <TableHead>Vehicle</TableHead>
             <TableHead>Services</TableHead>
-            <TableHead>Detailer</TableHead>
             <TableHead className="text-right">Amount</TableHead>
           </TableRow>
         </TableHeader>
@@ -410,7 +409,6 @@ function PreviewRows({
                 {isExcluded && <div className="mt-1 text-xs text-muted-foreground">Excluded from this invoice</div>}
               </TableCell>
               <TableCell className="max-w-56 truncate">{j.services.map((s) => s.name).join(", ")}</TableCell>
-              <TableCell className="text-muted-foreground">{j.detailer}</TableCell>
               <TableCell className={cn("text-right tabular-nums", isExcluded && "line-through")}>{formatMoney(j.total)}</TableCell>
             </TableRow>
           );

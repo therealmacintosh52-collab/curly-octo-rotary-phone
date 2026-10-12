@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export const metadata: Metadata = { title: "Export" };
 
 const EXPORTS = [
-  { key: "jobs", title: "Jobs", desc: "Every job (including soft-deleted) with vehicle, detailer, dealership, invoice number and total. One row per job." },
+  { key: "jobs", title: "Jobs", desc: "Every job (including soft-deleted) with vehicle, dealership, invoice number and total. One row per job." },
   { key: "job-services", title: "Job service lines", desc: "One row per service on a job, with price and override reason. Join to jobs on job_id." },
   { key: "invoices", title: "Invoices", desc: "All invoices with period, totals, status, submitted/paid dates and amount paid." },
   { key: "invoice-items", title: "Invoice line items", desc: "Snapshot lines exactly as billed. Same columns as the per-invoice CSV; import-ready." },

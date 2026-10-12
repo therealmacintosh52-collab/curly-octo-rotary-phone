@@ -701,6 +701,7 @@ begin
   assert (select period_start from public.invoices where id = v_inv) = date_trunc('month', date_trunc('month', now()) - interval '10 days')::date
      and (select period_end from public.invoices where id = v_inv) = (date_trunc('month', now()) - interval '1 day')::date, '0028: period is the calendar month';
   assert (select count(*) from public.invoice_items where invoice_id = v_inv and tag_number in ('LM1', 'LM2')) = 2, '0028: every car on the month''s invoice';
+  assert (select count(*) from public.invoice_items where detailer_name is not null) = 0, '0035: no employee names on invoice lines';
   assert (select invoice_id from public.jobs where tag_number = 'TM1') is null, '0028: this month stays open';
   select count(*) into n from public.close_month('00000000-0000-4000-8000-000000000001', current_date);
   assert n = 0, '0028: second run finds nothing';
@@ -730,6 +731,11 @@ begin
   assert t ? 'today' and t ? 'by_detailer' and t ? 'open_jobs', '0028: team dashboard keys';
   assert not (t ? 'income') and not (t ? 'unpaid_total') and not (t -> 'today' ? 'revenue'), '0028: team dashboard has no money';
   assert (public.jobs_filtered() ->> 'count')::int >= 5, '0028: manager sees every job';
+  -- 0035: who did the car stays an id (filters, by-detailer counts); the name never rides with the job
+  assert (public.jobs_filtered() -> 'rows' -> 0 ->> 'detailer_id') is not null and (public.jobs_filtered() -> 'rows' -> 0 -> 'detailer') = 'null'::jsonb, '0035: jobs list rows carry no employee name';
+  assert (t -> 'by_detailer' -> 0 ->> 'name') is not null, '0035: by-detailer counts keep the name';
+  assert not exists (select 1 from jsonb_array_elements(t -> 'today_cars') c where c ->> 'detailer' is not null), '0035: today''s cars carry no employee name';
+  assert not exists (select 1 from public.find_duplicate_jobs('TM2', null, null) x where x.detailer_name is not null), '0035: duplicate check carries no employee name';
   -- 0029: a manager can fix an open job but their price is ignored
   perform public.update_job((select id from public.jobs where tag_number = 'TM2'), jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000204', 'price', 5, 'override_reason', 'x'))));
   assert pg_temp.js_price((select id from public.jobs where tag_number = 'TM2')) = 55.00 and pg_temp.js_reason((select id from public.jobs where tag_number = 'TM2')) is null, '0029: manager price ignored on edit';

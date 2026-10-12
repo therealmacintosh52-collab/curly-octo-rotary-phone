@@ -67,7 +67,7 @@ export function TeamDashboard({ stats, today, who }: { stats: TeamStats; today: 
                       <div className="min-w-0">
                         <span className="font-semibold tracking-wide">{c.tag}</span>
                         {c.vehicle && <span className="text-muted-foreground"> · {shortVehicle(c.vehicle)}</span>}
-                        <div className="truncate text-caption text-subtle">{[c.services.join(", "), c.dealership, c.detailer].filter(Boolean).join(" · ")}</div>
+                        <div className="truncate text-caption text-subtle">{[c.services.join(", "), c.dealership].filter(Boolean).join(" · ")}</div>
                       </div>
                       <div className="shrink-0 text-caption tabular-nums text-subtle">{formatDate(c.performed_at, "h:mm a")}</div>
                     </Link>

@@ -211,7 +211,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       try {
         const { createClient } = await import("@/lib/supabase/client");
         const { data } = await createClient().rpc("find_duplicate_jobs", { p_tag_number: tag.trim(), p_vin: vin || null, p_dealership_id: null });
-        remote = (data ?? []).map((d) => ({ ...d, detailer_name: d.detailer_name }));
+        remote = data ?? [];
       } catch {
         /* offline or slow: local check is enough */
       }

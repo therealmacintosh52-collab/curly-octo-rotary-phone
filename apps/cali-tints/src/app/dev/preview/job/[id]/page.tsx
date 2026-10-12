@@ -45,7 +45,6 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
               notes: row.tag === "4821" ? "Customer waiting · light scratch on rear bumper noted before work" : null,
               services: row.services.map((name) => ({ service_id: prices[name]?.service_id ?? "s8", name, price: isAdmin ? Number(prices[name]?.price ?? 0) : 0, override_reason: null, needs_price: isAdmin && open && name === "Other" })),
               dealership_name: row.dealership,
-              detailer_name: row.detailer,
               invoice: row.invoice_id ? { id: row.invoice_id, display_number: row.display_number ?? "", status: row.invoice_status ?? "draft" } : null,
               quickbooks_doc_number: row.quickbooks_doc_number ?? null,
               retail: !!row.retail,

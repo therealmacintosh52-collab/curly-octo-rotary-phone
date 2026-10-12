@@ -28,7 +28,7 @@ export interface InvoiceDetailProps {
   payments: InvoicePayment[];
   submissions: (InvoiceSubmission & { created_by_name: string | null; confirmation_url: string | null })[];
   /** The one car on this invoice (older invoices may carry several → null). */
-  car: (EditableCar & { detailer_name: string | null }) | null;
+  car: EditableCar | null;
   priceList: PriceListRow[];
   detailers: { id: string; full_name: string }[];
   isAdmin: boolean;
@@ -56,14 +56,13 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
   const overdue = (invoice.status === "submitted" || invoice.status === "partial") && !!invoice.submitted_at && days(invoice.submitted_at) > p.reminderDays;
   const lastSent = submissions.find((s) => s.status === "sent") ?? null;
   const lastPayment = payments[0] ?? null;
-  const detailerName = car?.detailer_name ?? items[0]?.detailer_name ?? null;
   const performedOn = car ? car.performed_at : (items[0]?.performed_at ?? invoice.created_at);
   const cars = groupByCar(items);
   const title = car ? `${car.tag_number}${vehicle(car) ? ` · ${vehicle(car)}` : ""}` : cars.length === 1 ? `${cars[0].tag}${cars[0].vehicle ? ` · ${cars[0].vehicle}` : ""}` : `${cars.length} cars`;
 
   // Steps: logged → sent → paid (or voided).
   const steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[] = [
-    { label: "Logged", detail: `${formatDate(performedOn)}${detailerName ? ` · ${detailerName}` : ""} · ${dealership.name}`, state: "done" },
+    { label: "Logged", detail: `${formatDate(performedOn)} · ${dealership.name}`, state: "done" },
     invoice.status === "void"
       ? { label: p.archived ? "Deleted" : "Voided", detail: `${formatDate(invoice.voided_at ?? invoice.updated_at)}${invoice.void_reason ? ` · ${invoice.void_reason}` : ""}${p.archived ? " · in the archive" : ""}`, state: "off" }
       : invoice.submitted_at
@@ -191,7 +190,6 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
                         <div className="text-caption text-subtle">
                           {formatDate(c.performed_at)}
                           {c.vin ? ` · ${c.vin}` : ""}
-                          {c.detailer ? ` · ${c.detailer}` : ""}
                         </div>
                       </div>
                       <span className="shrink-0 tabular-nums">{formatMoney(c.total)}</span>
@@ -291,10 +289,10 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
 
 /** Lines grouped by car (older invoices carry several cars; new ones exactly one). */
 function groupByCar(items: InvoiceItem[]) {
-  const map = new Map<string, { key: string; tag: string; vehicle: string; vin: string | null; detailer: string | null; performed_at: string; total: number; lines: InvoiceItem[] }>();
+  const map = new Map<string, { key: string; tag: string; vehicle: string; vin: string | null; performed_at: string; total: number; lines: InvoiceItem[] }>();
   for (const it of items) {
     const key = it.job_id ?? `${it.tag_number}|${it.performed_at.slice(0, 10)}`;
-    const g = map.get(key) ?? { key, tag: it.tag_number, vehicle: vehicle(it), vin: it.vin, detailer: it.detailer_name, performed_at: it.performed_at, total: 0, lines: [] };
+    const g = map.get(key) ?? { key, tag: it.tag_number, vehicle: vehicle(it), vin: it.vin, performed_at: it.performed_at, total: 0, lines: [] };
     g.total += Number(it.price);
     g.lines.push(it);
     map.set(key, g);

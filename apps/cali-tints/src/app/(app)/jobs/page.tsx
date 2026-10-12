@@ -83,7 +83,7 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
         >
           <JobFilters filters={typed} searchDate={filters.searchDate} services={services ?? []} dealerships={dealerships ?? []} detailers={detailers ?? []} isAdmin={session.isAdmin} />
         </Suspense>
-        <JobList rows={result.rows} page={filters.page} count={result.count} params={params} isAdmin={session.isAdmin} filtered={filtered} today={today} flagged={flagged.size > 0 ? [...flagged] : undefined} />
+        <JobList rows={result.rows} page={filters.page} count={result.count} params={params} filtered={filtered} today={today} flagged={flagged.size > 0 ? [...flagged] : undefined} />
       </div>
     </Page>
   );

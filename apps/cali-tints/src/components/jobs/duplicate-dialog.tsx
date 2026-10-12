@@ -12,7 +12,6 @@ export interface DuplicateHit {
   vin: string | null;
   performed_at: string;
   model: string | null;
-  detailer_name: string;
   services?: string | null;
   /** Present when the earlier job is already on a live invoice. */
   invoice_number?: string | null;
@@ -47,7 +46,7 @@ export function DuplicateDialog({ hits, onCancel, onContinue }: { hits: Duplicat
                 <span className="text-muted-foreground">{formatDate(h.performed_at)}</span>
               </div>
               <div className="text-muted-foreground">
-                {[h.model, h.vin, h.detailer_name].filter(Boolean).join(" · ")}
+                {[h.model, h.vin].filter(Boolean).join(" · ")}
                 {h.services ? ` · ${h.services}` : ""}
               </div>
             </li>

@@ -70,7 +70,6 @@ async function run(): Promise<SyncResult> {
         dealership_id: job.dealership_id,
         performed_at: job.performed_at,
         model: job.model,
-        detailer_name: "You",
       });
       await updateOutboxItem(item.client_id, {
         status: "done",

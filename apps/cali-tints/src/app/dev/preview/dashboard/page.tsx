@@ -187,9 +187,9 @@ function teamFixture(today: string): TeamStats {
       { detailer_id: "u5", name: "Sam", today: 4, cars: 27 },
     ],
     today_cars: [
-      ...mine.today_cars.map((c) => ({ ...c, detailer: "Sam" })),
-      { id: "j5", invoice_id: null, display_number: null, tag: "K-131", vehicle: "2025 Mercedes-Benz E 350", dealership: SAC, detailer: "Victor", performed_at: ago(95), services: ["Used"] },
-      { id: "j6", invoice_id: null, display_number: null, tag: "4836", vehicle: "2026 Mercedes-Benz GLE 350", dealership: EDH, detailer: "Dee One", performed_at: ago(140), services: ["PDI"] },
+      ...mine.today_cars.map((c) => ({ ...c, detailer: null })),
+      { id: "j5", invoice_id: null, display_number: null, tag: "K-131", vehicle: "2025 Mercedes-Benz E 350", dealership: SAC, detailer: null, performed_at: ago(95), services: ["Used"] },
+      { id: "j6", invoice_id: null, display_number: null, tag: "4836", vehicle: "2026 Mercedes-Benz GLE 350", dealership: EDH, detailer: null, performed_at: ago(140), services: ["PDI"] },
     ],
     range: mine.range,
   };
