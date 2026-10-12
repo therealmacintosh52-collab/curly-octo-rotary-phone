@@ -14,3 +14,7 @@
 | 2026-10-12 (S2; no time recorded) | orchestrator | T-002 | FOLDED | folded into T-006 per D-012 (ops/DECISIONS.md) |
 | 2026-10-12 (S2; no time recorded) | scribe | S1b | DELIVERED | Status: DELIVERED; Task: Process S1, T-001, T-005 (attempt 1 reply and attempt 2), T-006, T-007; newest LOG row was T-003. |
 | 2026-10-12 (S2; no time recorded) | orchestrator | — | PLAYBOOK-ADOPTED | Growth Agency MOS stored verbatim at library/playbooks/growth-agency-mos.md with adapter library/playbooks/growth-agency-mos-adapter.md; PROTOCOL §8; D-017..D-021; A-012, A-013, A-014 (ops/DECISIONS.md) |
+| 2026-10-12 (S2b; no time in handoff) | qa | T-008 | REJECTED | Status: DELIVERED; VERDICT: FAIL (6 of 6 files need small line edits; no price, ID or mapping error found, no guarantee, income claim, testimonial or reward language found); QUALITY SCORE: 4; Output: ops/handoffs/T-008-qa-to-orchestrator.md |
+| 2026-10-12 (S2b; no time in handoff) | growth | T-008 | DELIVERED | Status: DELIVERED; Task: Apply qa F1–F11 to the six library/outreach/*-2026-10-13.md files; QUALITY SCORE: 4; Outputs: six edited files under library/outreach/ |
+| 2026-10-12 (S2b; no time in handoff) | qa | T-008 | DELIVERED | Status: DELIVERED; VERDICT: PASS (six of six files); Failed criteria: none; QUALITY SCORE: 4; Output: ops/handoffs/T-008-qa-to-orchestrator-a2.md |
+| 2026-10-12 (S2; no time recorded) | scribe | S2 | DELIVERED | Status: DELIVERED; Task: S2 scribe pass, session 2 (Orchestrator instruction steps 1–7) |
