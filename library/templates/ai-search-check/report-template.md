@@ -7,7 +7,7 @@ Filler notes (stripped by check_deliverable.py).
 - Top 3 fixes: rule at the end of checklist.md. Copy that fix text.
 - Delete any line whose screenshot you do not have; list it under
   "What I did not check" instead.
-- Run: python3 library/templates/check_deliverable.py FILLED.md --out CLIENT.md --no-desc
+- Run: python3 library/templates/check_deliverable.py FILLED.md --out CLIENT.md
 -->
 
 # AI-search readiness check

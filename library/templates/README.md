@@ -25,8 +25,9 @@ sent or published by agents.
   compliance proof; the owner's read of every
   client file stays mandatory. The 750-char
   check fails if the DESC markers are missing
-  (`--no-desc` only for the AI-search report,
-  which has no description).
+  (the AI-search report, which has no
+  description, is detected by its title;
+  there is no opt-out flag).
 
 ## Conventions
 - Placeholders: `[[FILL: what goes here]]`

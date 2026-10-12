@@ -278,6 +278,9 @@ def verify(sheet_img, sign_img, mx, label):
 
 
 def main(argv):
+    if any(a in ("-h", "--help") for a in argv):
+        print(__doc__)
+        return 0
     if not argv or argv[0].startswith("-"):
         print(__doc__)
         return 2

@@ -3,7 +3,7 @@ SAMPLE ONLY. Fictional business, fictional site, fictional numbers.
 No real business is described. ".example" is a reserved name that no
 real site can use. Used to show the filled shape and to test the lint:
   python3 library/templates/check_deliverable.py \
-    library/templates/ai-search-check/sample-report-SAMPLE.md --allow-sample --no-desc
+    library/templates/ai-search-check/sample-report-SAMPLE.md --allow-sample
 Scoring trace: points 2+1+2+0+0+0+1+1+1+0+1+0 = 9; item 7 scored, all 12
 checked, max 24; 9/24 = 37.5% -> 38%, band "foundation missing".
 Lowest scores (0): items 4,5,6,10,12. Tie order 5,3,9,11,4,1,8,7,10,12,2,6

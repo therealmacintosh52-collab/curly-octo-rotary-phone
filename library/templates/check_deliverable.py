@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Pre-delivery lint for filled library/templates/ deliverables (T-010).
 
-    python3 library/templates/check_deliverable.py FILLED.md [--out CLIENT.md] [--allow-sample] [--no-desc]
+    python3 library/templates/check_deliverable.py FILLED.md [--out CLIENT.md] [--allow-sample]
     python3 library/templates/check_deliverable.py -h
 
 1. Counts the GBP description between <!-- DESC START --> and <!-- DESC END -->
    (fails over 750 characters, growth's VERIFIED limit). FAILS CLOSED: missing,
-   empty, duplicated or misordered markers are a FAIL, not a skip. A deliverable
-   with no GBP description (the AI-search report) must say so with --no-desc.
+   empty, duplicated or misordered markers are a FAIL, not a skip. The only
+   skip is automatic: the file has NO DESC marker at all and its first heading
+   is exactly "# AI-search readiness check" (the report template title). There
+   is no flag to turn the check off (T-010c; --no-desc was a bypass).
 2. Strips every HTML comment, including <!-- INTERNAL ... --> filler notes.
 3. FAILS on: leftover [[FILL: ...]] placeholders, other unlabeled placeholder
    styles ([YOUR NAME], REPLACE-ME, TODO, XXX), the word SAMPLE (unless
@@ -24,6 +26,7 @@ import re
 import sys
 
 DESC_MAX = 750
+REPORT_TITLE = "# AI-search readiness check"
 
 FAIL_PATTERNS = [
     (r"\[\[FILL", "unfilled [[FILL: ...]] placeholder"),
@@ -55,6 +58,13 @@ FAIL_PATTERNS = [
      r"|\benter\s+(\w+\s+){0,3}(draw|raffle|giveaway|sweepstakes?|contest|competition)\b"
      r"|(?<!no )(?<!without )(?<!never )\b(draw|raffle|giveaway|sweepstakes?|prize|voucher|coupon|gift card|freebie|reward)\b.*\breview|\breview\b.*(?<!no )(?<!without )(?<!never )\b(draw|raffle|giveaway|sweepstakes?|prize|voucher|coupon|gift card|freebie|reward)\b",
      "review incentive"),
+    # review ask on the same line as an offer word (R2): was WARN-only
+    (r"(?i)\breview\w*\b.*(\boff\b|\bfree\b|\bdiscount\w*|\bpercent\b|%|\bcoffee\b|\bdraw\b|\bgift\w*)"
+     r"|(\boff\b|\bfree\b|\bdiscount\w*|\bpercent\b|%|\bcoffee\b|\bdraw\b|\bgift\w*).*\breview\w*\b",
+     "review near an offer word (incentive)"),
+    # ranking / rating paraphrases (R2)
+    (r"(?i)\bnumber[\s-]*(one|1)\s+(choice|pick|option|spot|name|provider)|\bmaximum\s+(rating|score|stars?|marks)\b"
+     r"|\bahead\s+of\s+(your|the|all)\s+(\w+\s+)?competit\w+", "ranking/rating promise"),
 ]
 WARN_PATTERNS = [
     (r"(?i)\bcheap\b|\bbest in town\b|treat you like family|\bpassionate\b|\bdeal\b", "copy-rule word (blueprint line 186)"),
@@ -74,8 +84,10 @@ def main(argv):
         return 0
     args = [a for a in argv if not a.startswith("--")]
     allow_sample = "--allow-sample" in argv
-    no_desc = "--no-desc" in argv
-    unknown = [a for a in argv if a.startswith("-") and a not in ("--out", "--allow-sample", "--no-desc")]
+    if "--no-desc" in argv:
+        print("--no-desc was removed (T-010c): it could switch off the 750-char check on a GBP pack.\n"
+              "The AI-search report is detected by its title and needs no flag."); return 2
+    unknown = [a for a in argv if a.startswith("-") and a not in ("--out", "--allow-sample")]
     if unknown:
         print(f"unknown option(s): {' '.join(unknown)}\n(run with -h)"); return 2
     out = None
@@ -94,16 +106,18 @@ def main(argv):
         print(f"cannot read {src}: {e.strerror}"); return 2
     fails, warns = [], []
 
-    if no_desc:
-        print("description check: skipped by --no-desc (deliverable has no GBP description)")
+    has_marker = "<!-- DESC" in text
+    first_head = next((l.strip() for l in strip_comments(text).splitlines() if l.lstrip().startswith("#")), "")
+    if not has_marker and first_head == REPORT_TITLE:
+        print("description check: SKIPPED (AI-search report: no GBP description by design)")
     else:
         starts = [m.start() for m in re.finditer(r"<!-- DESC START -->", text)]
         ends = [m.start() for m in re.finditer(r"<!-- DESC END -->", text)]
         m = re.search(r"<!-- DESC START -->(.*?)<!-- DESC END -->", text, flags=re.S)
         if not starts and not ends:
             fails.append((0, "no <!-- DESC START --> / <!-- DESC END --> markers: the 750-character "
-                             "check cannot run. Restore the markers, or pass --no-desc if this "
-                             "deliverable has no GBP description"))
+                             "check cannot run. Restore the markers (only the AI-search report, "
+                             "titled '# AI-search readiness check', may have none)"))
         elif len(starts) != 1 or len(ends) != 1 or not m:
             fails.append((0, f"DESC markers must appear once each, START before END (found "
                              f"{len(starts)} START, {len(ends)} END)"))

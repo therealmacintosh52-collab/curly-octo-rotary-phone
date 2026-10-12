@@ -74,9 +74,12 @@ failed; do not send anything.
   (exit 2 otherwise). Link text over 55
   characters is set at 5 pt under the QR so
   up to 120 fits; the fit check still fails
-  closed (exit 4) if a link does not. Prefer
-  the short `g.page/...` link when Google
-  offers it: 5 pt is small to type by hand.
+  closed (exit 4) if a link does not. Put any
+  link over 55 characters on the SIGN (larger
+  type), or use Google's `g.page/...` short
+  link. The 5 pt card link is a last-resort
+  fallback: qa judged it too hard to type
+  from paper.
 - Text fits each card and the sign.
 - `card-sheet.png` and `sign.png` hold the
   whole letter page: their ink bounds must
