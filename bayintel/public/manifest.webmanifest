@@ -1,0 +1,9 @@
+{
+  "name": "BayIntel",
+  "short_name": "BayIntel",
+  "start_url": "/garage",
+  "display": "standalone",
+  "background_color": "#1c1d22",
+  "theme_color": "#1c1d22",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
