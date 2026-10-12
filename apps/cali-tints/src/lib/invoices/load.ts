@@ -60,14 +60,7 @@ export async function loadInvoiceBundle(id: string, db?: SupabaseClient<Database
 }
 
 /** Compose a single-line address from the parts we store. */
-export function formatAddress(a: { address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; postal_code: string | null }): string[] {
-  const lines: string[] = [];
-  if (a.address_line1) lines.push(a.address_line1);
-  if (a.address_line2) lines.push(a.address_line2);
-  const cityLine = [a.city, [a.state, a.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  if (cityLine) lines.push(cityLine);
-  return lines;
-}
+export { formatAddress } from "@/lib/address";
 
 /** Safe file stem for downloads: INV-000012-Mercedes-Benz-of-El-Dorado-Hills */
 export function invoiceFileStem(b: InvoiceBundle): string {

@@ -115,6 +115,8 @@ const modifierSchema = z.object({
   amount: z.number().min(0).max(100000),
   active: z.boolean(),
   sort_order: z.number().int().min(0).max(9999),
+  ask_customer: z.boolean().optional(),
+  question: optionalText(120),
 });
 export type ModifierInput = z.input<typeof modifierSchema>;
 

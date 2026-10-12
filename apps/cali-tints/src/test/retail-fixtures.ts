@@ -163,6 +163,7 @@ export function customerTimelineFixture(id: string, owner: boolean): CustomerTim
       }),
     jobs,
     estimates: customerEstimatesFixture(c.id, owner),
+    appointments: calendarItemsFixture(owner).filter((a) => a.customer_id === c.id && a.status !== "hold").map((a) => ({ id: a.id, display_number: a.display_number, status: a.status, starts_at: a.starts_at, ends_at: a.ends_at, vehicle: a.vehicle, services: a.services, job_id: a.job_id })),
     stats: { visits: jobs.length, last_visit: jobs[0]?.performed_at ?? null, lifetime_spend: owner ? jobs.reduce((s, j) => s + (j.paid_amount ?? 0), 0) : null },
   };
 }
@@ -189,7 +190,8 @@ export function retailTodayFixture(): RetailTodayData {
   const r101 = JOBS[C1][0];
   const r102 = JOBS[C2][0];
   const car = (j: FixtureJob, customer: string) => ({ id: j.id, tag: j.tag, vehicle: j.vehicle, customer, performed_at: j.performed_at, paid_at: j.paid_at, services: j.services });
-  return { customers: customersFixture.length, today: [car(r102, "Marcus Reed"), car(r101, "Ana Lopez")], unpaid: [car(r102, "Marcus Reed")] };
+  const items = calendarItemsFixture(true);
+  return { customers: customersFixture.length, today: [car(r102, "Marcus Reed"), car(r101, "Ana Lopez")], unpaid: [car(r102, "Marcus Reed")], leads: items.filter((a) => a.status === "lead"), holds: items.filter((a) => a.status === "hold"), appointments: items.filter((a) => a.status !== "lead" && a.status !== "hold" && a.status !== "cancelled").filter((a) => a.starts_at.slice(0, 10) === new Date().toISOString().slice(0, 10)) };
 }
 
 /** The customer behind each of the Jobs list's walk-in rows (R-101, R-102). */
@@ -266,9 +268,9 @@ export function retailCatalogFixture(owner: boolean): RetailCatalog {
   return {
     services: [...dealer, ...retailServicesFixture(owner), other],
     modifiers: [
-      { id: "m1", company_id: "c1", code: "soil_heavy", label: "Heavy soil", description: "Mud, sand, heavy grime: extra time on the interior", kind: "percent", amount: 25, active: true, sort_order: 10, created_at: now, updated_at: now },
-      { id: "m2", company_id: "c1", code: "pet_hair", label: "Pet hair", description: "Embedded pet hair in carpet and seats", kind: "flat", amount: 40, active: true, sort_order: 20, created_at: now, updated_at: now },
-      { id: "m3", company_id: "c1", code: "biohazard", label: "Biohazard", description: "Vomit, mold, spills needing extraction", kind: "flat", amount: 75, active: true, sort_order: 30, created_at: now, updated_at: now },
+      { id: "m1", company_id: "c1", code: "soil_heavy", label: "Heavy soil", description: "Mud, sand, heavy grime: extra time on the interior", kind: "percent", amount: 25, active: true, sort_order: 10, ask_customer: false, question: null, created_at: now, updated_at: now },
+      { id: "m2", company_id: "c1", code: "pet_hair", label: "Pet hair", description: "Embedded pet hair in carpet and seats", kind: "flat", amount: 40, active: true, sort_order: 20, ask_customer: true, question: "Any pet hair in the car?", created_at: now, updated_at: now },
+      { id: "m3", company_id: "c1", code: "biohazard", label: "Biohazard", description: "Vomit, mold, spills needing extraction", kind: "flat", amount: 75, active: true, sort_order: 30, ask_customer: false, question: null, created_at: now, updated_at: now },
     ],
     settings: { id: "rs1", company_id: "c1", deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, hold_minutes: 30, cancel_hours: 24, slot_step_minutes: 30, lead_time_hours: 2, max_days_ahead: 60, reminder_hours: [24, 2], online_booking_enabled: true, estimate_valid_days: 14, tax_all_lines: false, signature_required_estimate: true, signature_required_receipt: true, policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", email_templates: DEFAULT_TEMPLATES, updated_at: now },
     resources: [
@@ -437,4 +439,99 @@ export function customerEstimatesFixture(customerId: string, money: boolean): No
     .map((id) => estimateViewFixture(id, money)!)
     .filter((e) => e.customer.id === customerId)
     .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, created_at: e.created_at, expires_at: e.expires_at, vehicle: e.vehicle?.name ?? null, total: e.total, job_id: e.job_id }));
+}
+
+
+// ---------------------------------------------------------------------------
+// 0040: appointments. Today's three cars, an online lead to confirm, a live
+// hold, and next week's bookings. Times are built in the shop's timezone.
+// ---------------------------------------------------------------------------
+import type { AppointmentView, CalendarItem, CalendarRange, PublicCatalog } from "@/lib/db/types";
+
+const A1 = "a0000000-0000-4000-8000-000000000001";
+const A2 = "a0000000-0000-4000-8000-000000000002";
+const A3 = "a0000000-0000-4000-8000-000000000003";
+const A4 = "a0000000-0000-4000-8000-000000000004";
+const A5 = "a0000000-0000-4000-8000-000000000005";
+export const APPOINTMENT_IDS = { ana: A1, marcus: A2, lead: A3, hold: A4, priya: A5 };
+export const APPOINTMENT_TOKEN = "demo-booking-token-ana-camry-00001";
+const TZ = "America/Los_Angeles";
+
+/** An instant for today (or +days) at a Pacific wall-clock hour. Good enough for a preview; the database does the real maths. */
+function at(days: number, hour: number, minute = 0): string {
+  const now = new Date();
+  const offset = Number(new Intl.DateTimeFormat("en-US", { timeZone: TZ, timeZoneName: "shortOffset" }).formatToParts(now).find((p) => p.type === "timeZoneName")?.value.replace(/GMT|UTC/, "") || "-7");
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days, hour - offset, minute));
+  return d.toISOString();
+}
+const plus = (iso: string, minutes: number) => new Date(new Date(iso).getTime() + minutes * 60000).toISOString();
+
+type ApptSeed = { id: string; n: number; status: CalendarItem["status"]; customer: Customer | null; vehicle: Vehicle | null; services: { svc: number; price: number; modifiers?: { code: string; label: string }[] }[]; starts: string; source: CalendarItem["source"]; pay?: "deposit" | "at_shop" | null; hold_expires?: string; resources: string[]; notes?: string | null; customer_notes?: string | null; job_id?: string | null; estimate?: { id: string; display_number: string } | null; intake?: Record<string, unknown> };
+function seeds(): ApptSeed[] {
+  return [
+    { id: A1, n: 1, status: "in_progress", customer: cust(C1), vehicle: veh(V1), services: [{ svc: 0, price: 200 }], starts: at(0, 8), source: "staff", resources: ["bay1", "tech-u2"], notes: "Keys in the drop box", job_id: "40000000-0000-4000-8000-000000000998" },
+    { id: A2, n: 2, status: "booked", customer: cust(C2), vehicle: veh(V2), services: [{ svc: 3, price: 70 }, { svc: 7, price: 15 }], starts: at(0, 13), source: "public", pay: "at_shop", resources: ["bay2", "tech-u3"], customer_notes: "Please call when it is ready" },
+    { id: A3, n: 3, status: "lead", customer: cust(C4), vehicle: veh(V5), services: [{ svc: 0, price: 290, modifiers: [{ code: "pet_hair", label: "Pet hair" }] }], starts: at(2, 9), source: "public", pay: "deposit", resources: ["bay3", "tech-u2"], customer_notes: "Pet hair in the back", intake: { pet_hair: true } },
+    { id: A4, n: 4, status: "hold", customer: null, vehicle: null, services: [{ svc: 9, price: 60 }], starts: at(1, 10), source: "public", hold_expires: new Date(Date.now() + 17 * 60000).toISOString(), resources: ["bay4", "lift1", "tech-u3"] },
+    { id: A5, n: 5, status: "booked", customer: cust(C3), vehicle: veh(V3), services: [{ svc: 1, price: 475 }], starts: at(3, 8), source: "estimate", resources: ["bay1", "tech-u2"], estimate: { id: E2, display_number: "EST-000002" } },
+  ];
+}
+const SIZE_OF = (v: Vehicle | null): VehicleSize => v?.size_class ?? "suv_truck";
+
+export function calendarItemsFixture(money: boolean): CalendarItem[] {
+  return seeds().map((s) => {
+    const minutes = s.services.reduce((t, x) => t + seedMinutes(x.svc), 0);
+    const total = s.services.reduce((t, x) => t + x.price + (x.modifiers?.length ? 40 : 0), 0);
+    return {
+      id: s.id, display_number: `APT-${String(s.n).padStart(6, "0")}`, status: s.status, starts_at: s.starts, ends_at: plus(s.starts, minutes), duration_minutes: minutes, hold_expires_at: s.hold_expires ?? null,
+      source: s.source, size_class: SIZE_OF(s.vehicle), pay_choice: s.pay ?? null, job_id: s.job_id ?? null, estimate_id: s.estimate?.id ?? null,
+      customer: s.customer?.display_name ?? null, customer_id: s.customer?.id ?? null, vehicle: s.vehicle ? vehicleName(s.vehicle) : null,
+      services: s.services.map((x) => seedName(x.svc)), resource_ids: s.resources, total: money ? total : null, deposit_required: money ? Math.round(total * 20) / 100 : null,
+    };
+  });
+}
+
+export function calendarRangeFixture(money: boolean): CalendarRange {
+  const cat = retailCatalogFixture(money);
+  return { resources: cat.resources.map((r) => ({ id: r.id, kind: r.kind, name: r.name, profile_id: r.profile_id })), hours: cat.hours.map((h) => ({ dow: h.dow, opens: h.opens, closes: h.closes, closed: h.closed })), blackouts: cat.blackouts.map((b) => ({ day: b.day, reason: b.reason })), items: calendarItemsFixture(money) };
+}
+
+export function appointmentViewFixture(id: string, money: boolean, pub = false): AppointmentView | null {
+  const s = seeds().find((x) => x.id === id);
+  if (!s) return null;
+  const item = calendarItemsFixture(true).find((x) => x.id === id)!;
+  const cat = retailCatalogFixture(true);
+  return {
+    id: s.id, display_number: item.display_number, status: s.status, starts_at: item.starts_at, ends_at: item.ends_at, duration_minutes: item.duration_minutes, hold_expires_at: item.hold_expires_at,
+    source: s.source, size_class: item.size_class, pay_choice: s.pay ?? null, intake: s.intake ?? {}, notes: pub ? null : (s.notes ?? null), customer_notes: s.customer_notes ?? null,
+    estimate_id: s.estimate?.id ?? null, job_id: s.job_id ?? null, confirmed_at: s.status === "lead" || s.status === "hold" ? null : item.starts_at, checked_in_at: s.status === "in_progress" ? at(0, 7, 55) : null, done_at: null, cancelled_at: null, cancel_reason: null,
+    created_at: ago(1), updated_at: ago(0, 1), token: pub ? APPOINTMENT_TOKEN : null,
+    subtotal: money || pub ? item.total : null, tax: money || pub ? 0 : null, total: money || pub ? item.total : null, deposit_required: money || pub ? item.deposit_required : null,
+    customer: s.customer ? { id: s.customer.id, display_name: pub ? s.customer.first_name : s.customer.display_name, first_name: s.customer.first_name, phone: pub ? null : s.customer.phone, email: pub ? null : s.customer.email } : null,
+    vehicle: s.vehicle ? { id: s.vehicle.id, name: vehicleName(s.vehicle), color: s.vehicle.color, plate: pub ? null : s.vehicle.plate, size_class: s.vehicle.size_class } : null,
+    services: s.services.map((x, i) => ({ id: `${s.id}-s${i}`, service_id: RETAIL_SERVICE_ID(x.svc), name: seedName(x.svc), qty: 1, duration_minutes: seedMinutes(x.svc), unit_price: money || pub ? x.price : null, line_total: money || pub ? x.price + (x.modifiers?.length ? 40 : 0) : null, modifiers: x.modifiers ?? [] })),
+    resources: pub ? [] : s.resources.map((r) => { const res = cat.resources.find((x) => x.id === r)!; return { id: res.id, kind: res.kind, name: res.name }; }),
+    estimate: s.estimate ? { ...s.estimate, status: "accepted" } : null,
+    company: { ...COMPANY },
+    policy: { cancel_hours: 24, hold_minutes: 30, deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, policy_text: POLICY.policy_text },
+    can_change: s.status === "hold" || new Date(item.starts_at).getTime() > Date.now() + 24 * 3600000,
+  };
+}
+
+/** The customer's view of the booking link in the demo: the hold (`/book/<token>`) or Dana's lead (`/a/<token>`). */
+export function appointmentPublicFixture(token: string, kind: "hold" | "manage"): AppointmentView | null {
+  if (token !== APPOINTMENT_TOKEN) return null;
+  return appointmentViewFixture(kind === "hold" ? A4 : A3, true, true);
+}
+
+export function publicCatalogFixture(): PublicCatalog {
+  const cat = retailCatalogFixture(true);
+  return {
+    company: { name: COMPANY.name, phone: COMPANY.phone, email: COMPANY.email, address_line1: COMPANY.address_line1, city: COMPANY.city, state: COMPANY.state, postal_code: COMPANY.postal_code, timezone: TZ },
+    services: retailServicesFixture(true).map((s) => ({ id: s.id, name: s.name, benefit_text: s.benefit_text, duration_minutes: s.duration_minutes, taxable: s.taxable, sort_order: s.sort_order, start_window_from: s.start_window_from, start_window_to: s.start_window_to, prices: s.prices ?? {}, default_price: s.default_price ?? 0 })),
+    questions: cat.modifiers.filter((m) => m.ask_customer).map((m) => ({ code: m.code, label: m.label, question: m.question ?? m.label, kind: m.kind, amount: m.amount })),
+    settings: { slot_step_minutes: 30, lead_time_hours: 2, max_days_ahead: 60, hold_minutes: 30, cancel_hours: 24, deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, online_booking_enabled: true, policy_text: POLICY.policy_text },
+    hours: cat.hours.map((h) => ({ dow: h.dow, opens: h.opens, closes: h.closes, closed: h.closed })),
+    tax_rate: 0,
+  };
 }

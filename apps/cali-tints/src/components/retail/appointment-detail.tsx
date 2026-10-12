@@ -1,0 +1,307 @@
+"use client";
+
+import { useCallback, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeftIcon, CalendarClockIcon, CheckIcon, CopyIcon, FileTextIcon, LogInIcon, UserXIcon, WrenchIcon, XIcon } from "lucide-react";
+import { toast } from "sonner";
+import type { AppointmentStatus, AppointmentView, Slot } from "@/lib/db/types";
+import { findSlotsAction, rescheduleAppointmentAction, setAppointmentStatusAction } from "@/app/(app)/retail/appointments/actions";
+import { useSession } from "@/components/app/session-provider";
+import { formatDateTime } from "@/lib/dates";
+import { formatMoney } from "@/lib/money";
+import { formatPhone } from "@/lib/retail/phone";
+import { SIZE_LABEL } from "@/lib/retail/size-class";
+import { dayLabelIn, durationLabel, holdSecondsLeft, mmss, timeIn } from "@/lib/retail/slots";
+import { Page } from "@/components/app/page-header";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { AppointmentStatusBadge } from "./appointment-status-badge";
+import { ContactButtons } from "./text-customer-button";
+import { SlotPicker } from "./slot-picker";
+import { demoSlots } from "./appointment-sheet";
+
+const money = (n: number | null | undefined) => (n === null || n === undefined ? null : formatMoney(n));
+
+/**
+ * One appointment for the staff: who, which car, when, which bay/lift/tech,
+ * the services (money for owner/admin), where it stands and what to do next:
+ * confirm a lead, check the car in (that opens the job), finish, move it,
+ * cancel, no-show. The manage link is what the customer got.
+ */
+export function AppointmentDetail({ a, showMoney, publicUrl }: { a: AppointmentView; showMoney: boolean; publicUrl: string | null }) {
+  const router = useRouter();
+  const { isAdmin, demo } = useSession();
+  const [pending, start] = useTransition();
+  const [moving, setMoving] = useState(false);
+  const [cancelling, setCancelling] = useState<"cancelled" | "no_show" | null>(null);
+  const tz = a.company.timezone;
+  const live = a.status === "lead" || a.status === "booked" || a.status === "confirmed";
+  const held = a.status === "hold" ? holdSecondsLeft(a.hold_expires_at) : 0;
+
+  function setStatus(status: AppointmentStatus, reason?: string) {
+    start(async () => {
+      if (demo) {
+        toast.success("Updated", { description: "Guest preview — nothing changed" });
+        setCancelling(null);
+        return;
+      }
+      const r = await setAppointmentStatusAction(a.id, status, reason);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success(status === "in_progress" ? "Checked in · the job is open" : status === "booked" ? "Confirmed" : "Updated");
+      setCancelling(null);
+      router.refresh();
+    });
+  }
+  async function copy() {
+    if (!publicUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Could not copy");
+    }
+  }
+
+  return (
+    <Page>
+      <Link href="/retail/calendar" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeftIcon className="size-4" /> Calendar
+      </Link>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-title">{dayLabelIn(a.starts_at, tz, true)}</h1>
+            <AppointmentStatusBadge status={a.status} />
+            {held > 0 && <Badge variant="outline">{mmss(held)} left</Badge>}
+          </div>
+          <div className="mt-1 text-lg font-semibold tabular-nums">{timeIn(a.starts_at, tz)} – {timeIn(a.ends_at, tz)} <span className="text-sm font-normal text-muted-foreground">· {durationLabel(a.duration_minutes)}</span></div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span className="tracking-wide">{a.display_number}</span>
+            {a.customer ? <Link href={`/retail/customers/${a.customer.id}`} className="font-medium text-foreground hover:text-primary" data-testid="appointment-customer">{a.customer.display_name ?? a.customer.first_name}</Link> : <span>Online customer</span>}
+            {a.vehicle && <span>{[a.vehicle.name, a.vehicle.color].filter(Boolean).join(" · ")}</span>}
+            <Badge variant="outline">{SIZE_LABEL[a.size_class]}</Badge>
+            <span>· {a.source === "public" ? "booked online" : a.source === "estimate" ? "from an estimate" : "booked by staff"}</span>
+          </div>
+          {a.customer?.phone && (
+            <div className="mt-2 flex items-center gap-2">
+              <ContactButtons phone={a.customer.phone} name={a.customer.first_name} />
+              <span className="text-caption text-subtle">{formatPhone(a.customer.phone)}</span>
+            </div>
+          )}
+        </div>
+        {isAdmin && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2" data-testid="appointment-actions">
+            {a.status === "lead" && (
+              <Button onClick={() => setStatus("booked")} loading={pending} data-testid="appointment-confirm">
+                <CheckIcon /> Confirm
+              </Button>
+            )}
+            {a.status === "booked" && (
+              <Button variant="outline" onClick={() => setStatus("confirmed")} loading={pending}>
+                <CheckIcon /> They confirmed
+              </Button>
+            )}
+            {live && (
+              <Button onClick={() => setStatus("in_progress")} loading={pending} data-testid="appointment-checkin">
+                <LogInIcon /> Check in
+              </Button>
+            )}
+            {a.status === "in_progress" && (
+              <Button onClick={() => setStatus("done")} loading={pending}>
+                <CheckIcon /> Done
+              </Button>
+            )}
+            {(live || a.status === "hold") && (
+              <Button variant="outline" onClick={() => setMoving(true)} data-testid="appointment-move">
+                <CalendarClockIcon /> Move
+              </Button>
+            )}
+            {live && (
+              <Button variant="ghost" onClick={() => setCancelling("no_show")}>
+                <UserXIcon /> No-show
+              </Button>
+            )}
+            {(live || a.status === "hold") && (
+              <Button variant="ghost" onClick={() => setCancelling("cancelled")} data-testid="appointment-cancel">
+                <XIcon /> Cancel
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Work</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="divide-y divide-border text-sm" data-testid="appointment-services">
+                {a.services.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <div className="font-medium">{s.name}{s.qty !== 1 ? ` × ${s.qty}` : ""}</div>
+                      <div className="text-caption text-subtle">{durationLabel(s.duration_minutes)}{s.modifiers.length ? ` · ${s.modifiers.map((m) => m.label).join(", ")}` : ""}</div>
+                    </div>
+                    {showMoney && <span className="shrink-0 tabular-nums">{money(s.line_total)}</span>}
+                  </li>
+                ))}
+              </ul>
+              {showMoney && (
+                <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm" data-testid="appointment-money">
+                  <span className="text-muted-foreground">Total{(a.deposit_required ?? 0) > 0 ? ` · deposit ${money(a.deposit_required)}` : ""}</span>
+                  <span className="text-base font-semibold tabular-nums">{money(a.total)}</span>
+                </div>
+              )}
+              {a.pay_choice && <p className="mt-2 text-caption text-subtle">They chose to {a.pay_choice === "deposit" ? "pay the deposit online (the link comes with the next slice; take it at drop-off for now)" : "pay at the shop"}.</p>}
+            </CardContent>
+          </Card>
+          {(a.customer_notes || a.notes || Object.keys(a.intake ?? {}).length > 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 text-sm">
+                {a.customer_notes && <div><div className="text-caption text-muted-foreground">From the customer</div><p className="whitespace-pre-wrap">{a.customer_notes}</p></div>}
+                {a.notes && <div><div className="text-caption text-muted-foreground">Staff</div><p className="whitespace-pre-wrap">{a.notes}</p></div>}
+                {Object.keys(a.intake ?? {}).length > 0 && (
+                  <div>
+                    <div className="text-caption text-muted-foreground">Their answers</div>
+                    <ul>{Object.entries(a.intake).map(([k, v]) => <li key={k}>{k.replace(/_/g, " ")}: {String(v)}</li>)}</ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>In the shop</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm">
+              <div className="flex flex-wrap gap-1.5" data-testid="appointment-resources">
+                {a.resources.map((r) => (
+                  <Badge key={r.id} variant="outline">{r.name}</Badge>
+                ))}
+                {a.resources.length === 0 && <span className="text-muted-foreground">No bay assigned</span>}
+              </div>
+              {a.job_id && (
+                <Button asChild variant="secondary">
+                  <Link href={`/jobs/${a.job_id}`} data-testid="appointment-job"><WrenchIcon /> Open the job</Link>
+                </Button>
+              )}
+              {a.estimate && (
+                <Button asChild variant="outline">
+                  <Link href={`/retail/estimates/${a.estimate.id}`}><FileTextIcon /> {a.estimate.display_number}</Link>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>History</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-1 text-caption text-subtle">
+              <div>Created {formatDateTime(a.created_at)}</div>
+              {a.confirmed_at && <div>Confirmed {formatDateTime(a.confirmed_at)}</div>}
+              {a.checked_in_at && <div>Checked in {formatDateTime(a.checked_in_at)}</div>}
+              {a.done_at && <div>Done {formatDateTime(a.done_at)}</div>}
+              {a.cancelled_at && <div>{a.status === "no_show" ? "No-show" : "Cancelled"} {formatDateTime(a.cancelled_at)}{a.cancel_reason ? ` · ${a.cancel_reason}` : ""}</div>}
+            </CardContent>
+          </Card>
+          {isAdmin && publicUrl && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Their link</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                <p className="text-caption text-subtle">The customer moves or cancels the appointment here, inside the policy.</p>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-caption">
+                  <span className="min-w-0 truncate" data-testid="appointment-link">{publicUrl}</span>
+                  <button type="button" onClick={copy} className="ml-auto shrink-0 text-muted-foreground hover:text-foreground" aria-label="Copy link"><CopyIcon className="size-4" /></button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      <MoveDialog a={a} open={moving} onOpenChange={setMoving} />
+      <Dialog open={!!cancelling} onOpenChange={(o) => !o && setCancelling(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{cancelling === "no_show" ? "Mark as a no-show" : "Cancel this appointment"}</DialogTitle>
+            <DialogDescription>The bay, lift and tech are freed. {a.customer?.email ? "The customer gets a short email." : ""}</DialogDescription>
+          </DialogHeader>
+          <CancelForm onSubmit={(reason) => cancelling && setStatus(cancelling, reason)} pending={pending} destructive={cancelling === "cancelled"} />
+        </DialogContent>
+      </Dialog>
+    </Page>
+  );
+}
+
+function CancelForm({ onSubmit, pending, destructive }: { onSubmit: (reason: string) => void; pending: boolean; destructive: boolean }) {
+  const [reason, setReason] = useState("");
+  return (
+    <>
+      <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why (optional)" className="min-h-16" maxLength={300} />
+      <DialogFooter>
+        <Button variant={destructive ? "destructive" : "default"} onClick={() => onSubmit(reason)} loading={pending} data-testid="appointment-cancel-confirm">
+          {destructive ? "Cancel it" : "No-show"}
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
+
+function MoveDialog({ a, open, onOpenChange }: { a: AppointmentView; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [pending, start] = useTransition();
+  const [slot, setSlot] = useState<Slot | null>(null);
+  const tz = a.company.timezone;
+  const fetchSlots = useCallback(
+    async (from: string, to: string) => {
+      if (demo) return { ok: true as const, data: demoSlots(from, tz) };
+      return findSlotsAction(a.services.filter((s) => s.service_id).map((s) => ({ service_id: s.service_id!, qty: s.qty, modifiers: s.modifiers.map((m) => m.code) })), from, to);
+    },
+    [a.services, demo, tz],
+  );
+  function submit() {
+    if (!slot) return;
+    start(async () => {
+      if (demo) {
+        toast.success("Moved", { description: "Guest preview — nothing changed" });
+        onOpenChange(false);
+        return;
+      }
+      const r = await rescheduleAppointmentAction(a.id, slot.starts_at);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success("Moved");
+      onOpenChange(false);
+      router.refresh();
+    });
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Move {a.display_number}</DialogTitle>
+          <DialogDescription>Same services, a different time. Only free times are offered.</DialogDescription>
+        </DialogHeader>
+        {open && <SlotPicker tz={tz} fetchSlots={fetchSlots} value={slot} onChange={setSlot} />}
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Keep it</Button>
+          <Button onClick={submit} disabled={!slot} loading={pending} data-testid="appointment-move-confirm">Move it</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

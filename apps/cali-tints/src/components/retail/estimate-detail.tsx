@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateView } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
@@ -35,7 +35,7 @@ const money = (n: number | null | undefined) => (n === null || n === undefined ?
  */
 export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; showMoney: boolean; publicUrl: string | null }) {
   const router = useRouter();
-  const { canPrices, demo } = useSession();
+  const { canPrices, isAdmin, demo } = useSession();
   const [pending, start] = useTransition();
   const [sentUrl, setSentUrl] = useState<string | null>(e.status === "draft" ? null : publicUrl);
   const [accepting, setAccepting] = useState(false);
@@ -306,16 +306,21 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
             </Card>
           )}
 
-          {canPrices && accepted && !e.job_id && (
+          {isAdmin && accepted && (
             <Card>
               <CardHeader>
                 <CardTitle>Next</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-2">
-                <Button onClick={() => setConverting(true)} data-testid="convert-job">
-                  <WrenchIcon /> Create the job
+                <Button asChild data-testid="schedule-estimate">
+                  <Link href={`/retail/calendar?estimate=${e.id}`}><CalendarPlusIcon /> Schedule it</Link>
                 </Button>
-                <p className="text-caption text-subtle">The chosen option and add-ons become the job&apos;s services at these prices. Booking a time comes next.</p>
+                {canPrices && !e.job_id && (
+                  <Button variant="outline" onClick={() => setConverting(true)} data-testid="convert-job">
+                    <WrenchIcon /> Create the job now
+                  </Button>
+                )}
+                <p className="text-caption text-subtle">Pick a time on the calendar; checking the car in opens the job with the approved lines at these prices.</p>
               </CardContent>
             </Card>
           )}

@@ -126,7 +126,7 @@ export type ResourceKind = "bay" | "lift" | "tech";
 /** The retail price of a service for one size class (0038). Owner only. */
 export type ServicePriceBySize = { id: string; company_id: string; service_id: string; size_class: VehicleSize; price: number; created_at: string; updated_at: string };
 
-export type PriceModifier = { id: string; company_id: string; code: string; label: string; description: string | null; kind: "percent" | "flat"; amount: number; active: boolean; sort_order: number; created_at: string; updated_at: string };
+export type PriceModifier = { id: string; company_id: string; code: string; label: string; description: string | null; kind: "percent" | "flat"; amount: number; active: boolean; sort_order: number; ask_customer: boolean; question: string | null; created_at: string; updated_at: string };
 
 export type RetailSettings = {
   id: string;
@@ -321,6 +321,129 @@ export type EstimatePayload = {
   options?: { tier: EstimateTier; name: string; description?: string | null; recommended?: boolean; lines: EstimateLineInput[] }[];
   addons?: (EstimateLineInput & { default_on?: boolean })[];
 };
+
+// ---------------------------------------------------------------------------
+// Booking (0040)
+// ---------------------------------------------------------------------------
+export type AppointmentStatus = "hold" | "lead" | "booked" | "confirmed" | "in_progress" | "done" | "cancelled" | "no_show";
+export type AppointmentSource = "public" | "staff" | "estimate";
+export type Slot = { starts_at: string; ends_at: string };
+export type BookingLineInput = { service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[] };
+
+/** The appointments table row as the admin client reads it. */
+export type AppointmentRow = {
+  id: string;
+  company_id: string;
+  display_number: string;
+  customer_id: string | null;
+  vehicle_id: string | null;
+  estimate_id: string | null;
+  job_id: string | null;
+  status: AppointmentStatus;
+  starts_at: string;
+  ends_at: string;
+  hold_expires_at: string | null;
+  token: string;
+  source: AppointmentSource;
+  reminders_sent: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type AppointmentServiceView = {
+  id: string;
+  service_id: string | null;
+  name: string;
+  qty: number;
+  duration_minutes: number;
+  unit_price: number | null;
+  line_total: number | null;
+  modifiers: { code: string; label: string }[];
+};
+
+/** appointment_detail() / appointment_by_token() / book_appointment(): one appointment. */
+export type AppointmentView = {
+  id: string;
+  display_number: string;
+  status: AppointmentStatus;
+  starts_at: string;
+  ends_at: string;
+  duration_minutes: number;
+  hold_expires_at: string | null;
+  source: AppointmentSource;
+  size_class: VehicleSize;
+  pay_choice: "deposit" | "at_shop" | null;
+  intake: Record<string, unknown>;
+  notes: string | null;
+  customer_notes: string | null;
+  estimate_id: string | null;
+  job_id: string | null;
+  confirmed_at: string | null;
+  checked_in_at: string | null;
+  done_at: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  token: string | null;
+  subtotal: number | null;
+  tax: number | null;
+  total: number | null;
+  deposit_required: number | null;
+  customer: { id: string; display_name: string | null; first_name: string; phone: string | null; email: string | null } | null;
+  vehicle: { id: string; name: string | null; color: string | null; plate: string | null; size_class: VehicleSize } | null;
+  services: AppointmentServiceView[];
+  resources: { id: string; kind: ResourceKind; name: string }[];
+  estimate: { id: string; display_number: string; status: EstimateStatus } | null;
+  company: { name: string; phone: string | null; email: string | null; address_line1: string | null; city: string | null; state: string | null; postal_code: string | null; timezone: string };
+  policy: { cancel_hours: number; hold_minutes: number; deposit_kind: "percent" | "flat" | "none"; deposit_value: number; deposit_refundable: boolean; policy_text: string | null } | null;
+  can_change: boolean;
+};
+
+/** One row on the calendar / Today. */
+export type CalendarItem = {
+  id: string;
+  display_number: string;
+  status: AppointmentStatus;
+  starts_at: string;
+  ends_at: string;
+  duration_minutes: number;
+  hold_expires_at: string | null;
+  source: AppointmentSource;
+  size_class: VehicleSize;
+  pay_choice: "deposit" | "at_shop" | null;
+  job_id: string | null;
+  estimate_id: string | null;
+  customer: string | null;
+  customer_id: string | null;
+  vehicle: string | null;
+  services: string[];
+  resource_ids: string[];
+  total: number | null;
+  deposit_required: number | null;
+};
+export type CalendarRange = {
+  resources: { id: string; kind: ResourceKind; name: string; profile_id: string | null }[];
+  hours: { dow: number; opens: string; closes: string; closed: boolean }[];
+  blackouts: { day: string; reason: string | null }[];
+  items: CalendarItem[];
+};
+export type RetailTodayAppointments = { leads: CalendarItem[]; holds: CalendarItem[]; today: CalendarItem[] };
+
+/** public_catalog(): what the booking page may sell. */
+export type PublicCatalog = {
+  company: { name: string; phone: string | null; email: string | null; address_line1: string | null; city: string | null; state: string | null; postal_code: string | null; timezone: string };
+  services: { id: string; name: string; benefit_text: string | null; duration_minutes: number; taxable: boolean; sort_order: number; start_window_from: string | null; start_window_to: string | null; prices: Partial<Record<VehicleSize, number>>; default_price: number }[];
+  questions: { code: string; label: string; question: string; kind: "percent" | "flat"; amount: number }[];
+  settings: { slot_step_minutes: number; lead_time_hours: number; max_days_ahead: number; hold_minutes: number; cancel_hours: number; deposit_kind: "percent" | "flat" | "none"; deposit_value: number; deposit_refundable: boolean; online_booking_enabled: boolean; policy_text: string | null } | null;
+  hours: { dow: number; opens: string; closes: string; closed: boolean }[];
+  tax_rate: number;
+};
+export type HoldResult = { token: string; display_number: string; starts_at: string; ends_at: string; hold_expires_at: string; total: number; deposit_required: number; has_customer: boolean };
+export type ConfirmResult = { token: string; status: AppointmentStatus; display_number: string; starts_at: string; ends_at?: string; total?: number; deposit_required?: number; pay_choice?: "deposit" | "at_shop" };
+export type HoldPayload = { size_class?: VehicleSize; lines?: BookingLineInput[]; starts_at: string; intake?: Record<string, unknown>; estimate_token?: string; customer_notes?: string };
+export type ConfirmPayload = { contact?: { first_name: string; last_name?: string; phone: string; email?: string | null; sms_opt_in?: boolean; marketing_opt_in?: boolean }; vehicle?: { year?: number | null; make?: string | null; model?: string | null; color?: string | null; vin?: string | null }; pay_choice?: "deposit" | "at_shop"; customer_notes?: string };
+export type BookPayload = { customer_id?: string; vehicle_id?: string | null; estimate_id?: string; lines?: BookingLineInput[]; starts_at: string; notes?: string | null; customer_notes?: string | null; size_class?: VehicleSize };
 
 /** quote_total(): a retail quote priced by size. */
 export type QuoteResult = {
@@ -888,6 +1011,7 @@ export type CustomerTimeline = {
     deleted_at: string | null;
   }[];
   estimates?: { id: string; display_number: string; status: EstimateStatus; created_at: string; expires_at: string | null; vehicle: string | null; total: number | null; job_id: string | null }[];
+  appointments?: { id: string; display_number: string; status: AppointmentStatus; starts_at: string; ends_at: string; vehicle: string | null; services: string[]; job_id: string | null }[];
   stats: { visits: number; last_visit: string | null; lifetime_spend: number | null };
 };
 
@@ -918,6 +1042,7 @@ export type Database = {
       blackout_days: Table<BlackoutDay>;
       time_off: Table<TimeOff>;
       estimates: Table<EstimateRow>;
+      appointments: Table<AppointmentRow>;
       jobs: Table<Job>;
       job_services: Table<JobService>;
       job_photos: Table<JobPhoto>;
@@ -964,6 +1089,22 @@ export type Database = {
       estimate_mark_viewed: { Args: { p_token: string }; Returns: undefined };
       estimate_respond: { Args: { p_token: string; p: { decision?: "accept" | "decline"; option_id?: string; approved_line_ids?: string[]; name?: string; signature_path?: string | null; pay_choice?: "deposit" | "at_shop"; ip?: string; user_agent?: string; reason?: string } }; Returns: { status: "accepted" | "declined"; total?: number; deposit_required?: number; display_number?: string } };
       expire_estimates: { Args: Record<string, never>; Returns: number };
+      public_catalog: { Args: Record<string, never>; Returns: PublicCatalog };
+      public_quote: { Args: { p_size: VehicleSize; p_lines: BookingLineInput[] }; Returns: QuoteResult };
+      find_slots: { Args: { p_lines: BookingLineInput[]; p_from: string; p_to: string }; Returns: Slot[] };
+      create_hold: { Args: { p: HoldPayload }; Returns: HoldResult };
+      confirm_hold: { Args: { p_token: string; p: ConfirmPayload }; Returns: ConfirmResult };
+      appointment_by_token: { Args: { p_token: string }; Returns: AppointmentView };
+      cancel_by_token: { Args: { p_token: string; p_reason?: string | null }; Returns: AppointmentView };
+      reschedule_by_token: { Args: { p_token: string; p_starts_at: string }; Returns: AppointmentView };
+      book_appointment: { Args: { p: BookPayload }; Returns: AppointmentView };
+      set_appointment_status: { Args: { p_id: string; p_status: AppointmentStatus; p_reason?: string | null }; Returns: AppointmentView };
+      reschedule_appointment: { Args: { p_id: string; p_starts_at: string }; Returns: AppointmentView };
+      appointment_detail: { Args: { p_id: string }; Returns: AppointmentView };
+      appointment_link: { Args: { p_id: string }; Returns: string };
+      calendar_range: { Args: { p_from: string; p_to: string }; Returns: CalendarRange };
+      retail_today_appointments: { Args: Record<string, never>; Returns: RetailTodayAppointments };
+      release_expired_holds: { Args: Record<string, never>; Returns: number };
       quote_total: { Args: { p_size: VehicleSize; p_lines: { service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[] }[] }; Returns: QuoteResult };
       add_odometer: { Args: { p_vehicle: string; p_reading: number; p_read_at?: string | null; p_job?: string | null }; Returns: OdometerReading };
       is_member: { Args: Record<string, never>; Returns: boolean };

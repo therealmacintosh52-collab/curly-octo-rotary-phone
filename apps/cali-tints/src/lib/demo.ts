@@ -41,6 +41,8 @@ const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
   ["/retail/customers", "/dev/preview/retail/customers", true],
   ["/retail/estimates/new", "/dev/preview/retail/estimate-new"],
   ["/retail/estimates", "/dev/preview/retail/estimates", true],
+  ["/retail/calendar", "/dev/preview/retail/calendar"],
+  ["/book", "/dev/preview/retail/book", true],
   ["/retail", "/dev/preview/retail", true],
   ["/invoices/new", "/dev/preview/invoices"],
   ["/invoices", "/dev/preview/invoices", true],
@@ -66,6 +68,12 @@ export function demoRewriteTarget(pathname: string): string | null {
   if (veh) return `/dev/preview/retail/vehicle/${veh[1]}`;
   const est = pathname.match(/^\/retail\/estimates\/([^/]+)(\/edit)?$/);
   if (est && est[1] !== "new") return `/dev/preview/retail/estimate/${est[1]}${est[2] ?? ""}`;
+  const appt = pathname.match(/^\/retail\/appointments\/([^/]+)$/);
+  if (appt) return `/dev/preview/retail/appointment/${appt[1]}`;
+  const hold = pathname.match(/^\/book\/([^/]+)$/);
+  if (hold) return `/dev/preview/retail/book-hold/${hold[1]}`;
+  const manage = pathname.match(/^\/a\/([^/]+)$/);
+  if (manage) return `/dev/preview/retail/appointment-public/${manage[1]}`;
   // The customer's public page: the guest demo opens the fixture twin without a database.
   const pub = pathname.match(/^\/e\/([^/]+)(\/done)?$/);
   if (pub) return `/dev/preview/retail/estimate-public/${pub[1]}${pub[2] ?? ""}`;

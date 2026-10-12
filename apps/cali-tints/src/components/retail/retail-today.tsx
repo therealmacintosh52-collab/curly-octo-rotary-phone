@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { CarFrontIcon, PlusIcon, UsersIcon, WalletIcon } from "lucide-react";
+import { CalendarDaysIcon, CarFrontIcon, ClockIcon, PlusIcon, UsersIcon, WalletIcon } from "lucide-react";
+import type { CalendarItem } from "@/lib/db/types";
 import { formatDate } from "@/lib/dates";
+import { durationLabel, holdSecondsLeft, mmss, timeIn } from "@/lib/retail/slots";
+import { AppointmentStatusBadge } from "./appointment-status-badge";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,20 +25,26 @@ export interface RetailTodayData {
   today: RetailTodayCar[];
   /** Retail jobs still to collect (any day). */
   unpaid: RetailTodayCar[];
+  /** Online bookings waiting for a confirmation. */
+  leads: CalendarItem[];
+  /** Spots held right now by someone booking online. */
+  holds: CalendarItem[];
+  /** Today's appointments, in order. */
+  appointments: CalendarItem[];
 }
 
 /**
- * The shop's day: walk-in cars logged today, what is still to collect at the
- * counter, and the way into Customers. Leads and holds join this screen with
- * the booking slice. No money here: amounts live on the job page.
+ * The shop's day: online bookings waiting on a confirmation, today's
+ * appointments, walk-in cars logged today, what is still to collect at the
+ * counter. No money here: amounts live on the job and appointment pages.
  */
-export function RetailToday({ data, shopName }: { data: RetailTodayData; shopName: string }) {
+export function RetailToday({ data, shopName, tz }: { data: RetailTodayData; shopName: string; tz: string }) {
   return (
     <Page>
       <PageHeader
         eyebrow={shopName}
         title="Today at the shop"
-        description={`${data.today.length} ${data.today.length === 1 ? "car" : "cars"} today · ${data.unpaid.length} to collect · ${data.customers.toLocaleString()} ${data.customers === 1 ? "customer" : "customers"}`}
+        description={`${data.appointments.length} ${data.appointments.length === 1 ? "appointment" : "appointments"} · ${data.today.length} ${data.today.length === 1 ? "car" : "cars"} logged · ${data.unpaid.length} to collect · ${data.customers.toLocaleString()} ${data.customers === 1 ? "customer" : "customers"}`}
         actions={
           <>
             <Button asChild variant="outline">
@@ -52,7 +61,49 @@ export function RetailToday({ data, shopName }: { data: RetailTodayData; shopNam
         }
       />
 
+      {(data.leads.length > 0 || data.holds.length > 0) && (
+        <Card className="mt-6 border-warning/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClockIcon className="size-4 text-warning" /> Needs a hand
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-border text-sm" data-testid="retail-leads">
+              {data.leads.map((a) => (
+                <li key={a.id}><ApptRow a={a} tz={tz} hint="Booked online · confirm it or call them" /></li>
+              ))}
+              {data.holds.map((a) => (
+                <li key={a.id}><ApptRow a={a} tz={tz} hint={`Someone is booking · ${mmss(holdSecondsLeft(a.hold_expires_at))} left on the hold`} /></li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <CalendarDaysIcon className="size-4 text-primary" /> Appointments today
+            </CardTitle>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/retail/calendar">Calendar</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {data.appointments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nothing booked today. Share the booking link or book one from the calendar.</p>
+            ) : (
+              <ul className="divide-y divide-border text-sm" data-testid="retail-appointments">
+                {data.appointments.map((a) => (
+                  <li key={a.id}><ApptRow a={a} tz={tz} /></li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -82,7 +133,7 @@ export function RetailToday({ data, shopName }: { data: RetailTodayData; shopNam
           </CardHeader>
           <CardContent>
             {data.today.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No walk-ins yet today. New job → pick the shop as the location.</p>
+              <p className="text-sm text-muted-foreground">No walk-ins logged yet today. Check a car in from its appointment, or New job → the shop.</p>
             ) : (
               <ul className="divide-y divide-border text-sm" data-testid="retail-today">
                 {data.today.map((j) => (
@@ -96,6 +147,23 @@ export function RetailToday({ data, shopName }: { data: RetailTodayData; shopNam
         </Card>
       </div>
     </Page>
+  );
+}
+
+function ApptRow({ a, tz, hint }: { a: CalendarItem; tz: string; hint?: string }) {
+  return (
+    <Link href={`/retail/appointments/${a.id}`} className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-accent/50">
+      <div className="min-w-0">
+        <div className="font-medium">
+          <span className="tabular-nums">{timeIn(a.starts_at, tz)}</span>
+          <span className="text-muted-foreground"> · {a.customer ?? "Online customer"}{a.vehicle ? ` · ${a.vehicle}` : ""}</span>
+        </div>
+        <div className="truncate text-caption text-subtle">{hint ?? [a.services.join(", "), durationLabel(a.duration_minutes)].filter(Boolean).join(" · ")}</div>
+      </div>
+      <div className="shrink-0 text-right">
+        <AppointmentStatusBadge status={a.status} />
+      </div>
+    </Link>
   );
 }
 

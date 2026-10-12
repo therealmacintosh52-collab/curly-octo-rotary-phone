@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2Icon, FileDownIcon } from "lucide-react";
+import { CalendarPlusIcon, CheckCircle2Icon, FileDownIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
@@ -18,8 +18,13 @@ export function EstimateDone({ token, declined, pay, company, phone, displayNumb
           <CheckCircle2Icon className="size-12 text-success" />
           <h1 className="text-title">Approved. Thank you!</h1>
           <p className="text-sm text-muted-foreground">
-            {company} has your approval{displayNumber ? ` for ${displayNumber}` : ""}. We will reach out to set the day and time{pay === "deposit" ? " and take the deposit" : ""}.
+            {company} has your approval{displayNumber ? ` for ${displayNumber}` : ""}. Pick a drop-off time now, or we will reach out to set it{pay === "deposit" ? " and take the deposit" : ""}.
           </p>
+          <Button asChild size="lg">
+            <Link href={`/book?e=${token}`} data-testid="estimate-pick-time">
+              <CalendarPlusIcon /> Pick a time
+            </Link>
+          </Button>
           <Button asChild variant="outline">
             <a href={`/api/e/${token}/pdf`}>
               <FileDownIcon /> Download your signed copy

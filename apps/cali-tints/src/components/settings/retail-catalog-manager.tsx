@@ -359,7 +359,7 @@ function ModifierDialog({ modifier, onClose }: { modifier: PriceModifier | null;
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
-  const [f, setF] = useState({ code: modifier?.code ?? "", label: modifier?.label ?? "", description: modifier?.description ?? "", kind: modifier?.kind ?? "flat", amount: modifier ? String(Number(modifier.amount)) : "", active: modifier?.active ?? true, sort_order: String(modifier?.sort_order ?? 100) });
+  const [f, setF] = useState({ code: modifier?.code ?? "", label: modifier?.label ?? "", description: modifier?.description ?? "", kind: modifier?.kind ?? "flat", amount: modifier ? String(Number(modifier.amount)) : "", active: modifier?.active ?? true, sort_order: String(modifier?.sort_order ?? 100), ask_customer: modifier?.ask_customer ?? false, question: modifier?.question ?? "" });
   return (
     <DialogContent>
       <form
@@ -371,7 +371,7 @@ function ModifierDialog({ modifier, onClose }: { modifier: PriceModifier | null;
               onClose();
               return;
             }
-            const r = await saveModifierAction({ id: modifier?.id, code: f.code || f.label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""), label: f.label, description: f.description, kind: f.kind as "percent" | "flat", amount: Number(f.amount), active: f.active, sort_order: Number(f.sort_order) });
+            const r = await saveModifierAction({ id: modifier?.id, code: f.code || f.label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""), label: f.label, description: f.description, kind: f.kind as "percent" | "flat", amount: Number(f.amount), active: f.active, sort_order: Number(f.sort_order), ask_customer: f.ask_customer, question: f.question });
             if (r.ok) {
               toast.success("Saved");
               onClose();
@@ -414,6 +414,19 @@ function ModifierDialog({ modifier, onClose }: { modifier: PriceModifier | null;
         <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm">
           <span className="font-medium">Active</span>
           <Switch checked={f.active} onCheckedChange={(v) => setF({ ...f, active: v })} />
+        </div>
+        <div className="grid gap-2 rounded-lg border border-border px-3 py-2.5 text-sm">
+          <label className="flex items-center justify-between gap-3">
+            <span className="font-medium">Ask the customer when they book online</span>
+            <Switch checked={f.ask_customer} onCheckedChange={(v) => setF({ ...f, ask_customer: v })} aria-label="Ask the customer when they book online" />
+          </label>
+          {f.ask_customer && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="m-question">The question</Label>
+              <Input id="m-question" value={f.question} onChange={(e) => setF({ ...f, question: e.target.value })} placeholder="Any pet hair in the car?" maxLength={120} />
+              <p className="text-caption text-subtle">A yes adds this to their longest service.</p>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button type="submit" disabled={pending}>
