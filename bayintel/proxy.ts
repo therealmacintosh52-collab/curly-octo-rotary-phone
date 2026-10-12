@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isConfigured } from "@/lib/env";
 
 const PUBLIC_PREFIXES = ["/", "/login", "/signup", "/auth", "/pricing", "/terms", "/share", "/api/stripe/webhook", "/api/health"];
 
@@ -9,6 +10,17 @@ function isPublic(pathname: string) {
 }
 
 export async function proxy(request: NextRequest) {
+  // No Supabase keys on this deployment: every page would throw a 500 before rendering.
+  // Show the setup page instead (503, so monitors and embedding apps see it is not ready);
+  // /api/health reports the missing names itself.
+  if (!isConfigured()) {
+    if (request.nextUrl.pathname === "/api/health") return NextResponse.next({ request });
+    const url = request.nextUrl.clone();
+    url.pathname = "/setup";
+    url.search = "";
+    return NextResponse.rewrite(url, { status: 503 });
+  }
+
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
