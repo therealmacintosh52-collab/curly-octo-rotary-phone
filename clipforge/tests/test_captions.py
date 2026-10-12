@@ -26,9 +26,11 @@ def test_build_ass_has_one_event_per_word_and_highlight():
     assert len(events) == len(words)
     assert events[0].count("\\c&H") == 2 and "\\fscx108" in events[0]
     assert "Welcome" in events[0] and "MarginV" not in events[0]
-    # styles line carries the safe-zone bottom margin (22% of 1920 = 422)
+    # styles line carries the default safe-zone bottom margin (+10 px so captions sit above the UI strip)
+    from app import settings
+    bottom = int(1920 * settings.load_config("platforms")["defaults"]["safe_zone"]["bottom_pct"]) + 10
     style = next(l for l in ass.splitlines() if l.startswith("Style:"))
-    assert style.split(",")[-2] == "422"
+    assert style.split(",")[-2] == str(bottom)
     # times monotonic
     starts = [e.split(",")[1] for e in events]
     assert starts == sorted(starts)

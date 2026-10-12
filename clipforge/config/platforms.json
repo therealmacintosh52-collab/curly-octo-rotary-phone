@@ -8,8 +8,6 @@
     "audio_bitrate": "192k",
     "loudness_lufs": -14.0,
     "true_peak_dbtp": -1.0,
-    "caption_safe_top_pct": 0.12,
-    "caption_safe_bottom_pct": 0.22,
     "cover_time_pct": 0.15,
     "render_preset": "veryfast",
     "render_crf": 20,
@@ -25,7 +23,34 @@
     "variant_hook_bonus": 0.15,
     "variant_ideal_weight": 0.25,
     "fit_mode": "ideal",
-    "_fit_mode_help": "ideal: cut each platform's variant into its ideal_range when the material allows; limits: only enforce min/max_duration"
+    "_fit_mode_help": "ideal: cut each platform's variant into its ideal_range when the material allows; limits: only enforce min/max_duration",
+    "placement": "platform",
+    "_placement_help": "platform: every platform gets its own render built to its own spec (safe zones, encode, loudness); universal: one render that satisfies the strictest of every selected platform's spec",
+    "render": {
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "fps_min": 23,
+      "fps_max": 60,
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "crf": 20,
+      "video_maxrate_mbps": 10,
+      "audio_bitrate_kbps": 192,
+      "audio_sample_rate": 48000,
+      "loudness_lufs": -14.0,
+      "true_peak_dbtp": -1.0,
+      "max_file_mb": 1024,
+      "pix_fmt": "yuv420p",
+      "h264_profile": "high",
+      "h264_level": "4.1"
+    },
+    "safe_zone": {
+      "top_pct": 0.14,
+      "bottom_pct": 0.24,
+      "left_pct": 0.06,
+      "right_pct": 0.15
+    }
   },
   "platforms": {
     "youtube_shorts": {
@@ -42,7 +67,21 @@
       "ideal_range": [
         30,
         60
-      ]
+      ],
+      "render": {
+        "video_maxrate_mbps": 12,
+        "max_file_mb": 2048,
+        "fps_max": 60
+      },
+      "safe_zone": {
+        "top_pct": 0.1,
+        "bottom_pct": 0.2,
+        "left_pct": 0.05,
+        "right_pct": 0.12
+      },
+      "caption_first_line_chars": 100,
+      "hashtag_max": 3,
+      "spec_notes": "Vertical or square, up to 3 min. Title and channel strip occupy the bottom ~20%; action rail on the right ~12%. #Shorts in title or description."
     },
     "instagram_reels": {
       "label": "Instagram Reels",
@@ -58,7 +97,21 @@
       "ideal_range": [
         15,
         45
-      ]
+      ],
+      "render": {
+        "video_maxrate_mbps": 8,
+        "max_file_mb": 1024,
+        "fps_max": 30
+      },
+      "safe_zone": {
+        "top_pct": 0.14,
+        "bottom_pct": 0.22,
+        "left_pct": 0.06,
+        "right_pct": 0.1
+      },
+      "caption_first_line_chars": 125,
+      "hashtag_max": 5,
+      "spec_notes": "Meta recommends 30 fps and keeping the top 14% and bottom ~22% clear (caption/comment bar). 4 GB cap; 1080x1920 H.264/AAC."
     },
     "tiktok": {
       "label": "TikTok",
@@ -74,7 +127,21 @@
       "ideal_range": [
         21,
         45
-      ]
+      ],
+      "render": {
+        "video_maxrate_mbps": 8,
+        "max_file_mb": 287,
+        "fps_max": 60
+      },
+      "safe_zone": {
+        "top_pct": 0.08,
+        "bottom_pct": 0.18,
+        "left_pct": 0.06,
+        "right_pct": 0.15
+      },
+      "caption_first_line_chars": 60,
+      "hashtag_max": 5,
+      "spec_notes": "287.6 MB is the iOS app cap (web and API allow 4 GB). Right action rail ~15%, bottom caption/music strip ~18%, 23-60 fps, H.264/AAC MP4."
     },
     "facebook_reels": {
       "label": "Facebook Reels",
@@ -90,7 +157,21 @@
       "ideal_range": [
         15,
         45
-      ]
+      ],
+      "render": {
+        "video_maxrate_mbps": 8,
+        "max_file_mb": 1024,
+        "fps_max": 30
+      },
+      "safe_zone": {
+        "top_pct": 0.14,
+        "bottom_pct": 0.24,
+        "left_pct": 0.06,
+        "right_pct": 0.1
+      },
+      "caption_first_line_chars": 125,
+      "hashtag_max": 3,
+      "spec_notes": "Same family as Reels but the Facebook nav bar eats a little more of the bottom (~24%). 30 fps recommended, 4 GB cap."
     }
   }
 }

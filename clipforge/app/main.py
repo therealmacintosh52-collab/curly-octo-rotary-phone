@@ -359,41 +359,75 @@ def export_ics(job_id: str) -> Response:
                     headers={"Content-Disposition": f'attachment; filename="clipforge-{job_id}.ics"'})
 
 
+def _copy_text(platform: str, label: str, c: dict) -> str:
+    data = (c.get("copy") or {}).get(platform) or {}
+    v = (c.get("variants") or {}).get(platform) or {}
+    when = (c.get("schedule") or {}).get(platform, {}).get("local", "")
+    lines = [f"{label} — clip {c['idx'] + 1}", f"Post: {when}" if when else "", f"Cut: {v.get('start', c['start_s']):.1f}s–{v.get('end', c['end_s']):.1f}s "
+             f"({v.get('duration', c['duration']):.1f}s, {v.get('reason', 'master')})", ""]
+    if data.get("title"):
+        lines += ["TITLE", data["title"], ""]
+    lines += ["CAPTION", data.get("caption", ""), "", "HASHTAGS", " ".join(data.get("hashtags", [])), "",
+              "KEYWORDS", ", ".join(data.get("keywords", [])), ""]
+    sp = data.get("spec") or {}
+    if sp.get("checks"):
+        lines += ["COPY CHECKS"] + [f"  [{'ok' if ch['ok'] else 'FAIL'}] {ch['name']}: {ch['value']} (limit {ch['limit']})" for ch in sp["checks"]]
+    rs = v.get("spec") or {}
+    if rs.get("checks"):
+        lines += ["", "FILE CHECKS"] + [f"  [{'ok' if ch['ok'] else 'FAIL'}] {ch['name']}: {ch['value']}{ch.get('unit', '')} (limit {ch['limit']})" for ch in rs["checks"]]
+    return "\n".join(l for l in lines if l is not None) + "\n"
+
+
 @app.get("/api/jobs/{job_id}/export.zip")
-def export_zip(job_id: str) -> Response:
+def export_zip(job_id: str, platform: Optional[str] = Query(None)) -> Response:
+    """Everything, grouped by platform. Files shared by every platform sit in universal/; a file two
+    platforms share sits in a folder named after both. ?platform=tiktok builds that platform's pack only
+    (its own files, plus any shared file it uses)."""
     bundle = _export_bundle(job_id)
     base = runner.job_dir_for(job_id)
+    pconf = settings.load_config("platforms")
+    labels = {k: v["label"] for k, v in pconf["platforms"].items()}
+    if platform and platform not in labels:
+        raise HTTPException(400, f"unknown platform {platform!r}")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         added: set[str] = set()
+
+        def put(rel: Optional[str], arc: str) -> None:
+            if rel and arc not in added and (base / rel).is_file():
+                z.write(base / rel, arc)
+                added.add(arc)
+
         for c in bundle["clips"]:
-            paths = [c.get(k) for k in ("video_path", "cover_path", "captions_path")]
-            for v in (c.get("variants") or {}).values():
-                paths += [v.get(k) for k in ("video_path", "cover_path", "captions_path")]
-            for rel in paths:
-                if rel and rel not in added and (base / rel).is_file():
-                    z.write(base / rel, rel)
-                    added.add(rel)
+            nn = f"clip_{c['idx'] + 1:02d}"
+            for pl, v in (c.get("variants") or {}).items():
+                if platform and pl != platform:
+                    continue
+                if not v.get("video_path"):
+                    continue
+                folder = v.get("folder") or pl
+                dest = pl if platform else folder          # single-platform pack: flatten into that platform's folder
+                put(v["video_path"], f"{dest}/{nn}.mp4")
+                put(v.get("cover_path"), f"{dest}/{nn}_cover.jpg")
+                put(v.get("captions_path"), f"{dest}/{nn}.srt")
+                z.writestr(f"{pl}/{nn}_copy.txt", _copy_text(pl, labels.get(pl, pl), c))
+            if not c.get("variants") and c.get("video_path"):
+                put(c["video_path"], f"universal/{nn}.mp4"); put(c.get("cover_path"), f"universal/{nn}_cover.jpg"); put(c.get("captions_path"), f"universal/{nn}.srt")
+        clips_db = db.list_clips(job_id)
+        if platform:
+            for c in clips_db:
+                c["schedule"] = {k: v for k, v in (c.get("schedule") or {}).items() if k == platform}
+        z.writestr("schedule.ics", schedule_mod.to_ics(bundle["job"], clips_db, labels))
         z.writestr("clips.json", json.dumps(bundle, indent=2))
-        labels = {k: v["label"] for k, v in settings.load_config("platforms")["platforms"].items()}
-        z.writestr("schedule.ics", schedule_mod.to_ics(bundle["job"], db.list_clips(job_id), labels))
-        md = [f"# {bundle['job'].get('title') or job_id}\n"]
-        for c in bundle["clips"]:
-            md.append(f"## Clip {c['idx'] + 1}  ({c['start_s']:.1f}s – {c['end_s']:.1f}s, score {c['score'] * 100:.0f})\n")
-            for platform, data in (c.get("copy") or {}).items():
-                when = (c.get("schedule") or {}).get(platform, {}).get("local", "")
-                v = (c.get("variants") or {}).get(platform) or {}
-                md.append(f"### {labels.get(platform, platform)}  —  {when}\n")
-                if v:
-                    md.append(f"File: {v.get('video_path') or c.get('video_path')}  ({v.get('duration', c['duration']):.1f}s, {v.get('reason', 'master')})\n")
-                if data.get("title"):
-                    md.append(f"**Title:** {data['title']}\n")
-                md.append(f"{data.get('caption', '')}\n")
-                md.append(f"Keywords: {', '.join(data.get('keywords', []))}\n")
-        z.writestr("copy.md", "\n".join(md))
+        readme = ["ClipForge export", "", "Layout: <platform>/ holds files built to that platform's spec (safe zones, encode, "
+                  "loudness, size cap). universal/ holds a file that passed every selected platform's spec; a folder named "
+                  "a+b holds a file shared by just those platforms. Each platform folder has clip_NN_copy.txt with the title, "
+                  "caption, hashtags, keywords, posting time and the spec checks for that platform."]
+        z.writestr("README.txt", "\n".join(readme) + "\n")
     buf.seek(0)
+    name = f"clipforge-{job_id}" + (f"-{platform}" if platform else "")
     return Response(buf.read(), media_type="application/zip",
-                    headers={"Content-Disposition": f'attachment; filename="clipforge-{job_id}.zip"'})
+                    headers={"Content-Disposition": f'attachment; filename="{name}.zip"'})
 
 
 # ----------------------------------------------------------------------------- maintenance

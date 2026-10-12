@@ -80,6 +80,10 @@
   .tag{font-size:12px;color:var(--accent2);background:#162236;border-radius:999px;padding:2px 8px}
   .warn{color:var(--warn);font-size:12px}
   .fb button.on{background:var(--accent);color:#06281c}
+  .spec{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px}
+  .chk2{font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .chk2.ok{color:var(--accent);border-color:#2b5b4a}
+  .chk2.bad{color:var(--bad);border-color:#6b2f2f}
   details summary{cursor:pointer;color:var(--muted);font-size:12px}
   .trim{display:grid;grid-template-columns:1fr 1fr auto auto;gap:6px;align-items:end;margin-top:8px}
   .trim input{padding:5px 8px}
@@ -226,6 +230,8 @@ function clipCard(j, c){
   return `<div class="card clip" data-clip="${c.id}">
     <div class="player">${media}
       <div class="muted" style="font-size:12px;margin-top:6px">${tab ? `<b>${esc(label(tab))}</b> cut · ` : ''}${fmtTime(vStart)} – ${fmtTime(vEnd)} · ${(vEnd-vStart).toFixed(1)}s${v ? ` · ${cutLabel[v.reason]||v.reason}` : ''}</div>
+      ${v && v.folder ? `<div class="muted" style="font-size:11px;margin-top:2px">${v.scope==='universal' ? 'universal file (passes every platform spec)' : v.scope==='shared' ? 'shared with '+esc((v.shared_with||[]).map(label).join(', ')) : 'built for '+esc(label(tab))+' only'}${v.size_mb?` · ${v.size_mb} MB`:''}</div>`:''}
+      ${v && v.spec ? `<div class="spec">${v.spec.checks.map(ch=>`<span class="chk2 ${ch.ok?'ok':'bad'}" title="${esc(ch.name)}: ${esc(String(ch.value))}${esc(ch.unit||'')} (limit ${esc(String(ch.limit))})">${ch.ok?'✓':'✗'} ${esc(ch.name)}</span>`).join('')}</div>`:''}
       <div class="row" style="margin-top:8px">
         ${c.status==='done' && vid ? `<a class="btn primary" href="${files(vid)}" download="${fname('.mp4')}">⬇ Download MP4</a>`:''}
         ${c.status==='done' && cov ? `<a class="btn" href="${files(cov)}" download="${fname('_cover.jpg')}">Cover</a>`:''}
@@ -259,6 +265,7 @@ function clipCard(j, c){
       ${platforms.length ? `<div class="tabs">${platforms.map(p=>{ const pv=(c.variants||{})[p]; const fits = pv ? pv.fits : (c.copy?.[p]?.fits ?? true); return `<button class="tab ${p===tab?'active':''} ${fits?'':'unfit'}" data-tab="${p}">${esc(label(p))}${pv?` · ${Math.round(pv.duration)}s`:''}</button>`; }).join('')}</div>` : `<div class="muted" style="margin-top:8px">Platform cuts appear after the fit stage.</div>`}
       ${cp ? `<div class="copybox">
           <div class="meta">${sc ? `📅 ${esc(sc.local)} (${esc(sc.timezone)})` : 'not scheduled'} · copy by ${esc(cp.source)}${cp.fits?'':` · <span class="warn">⚠ ${esc(cp.fit_note||'does not fit')}</span>`}</div>
+          ${cp.spec ? `<div class="spec">${cp.spec.checks.map(ch=>`<span class="chk2 ${ch.ok?'ok':'bad'}" title="${esc(ch.name)}: ${esc(String(ch.value))} (limit ${esc(String(ch.limit))})">${ch.ok?'✓':'✗'} ${esc(ch.name)}</span>`).join('')}</div>`:''}
           ${state.config.platforms.platforms[tab]?.title_max_chars ? `<label>Title</label><div class="row"><input type="text" data-field="title" value="${esc(cp.title)}" style="flex:1"><button class="secondary small" data-act="copytitle">Copy</button></div>`:''}
           <label>Hook / cover text</label><input type="text" data-field="hook" value="${esc(cp.hook)}">
           <label>Caption</label><textarea data-field="caption">${esc(cp.caption)}</textarea>
@@ -281,7 +288,7 @@ async function loadDetail(id){
   let html = `<div class="row" style="justify-content:space-between">
       <h2 style="margin:0">${esc(j.title || j.source_name || j.source_url || j.id)}</h2>
       <div class="row">
-        ${j.status==='done' && j.clips?.length ? `<a class="btn" href="/api/jobs/${j.id}/export.zip">⬇ Download all (zip)</a><a class="btn" href="/api/jobs/${j.id}/schedule.ics">📅 Schedule .ics</a><a class="btn" href="/api/jobs/${j.id}/export.json" target="_blank">JSON</a>`:''}
+        ${j.status==='done' && j.clips?.length ? `<a class="btn" href="/api/jobs/${j.id}/export.zip">⬇ All platforms (zip)</a>${(j.options?.platforms||[]).map(p=>`<a class="btn" href="/api/jobs/${j.id}/export.zip?platform=${p}" title="Only ${esc(label(p))} files, built to its spec">⬇ ${esc(label(p))} pack</a>`).join('')}<a class="btn" href="/api/jobs/${j.id}/schedule.ics">📅 .ics</a><a class="btn" href="/api/jobs/${j.id}/export.json" target="_blank">JSON</a>`:''}
         ${j.status!=='running' ? `<button class="secondary small" data-act="rerun">Re-run</button>`:''}
         ${j.status==='running' ? `<button class="secondary small" data-act="cancel">Cancel</button>`:''}
         <button class="danger small" data-act="delete">Delete</button>
@@ -296,7 +303,7 @@ async function loadDetail(id){
       ${an ? `<b>Segments</b><span>${an.n_scenes} shots · ${an.n_sentences} sentences · ${an.n_candidates} candidates (${an.mode})</span>`:''}
       ${sc ? `<b>Scoring</b><span>${sc.llm_used ? 'heuristics + LLM' : 'heuristics only'} · ${sc.n_selected} of ${sc.n_candidates} selected${sc.keywords?.length ? ' · keywords: '+esc(sc.keywords.join(', ')):''}</span>`:''}
       ${j.meta?.fit ? `<b>Platform cuts</b><span>${j.meta.fit.n_platform_cuts} platform-specific cut${j.meta.fit.n_platform_cuts===1?'':'s'} across ${j.meta.fit.n_clips} clips (the rest share the master cut)</span>`:''}
-      ${rd ? `<b>Render</b><span>${rd.n_clips - rd.n_failed} of ${rd.n_clips} clips rendered</span>`:''}
+      ${rd ? `<b>Render</b><span>${rd.n_clips - rd.n_failed} of ${rd.n_clips} clips rendered${rd.n_files?` · ${rd.n_files} file${rd.n_files===1?'':'s'}`:''}${rd.placement?` · ${rd.placement==='universal'?'one universal file per cut':'separate file per platform spec'}`:''}</span>`:''}
     </div>`;
   if(j.error) html += `<pre class="err">${esc(j.error)}</pre>`;
   if(src?.files?.video) html += `<details style="margin-top:8px"><summary>source preview</summary><video class="src" controls preload="metadata" src="/api/jobs/${j.id}/files/${src.files.video}"></video></details>`;

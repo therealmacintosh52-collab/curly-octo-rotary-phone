@@ -17,6 +17,7 @@ from .. import db, settings
 from . import captions as captions_stage
 from . import copy as copy_stage
 from . import fit as fit_stage
+from . import spec as spec_mod
 from . import ingest as ingest_stage
 from . import render as render_stage
 from . import schedule as schedule_stage
@@ -171,9 +172,40 @@ def _run_fit(ctx: JobContext) -> None:
     ctx.progress(1.0, "platform cuts planned")
 
 
+def plan_render_groups(clip: dict, platforms: list[str], pconf: dict | None = None) -> list[dict]:
+    """Group a clip's platform variants by (cut, spec). Each group becomes one rendered file.
+
+    placement "platform": each platform renders to its own spec; platforms whose cut AND spec are
+    identical share the file. placement "universal": platforms with the same cut share one render
+    built to the strictest of their specs, so the file is valid on every one of them."""
+    pconf = pconf or settings.load_config("platforms")
+    placement = pconf["defaults"].get("placement", "platform")
+    variants = clip.get("variants") or {}
+    buckets: dict[tuple, list[str]] = {}
+    for plat in platforms:
+        v = variants.get(plat)
+        if v is None or not v.get("fits", True):
+            continue
+        cut = (round(v["start"], 3), round(v["end"], 3))
+        key = cut if placement == "universal" else (cut, spec_mod.profile_key(spec_mod.profile_for(plat, pconf)))
+        buckets.setdefault(key, []).append(plat)
+    groups = []
+    for key, plats in buckets.items():
+        cut = key if placement == "universal" else key[0]
+        profile = spec_mod.universal_profile(plats, pconf) if len(plats) > 1 else spec_mod.profile_for(plats[0], pconf)
+        if len(plats) == len(platforms) and len(platforms) > 1:
+            folder, label = "universal", "universal"
+        elif len(plats) > 1:
+            folder, label = "+".join(plats), "shared"
+        else:
+            folder, label = plats[0], "platform"
+        groups.append({"start": cut[0], "end": cut[1], "platforms": plats, "profile": profile, "folder": folder, "scope": label})
+    return groups
+
+
 def render_one_clip(job_id: str, clip: dict, *, reframe: str | None = None, progress=None) -> dict:
-    """Render a clip's master cut plus every distinct platform variant (used by the render stage
-    and the re-render endpoint)."""
+    """Render every (cut, spec) group of a clip into clips/<folder>/clip_NN.mp4 and verify each file
+    against its platform spec. Used by the render stage and the re-render endpoint."""
     job = db.get_job(job_id)
     if not job:
         raise KeyError(job_id)
@@ -181,40 +213,44 @@ def render_one_clip(job_id: str, clip: dict, *, reframe: str | None = None, prog
     media = (job.get("meta", {}).get("source") or ingest_stage.load_source_meta(job_dir))["media"]
     transcript = transcribe_stage.load_transcript(job_dir) or {}
     words = transcript.get("words") or []
-    reframe = reframe or job["options"].get("reframe") or settings.load_config("platforms")["defaults"].get("reframe", "auto")
+    pconf = settings.load_config("platforms")
+    reframe = reframe or job["options"].get("reframe") or pconf["defaults"].get("reframe", "auto")
     progress = progress or (lambda f, m: None)
+    platforms = _platforms_for(job)
     db.update_clip(clip["id"], status="rendering", error=None)
     try:
         variants = dict(clip.get("variants") or {})
-        groups = fit_stage.unique_ranges(variants, (clip["start_s"], clip["end_s"]))
-        total = 1 + len(groups)
-
-        def sub(k: int):
-            return lambda f, m: progress((k + f) / total, m)
-
-        caps = captions_stage.write_captions(job_dir, clip["idx"], words, clip["start_s"], clip["end_s"])
-        res = render_stage.render_clip(job_dir, idx=clip["idx"], start=clip["start_s"], end=clip["end_s"],
-                                       src_media=media, captions_ass=caps["ass"] if caps["n_words"] else None,
-                                       reframe=reframe, progress=sub(0))
-        master_paths = {"video_path": res["video_path"], "cover_path": res["cover_path"], "captions_path": caps["srt"]}
-        for platform, v in variants.items():
-            if v.get("fits", True) and (round(v["start"], 3), round(v["end"], 3)) == (round(clip["start_s"], 3), round(clip["end_s"], 3)):
-                v.update(master_paths, shared=True)
-
-        for k, ((vs, ve), plats) in enumerate(groups.items(), start=1):
-            suffix = plats[0]
-            vcaps = captions_stage.write_captions(job_dir, clip["idx"], words, vs, ve, suffix=suffix)
-            vres = render_stage.render_clip(job_dir, idx=clip["idx"], start=vs, end=ve, src_media=media,
-                                            captions_ass=vcaps["ass"] if vcaps["n_words"] else None,
-                                            reframe=reframe, progress=sub(k), suffix=suffix, face_hint=res["reframe"])
-            for pl in plats:
-                variants[pl].update(video_path=vres["video_path"], cover_path=vres["cover_path"],
-                                    captions_path=vcaps["srt"], shared=False)
-
-        db.update_clip(clip["id"], status="done", variants=variants, **master_paths)
+        if not variants:  # no fit stage ran (e.g. tests): treat the master as one universal cut
+            variants = {pl: {"platform": pl, "fits": True, "reason": "master", "start": clip["start_s"], "end": clip["end_s"],
+                             "text": clip.get("transcript") or "", "duration": clip["end_s"] - clip["start_s"]} for pl in platforms}
+        groups = plan_render_groups({**clip, "variants": variants}, platforms, pconf)
+        if not groups:
+            raise RuntimeError("no platform cut fits this clip")
+        total = len(groups)
+        face_hint = None
+        first = None
+        for k, g in enumerate(groups):
+            def sub(f: float, m: str, k=k) -> None:
+                progress((k + f) / total, m)
+            caps = captions_stage.write_captions(job_dir, clip["idx"], words, g["start"], g["end"], folder=g["folder"], profile=g["profile"])
+            res = render_stage.render_clip(job_dir, idx=clip["idx"], start=g["start"], end=g["end"], src_media=media,
+                                           captions_ass=caps["ass"] if caps["n_words"] else None, reframe=reframe,
+                                           progress=sub, folder=g["folder"], profile=g["profile"], face_hint=face_hint)
+            face_hint = face_hint or res["reframe"]
+            first = first or (res, caps)
+            for pl in g["platforms"]:
+                prof = spec_mod.profile_for(pl, pconf)
+                check = spec_mod.check_render(job_dir / res["video_path"], prof, expected_duration=g["end"] - g["start"])
+                variants[pl].update(video_path=res["video_path"], cover_path=res["cover_path"], captions_path=caps["srt"],
+                                    folder=g["folder"], scope=g["scope"], shared_with=[x for x in g["platforms"] if x != pl],
+                                    size_mb=res["size_mb"], spec=check, fits=variants[pl].get("fits", True) and check["ok"])
+        res, caps = first
+        db.update_clip(clip["id"], status="done", variants=variants, video_path=res["video_path"],
+                       cover_path=res["cover_path"], captions_path=caps["srt"])
         meta = dict(db.get_clip(clip["id"]).get("score_breakdown") or {})
         meta["render"] = {"reframe": res["reframe"], "duration": res["duration"], "n_caption_words": caps["n_words"],
-                          "n_variant_renders": len(groups)}
+                          "n_renders": len(groups), "groups": [{"folder": g["folder"], "platforms": g["platforms"],
+                                                                 "start": g["start"], "end": g["end"]} for g in groups]}
         db.update_clip(clip["id"], score_breakdown=meta)
         return res
     except JobCancelled:
@@ -244,7 +280,9 @@ def _run_render(ctx: JobContext) -> None:
             failures += 1
     if failures == n:
         raise RuntimeError("every clip failed to render; see clip errors")
-    ctx.set_meta(render={"n_clips": n, "n_failed": failures})
+    n_files = sum(len((c.get("score_breakdown") or {}).get("render", {}).get("groups", [])) for c in db.list_clips(ctx.job_id))
+    ctx.set_meta(render={"n_clips": n, "n_failed": failures, "n_files": n_files,
+                         "placement": settings.load_config("platforms")["defaults"].get("placement", "platform")})
 
 
 def _run_copy(ctx: JobContext) -> None:

@@ -1,3 +1,4 @@
+import json
 import time
 
 from app import db, settings
@@ -145,10 +146,10 @@ def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
                         files={"file": ("talk.mp4", fh, "video/mp4")})
     job = _wait_done(client, r.json()["id"], timeout=240)
     assert job["status"] == "done", job.get("error")
-    assert job["meta"]["render"] == {"n_clips": 1, "n_failed": 0}
+    assert job["meta"]["render"]["n_clips"] == 1 and job["meta"]["render"]["n_failed"] == 0 and job["meta"]["render"]["n_files"] == 2
     assert job["meta"]["copy"]["n_clips"] == 1 and job["meta"]["schedule"]["n_posts"] == 2
     c = job["clips"][0]
-    assert c["status"] == "done" and c["video_path"] == "clips/clip_01.mp4" and c["captions_path"] == "captions/clip_01.srt"
+    assert c["status"] == "done" and c["video_path"].endswith("/clip_01.mp4") and c["captions_path"].endswith("/clip_01.srt")
     assert c["score_breakdown"]["render"]["n_caption_words"] > 5
     assert set(c["copy"]) == {"tiktok", "youtube_shorts"} and c["copy"]["tiktok"]["caption"]
     assert set(c["schedule"]) == {"tiktok", "youtube_shorts"} and c["schedule"]["tiktok"]["at"]
@@ -156,6 +157,7 @@ def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
     assert set(c["variants"]) == {"tiktok", "youtube_shorts"} and job["meta"]["fit"]["n_clips"] == 1
     for plat, v in c["variants"].items():
         assert v["fits"] and v["video_path"] and v["cover_path"] and v["captions_path"], (plat, v)
+        assert v["video_path"] == f"clips/{plat}/clip_01.mp4" and v["spec"]["ok"]
         assert c["copy"][plat]["fits"] and abs(c["copy"][plat]["duration"] - v["duration"]) < 0.01
         assert client.get(f"/api/jobs/{job['id']}/files/{v['video_path']}").status_code == 200
     for rel in (c["video_path"], c["cover_path"], c["captions_path"]):
@@ -178,7 +180,7 @@ def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
     assert z.status_code == 200
     import io, zipfile
     names = zipfile.ZipFile(io.BytesIO(z.content)).namelist()
-    assert {"clips/clip_01.mp4", "clips/clip_01_cover.jpg", "captions/clip_01.srt", "clips.json", "schedule.ics", "copy.md"} <= set(names)
+    assert {"tiktok/clip_01.mp4", "tiktok/clip_01_cover.jpg", "tiktok/clip_01.srt", "youtube_shorts/clip_01.mp4", "clips.json", "schedule.ics", "README.txt"} <= set(names)
     assert client.get(f"/api/jobs/{job['id']}/export.json").json()["clips"][0]["copy"]["tiktok"]["title"] == "Edited"
 
     # re-render with a different framing, then trim + re-render
@@ -193,3 +195,43 @@ def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
     assert cc["status"] == "done", cc.get("error")
     assert cc["score_breakdown"]["render"]["reframe"]["mode"] == "blur"
     assert client.get("/api/health").json()["stages"] == ["ingest", "transcribe", "analyze", "score", "fit", "render", "copy", "schedule"]
+
+
+def test_render_groups_separate_platforms_unless_identical(client, sample_video, monkeypatch):
+    from app import settings as st
+    from app.pipeline import runner, transcribe
+    from tests.fakes import FakeWhisperModel, fake_words
+    words = fake_words("Here's the thing about this test. Nobody tells you how boring colour bars are. "
+                       "The biggest mistake is watching all twenty seconds. Write this down.", wps=3.0)
+    monkeypatch.setattr(transcribe, "get_model", lambda *a, **k: FakeWhisperModel(words, duration=20.0))
+    with sample_video.open("rb") as fh:
+        r = client.post("/api/jobs", data={"options": '{"max_clips": 1}', "platforms": "tiktok,instagram_reels,facebook_reels"},
+                        files={"file": ("talk.mp4", fh, "video/mp4")})
+    job = _wait_done(client, r.json()["id"], timeout=300)
+    assert job["status"] == "done", job.get("error")
+    c = job["clips"][0]
+    folders = {pl: v["folder"] for pl, v in c["variants"].items()}
+    # three platforms, three specs → three files even when the cut is identical
+    assert folders == {"tiktok": "tiktok", "instagram_reels": "instagram_reels", "facebook_reels": "facebook_reels"}
+    assert all(v["scope"] == "platform" and v["spec"]["ok"] and v["video_path"].startswith(f"clips/{pl}/") for pl, v in c["variants"].items())
+    assert job["meta"]["render"]["n_files"] == 3 and job["meta"]["render"]["placement"] == "platform"
+    assert all(c["copy"][pl]["spec"]["ok"] for pl in c["copy"])
+
+    import io, zipfile
+    z = zipfile.ZipFile(io.BytesIO(client.get(f"/api/jobs/{job['id']}/export.zip").content))
+    names = set(z.namelist())
+    assert {"tiktok/clip_01.mp4", "instagram_reels/clip_01.mp4", "facebook_reels/clip_01.mp4", "tiktok/clip_01_copy.txt", "README.txt", "schedule.ics"} <= names
+    assert not any(n.startswith("universal/") for n in names)
+    pack = zipfile.ZipFile(io.BytesIO(client.get(f"/api/jobs/{job['id']}/export.zip", params={"platform": "tiktok"}).content))
+    pn = set(pack.namelist())
+    assert "tiktok/clip_01.mp4" in pn and "tiktok/clip_01_copy.txt" in pn and not any(n.startswith("instagram") for n in pn)
+    assert "FILE CHECKS" in pack.read("tiktok/clip_01_copy.txt").decode()
+    assert client.get(f"/api/jobs/{job['id']}/export.zip", params={"platform": "myspace"}).status_code == 400
+
+    # universal placement: one file per cut, built to the strictest spec, valid for all
+    pconf = json.loads(json.dumps(st.load_config("platforms"))); pconf["defaults"]["placement"] = "universal"
+    monkeypatch.setattr(st, "load_config", lambda name, _o=st.load_config: pconf if name == "platforms" else _o(name))
+    clip = db.get_clip(c["id"])
+    groups = runner.plan_render_groups(clip, ["tiktok", "instagram_reels", "facebook_reels"], pconf)
+    assert len(groups) == 1 and groups[0]["folder"] == "universal" and groups[0]["scope"] == "universal"
+    assert groups[0]["profile"]["render"]["max_file_mb"] == 287
