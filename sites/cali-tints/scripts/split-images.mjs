@@ -11,6 +11,11 @@
  * services in order; 12 (dent repair) and 13 (headlight restoration) are not
  * services and are skipped.
  *
+ * Some services instead have a full-size standalone split image in
+ * src/assets/source/ (STANDALONE below): one scene, "before" left and "after"
+ * right, divider in the middle, no baked-in words. Those are cropped to 2:1
+ * around their divider and scaled down, never up.
+ *
  * Each tile is cropped to the largest 2:1 rectangle that fits below the
  * baked-in words and above the label strip, centred on the tile's own divider
  * so the split stays at exactly 50%; then upscaled about 3x. The van in tile 4
@@ -45,6 +50,10 @@ const ROWS = [
   { y0: 309, y1: 557 },
   { y0: 608, y1: 956 },
 ];
+// Standalone full-size images that replace a collage tile: file + divider x.
+const STANDALONE = {
+  detailing: { file: 'detailing-interior.jpg', div: 896 },
+};
 const SLUGS = [
   'window-tinting', 'tint-removal-repair', 'vinyl-wraps', 'commercial-wraps',
   'paint-protection-film', 'ceramic-coating', 'detailing', 'paint-correction',
@@ -65,6 +74,16 @@ function cropFor(col, row) {
 }
 
 async function tile(i) {
+  const alt = STANDALONE[SLUGS[i]];
+  if (alt) {
+    const file = path.join(ROOT, 'src/assets/source', alt.file);
+    const m = await sharp(file).metadata();
+    const halfW = Math.min(alt.div, m.width - alt.div);
+    let w = Math.floor(halfW * 2), h = Math.floor(w / 2);
+    if (h > m.height) { h = m.height; w = h * 2; }
+    const c = { left: Math.round(alt.div - w / 2), top: Math.round((m.height - h) / 2), width: w, height: h };
+    return sharp(file).extract(c).resize(OW, OH, { kernel: 'lanczos3' }).png().toBuffer();
+  }
   const col = COLS[i % 4], row = ROWS[Math.floor(i / 4)];
   const c = cropFor(col, row);
   return sharp(SRC).extract(c).resize(OW, OH, { kernel: 'lanczos3' }).sharpen({ sigma: 0.8, m1: 0.6, m2: 0.2 }).png().toBuffer();

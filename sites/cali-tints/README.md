@@ -37,7 +37,11 @@ the label strip, centred on the tile's own divider, upscaled to 1280×640 and
 written to `public/assets/img/splits/<slug>.{jpg,webp}`. The van in the
 commercial-wraps tile carried another company's mark; the script paints over it
 with the Cali Tints badge, name and phone number. Tiles 12 (dent repair, not a
-service any more) and 13 (headlight restoration, not a service) are skipped.
+service any more) and 13 (headlight restoration, not a service) are skipped. A
+service can instead point at a full-size standalone split image in
+`src/assets/source/` (`STANDALONE` in the script; detailing uses
+`detailing-interior.jpg`), which is cropped to 2:1 around its divider and scaled
+down rather than up.
 `SplitImage.astro` shows the image with our own Before/After pills and a centre
 line; `services[].image` in `site.json` holds the path, alt text and caption.
 Every caption says "AI-generated illustration, not a customer vehicle." The earlier
@@ -54,9 +58,9 @@ hidden until the motion chunk has loaded, so CLS stays 0.
 `npm run scroll-check` verifies the count-up and reveals, checks the before/after
 images load, and records `qa/scroll.mp4`.
 
-**To replace a tile with real photos**: drop `public/assets/img/splits/<slug>.jpg`
-and `.webp` (1280×640, before on the left, after on the right) and remove that slug
-from `SLUGS` in `scripts/split-images.mjs` so `npm run splits` stops overwriting it;
+**To replace a tile with real photos**: save the pair as one image (before on the
+left, after on the right, divider in the middle, at least 1280×640) in
+`src/assets/source/` and add it to `STANDALONE` in `scripts/split-images.mjs`;
 change that service's `image.caption` in `site.json` from the illustration wording to
 the real one.
 
