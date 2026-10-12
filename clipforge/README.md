@@ -58,6 +58,32 @@ First run creates `.venv`, installs `requirements.txt`, copies `.env.example` to
 starts the server. The first job also downloads the whisper model (~460 MB for `small`).
 Then open http://localhost:8000.
 
+## Chromebook, Raspberry Pi, or any weak Linux box
+
+One command in the Linux terminal (ChromeOS: Settings → About ChromeOS → Developers → turn on
+Linux first):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/therealmacintosh52-collab/curly-octo-rotary-phone/claude/affectionate-brown-h3wfam/clipforge/install-chromebook.sh | bash
+```
+
+It installs Python/ffmpeg, clones the app, asks for a password and an optional API key, turns on
+low-power mode (whisper `base`, one universal file per clip, ultrafast encoding, max 4 clips),
+listens on all interfaces, and starts the server. Re-run it to update.
+
+## Using it from your phone
+
+Run the app on a computer (laptop, Chromebook, VPS) and open it from the phone's browser:
+
+1. Set `CLIPFORGE_PASSWORD=something` in `.env` first. Every page then needs that password.
+2. Set `CLIPFORGE_HOST=0.0.0.0` and restart.
+3. Same Wi-Fi: open `http://<computer-ip>:8000`. On ChromeOS also enable port 8000 under
+   Settings → Linux → Port forwarding.
+4. From anywhere: put it behind a tunnel (Tailscale, Cloudflare Tunnel) or on a VPS with HTTPS.
+   HTTP Basic auth is only as safe as the connection, so don't expose plain HTTP to the internet.
+
+The UI works at phone width; rendering still happens on the computer.
+
 ## Configuration
 
 Edit `.env` (all optional):
@@ -75,6 +101,10 @@ Edit `.env` (all optional):
 | `CLIPFORGE_MAX_DOWNLOAD_HEIGHT` | `1080` | Download/transcode cap. |
 | `CLIPFORGE_TIMEZONE` | `America/Los_Angeles` | Timezone for the posting schedule. |
 | `CLIPFORGE_PORT` | `8000` | Server port. |
+| `CLIPFORGE_PASSWORD` | empty | Require a password on every request (HTTP Basic). Set before exposing the app. |
+| `CLIPFORGE_HOST` | `127.0.0.1` | `0.0.0.0` to accept connections from other devices. |
+| `CLIPFORGE_LOW_POWER` | `0` | `1` for weak CPUs: whisper `base`, universal placement, ultrafast preset, max 4 clips. |
+| `CLIPFORGE_PLACEMENT` / `CLIPFORGE_RENDER_PRESET` | empty | Override `platforms.json` placement / x264 preset without editing it. |
 
 JSON configs in `config/`:
 

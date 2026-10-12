@@ -53,6 +53,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="ClipForge", version=__version__, lifespan=lifespan)
+from .auth import BasicAuthMiddleware  # noqa: E402
+app.add_middleware(BasicAuthMiddleware)
 
 
 # ----------------------------------------------------------------------------- pages
@@ -88,6 +90,9 @@ def health() -> dict:
         "llm_model": settings.LLM_MODEL if settings.llm_enabled() else None,
         "jobs_dir": str(settings.JOBS_DIR),
         "retention_days": settings.RETENTION_DAYS,
+        "password_protected": bool(settings.PASSWORD),
+        "low_power": settings.LOW_POWER,
+        "placement": settings.load_config("platforms")["defaults"].get("placement", "platform"),
         "active_jobs": runner.active_job_ids(),
         "stages": [name for name, _ in runner.STAGES],
     }
