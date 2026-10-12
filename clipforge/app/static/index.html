@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClipForge</title>
+<style>
+  :root{
+    --bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--line:#2a2f3a;--text:#e6e8ee;--muted:#8b93a7;
+    --accent:#6ee7b7;--accent2:#60a5fa;--warn:#fbbf24;--bad:#f87171;--radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{margin:0;font-size:18px;letter-spacing:.3px}
+  header .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px}
+  header .pill.ok{color:var(--accent);border-color:#2b5b4a}
+  header .pill.bad{color:var(--bad);border-color:#6b2f2f}
+  main{display:grid;grid-template-columns:380px 1fr;gap:16px;padding:16px 20px;max-width:1500px;margin:0 auto}
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .card h2{margin:0 0 12px;font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input[type=text],input[type=url],select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 10px;font:inherit}
+  input[type=file]{width:100%;color:var(--muted);font-size:12px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+  .chk input{accent-color:var(--accent)}
+  button{background:var(--accent);color:#06281c;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+  button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line);font-weight:500}
+  button.danger{background:transparent;color:var(--bad);border:1px solid #5a2b2b}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .jobs{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:60vh;overflow:auto}
+  .job{display:grid;grid-template-columns:1fr auto;gap:4px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer}
+  .job.active{border-color:var(--accent2)}
+  .job .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .job .s{font-size:12px;color:var(--muted)}
+  .status{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);height:fit-content}
+  .status.running{color:var(--accent2);border-color:#2d4a73}
+  .status.done{color:var(--accent);border-color:#2b5b4a}
+  .status.failed{color:var(--bad);border-color:#6b2f2f}
+  .status.queued{color:var(--warn);border-color:#6b5a1f}
+  .bar{grid-column:1/-1;height:4px;background:#0b0d12;border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent2);transition:width .4s}
+  .detail-empty{color:var(--muted);padding:40px;text-align:center}
+  .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13px}
+  .kv b{color:var(--muted);font-weight:500}
+  video{width:100%;max-height:360px;background:#000;border-radius:8px;margin-top:10px}
+  pre.err{white-space:pre-wrap;color:var(--bad);background:#1a1212;border:1px solid #4a2626;border-radius:8px;padding:10px;font-size:12px}
+  .clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}
+  .muted{color:var(--muted)}
+  .clip .score{font-size:26px;font-weight:700;color:var(--accent);margin:4px 0}
+  .clip .score small{font-size:12px;color:var(--muted);font-weight:500}
+  .clip .hook{color:var(--accent2);font-style:italic;margin-bottom:4px}
+  .clip .tx{font-size:12.5px;line-height:1.4;margin:6px 0}
+  .clip details{margin-top:6px;font-size:12px}
+  .fbar{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;margin:3px 0;font-size:11px;color:var(--muted)}
+  .fbar i{display:block;height:6px;background:#0b0d12;border-radius:3px;overflow:hidden}
+  .fbar b{display:block;height:100%;background:var(--accent2)}
+  .toast{position:fixed;bottom:16px;right:16px;background:var(--panel2);border:1px solid var(--line);padding:10px 14px;border-radius:8px;max-width:420px;display:none}
+  .toast.bad{border-color:#6b2f2f;color:var(--bad)}
+  .section{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+  .section h3{margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ClipForge</h1>
+  <span id="hp-ffmpeg" class="pill">ffmpeg: …</span>
+  <span id="hp-whisper" class="pill">whisper: …</span>
+  <span id="hp-llm" class="pill">LLM: …</span>
+  <span style="flex:1"></span>
+  <button class="secondary" id="btn-cleanup" title="Delete jobs older than the configured retention">Clean up old jobs</button>
+</header>
+
+<main>
+  <section>
+    <div class="card">
+      <h2>New job</h2>
+      <form id="job-form">
+        <label for="url">Video URL (YouTube, Vimeo, Twitch VOD, direct link…)</label>
+        <input id="url" name="url" type="url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off">
+        <label for="file">…or upload a file</label>
+        <input id="file" name="file" type="file" accept="video/*,audio/*,.mkv,.mov,.mp4,.webm,.m4a,.mp3,.wav">
+        <label>Platforms</label>
+        <div class="row" id="platforms"></div>
+        <label for="max-clips">Max clips</label>
+        <select id="max-clips">
+          <option>3</option><option>5</option><option selected>8</option><option>12</option>
+        </select>
+        <div class="row" style="margin-top:14px">
+          <button type="submit" id="btn-submit">Create job</button>
+          <span class="muted" id="submit-note"></span>
+        </div>
+      </form>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>Jobs</h2>
+      <div class="jobs" id="jobs"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card" id="detail">
+      <div class="detail-empty">Select a job to see its source, clips, copy, and schedule.</div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const state = { jobs: [], selected: null, config: null, timer: null };
+
+function toast(msg, bad=false){
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast' + (bad?' bad':''); t.style.display='block';
+  clearTimeout(t._h); t._h = setTimeout(()=> t.style.display='none', 5000);
+}
+async function api(path, opts={}){
+  const r = await fetch(path, opts);
+  const ct = r.headers.get('content-type')||'';
+  const body = ct.includes('json') ? await r.json() : await r.text();
+  if(!r.ok){ throw new Error(body.detail || body.error || (typeof body==='string'?body:JSON.stringify(body))); }
+  return body;
+}
+const fmtTime = s => { s=Math.max(0,Math.round(s)); const m=Math.floor(s/60), r=s%60; return `${m}:${String(r).padStart(2,'0')}`; };
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function loadHealth(){
+  try{
+    const h = await api('/api/health');
+    $('#hp-ffmpeg').textContent = 'ffmpeg ' + (h.ffmpeg.version||'missing'); $('#hp-ffmpeg').className='pill '+(h.ok?'ok':'bad');
+    $('#hp-whisper').textContent = 'whisper ' + (h.whisper_available ? h.whisper_model : 'unavailable'); $('#hp-whisper').className='pill '+(h.whisper_available?'ok':'bad');
+    $('#hp-llm').textContent = h.llm_enabled ? 'LLM ' + h.llm_model : 'LLM off (heuristics)'; $('#hp-llm').className='pill '+(h.llm_enabled?'ok':'');
+  }catch(e){ toast('health check failed: '+e.message, true); }
+}
+async function loadConfig(){
+  state.config = await api('/api/config');
+  const box = $('#platforms'); box.innerHTML='';
+  for(const [id,p] of Object.entries(state.config.platforms.platforms)){
+    const l = document.createElement('label'); l.className='chk';
+    l.innerHTML = `<input type="checkbox" value="${id}" checked> ${esc(p.label)}`;
+    box.appendChild(l);
+  }
+}
+async function loadJobs(){
+  state.jobs = await api('/api/jobs');
+  renderJobs();
+  if(state.selected){ const j = state.jobs.find(x=>x.id===state.selected); if(j) await loadDetail(state.selected); }
+  const busy = state.jobs.some(j => j.status==='running' || j.status==='queued');
+  clearTimeout(state.timer); state.timer = setTimeout(loadJobs, busy ? 1500 : 8000);
+}
+function renderJobs(){
+  const box = $('#jobs'); box.innerHTML='';
+  if(!state.jobs.length){ box.innerHTML='<div class="muted">No jobs yet.</div>'; return; }
+  for(const j of state.jobs){
+    const d = document.createElement('div'); d.className='job'+(j.id===state.selected?' active':'');
+    const name = j.title || j.source_name || j.source_url || j.id;
+    d.innerHTML = `<div class="t" title="${esc(name)}">${esc(name)}</div>
+      <span class="status ${j.status}">${j.status}${j.stage && j.status==='running' ? ' · '+esc(j.stage):''}</span>
+      <div class="s">${esc(j.message||'')}</div><div class="s">${new Date(j.created_at*1000).toLocaleString()}</div>
+      <div class="bar"><i style="width:${Math.round((j.progress||0)*100)}%"></i></div>`;
+    d.onclick = () => { state.selected = j.id; renderJobs(); loadDetail(j.id); };
+    box.appendChild(d);
+  }
+}
+async function loadDetail(id){
+  let j; try{ j = await api('/api/jobs/'+id); }catch(e){ return; }
+  const src = j.meta?.source; const m = src?.media;
+  let html = `<div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">${esc(j.title || j.source_name || j.source_url || j.id)}</h2>
+      <div class="row">
+        ${j.status==='failed' ? `<button class="secondary" data-act="rerun">Re-run</button>`:''}
+        ${j.status==='running' ? `<button class="secondary" data-act="cancel">Cancel</button>`:''}
+        <button class="danger" data-act="delete">Delete</button>
+      </div></div>
+    <div class="kv" style="margin-top:10px">
+      <b>Job</b><span>${j.id} · <span class="status ${j.status}">${j.status}</span> · ${esc(j.message||'')}</span>
+      <b>Source</b><span>${j.source_url ? `<a href="${esc(j.source_url)}" target="_blank" style="color:var(--accent2)">${esc(j.source_url)}</a>` : esc(j.source_name||'upload')}</span>
+      ${m ? `<b>Media</b><span>${m.width}×${m.height} · ${m.fps?.toFixed?.(2)} fps · ${fmtTime(m.duration)} · ${m.video_codec}/${m.audio_codec||'no audio'} · ${(m.size_bytes/1048576).toFixed(1)} MB</span>`:''}
+      ${src?.remote?.uploader ? `<b>Uploader</b><span>${esc(src.remote.uploader)}</span>`:''}
+      <b>Platforms</b><span>${(j.options?.platforms||[]).join(', ')}</span>
+    </div>`;
+  if(j.error) html += `<pre class="err">${esc(j.error)}</pre>`;
+  if(src?.files?.video) html += `<video controls preload="metadata" src="/api/jobs/${j.id}/files/${src.files.video}"></video>`;
+  const tr = j.meta?.transcript, an = j.meta?.analysis, sc = j.meta?.scoring;
+  if(tr || an || sc){
+    html += `<div class="section"><h3>Analysis</h3><div class="kv">
+      ${tr ? `<b>Transcript</b><span>${tr.available ? `${tr.n_words} words · ${esc(tr.language||'?')} · whisper ${esc(tr.model||'')}` : `<span style="color:var(--warn)">unavailable: ${esc(tr.error||'')}</span>`}</span>`:''}
+      ${an ? `<b>Segments</b><span>${an.n_scenes} shots · ${an.n_sentences} sentences · ${an.n_candidates} candidates (${an.mode})</span>`:''}
+      ${sc ? `<b>Scoring</b><span>${sc.llm_used ? 'heuristics + LLM' : 'heuristics only'} · ${sc.n_selected} of ${sc.n_candidates} selected${sc.keywords?.length ? ' · keywords: '+esc(sc.keywords.join(', ')):''}</span>`:''}
+    </div></div>`;
+  }
+  html += `<div class="section"><h3>Clips</h3>`;
+  if(!j.clips?.length){
+    html += `<div class="muted">${j.status==='done' ? 'No clips were selected (source may be too short for the configured clip length).' : 'Clips appear here once the pipeline reaches the score stage.'}</div>`;
+  } else {
+    html += `<div class="clips">` + j.clips.map(c => {
+      const f = c.score_breakdown?.features || {};
+      const bars = Object.entries(f).filter(([k])=>k!=='filler_penalty').map(([k,v]) =>
+        `<div class="fbar" title="${k}: ${(v*100).toFixed(0)}"><span>${k.replace(/_/g,' ')}</span><i><b style="width:${Math.round(v*100)}%"></b></i></div>`).join('');
+      const llm = c.score_breakdown?.llm != null ? ` · LLM ${(c.score_breakdown.llm*100).toFixed(0)}` : '';
+      return `<div class="card clip">
+        <div class="row" style="justify-content:space-between"><b>#${c.idx+1}</b><span class="status ${c.status}">${c.status}</span></div>
+        <div class="muted">${fmtTime(c.start_s)} – ${fmtTime(c.end_s)} · ${c.duration.toFixed(1)}s</div>
+        <div class="score">${(c.score*100).toFixed(0)}<small> / 100${llm}</small></div>
+        ${c.score_breakdown?.llm_hook ? `<div class="hook">“${esc(c.score_breakdown.llm_hook)}”</div>`:''}
+        <div class="tx">${esc((c.transcript||'(no speech)').slice(0,220))}${(c.transcript||'').length>220?'…':''}</div>
+        <details><summary class="muted">feature breakdown</summary>${bars}</details>
+      </div>`; }).join('') + `</div>`;
+  }
+  html += `</div>`;
+  const box = $('#detail'); box.innerHTML = html;
+  box.querySelectorAll('[data-act]').forEach(b => b.onclick = () => jobAction(j.id, b.dataset.act));
+}
+async function jobAction(id, act){
+  try{
+    if(act==='delete'){ if(!confirm('Delete this job and all its files?')) return; await api('/api/jobs/'+id,{method:'DELETE'}); state.selected=null; $('#detail').innerHTML='<div class="detail-empty">Job deleted.</div>'; }
+    if(act==='rerun') await api(`/api/jobs/${id}/run`,{method:'POST'});
+    if(act==='cancel') await api(`/api/jobs/${id}/cancel`,{method:'POST'});
+    await loadJobs();
+  }catch(e){ toast(e.message, true); }
+}
+$('#job-form').onsubmit = async (ev) => {
+  ev.preventDefault();
+  const fd = new FormData();
+  const url = $('#url').value.trim(); const file = $('#file').files[0];
+  if(!url && !file){ toast('Paste a URL or choose a file', true); return; }
+  if(url) fd.append('url', url);
+  if(file) fd.append('file', file);
+  const plats = [...$('#platforms').querySelectorAll('input:checked')].map(i=>i.value);
+  fd.append('platforms', plats.join(','));
+  fd.append('options', JSON.stringify({ max_clips: Number($('#max-clips').value) }));
+  $('#btn-submit').disabled = true; $('#submit-note').textContent = file ? 'uploading…' : 'creating…';
+  try{
+    const j = await api('/api/jobs', {method:'POST', body: fd});
+    state.selected = j.id; $('#url').value=''; $('#file').value='';
+    toast('Job created: '+j.id);
+    await loadJobs();
+  }catch(e){ toast(e.message, true); }
+  finally{ $('#btn-submit').disabled=false; $('#submit-note').textContent=''; }
+};
+$('#btn-cleanup').onclick = async () => {
+  try{ const r = await api('/api/cleanup',{method:'POST'}); toast(`Removed ${r.count} job(s) older than ${r.days} days`); await loadJobs(); }
+  catch(e){ toast(e.message,true); }
+};
+loadHealth(); loadConfig().then(loadJobs);
+</script>
+</body>
+</html>

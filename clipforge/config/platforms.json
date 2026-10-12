@@ -1,0 +1,65 @@
+{
+  "defaults": {
+    "aspect": "9:16",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "video_bitrate": "6M",
+    "audio_bitrate": "192k",
+    "loudness_lufs": -14.0,
+    "true_peak_dbtp": -1.0,
+    "caption_safe_top_pct": 0.12,
+    "caption_safe_bottom_pct": 0.22,
+    "cover_time_pct": 0.15
+  },
+  "platforms": {
+    "youtube_shorts": {
+      "label": "YouTube Shorts",
+      "min_duration": 15,
+      "max_duration": 60,
+      "ideal_duration": 45,
+      "title_max_chars": 100,
+      "caption_max_chars": 5000,
+      "hashtag_count": 3,
+      "hashtags_in": "title_and_caption",
+      "keyword_count": 8,
+      "notes": "Put #Shorts in the title or description. Front-load the keyword in the title."
+    },
+    "instagram_reels": {
+      "label": "Instagram Reels",
+      "min_duration": 7,
+      "max_duration": 90,
+      "ideal_duration": 30,
+      "title_max_chars": 0,
+      "caption_max_chars": 2200,
+      "hashtag_count": 5,
+      "hashtags_in": "caption",
+      "keyword_count": 6,
+      "notes": "No title field; first line of the caption is the hook. 3-5 niche hashtags beat 30 generic ones."
+    },
+    "tiktok": {
+      "label": "TikTok",
+      "min_duration": 7,
+      "max_duration": 180,
+      "ideal_duration": 34,
+      "title_max_chars": 0,
+      "caption_max_chars": 4000,
+      "hashtag_count": 4,
+      "hashtags_in": "caption",
+      "keyword_count": 6,
+      "notes": "Caption doubles as title; keep the hook in the first 60 chars so it shows uncollapsed."
+    },
+    "facebook_reels": {
+      "label": "Facebook Reels",
+      "min_duration": 5,
+      "max_duration": 90,
+      "ideal_duration": 30,
+      "title_max_chars": 0,
+      "caption_max_chars": 2200,
+      "hashtag_count": 3,
+      "hashtags_in": "caption",
+      "keyword_count": 6,
+      "notes": "Older audience; plainer language, fewer hashtags, lead with the payoff."
+    }
+  }
+}
