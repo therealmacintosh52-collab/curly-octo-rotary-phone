@@ -46,6 +46,23 @@ export function parseBayintelMessage(event: { origin: string; data: unknown }, r
   return null;
 }
 
+/**
+ * Asks BayIntel's /api/health (CORS-open, 200 when set up, 503 when its keys
+ * are missing). `false` means its server answered with an error (5xx);
+ * `null` means nothing is known (offline, a CORS refusal, or a build without
+ * the route), and the iframe decides on its own.
+ */
+export async function checkHealth(signal?: AbortSignal, raw?: string, fetcher: typeof fetch = fetch): Promise<boolean | null> {
+  const base = bayintelBase(raw);
+  if (!base) return null;
+  try {
+    const r = await fetcher(`${base}/api/health`, { mode: "cors", cache: "no-store", signal });
+    return r.ok ? true : r.status >= 500 ? false : null;
+  } catch {
+    return null;
+  }
+}
+
 export const OPEN_EVENT = "bayintel:open";
 
 /**

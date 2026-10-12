@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ExternalLinkIcon, RefreshCwIcon, ScanSearchIcon, XIcon } from "lucide-react";
-import { OPEN_EVENT, bayintelConfigured, bayintelUrl, parseBayintelMessage } from "@/lib/intel/bridge";
+import { OPEN_EVENT, bayintelConfigured, bayintelUrl, checkHealth, parseBayintelMessage } from "@/lib/intel/bridge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,8 @@ export function IntelProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [src, setSrc] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
+  /** Why it failed: the page never arrived, or BayIntel answered its health check with an error (not set up, or down). */
+  const [why, setWhy] = useState<"timeout" | "unhealthy">("timeout");
   const pushed = useRef(false);
   const frame = useRef<HTMLIFrameElement>(null);
 
@@ -124,12 +126,35 @@ export function IntelProvider({ children }: { children: React.ReactNode }) {
   // Loading skeleton until the iframe loads; a fallback when nothing arrives in time (blocked framing, offline).
   useEffect(() => {
     if (!mounted || status !== "loading") return;
-    const t = setTimeout(() => setStatus((s) => (s === "loading" ? "failed" : s)), LOAD_TIMEOUT_MS);
+    const t = setTimeout(() => {
+      setWhy("timeout");
+      setStatus((s) => (s === "loading" ? "failed" : s));
+    }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(t);
   }, [mounted, status, src]);
 
+  // An error page still "loads" in an iframe, so ask BayIntel's health route as well, once per screen
+  // and per retry, whatever the iframe reported: a 5xx answer (503 while it is not set up, 500 when it
+  // is down) shows the fallback with the reason. A network or CORS failure says nothing and is ignored.
+  const [attempt, setAttempt] = useState(0);
+  const unhealthy = useRef(false); // so a late iframe `load` (its error page) does not flip it back to ready
+  useEffect(() => {
+    if (!mounted) return;
+    unhealthy.current = false;
+    const ctrl = new AbortController();
+    void checkHealth(ctrl.signal).then((healthy) => {
+      if (healthy === false) {
+        unhealthy.current = true;
+        setWhy("unhealthy");
+        setStatus("failed");
+      }
+    });
+    return () => ctrl.abort();
+  }, [mounted, src, attempt]);
+
   const retry = () => {
     setStatus("loading");
+    setAttempt((a) => a + 1);
     if (frame.current && src) frame.current.src = src;
   };
 
@@ -185,10 +210,14 @@ export function IntelProvider({ children }: { children: React.ReactNode }) {
                 </div>
               )}
               {configured && status === "failed" && (
-                <div className="absolute inset-0 flex items-center justify-center p-6" data-testid="intel-failed">
+                <div className="absolute inset-0 flex items-center justify-center p-6" data-testid="intel-failed" data-why={why}>
                   <div className="max-w-sm rounded-2xl border border-border bg-card p-5 text-sm">
-                    <div className="font-semibold">BayIntel did not load</div>
-                    <p className="mt-1 text-muted-foreground">It may refuse to open inside another site, or the network is slow. Open it on its own page instead.</p>
+                    <div className="font-semibold">{why === "unhealthy" ? "BayIntel is not answering" : "BayIntel did not load"}</div>
+                    <p className="mt-1 text-muted-foreground">
+                      {why === "unhealthy"
+                        ? "Its server returned an error: it is either not set up yet (its Supabase keys are missing on its Vercel project) or down. Nothing on this side is wrong."
+                        : "It may refuse to open inside another site, or the network is slow. Open it on its own page instead."}
+                    </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       {src && (
                         <Button asChild>
@@ -207,7 +236,7 @@ export function IntelProvider({ children }: { children: React.ReactNode }) {
                   title="BayIntel"
                   allow="camera; clipboard-write"
                   referrerPolicy="strict-origin-when-cross-origin"
-                  onLoad={() => setStatus("ready")}
+                  onLoad={() => setStatus((s) => (unhealthy.current ? s : "ready"))}
                   onError={() => setStatus("failed")}
                   data-testid="intel-frame"
                   className={cn("size-full border-0", status !== "ready" && "opacity-0")}

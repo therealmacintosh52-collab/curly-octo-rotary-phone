@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bayintelBase, bayintelConfigured, bayintelOrigin, bayintelUrl, parseBayintelMessage } from "./bridge";
+import { bayintelBase, bayintelConfigured, bayintelOrigin, bayintelUrl, checkHealth, parseBayintelMessage } from "./bridge";
 
 const URL_ = "https://bayintel.example.com/";
 
@@ -22,5 +22,19 @@ describe("BayIntel bridge", () => {
     expect(parseBayintelMessage({ origin: "https://bayintel.example.com", data: { type: "bayintel:navigate", path: "https://x" } }, URL_)).toBeNull();
     expect(parseBayintelMessage({ origin: "https://bayintel.example.com", data: "close" }, URL_)).toBeNull();
     expect(parseBayintelMessage({ origin: "https://bayintel.example.com", data: { type: "bayintel:close" } }, "")).toBeNull();
+  });
+
+  it("reads the health route: ok, an error answer, or nothing known", async () => {
+    const calls: string[] = [];
+    const respond = (status: number) => ((url: string | URL | Request) => {
+      calls.push(String(url));
+      return Promise.resolve(new Response(null, { status }));
+    }) as typeof fetch;
+    expect(await checkHealth(undefined, URL_, respond(200))).toBe(true);
+    expect(await checkHealth(undefined, URL_, respond(503))).toBe(false);
+    expect(await checkHealth(undefined, URL_, respond(404))).toBeNull(); // a build without the route says nothing
+    expect(await checkHealth(undefined, URL_, (() => Promise.reject(new TypeError("cors"))) as typeof fetch)).toBeNull();
+    expect(await checkHealth(undefined, "", respond(200))).toBeNull();
+    expect(calls).toEqual(Array(3).fill("https://bayintel.example.com/api/health"));
   });
 });
