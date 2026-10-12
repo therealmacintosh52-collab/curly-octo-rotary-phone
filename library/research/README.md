@@ -7,6 +7,7 @@ File per topic: `<topic>-<YYYY-MM-DD>.md` with an evidence table (claim Â· url Â
 |---|---|---|---|
 | `income-lanes-2026-10-12.md` | Lane ranking (website service / reselling / Trendlift), pricing, CA legal items, 10-business prospect list | 2026-10-12 | current (re-verify 2026-11-11) |
 | `lane-a-ideas-2026-10-12.md` | Lane A idea payer evidence: GBP setup, consignment commissions, QR menus, social packs, AI-search audit, care plans, Spanish translation, repo facts | 2026-10-12 | current (re-verify 2026-11-11) |
+| `what-works-2026-10-12.md` | What is making money now (D-020): TaskRabbit/Dropcurb/Thumbtack Sacramento prices, Fiverr/Etsy/Contra listing prices, reseller fee and margin claims, Craigslist free items; plus a "searched, found nothing" list (no Reddit income reports surfaced) | 2026-10-12 | current (re-verify 2026-11-11) |
 | `../../dropship-os/suppliers/bfcm26-candidates-2026-10-12.md` | Zendrop China-direct landed costs, 10 BFCM candidates | 2026-10-12 | current (stale 2026-11-11) |
 | `../../dropship-os/suppliers/zendrop-quotes-2026-10-12.md` | Zendrop US-stock landed costs, 9 pushed products | 2026-10-12 | current (stale 2026-11-11) |
 | `../../dropship-os/marketing/fd26-trend-research.md` | Father's Day 2026 trend research | 2026-06-11 | stale for pricing; reusable for method |
