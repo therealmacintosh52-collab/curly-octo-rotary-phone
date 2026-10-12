@@ -55,21 +55,21 @@ vs top 3 competitors: [🟢/🟡/🔴] — they have [n–n] reviews; you have [
 AI-search snapshot [date]: [named / not named] — [who was named]
 TOP 3 FIXES (biggest first, each doable in under 1 hour):
 1) [fix]  2) [fix]  3) [fix]
-Reply STOP and I won't message you again. — [Owner name], [AGENCY NAME], [phone]
+Reply STOP and I won't message you again. — [Owner full legal name], [phone]
 ```
 Rules: no number you did not see. "none" or "—" if not found. No revenue estimate in the free audit.
 
 ## 4. Delivery script: 3 minutes by phone call or voice note (owner calls only a business's publicly listed business number, by hand, no auto-dialer)
-0:00 "Hi [first name], it's [Owner] from [AGENCY NAME], a local marketing helper in Elk Grove. I looked at [Business]'s Google listing this week and wrote you a one-page free check. Do you have 3 minutes?" (If they say they are busy: "No problem, I'll text it over once. Say STOP and I won't contact you again." If they say no, not interested or stop: "Understood, thank you." End, log "never contact", send nothing.)
+0:00 "Hi [first name], it's [Owner full legal name], a local marketing helper in Elk Grove. I looked at [Business]'s Google listing this week and wrote you a one-page free check. Do you have 3 minutes?" (If they say they are busy: "When is a better time?" Write the time down and call once then. If they say no, not interested or stop: "Understood, thank you." End, log "never contact", send nothing. Only if they ask you to send it: "Sure, I'll text it once. Reply STOP and I won't contact you again.")
 0:30 "Green: [best thing]. Honestly good." 
 0:45 "Red: [worst item]. Right now when someone searches [trade] in [city], [competitor] shows [n] reviews to your [n]."
 1:15 "Top 3 fixes: [1], [2], [3]. You can do all three yourself; each takes under an hour."
 1:45 Pitch: "If you'd rather not spend the time, I do a Starter package: the full audit, a 90-day plan, 30 days of ready-to-post content, and message scripts for follow-up and review requests. It's $297 one time, paid before I start, and delivered in 7 days or you get a full refund. No long-term contract: one page, one-time or month-to-month. I only get Manager access to your Google profile, never your passwords. I can't promise rankings or a number of calls; I can promise you'll have the plan in 7 days."
 2:30 Ask: "Want me to text you the one-page terms so you can say yes or no?" (If yes, send the Starter text in the service agreement file, section "Text-message versions".)
 2:50 Close: "Either way the audit is yours to keep. Thanks for the time." Never push twice. "No" or silence = never contact again.
-DM/text version (under 320 chars): "Hi [name], [Owner] here, local marketing helper. I did a free public-info check of [Business]'s Google listing: [n] green, [n] red, 3 quick fixes. Want it? Reply YES. Reply STOP and I won't message again."
+Text/DM version (only after the business asked for it on the call or in person; never a first touch, C3): "Hi [name], [Owner full legal name] here, from our call. Your free Google listing check: [n] green, [n] red, 3 quick fixes. Reply STOP and I won't message again." (hand count: 160 chars raw, about 165 filled; qa counted 144 raw / 166 filled; either way under 320.)
 Pricing note: Starter $297 one-time, paid in full before work starts (D-027; red-team T-011 ruling 2). Do not quote any monthly or retainer price in the pitch this week; Core is unlocked only after one Starter is delivered. Never pitch the $99 EXP-A2 pack to the same business. Raise to $397 only after 3 closes in the first 5 pitches.
 
 ## 5. Log (owner replies one line to the handoff or TODAY.md)
 `audit: [Business] · sent Y/N · delivered Y/N · call held Y/N · Starter offered Y/N · answer yes/no/silent · deposit $[amount, as shown in the payment app] · minutes prep/checklist/fill/deliver [n/n/n/n]`
-Compliance: public business contact only · one touch plus at most one follow-up the owner chooses by hand, only if they replied · STOP honored forever · no fake urgency, no invented results, no reviews requested in exchange for anything. Legal: whether TCPA, do-not-call or CAN-SPAM rules reach a business's public number is UNVERIFIED; verify with a professional before the first send. qa does not rule on it.
+Compliance: public business contact only · one dial per number per 12 months, no voicemail retry (C12) · STOP honored forever · no fake urgency, no invented results, no reviews requested in exchange for anything. Legal: whether TCPA, do-not-call or CAN-SPAM rules reach a business's public number is UNVERIFIED; verify with a professional before the first send. qa does not rule on it.

@@ -1,5 +1,5 @@
 # Founding-client one-page site: $450 ($150 deposit) or $590 annual prepay (I-001 + I-018) · EXP-A4 · 2026-10-13
-Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is sent by agents. No build starts before a deposit shows in your balance (E12 / C5).
+Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is sent by agents. No build starts before a deposit shows in your balance (E12 / C5). T-015: A-009 (cold text) is ON HOLD (D-028); EXP-A4 now targets auto repair / fleet shops (D-029) and runs only through the call kit `library/outreach/first-contact-call-walkin-2026-10-13.md` (a text goes only after a spoken yes). The studio text below is parked, not deleted.
 
 ## COMPLIANCE — fill/confirm before the first send
 - [ ] A-009 logged in `ops/DECISIONS.md` (wording in the T-007 handoff). No ID = do not send.
@@ -11,6 +11,7 @@ Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is sent by a
 - [ ] No fake urgency: no "limited spots", no countdowns, no "today only".
 - [ ] Portfolio wording (C6): the two sites are "sample builds" unless A-004 Q1 says that client paid AND agreed to be shown. Until then describe by trade only ("a window-tint shop", "an auto repair shop"). Do NOT use the real business names, logos or any "client" or "testimonial" wording.
 - [ ] Terms line below is shown BEFORE they pay (C7). Fill every [OWNER DECIDES]; do not send a term you will not honor.
+- [ ] Auto repair / fleet shops (C17, C8): before the build, have on file [BAR NAME], [BAR ADDRESS], [ARD NUMBER], [SHOP PHONE], exactly as on the shop's BAR registration (16 CCR 3371 and 3351.7.3, red-team E21). The site shows them; it shows no prices unless the shop gives them in writing. Send the "BAR terms" message below with terms message 1.
 
 ## Opening text (one text, under 300 characters before your fill-ins)
 ```
@@ -32,14 +33,18 @@ If A-004 Q1 confirms a client paid and agreed to be shown, swap "sample builds, 
 Other option: $590 once covers the site build plus a year of hosting and small text edits [OWNER CONFIRMS SCOPE]. It does not renew by itself; I text you 14 days before it ends and you choose. Terms below. Reply STOP anytime.
 ```
 
-## Terms line (must appear in the two text messages BEFORE payment, C7)
+## Terms line (must appear in the two text messages BEFORE payment, C7; auto shops also get the BAR terms message, C17)
 Terms message 1 of 2:
 ```
 (1/2) Terms: Site price $450 total: $150 deposit now, $300 after you approve the preview. Nothing is published until you approve it. [OWNER DECIDES: refund rule, e.g. "Cancel before the preview and I refund the deposit in full; after the preview the deposit covers the work done."]
 ```
 Terms message 2 of 2:
 ```
-(2/2) Annual option: $590 for one year, no automatic renewal; cancel any time by texting me at [YOUR NUMBER] [OWNER DECIDES: pro-rata refund?]. Domain name, if you need one, is extra and billed at cost [OWNER CONFIRMS]. You own your content.
+(2/2) Annual option: $590 for one year, no automatic renewal; cancel any time by texting me at [YOUR NUMBER] [OWNER DECIDES: pro-rata refund?]. Domain name, if you need one, is extra and billed at cost [OWNER CONFIRMS SCOPE]. You own your content.
+```
+BAR terms message (auto repair / fleet shops only; hand count 187 raw, about 222 filled with name 25 / address 35 / ARD 8 / phone 14, about 254 at 40 / 50 / 10 / 14):
+```
+(BAR) The site shows [BAR NAME], [BAR ADDRESS], ARD [ARD NUMBER] and [SHOP PHONE] exactly as on your BAR registration. No prices unless you give them to me in writing. Reply STOP anytime.
 ```
 Affirmative consent: take the payment only after they text "yes" or pay the link themselves. Never charge on silence.
 
