@@ -28,6 +28,7 @@ Two tables. Approvals carry IDs `A-###`; an agent may act on a hard-gate item on
 | 2026-10-12 | D-021 | Live board: `ops/dashboard/build.py` + `template.html` render ops/*.md into a claude.ai artifact (snapshot baked at publish; live overlay via the owner's GitHub connector, 60–120 s polling). Orchestrator rebuilds and republishes after every commit. EXP-A4 threshold text: the one 48 h extension sits inside the 72 h total cap (resolves scribe S2a conflict 1) | Owner asked to watch live | Active |
 | 2026-10-12 | D-022 | Builder T-010 judgment calls confirmed: (D1) the five Q&A items ship as customer FAQs marked "not for Google Q&A posting", matching red-team I-003 and growth's offer text; (D2) four post drafts, matching the promise in the offer. T-010 cost ≈$8.70 vs ≈$0.70 estimate (12×): circuit-breaker incident for system-qc; rule from now on: one deliverable per builder task, and builder tasks name a token budget in TASKS.md | Builder hand-back | Active |
 | 2026-10-12 | D-023 | T-008 REJECTED by red-team (12 tag defects; second scout tagging rejection in two cycles, same root cause). Process change applied now rather than waiting for the 3× rule: scout's self-check sweeps every claim sentence by sentence incl. platform-behaviour phrases and search observations; WebSearch result counts are never market-size evidence (FP-09). Scout re-dispatched as attempt 2 against red-team's fixed bar. Remote branch received an outside ClipForge commit (b793abc); merged with a merge commit, no rebase | Red-team T-009 hand-back | Active |
+| 2026-10-12 | D-024 | Day-2 portfolio per red-team T-009 (PASS-WITH-CONDITIONS): EXP-A1, EXP-A2 (carrying the A5 $29 add-on line), EXP-A4, EXP-B1 (Upwork Catalog listings of the two QA-passed kits, I-030+I-039), EXP-B2 (TaskRabbit furniture assembly, I-021). EXP-A3 shelved as named fallback; EXP-A5 merged into A2/A4. Conditions C9–C15 added. Red-team's own reviewer miss on I-031 goes to system-qc (D-016) | T-009 handoff | Active |
 
 ## Owner approvals (`A-###`)
 | ID | Asked | Item | Owner answer | Date answered | Scope / expiry |
@@ -42,6 +43,10 @@ Two tables. Approvals carry IDs `A-###`; an agent may act on a hard-gate item on
 | A-009 | 2026-10-12 | Send the EXP-A4 ($450 site / $150 deposit, or $590 annual) text once to each listed Elk Grove prospect (`library/outreach/founding-site-offer-2026-10-13.md`) | — | — | One send per business |
 | A-010 | 2026-10-12 | Apply for a business license (Elk Grove or Sacramento per your address), fee up to $25 | — | — | One-time |
 | A-011 | 2026-10-12 | Activate a payment rail for business payments (only if you have none; name the app) | — | — | One-time |
+| A-012 | 2026-10-12 | Create a TaskRabbit Tasker account (furniture assembly only), registration fee $25 or less | — | — | One-time |
+| A-013 | 2026-10-12 | Set up TaskRabbit payout (entering bank/payment info) | — | — | One-time |
+| A-014 | 2026-10-12 | Create an Upwork freelancer profile and publish 2 Project Catalog listings (the $99 GBP pack and the $49 AI-search check), wording from growth's assets | — | — | One-time |
+| A-015 | 2026-10-12 | Set up the Upwork withdrawal method (entering bank/payment info) | — | — | One-time |
 | A-005 | 2026-10-12 | Tax reserve % (placeholder 25% until confirmed with a tax pro) | — | — | Until changed |
 
 ## Standing permissions (proposed; inactive until A-003 = yes; strike any line you disagree with)

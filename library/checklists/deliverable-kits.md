@@ -12,6 +12,13 @@ Set S=<scratchpad>/qa and write all test inputs there, never into the repo.
 4. Confirm artifacts: page count and size (`pdfinfo`), `pdftotext` for text present.
 5. LOOK at every rendered image/PDF page (Read the PNG; rasterize PDFs with `pdftoppm`).
    Layout self-checks have missed a clipped PNG before. Compare PNG against PDF.
+   Measure ink bounds of PNG vs a 300 dpi `pdftoppm` raster (Pillow getbbox on
+   threshold 250); agree within 0.03 in. Crop the bottom row and Read it.
+6. Overlong inputs: render the maximum allowed input and Read the output at print scale.
+   A fit check says "fits", not "can be read": judge the point size (under 6 pt on paper
+   is not typeable) and note which artifact (card vs sign) carries the small text.
+7. `-h` and `--help` exit 0 on every script; missing file, unknown option, no args exit 2
+   with a one-line message, no traceback. (T-011b: render_card.py -h exits 2.)
 
 ## B. Negative tests (each must fail with the right exit code)
 - Length limit: exactly N passes, N+1 fails (boundary), far over fails.
@@ -22,6 +29,13 @@ Set S=<scratchpad>/qa and write all test inputs there, never into the repo.
 - Probe the lint for bypasses with 4-5 paraphrases of banned wording. A pattern lint
   is a first filter only; record which paraphrases pass.
 - Remove the structural markers (DESC START/END): the check must fail, not skip silently.
+- Opt-out flags (e.g. `--no-desc`): run the opt-out on a file that HAS the markers and a
+  760-char description. If it exits 0 the flag is a bypass; record it and recommend
+  a contradiction check (markers present + flag = FAIL). (T-011b: still open.)
+- Incentive paraphrases to try each time: "10 percent off" (digits spelled out), "free
+  coffee for a review", "perfect score", "maximum rating", "ahead of your competitors",
+  "number one choice on Google", "unhappy customers go to us directly". T-011b: these
+  exit 0 (WARN at most). Pattern lint stays a first filter only.
 
 ## C. Placeholders and facts
 - `git ls-files <kit>` then grep: REPLACE-ME, TODO, TBD, XXX, lorem, example.com
