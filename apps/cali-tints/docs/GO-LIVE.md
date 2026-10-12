@@ -59,6 +59,8 @@ Add and verify the sending domain (DNS records), create an API key, set `EMAIL_F
 
 ## 7. The Clover app (you: 1 to 2 weeks of calendar time, mostly waiting)
 
+**Why not just send the Clover a link?** Clover devices are locked down: the Flex has no general web browser to open a link in (Clover tells developers not to rely on one), and a production device cannot have an app installed any way other than the Clover App Market. So the app has to be published there, as a **private** app only Mike's merchant account can see. It is the same web app inside; it takes no payments and leaves his payment apps alone. Until it is approved, the team uses the same login on their phones (Add to Home Screen).
+
 1. Clover developer account; request production access; order a **Flex Dev Kit**.
 2. Build the release APK: GitHub → Actions → *Cali Tints Clover app* → Run workflow with `app_url = https://app.calitints.com`, version `1.0.0`, code `1` (set the signing secrets first; see `apps/cali-tints-clover/README.md`).
 3. Create the private Android app in the Developer Dashboard (package `com.calitints.clover`, no Clover permissions, privacy/terms URLs, screenshots), upload the APK, test on the Dev Kit with `apps/cali-tints-clover/SUBMISSION.md`'s checklist, record the demo video, submit.
