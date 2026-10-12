@@ -4,7 +4,8 @@
     "max_seconds": 60,
     "target_seconds": 35,
     "pad_before": 0.35,
-    "pad_after": 0.45
+    "pad_after": 0.45,
+    "absolute_min_seconds": 3
   },
   "max_clips": 8,
   "min_gap_seconds": 5,

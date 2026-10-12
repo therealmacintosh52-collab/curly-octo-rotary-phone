@@ -55,6 +55,7 @@ def _download(url: str, job_dir: Path, progress: ProgressFn, max_height: int) ->
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
+        "noprogress": True,
         "no_warnings": True,
         "progress_hooks": [hook],
         "retries": 3,
