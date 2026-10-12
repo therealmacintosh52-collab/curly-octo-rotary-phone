@@ -20,7 +20,7 @@
     "hero-check": "node scripts/hero-check.mjs",
     "splits": "node scripts/split-images.mjs",
     "scroll-check": "node scripts/scroll-check.mjs",
-    "booking-check": "node scripts/booking-check.mjs"
+    "booking-check": "FUNCTIONS=1 astro build && node scripts/booking-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

@@ -19,6 +19,7 @@ import OpenNow from './OpenNow.astro';
 const S = data.site;
 const B = data.booking;
 const host = S.base_url.replace(/^https?:\/\//, '');
+const FUNCTIONS = process.env.NETLIFY === 'true' || process.env.FUNCTIONS === '1';   // Netlify builds run the functions; GitHub Pages does not
 const P = data.payments;
 const config = {
   tz: S.tz, hours: S.hours_open, slot: B.slot_minutes, lead: B.lead_hours, weeks: B.weeks_ahead,
@@ -34,7 +35,7 @@ const config = {
     <p class="form-note">Prefer to talk? <a href={`tel:${S.phone_link}`} data-loc="book-embed">Call {S.phone_display}</a> during business hours.</p>
   </div>
 ) : (
-  <div class="book" data-booking data-config={JSON.stringify(config)}>
+  <div class="book" data-booking data-functions={FUNCTIONS ? "1" : undefined} data-config={JSON.stringify(config)}>
     <div class="book__steps">
       <section class="book__step" data-step="service">
         <h2><span>1</span> What are we doing?</h2>
@@ -58,7 +59,7 @@ const config = {
             <button type="button" class="cal__nav" data-cal-next aria-label="Next month"><Icon name="arrow" /></button>
           </div>
           <div class="cal__dow" aria-hidden="true">{['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => <span>{d}</span>)}</div>
-          <div class="cal__grid" data-cal-grid role="grid" aria-label="Choose a day"></div>
+          <div class="cal__grid" data-cal-grid role="group" aria-label="Choose a day"></div>
           <p class="cal__hint">Open {S.hours_short}. Closed Sunday.</p>
         </div>
       </section>

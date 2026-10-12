@@ -70,6 +70,7 @@ function boot(el: HTMLElement) {
 
   async function probe() {
     if (probed) return; probed = true;
+    if (!el.dataset.functions) return;                    // static host: guided flow only
     try { const r = await fetch(ENDPOINT, { method: 'GET' }); if (r.ok) { const j = await r.json(); llm = Boolean(j.llm); } } catch { llm = false; }
   }
 

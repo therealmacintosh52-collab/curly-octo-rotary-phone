@@ -9,6 +9,7 @@ import data from '../../data/site.json';
 import Base from '../../layouts/Base.astro';
 import Icon from '../../components/Icon.astro';
 const S = data.site;
+const FUNCTIONS = process.env.NETLIFY === 'true' || process.env.FUNCTIONS === '1';   // Netlify builds run the functions; GitHub Pages does not
 const P = data.payments;
 const cfg = {
   statuses: [['new', 'New'], ['confirmed', 'Confirmed'], ['in_bay', 'In the bay'], ['done', 'Done'], ['lost', 'Lost']],
@@ -17,7 +18,7 @@ const cfg = {
 };
 ---
 <Base title="Shop CRM | Cali Tints" description="Owner dashboard: bookings, leads, deposits and follow-ups for Cali Tints." path="/admin/" noindex={true}>
-  <section class="crm" data-crm data-config={JSON.stringify(cfg)}>
+  <section class="crm" data-crm data-functions={FUNCTIONS ? "1" : undefined} data-config={JSON.stringify(cfg)}>
     <div class="wrap">
       <div class="crm__top">
         <div>

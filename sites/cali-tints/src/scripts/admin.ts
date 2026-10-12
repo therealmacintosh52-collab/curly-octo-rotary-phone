@@ -56,6 +56,7 @@ function boot(el: HTMLElement) {
   }
 
   async function start() {
+    if (!el.dataset.functions) { login.hidden = true; offline.hidden = false; return; }
     try {
       const ping = await fetch(`${API}?ping=1`); const j = ping.ok ? await ping.json() : { crm: false };
       stripe = Boolean(j.stripe);

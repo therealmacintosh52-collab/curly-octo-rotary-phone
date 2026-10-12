@@ -119,7 +119,7 @@ document.querySelectorAll<HTMLFormElement>('form[data-quote-form]').forEach((for
     // The CRM (Netlify function) gets every request first, so nothing is lost
     // even before an inbox is connected. Silently skipped where it does not run.
     let saved = false;
-    try {
+    if (document.querySelector('[data-functions]')) try {
       const fd = new FormData(form);
       const payload = Object.fromEntries(Array.from(fd.entries()).filter(([k]) => !k.startsWith('_')).map(([k, v]) => [k, String(v)]));
       const r = await fetch('/.netlify/functions/leads', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, source: 'quote' }) });

@@ -9,6 +9,7 @@ import data from '../data/site.json';
 import Icon from './Icon.astro';
 import OpenNow from './OpenNow.astro';
 const S = data.site;
+const FUNCTIONS = process.env.NETLIFY === 'true' || process.env.FUNCTIONS === '1';   // Netlify builds run the functions; GitHub Pages does not
 const A = data.assistant;
 const cfg = {
   name: A.name, opener: A.opener, quick: A.quick,
@@ -16,7 +17,7 @@ const cfg = {
   services: data.services.map((s) => ({ slug: s.slug, name: s.nav, blurb: s.blurb, pricing: s.glance.pricing, includes: s.includes.slice(0, 3), keywords: [s.nav, ...s.slug.split('-')] })),
 };
 ---
-<div class="asst" id="ask" data-assistant data-config={JSON.stringify(cfg)}>
+<div class="asst" id="ask" data-assistant data-functions={FUNCTIONS ? "1" : undefined} data-config={JSON.stringify(cfg)}>
   <button type="button" class="asst__launch" data-asst-open aria-controls="asst-panel" aria-expanded="false" aria-label={`Ask ${A.name}, the booking assistant`}>
     <img src={S.logo} alt="" width="40" height="40" />
     <span>Ask {A.name}</span>

@@ -357,7 +357,7 @@ html.lenis, html.lenis body { height: auto; }
 .cal__dow span { text-align: center; font-size: .72rem; letter-spacing: .08em; color: var(--slate); font-family: var(--font-display); font-weight: 700; padding: 4px 0; }
 .cal__day { aspect-ratio: 1; border-radius: 10px; border: 1px solid transparent; background: var(--paper-2); font-family: var(--font-display); font-weight: 700; font-size: .95rem; cursor: pointer; color: var(--text); transition: background .15s, border-color .15s; }
 .cal__day:hover:not(:disabled) { border-color: var(--accent); }
-.cal__day:disabled { color: #4f584d; background: transparent; cursor: default; text-decoration: line-through; text-decoration-color: #3a443a; }
+.cal__day:disabled { color: #7f8a7c; background: transparent; cursor: default; text-decoration: line-through; text-decoration-color: #3a443a; }
 .cal__day.is-today { border-color: var(--line); }
 .cal__day.is-on { background: var(--accent-vivid); color: var(--ink); border-color: var(--accent-vivid); }
 .cal__hint { margin: 10px 0 0; font-size: .8rem; color: var(--slate); }

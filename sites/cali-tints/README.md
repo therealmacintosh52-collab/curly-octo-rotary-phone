@@ -17,7 +17,7 @@ node scripts/lh.mjs    # Lighthouse mobile (prints the table)
 npm run contrast       # hero copy vs what is behind it, frame by frame
 node scripts/shots.mjs      # QA screenshots -> qa/
 npm run scroll-check   # reveals, count-up, before/after images load; screenshots + qa/scroll.mp4
-npm run booking-check  # pill, calendar, deposit checkout, quote → CRM, admin board, widgets, assistant; screenshots
+npm run booking-check  # rebuilds with FUNCTIONS=1, then: pill, calendar, deposit checkout, quote → CRM, admin board, widgets, assistant
 npm run splits         # before/after images from the owner's collage -> public/assets/img/splits/
 npm run video -- clip.mov   # encode a new hero clip to spec + recut posters
 npm run posters        # hero poster set only (jpg/webp/avif)
@@ -73,7 +73,7 @@ Instagram and Messenger. Every one of them keeps a call button in view, and the
 button knows whether the shop is open right now (`src/lib/hours.ts`, from
 `site.hours_open`, in the shop's time zone, refreshed every minute).
 
-### Booking (`/book/`)
+### Booking (`/book/`, and open at the top of the home page)
 
 `src/data/site.json → booking` decides the mode.
 
@@ -169,6 +169,14 @@ typed. Setup: Stripe dashboard → Developers → API keys → `STRIPE_SECRET_KE
 Webhooks → add endpoint `https://<site>/.netlify/functions/stripe-webhook` for
 `checkout.session.completed` → `STRIPE_WEBHOOK_SECRET`. Without the key the
 booking form simply has no payment step and says so.
+
+### One flag decides whether the site talks to the functions
+
+The booking form, quote form, assistant and CRM only call `/.netlify/functions/*`
+when the page was built with `NETLIFY=true` (set automatically by Netlify) or
+`FUNCTIONS=1`. A GitHub Pages build never probes them, so there are no 404s in
+the console and Lighthouse stays clean; the assistant runs its guided flow, the
+booking form sends email/text, and `/admin/` explains it needs Netlify.
 
 ### The CRM (`/admin/`)
 

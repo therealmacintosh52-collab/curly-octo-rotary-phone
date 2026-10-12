@@ -100,6 +100,22 @@ const page = async (vp, mobile = false) => { const pg = await browser.newPage({ 
   await pg.close();
 }
 
+// 1b. Home page: the calendar is open at the top and a slot can be picked
+{
+  const pg = await page({ width: 1440, height: 900 });
+  await pg.goto(BASE + '/', { waitUntil: 'load' }); await pg.waitForSelector('.cal__day'); await pg.waitForTimeout(600);
+  const top = await pg.evaluate(() => document.querySelector('[data-booking]').getBoundingClientRect().top + window.scrollY);
+  ok(top < 2200, `home page booking sits near the top (${Math.round(top)}px down)`);
+  await pg.locator('.book__svc').nth(2).click();
+  await pg.locator('.cal__day:not(:disabled)').first().click(); await pg.waitForTimeout(200);
+  await pg.locator('.slot').first().click(); await pg.waitForTimeout(200);
+  const sum = await pg.locator('[data-summary]').textContent();
+  ok(/Vinyl Wraps/.test(sum) && /AM|PM/.test(sum), `home booking summary: "${sum.replace(/\s+/g, ' ').slice(0, 70)}"`);
+  await pg.evaluate((y) => window.scrollTo(0, y - 120), top); await pg.waitForTimeout(400);
+  await pg.screenshot({ path: path.join(QA, 'desktop-home-booking.png') });
+  await pg.close();
+}
+
 // 2. Quote form → CRM even without an inbox
 {
   const pg = await page({ width: 1440, height: 900 });

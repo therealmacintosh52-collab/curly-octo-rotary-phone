@@ -71,7 +71,7 @@ function boot(el: HTMLElement) {
     for (let i = 0; i < first; i++) grid.appendChild(Object.assign(document.createElement('span'), { className: 'cal__pad' }));
     for (let d = 1; d <= count; d++) {
       const b = document.createElement('button');
-      b.type = 'button'; b.className = 'cal__day'; b.textContent = String(d); b.setAttribute('role', 'gridcell');
+      b.type = 'button'; b.className = 'cal__day'; b.textContent = String(d);
       const ok = isOpenDay(y, m, d);
       b.disabled = !ok;
       if (Date.UTC(y, m, d) === todayUTC) b.classList.add('is-today');
@@ -183,7 +183,7 @@ function boot(el: HTMLElement) {
   const say = (msg: string, kind: 'ok' | 'err') => { statusEl.textContent = msg; statusEl.className = `form-status show ${kind}`; };
   const payChoice = () => (form.querySelector<HTMLInputElement>('input[name=pay]:checked')?.value) || 'later';
 
-  fetch(`${LEADS}?ping=1`).then((r) => (r.ok ? r.json() : null)).then((j) => {
+  if (el.dataset.functions) fetch(`${LEADS}?ping=1`).then((r) => (r.ok ? r.json() : null)).then((j) => {
     crm = Boolean(j?.crm); stripe = Boolean(j?.stripe);
     if (stripe) { payBox.hidden = false; if (!cfg.fullOptional) form.querySelector<HTMLElement>('[data-pay-full-opt]')!.hidden = true; renderDeposit(); }
   }).catch(() => {});
