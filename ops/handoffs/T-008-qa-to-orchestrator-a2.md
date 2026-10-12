@@ -64,3 +64,28 @@ A-007 = EXP-A2 ($99, $29 add-on), A-008 = EXP-A3 ($49), A-009 = EXP-A4 ($450 / $
 
 ## QUALITY SCORE: 4
 Every item verified against fresh line numbers with scripted counts, and the checklist is saved. Not 5: legal reads remain unresolved, and I found a wording flaw in my own F8 replacement only on this pass.
+
+## Attempt 3 (post-PASS lines): PASS
+Run by qa, 2026-10-12. Script run with `python3 -I` on the fdfc3ce originals vs HEAD working copies (scratch: `scratchpad/t008a3/check.py`). Counts are Python `len()` on code points; the target lines have no non-ASCII characters. No file in `library/` was edited.
+
+| Item | File:line | Count as typed | Result |
+|---|---|---|---|
+| (1) heading names two text messages | founding l.35 | n/a | PASS: "## Terms line (must appear in the two text messages BEFORE payment, C7)" |
+| (2) Terms message 1 of 2 | founding l.39 (fence l.38-40) | 281 | PASS, under 320 |
+| (2) Terms message 2 of 2 | founding l.43 (fence l.42-44) | 241 | PASS, under 320 |
+| (2) no term lost or added | founding l.39 + " " + l.43, markers "(1/2) " and "(2/2)" removed | 511 = original | PASS: byte-identical to fdfc3ce l.37 |
+| (3) care-plan message | care-plan l.18 | 243 (was 257, -14) | PASS: ends "Want details? Reply YES. To opt out, reply STOP." |
+
+Diff check: `git diff -U0 fdfc3ce -- library/outreach/` gives exactly three hunks and nothing else. Care-plan l.18 (one line replaced). Founding l.35 (heading replaced). Founding l.37 replaced by l.38-44 (label, fence, msg 1, fence, label, fence, msg 2, fence; 2 lines deleted, 7 added).
+
+Wording diff: the only added text is the labels "Terms message 1 of 2:" and "Terms message 2 of 2:" (outside the fences, not sent) and the "(1/2)" and "(2/2)" markers. No new factual claim. Care-plan change: "Reply STOP and I won't message about this again." becomes "Reply YES. To opt out, reply STOP."
+
+Notes, not failures:
+- Counts include the markers as typed. Without them: 275 and 235.
+- Terms messages still carry placeholders ([OWNER DECIDES…], [YOUR NUMBER], [OWNER CONFIRMS]). Counts are as typed, not filled. Filled counts were not re-measured.
+- Founding l.26 and the other follow-ups over 320 were not re-measured (outside the three named lines).
+
+Failed criteria: none.
+Checklist used/updated: `library/checklists/outreach-send-asset.md` (unchanged in this pass).
+Cost: ~12k in / ~2k out tokens est., ~3 min wall, model claude-haiku-5-5.
+QUALITY SCORE: 4. Every line is proven by a scripted count and a full diff. Not 5: the script lives in scratchpad and was not saved to the checklist, and filled counts were not measured.

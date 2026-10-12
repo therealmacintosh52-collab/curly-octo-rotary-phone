@@ -30,7 +30,7 @@ Session: 2 · Updated: 2026-10-12 · Written by: scribe (per Orchestrator instru
 - T-005 scout — done (attempt 2 ACCEPTED, score 4; attempt 1 REJECTED)
 - T-006 red-team — done (PASS-WITH-CONDITIONS, score 4)
 - T-007 growth — done (score 4)
-- T-008 qa — doing (PASS/FAIL per library/outreach file; output pending)
+- T-008 qa — done (PASS attempt 2; outreach assets qa-PASSED)
 ## Open incidents
 - INC-002 logic: Red-team's attempt-1 contract check missed 3 untagged phrases (r1 "pagespeed.web.dev (no login)",
 - INC-003 process (CRITICAL-candidate): Criteria were waived or reinterpreted by the Orchestrator to let work through:
@@ -53,5 +53,5 @@ Session: 2 · Updated: 2026-10-12 · Written by: scribe (per Orchestrator instru
 0 of 3–7 used. Day 1 plan needs ≈63 min (per Orchestrator instruction; T-007 handoff: "Day 1 asks ~63 min").
 
 ## Next action
-- Owner works ops/TODAY.md. T-008 (qa) running on library/outreach/*.
+- Owner works ops/TODAY.md (assets qa-PASSED); answers A-012, A-013, A-014.
 - Boss Battle (this week): first CONFIRMED dollar ░░░░░ 0/1 · owner answers A-012, A-013, A-014; works ops/TODAY.md
