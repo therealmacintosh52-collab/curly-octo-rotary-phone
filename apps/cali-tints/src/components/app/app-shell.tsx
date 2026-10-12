@@ -3,11 +3,12 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CarFrontIcon, CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, StoreIcon } from "lucide-react";
+import { CarFrontIcon, CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, ScanSearchIcon, SettingsIcon, StoreIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
 import { useSession } from "@/components/app/session-provider";
+import { IntelProvider, useIntel } from "@/components/intel/intel-window";
 import { isOwner, isOwnerAdmin } from "@/lib/roles";
 import { SlidingIndicator, useIndicatorReady } from "@/components/motion/sliding-indicator";
 import { cn } from "@/lib/utils";
@@ -15,7 +16,7 @@ import { cn } from "@/lib/utils";
 interface NavItem {
   href: string;
   label: string;
-  /** Shorter label for the phone tab bar (five tabs share 390px). */
+  /** Shorter label for the phone tab bar (six tabs share 390px). */
   short?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
@@ -25,19 +26,23 @@ interface NavItem {
   ownerOnly?: boolean;
   /** Match nested routes too. */
   prefix?: boolean;
+  /** Not a route: opens BayIntel in the in-app window (a button, not a link). */
+  intel?: boolean;
 }
 
-/** Jobs by the day, the shop's retail side, invoices by the month (owner only). Detailers see Dashboard (their own jobs) + New + Jobs (their own) + Retail. */
+/** Jobs by the day, the shop's retail side, BayIntel in a window, invoices by the month (owner only). Detailers see Dashboard (their own jobs) + New + Jobs (their own) + Retail + Intel. */
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", short: "Home", icon: LayoutDashboardIcon },
   { href: "/jobs/new", label: "New job", short: "New", icon: PlusCircleIcon },
   { href: "/jobs", label: "Jobs", icon: CarFrontIcon, prefix: true },
   { href: "/retail", label: "Retail", icon: StoreIcon, prefix: true },
+  { href: "#intel", label: "Intel", icon: ScanSearchIcon, intel: true },
   { href: "/invoices", label: "Invoices", icon: FileTextIcon, ownerOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, ownerAdminOnly: true, prefix: true },
 ];
 
 function isActive(pathname: string, item: NavItem) {
+  if (item.intel) return false;
   if (item.href === "/") return pathname === "/";
   if (pathname === item.href) return true;
   if (item.href === "/jobs" && pathname === "/jobs/new") return false; // "New" has its own tab
@@ -46,11 +51,21 @@ function isActive(pathname: string, item: NavItem) {
 
 /**
  * Responsive chrome: sidebar on desktop, bottom tab bar on phones. The active
- * item's highlight slides between destinations instead of blinking.
+ * item's highlight slides between destinations instead of blinking. The
+ * BayIntel window lives here too, so it stays mounted across every page.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <IntelProvider>
+      <Shell>{children}</Shell>
+    </IntelProvider>
+  );
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { profile, company, isAdmin } = useSession();
+  const intel = useIntel();
   const ownerAdmin = isOwnerAdmin(profile.role);
   const owner = isOwner(profile.role);
   const items = NAV.filter((i) => (isAdmin || !i.adminOnly) && (ownerAdmin || !i.ownerAdminOnly) && (owner || !i.ownerOnly));
@@ -58,6 +73,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const sideRef = useRef<HTMLElement>(null);
   const tabRef = useRef<HTMLElement>(null);
   const ready = useIndicatorReady();
+  /** While BayIntel is open its tab is the active one; the page behind keeps none. */
+  const activeOf = (item: NavItem) => (intel.open ? !!item.intel : isActive(pathname, item));
+  const watch = `${pathname}|${intel.open}`;
 
   return (
     <div className="flex min-h-dvh w-full">
@@ -71,20 +89,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
         <nav ref={sideRef} className="relative flex flex-col gap-0.5" aria-label="Main">
-          <SlidingIndicator containerRef={sideRef} watch={pathname} className="rounded-lg bg-accent-soft" />
+          <SlidingIndicator containerRef={sideRef} watch={watch} className="rounded-lg bg-accent-soft" />
           {items.map((item) => {
-            const active = isActive(pathname, item);
+            const active = activeOf(item);
+            const className = cn(
+              "relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-150",
+              active ? cn("text-primary", !ready && "bg-accent-soft") : "text-sidebar-foreground/75 hover:bg-accent/60 hover:text-foreground",
+            );
+            if (item.intel) {
+              return (
+                <button key={item.href} type="button" onClick={() => intel.openRetail()} data-active={active} aria-pressed={active} data-testid="nav-intel" className={cn(className, "w-full text-left")}>
+                  <item.icon className="size-5" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            }
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                data-active={active}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-150",
-                  active ? cn("text-primary", !ready && "bg-accent-soft") : "text-sidebar-foreground/75 hover:bg-accent/60 hover:text-foreground",
-                )}
-              >
+              <Link key={item.href} href={item.href} data-active={active} aria-current={active ? "page" : undefined} className={className}>
                 <item.icon className="size-5" />
                 <span>{item.label}</span>
               </Link>
@@ -124,22 +145,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className="print:hidden pb-safe fixed inset-x-0 bottom-0 z-30 grid border-t border-border/70 bg-background/90 backdrop-blur-md md:hidden"
           style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
         >
-          <SlidingIndicator containerRef={tabRef} watch={pathname} className="rounded-full bg-accent-soft" />
+          <SlidingIndicator containerRef={tabRef} watch={watch} className="rounded-full bg-accent-soft" />
           {items.map((item) => {
-            const active = isActive(pathname, item);
+            const active = activeOf(item);
             const primary = item.href === "/jobs/new";
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium whitespace-nowrap transition-colors duration-150", active ? "text-primary" : "text-muted-foreground")}
-              >
+            const className = cn("relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium whitespace-nowrap transition-colors duration-150", active ? "text-primary" : "text-muted-foreground");
+            const inner = (
+              <>
                 {/* The measured target is the icon pill, not the whole column. */}
                 <span data-active={active} className={cn("relative flex h-7 w-12 items-center justify-center rounded-full", active && !ready && "bg-accent-soft")}>
                   <item.icon className={cn("relative size-6", primary && !active && "text-foreground")} />
                 </span>
                 {item.short ?? item.label}
+              </>
+            );
+            if (item.intel) {
+              return (
+                <button key={item.href} type="button" onClick={() => intel.openRetail()} aria-pressed={active} data-testid="tab-intel" className={className}>
+                  {inner}
+                </button>
+              );
+            }
+            return (
+              <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={className}>
+                {inner}
               </Link>
             );
           })}

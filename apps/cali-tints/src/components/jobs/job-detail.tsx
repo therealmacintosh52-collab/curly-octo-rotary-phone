@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { JobActions } from "./job-actions";
 import { JobPhotos } from "./job-photos";
+import { IntelLink } from "@/components/intel/intel-link";
 import type { RetailCharge } from "@/lib/db/types";
 import { RetailPayment, type RetailPaymentInfo } from "./retail-payment";
 import { RoLayout, RoNotes } from "./ro-notes";
@@ -193,7 +194,19 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
                 {retail && job.ro_number && <Fact label="Repair order" value={<span className="font-semibold tracking-wide" data-testid="job-ro">{job.ro_number}</span>} />}
                 <Fact label="Vehicle" value={vehicle(job) || "—"} />
                 <Fact label="Color" value={job.color ?? "—"} />
-                <Fact label="VIN" value={job.vin ? <span className="font-mono">{job.vin}</span> : "—"} />
+                <Fact
+                  label="VIN"
+                  value={
+                    job.vin ? (
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono">{job.vin}</span>
+                        {retail && <IntelLink vin={job.vin} label="BayIntel" variant="ghost" className="-my-1.5 h-8 px-2" testId="job-intel" />}
+                      </span>
+                    ) : (
+                      "—"
+                    )
+                  }
+                />
                 <Fact label={retail ? "Location" : "Dealership"} value={job.dealership_name} />
                 {retail && (
                   <Fact

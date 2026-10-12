@@ -25,6 +25,7 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 | 19 | Voice AI | Not started | — | Design + cost first |
 | 20 | Visual selling | Not started | — | SVG diagram shared with Module 5 |
 | 21 | Platform | Not started | — | Multi-location (`company_id` is already everywhere), API keys, CSV import |
+| — | BayIntel (the Intel tab) | **Done** (in-app window over the separate BayIntel deployment, by URL only; its login stays its own) | `feat(intel)` | A same-site subdomain so BayIntel's cookies survive inside the window on iOS; the shared sign-in (`TODO(sso)`) |
 
 ## Verified on every commit
 

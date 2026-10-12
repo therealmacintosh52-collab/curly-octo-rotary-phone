@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { VehicleForm } from "./vehicle-form";
+import { IntelLink } from "@/components/intel/intel-link";
 
 export interface VehicleDetailData {
   vehicle: Vehicle;
@@ -93,6 +94,7 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
           <Button variant="outline" onClick={() => setEditing(true)} data-testid="vehicle-edit">
             <PencilIcon /> Edit
           </Button>
+          <IntelLink vin={v.vin} label="BayIntel" size="default" testId="vehicle-intel" />
           {isAdmin && (
             <Button variant="ghost" onClick={toggleArchive} loading={pending}>
               {archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />} {archived ? "Restore" : "Archive"}
