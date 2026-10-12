@@ -268,6 +268,7 @@ def patch_clip(clip_id: str, body: ClipPatch) -> dict:
         if not (0 <= start < end <= dur + 0.01) or end - start < 3:
             raise HTTPException(400, "invalid trim: need 0 <= start < end <= source duration and at least 3 s")
         fields.update(start_s=float(start), end_s=float(end))
+        fields["transcript"] = _transcript_for_range(clip["job_id"], float(start), float(end)) or clip.get("transcript")
     if body.copy_edits is not None:
         merged = dict(clip.get("copy") or {})
         for platform, data in body.copy_edits.items():
@@ -275,7 +276,19 @@ def patch_clip(clip_id: str, body: ClipPatch) -> dict:
                 merged[platform] = {**merged[platform], **data, "source": "edited"}
         fields["copy"] = merged
     db.update_clip(clip_id, **fields)
+    if "start_s" in fields:
+        try:
+            runner.fit_clip_variants(clip["job_id"], db.get_clip(clip_id) or clip)
+        except Exception as exc:  # noqa: BLE001 - analysis files may be gone; variants stay as they were
+            log.warning("could not refit variants for %s: %s", clip_id, exc)
     return _clip_or_404(clip_id)
+
+
+def _transcript_for_range(job_id: str, start: float, end: float) -> Optional[str]:
+    from .pipeline import transcribe as transcribe_mod
+    t = transcribe_mod.load_transcript(runner.job_dir_for(job_id)) or {}
+    words = [w["word"] for w in t.get("words") or [] if w["start"] >= start - 0.05 and w["end"] <= end + 0.05]
+    return " ".join(words) if words else None
 
 
 @app.post("/api/clips/{clip_id}/rerender")
@@ -327,7 +340,7 @@ def _export_bundle(job_id: str) -> dict:
     clips = db.list_clips(job_id)
     return {"job": {k: job[k] for k in ("id", "title", "source_url", "source_name", "status", "created_at", "options")},
             "clips": [{k: c[k] for k in ("id", "idx", "start_s", "end_s", "duration", "score", "status", "transcript",
-                                          "video_path", "cover_path", "captions_path", "copy", "schedule")} for c in clips]}
+                                          "video_path", "cover_path", "captions_path", "copy", "schedule", "variants")} for c in clips]}
 
 
 @app.get("/api/jobs/{job_id}/export.json")
@@ -352,11 +365,15 @@ def export_zip(job_id: str) -> Response:
     base = runner.job_dir_for(job_id)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        added: set[str] = set()
         for c in bundle["clips"]:
-            for key in ("video_path", "cover_path", "captions_path"):
-                rel = c.get(key)
-                if rel and (base / rel).is_file():
+            paths = [c.get(k) for k in ("video_path", "cover_path", "captions_path")]
+            for v in (c.get("variants") or {}).values():
+                paths += [v.get(k) for k in ("video_path", "cover_path", "captions_path")]
+            for rel in paths:
+                if rel and rel not in added and (base / rel).is_file():
                     z.write(base / rel, rel)
+                    added.add(rel)
         z.writestr("clips.json", json.dumps(bundle, indent=2))
         labels = {k: v["label"] for k, v in settings.load_config("platforms")["platforms"].items()}
         z.writestr("schedule.ics", schedule_mod.to_ics(bundle["job"], db.list_clips(job_id), labels))
@@ -365,7 +382,10 @@ def export_zip(job_id: str) -> Response:
             md.append(f"## Clip {c['idx'] + 1}  ({c['start_s']:.1f}s – {c['end_s']:.1f}s, score {c['score'] * 100:.0f})\n")
             for platform, data in (c.get("copy") or {}).items():
                 when = (c.get("schedule") or {}).get(platform, {}).get("local", "")
+                v = (c.get("variants") or {}).get(platform) or {}
                 md.append(f"### {labels.get(platform, platform)}  —  {when}\n")
+                if v:
+                    md.append(f"File: {v.get('video_path') or c.get('video_path')}  ({v.get('duration', c['duration']):.1f}s, {v.get('reason', 'master')})\n")
                 if data.get("title"):
                     md.append(f"**Title:** {data['title']}\n")
                 md.append(f"{data.get('caption', '')}\n")

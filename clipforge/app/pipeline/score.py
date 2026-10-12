@@ -197,3 +197,8 @@ def score_candidates(candidates: list[dict], *, analysis: dict, full_text: str, 
 
 def save_scores(job_dir: str | Path, result: dict) -> None:
     (Path(job_dir) / SCORES_JSON).write_text(json.dumps(result), encoding="utf-8")
+
+
+def load_scores(job_dir: str | Path) -> Optional[dict]:
+    p = Path(job_dir) / SCORES_JSON
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None

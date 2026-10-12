@@ -21,56 +21,76 @@
     "caption_colour": "FFFFFF",
     "caption_highlight_colour": "FFE11A",
     "caption_outline_px": 4,
-    "reframe": "auto"
+    "reframe": "auto",
+    "variant_hook_bonus": 0.15,
+    "variant_ideal_weight": 0.25,
+    "fit_mode": "ideal",
+    "_fit_mode_help": "ideal: cut each platform's variant into its ideal_range when the material allows; limits: only enforce min/max_duration"
   },
   "platforms": {
     "youtube_shorts": {
       "label": "YouTube Shorts",
       "min_duration": 15,
-      "max_duration": 60,
+      "max_duration": 180,
       "ideal_duration": 45,
       "title_max_chars": 100,
       "caption_max_chars": 5000,
       "hashtag_count": 3,
       "hashtags_in": "title_and_caption",
       "keyword_count": 8,
-      "notes": "Put #Shorts in the title or description. Front-load the keyword in the title."
+      "notes": "Up to 3 min counts as a Short (vertical or square) since Oct 2024, but completion rate drops past ~60 s; keep most under a minute. Put #Shorts in the title or description and front-load the keyword.",
+      "ideal_range": [
+        30,
+        60
+      ]
     },
     "instagram_reels": {
       "label": "Instagram Reels",
-      "min_duration": 7,
-      "max_duration": 90,
+      "min_duration": 5,
+      "max_duration": 180,
       "ideal_duration": 30,
       "title_max_chars": 0,
       "caption_max_chars": 2200,
       "hashtag_count": 5,
       "hashtags_in": "caption",
       "keyword_count": 6,
-      "notes": "No title field; first line of the caption is the hook. 3-5 niche hashtags beat 30 generic ones."
+      "notes": "3 min is the widely available cap (20 min for some accounts). 15-45 s performs best; the first line of the caption is the hook. 3-5 niche hashtags beat 30 generic ones.",
+      "ideal_range": [
+        15,
+        45
+      ]
     },
     "tiktok": {
       "label": "TikTok",
       "min_duration": 7,
-      "max_duration": 180,
-      "ideal_duration": 34,
+      "max_duration": 600,
+      "ideal_duration": 30,
       "title_max_chars": 0,
       "caption_max_chars": 4000,
       "hashtag_count": 4,
       "hashtags_in": "caption",
       "keyword_count": 6,
-      "notes": "Caption doubles as title; keep the hook in the first 60 chars so it shows uncollapsed."
+      "notes": "10 min uploads are safe everywhere (longer for some accounts). 21-34 s is the engagement sweet spot; Creator Rewards needs 60 s+. The caption doubles as the title, so keep the hook in the first 60 chars.",
+      "ideal_range": [
+        21,
+        45
+      ]
     },
     "facebook_reels": {
       "label": "Facebook Reels",
       "min_duration": 5,
-      "max_duration": 90,
+      "max_duration": 180,
       "ideal_duration": 30,
       "title_max_chars": 0,
       "caption_max_chars": 2200,
       "hashtag_count": 3,
       "hashtags_in": "caption",
       "keyword_count": 6,
-      "notes": "Older audience; plainer language, fewer hashtags, lead with the payoff."
+      "notes": "Meta lifted the 90 s cap in 2025; 3 min is a safe ceiling. 15-30 s performs best with an older audience; plainer language, fewer hashtags, lead with the payoff.",
+      "ideal_range": [
+        15,
+        45
+      ]
     }
   }
 }

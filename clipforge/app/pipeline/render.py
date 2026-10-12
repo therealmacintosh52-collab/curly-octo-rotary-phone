@@ -188,13 +188,15 @@ def loudnorm_filter(measured: Optional[dict], target_i: float, target_tp: float)
 
 def render_clip(job_dir: str | Path, *, idx: int, start: float, end: float, src_media: dict,
                 captions_ass: Optional[str], reframe: str = "auto", cfg: dict | None = None,
-                progress: ProgressFn = _noop, source: str = "source.mp4") -> dict:
-    """Render clips/clip_NN.mp4 (+ cover jpg). Paths returned are relative to job_dir."""
+                progress: ProgressFn = _noop, source: str = "source.mp4", suffix: str | None = None,
+                face_hint: Optional[dict] = None) -> dict:
+    """Render clips/clip_NN[_suffix].mp4 (+ cover jpg). Paths returned are relative to job_dir.
+    `face_hint` is a previous render's `reframe` dict for an overlapping range, reused to skip detection."""
     job_dir = Path(job_dir)
     d = (cfg or settings.load_config("platforms"))["defaults"]
     out_w, out_h, fps = int(d["width"]), int(d["height"]), int(d["fps"])
     dur = end - start
-    stem = f"clip_{idx + 1:02d}"
+    stem = f"clip_{idx + 1:02d}" + (f"_{suffix}" if suffix else "")
     (job_dir / "clips").mkdir(exist_ok=True)
     out_rel, cover_rel = f"clips/{stem}.mp4", f"clips/{stem}_cover.jpg"
     src_w, src_h = int(src_media["width"]), int(src_media["height"])
@@ -206,6 +208,8 @@ def render_clip(job_dir: str | Path, *, idx: int, start: float, end: float, src_
     mode = "crop"
     if reframe == "blur":
         mode = "blur"
+    elif reframe == "auto" and face_hint and face_hint.get("requested") == "auto" and face_hint.get("face"):
+        face = dict(face_hint["face"])
     elif reframe == "auto" and src_w / src_h > out_w / out_h:
         try:
             face = detect_face_center(job_dir / source, start, end)

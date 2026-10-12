@@ -126,11 +126,19 @@ def generate_copy(clip: dict, *, platforms: list[str], keywords: list[str], vide
                   use_llm: Optional[bool] = None, pconf: dict | None = None) -> dict:
     pconf = pconf or settings.load_config("platforms")
     out: dict = {}
+    variants = clip.get("variants") or {}
     for p in platforms:
         pcfg = pconf["platforms"].get(p, {})
-        out[p] = heuristic_copy(clip, platform=p, pcfg=pcfg, keywords=keywords, video_title=video_title)
-        fits, note = fit_check(clip["end_s"] - clip["start_s"], pcfg)
-        out[p].update({"fits": fits, "fit_note": note})
+        v = variants.get(p)
+        pclip = dict(clip)
+        if v and v.get("fits", True) and v.get("text"):
+            pclip["transcript"] = v["text"]  # write copy for what this platform's cut actually says
+        out[p] = heuristic_copy(pclip, platform=p, pcfg=pcfg, keywords=keywords, video_title=video_title)
+        dur = float(v["duration"]) if v else clip["end_s"] - clip["start_s"]
+        fits, note = fit_check(dur, pcfg)
+        if v and not v.get("fits", True):
+            fits, note = False, f"source too short for this platform's {pcfg.get('min_duration', 0)}s minimum"
+        out[p].update({"fits": fits, "fit_note": note, "duration": round(dur, 3), "cut": (v or {}).get("reason", "master")})
 
     if use_llm is None:
         use_llm = settings.llm_enabled()

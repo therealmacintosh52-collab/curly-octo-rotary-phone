@@ -29,9 +29,20 @@ def test_heuristic_copy_respects_platform_rules():
 
 
 def test_fit_check_flags_overlong_clips():
-    out = copy_mod.generate_copy(_clip(dur=75), platforms=ALL, keywords=[], use_llm=False)
-    assert out["youtube_shorts"]["fits"] is False and "60s" in out["youtube_shorts"]["fit_note"]
-    assert out["tiktok"]["fits"] is True
+    out = copy_mod.generate_copy(_clip(dur=200), platforms=ALL, keywords=[], use_llm=False)
+    assert out["youtube_shorts"]["fits"] is False and "180s" in out["youtube_shorts"]["fit_note"]
+    assert out["tiktok"]["fits"] is True and out["tiktok"]["cut"] == "master"
+
+
+def test_copy_uses_platform_variant():
+    clip = _clip(dur=75)
+    clip["variants"] = {"youtube_shorts": {"fits": True, "duration": 40.0, "reason": "trimmed", "start": 10, "end": 50,
+                                           "text": "Only this part. It is the best part."},
+                        "tiktok": {"fits": False, "duration": 3.0, "reason": "too_short", "start": 10, "end": 13, "text": ""}}
+    out = copy_mod.generate_copy(clip, platforms=["youtube_shorts", "tiktok"], keywords=[], use_llm=False)
+    yt = out["youtube_shorts"]
+    assert yt["fits"] and yt["duration"] == 40.0 and yt["cut"] == "trimmed" and yt["caption"].startswith("Only this part")
+    assert out["tiktok"]["fits"] is False and "minimum" in out["tiktok"]["fit_note"]
 
 
 def test_llm_hook_feeds_title_and_filler_stripped():
