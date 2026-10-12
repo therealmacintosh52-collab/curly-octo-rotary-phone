@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArchiveIcon, ArrowLeftIcon, CameraIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
-import type { PriceListRow } from "@/lib/db/types";
+import type { JobFinding, PriceListRow } from "@/lib/db/types";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { Page } from "@/components/app/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { JobActions } from "./job-actions";
 import { JobPhotos } from "./job-photos";
 import type { RetailCharge } from "@/lib/db/types";
 import { RetailPayment, type RetailPaymentInfo } from "./retail-payment";
+import { RoLayout, RoNotes } from "./ro-notes";
 import type { EditableCar } from "./edit-car-sheet";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,8 @@ export interface JobDetailProps {
     quickbooks_doc_number?: string | null;
     /** The shop's own walk-in job: paid at the counter, never invoiced. */
     retail?: boolean;
+    /** The repair order number of a retail job (0043). */
+    ro_number?: string | null;
     payment?: RetailPaymentInfo;
     deleted_at: string | null;
     deleted_reason: string | null;
@@ -39,6 +42,13 @@ export interface JobDetailProps {
   canEdit: boolean;
   canDelete: boolean;
   canRestore: boolean;
+  /** The notes tab of a retail job (0043). */
+  findings?: JobFinding[];
+  fromLastTime?: JobFinding[];
+  retailServices?: { id: string; name: string }[];
+  canNote?: boolean;
+  userId?: string;
+  initialTab?: "job" | "notes";
 }
 
 const vehicle = (v: { year: number | null; make: string | null; model: string | null }) => [v.year, v.make, v.model].filter(Boolean).join(" ");
@@ -48,9 +58,10 @@ const vehicle = (v: { year: number | null; make: string | null; model: string | 
  * month's invoice → paid), services, photos, notes.
  */
 export function JobDetail(p: JobDetailProps) {
-  const { job, photos, isAdmin, canSetAmount } = p;
+  const { job, isAdmin, canSetAmount } = p;
   const deleted = !!job.deleted_at;
-  const title = `${job.tag_number}${vehicle(job) ? ` · ${vehicle(job)}` : ""}`;
+  const roTitle = !!job.retail && !!job.ro_number;
+  const title = `${roTitle ? job.ro_number : job.tag_number}${vehicle(job) ? ` · ${vehicle(job)}` : ""}`;
   const inv = job.invoice;
   const paid = inv?.status === "paid";
 
@@ -97,6 +108,7 @@ export function JobDetail(p: JobDetailProps) {
             <h1 className="text-title tracking-wide">{title}</h1>
             {deleted ? <Badge variant="destructive">Deleted</Badge> : retail ? (paidAtCounter ? <Badge variant="success">Paid</Badge> : <Badge variant="warning">Collect</Badge>) : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
             {retail && <Badge variant="muted">Retail</Badge>}
+            {roTitle && <Badge variant="outline" data-testid="job-tag">Tag {job.tag_number}</Badge>}
             {canSetAmount && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
           </div>
         </div>
@@ -116,7 +128,21 @@ export function JobDetail(p: JobDetailProps) {
         <JobActions job={job} priceList={p.priceList} detailers={p.detailers} isAdmin={isAdmin} canSetAmount={canSetAmount} canEdit={p.canEdit} canDelete={p.canDelete} canRestore={p.canRestore} lockedReason={!p.canEdit && !deleted && inv ? "On an invoice, so the job is locked" : null} />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_360px]">
+      {retail ? (
+        <RoLayout initialTab={p.initialTab} count={(p.findings ?? []).length} notes={<RoNotes jobId={job.id} roNumber={job.ro_number ?? null} findings={p.findings ?? []} fromLastTime={p.fromLastTime ?? []} services={p.retailServices ?? []} canWrite={!!p.canNote && !deleted} canDeleteAny={canSetAmount && isAdmin} userId={p.userId ?? ""} />}>
+          {body(p, steps, retail, deleted, isAdmin, canSetAmount)}
+        </RoLayout>
+      ) : (
+        <div className="mt-6">{body(p, steps, retail, deleted, isAdmin, canSetAmount)}</div>
+      )}
+    </Page>
+  );
+}
+
+function body(p: JobDetailProps, steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[], retail: boolean, deleted: boolean, isAdmin: boolean, canSetAmount: boolean) {
+  const { job, photos } = p;
+  return (
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <CardHeader>
@@ -156,7 +182,8 @@ export function JobDetail(p: JobDetailProps) {
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-                <Fact label="Stock number" value={<span className="text-base font-semibold tracking-wide">{job.tag_number}</span>} />
+                <Fact label={retail ? "Tag" : "Stock number"} value={<span className="text-base font-semibold tracking-wide">{job.tag_number}</span>} />
+                {retail && job.ro_number && <Fact label="Repair order" value={<span className="font-semibold tracking-wide" data-testid="job-ro">{job.ro_number}</span>} />}
                 <Fact label="Vehicle" value={vehicle(job) || "—"} />
                 <Fact label="Color" value={job.color ?? "—"} />
                 <Fact label="VIN" value={job.vin ? <span className="font-mono">{job.vin}</span> : "—"} />
@@ -210,7 +237,6 @@ export function JobDetail(p: JobDetailProps) {
           <p className="px-1 text-caption text-subtle">Logged {formatDateTime(job.created_at)}</p>
         </div>
       </div>
-    </Page>
   );
 }
 

@@ -180,7 +180,7 @@ export async function setDealershipPriceAction(dealershipId: string, serviceId: 
 const inviteSchema = z.object({
   email: z.string().trim().email(),
   full_name: z.string().trim().min(1).max(80),
-  role: z.enum(["admin", "manager", "detailer"]),
+  role: z.enum(["admin", "advisor", "manager", "detailer"]),
   /** "invite" sends a Supabase invite email; "password" creates the account with a password the owner hands over. */
   mode: z.enum(["invite", "password"]),
   password: z.string().min(8).max(72).optional(),
@@ -215,14 +215,14 @@ export async function createUserAction(input: InviteInput): Promise<ActionResult
   return { ok: true, data: { userId: data.user.id } };
 }
 
-export async function updateUserAction(input: { id: string; full_name: string; role: "owner" | "admin" | "manager" | "detailer"; active: boolean }): Promise<ActionResult> {
+export async function updateUserAction(input: { id: string; full_name: string; role: "owner" | "admin" | "advisor" | "manager" | "detailer"; active: boolean }): Promise<ActionResult> {
   const session = await requireOwnerAdmin();
   const parsed = z
-    .object({ id: z.uuid(), full_name: z.string().trim().min(1).max(80), role: z.enum(["owner", "admin", "manager", "detailer"]), active: z.boolean() })
+    .object({ id: z.uuid(), full_name: z.string().trim().min(1).max(80), role: z.enum(["owner", "admin", "advisor", "manager", "detailer"]), active: z.boolean() })
     .safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const p = parsed.data;
-  if (p.id === session.userId && (p.role === "detailer" || p.role === "manager" || !p.active)) return { ok: false, error: "You cannot demote or deactivate yourself" };
+  if (p.id === session.userId && (p.role === "detailer" || p.role === "manager" || p.role === "advisor" || !p.active)) return { ok: false, error: "You cannot demote or deactivate yourself" };
   if (p.role === "owner" && session.profile.role !== "owner") return { ok: false, error: "Only an owner can grant the owner role" };
   const supabase = await createClient();
   const { error } = await supabase.from("profiles").update({ full_name: p.full_name, role: p.role, active: p.active }).eq("id", p.id);

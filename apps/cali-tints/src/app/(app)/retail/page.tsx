@@ -6,11 +6,12 @@ import { RetailToday, type RetailTodayCar } from "@/components/retail/retail-tod
 
 export const metadata: Metadata = { title: "Retail" };
 
-type Row = { id: string; tag_number: string; year: number | null; make: string | null; model: string | null; performed_at: string; paid_at: string | null; customer: { display_name: string | null } | null; job_services: { label: string | null; service: { name: string } | null }[] };
+type Row = { id: string; tag_number: string; ro_number: string | null; year: number | null; make: string | null; model: string | null; performed_at: string; paid_at: string | null; customer: { display_name: string | null } | null; job_services: { label: string | null; service: { name: string } | null }[] };
 
 const toCar = (r: Row): RetailTodayCar => ({
   id: r.id,
   tag: r.tag_number,
+  ro_number: r.ro_number,
   vehicle: [r.year, r.make, r.model].filter(Boolean).join(" ") || null,
   customer: r.customer?.display_name ?? null,
   performed_at: r.performed_at,
@@ -25,7 +26,7 @@ export default async function RetailTodayPage() {
   const { data: shops } = await supabase.from("dealerships").select("id, name").eq("retail", true).eq("active", true).order("name");
   const shopIds = (shops ?? []).map((s) => s.id);
   const today = todayIn(session.company.timezone);
-  const sel = "id, tag_number, year, make, model, performed_at, paid_at, customer:customers(display_name), job_services(label, service:services(name))";
+  const sel = "id, tag_number, ro_number, year, make, model, performed_at, paid_at, customer:customers(display_name), job_services(label, service:services(name))";
   const [{ data: todayRows }, { data: unpaidRows }, { data: customers }, { data: appts }, { data: money }, { data: texts }] = await Promise.all([
     shopIds.length ? supabase.from("jobs").select(sel).in("dealership_id", shopIds).is("deleted_at", null).gte("performed_at", `${today}T00:00:00`).order("performed_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
     shopIds.length ? supabase.from("jobs").select(sel).in("dealership_id", shopIds).is("deleted_at", null).is("paid_at", null).order("performed_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),

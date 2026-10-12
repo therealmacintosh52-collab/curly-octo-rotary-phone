@@ -8,8 +8,8 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 | 2 | Pricing, estimates | **Done** | `0038`, `0039` · `d546691`, `f6ae1b1` | Canned jobs with parts and fees; per-item approve/decline on tiers; contract attachments |
 | 3 | Booking, capacity | **Done** | `0040` · `0ceb6a0` | Multi-tech / line-item scheduling; an embeddable widget; drag-and-drop calendar grid |
 | 4 | Payments, deposits | **Done** (Clover only) | `0041` · `23f7828` | First real run in the Clover sandbox from the owner's side; tipping, BNPL, memberships, gift cards (all need a decision on a processor feature) |
-| 5 | Intake, photos, inspections | Partial (photos exist) | `0030` | Odometer / fuel / keys at check-in; SVG damage pins; DVI templates; video (storage egress to size first) |
-| 6 | Work orders, board | Partial (statuses, Today) | `0040` | A stage board over the retail jobs; "ready for pickup" text rule |
+| 5 | Intake, photos, inspections | Partial (photos; the RO notes tab with findings, photos, clips, declined work kept) | `0030`, `0043` | Fuel / keys at check-in; SVG damage pins; DVI templates; condition sign-off |
+| 6 | Work orders, board | Partial (RO numbers, statuses, the notes tab) | `0040`, `0043` | 7b: the estimate from the findings with labor / parts / fees / sublets, per-item signed approval, approved work onto the RO; then a stage board and a "ready for pickup" text rule |
 | 7 | BAR compliance | Not started | — | Only if the shop does mechanical work for money; research the current BAR rules live first |
 | 8 | Messaging, inbox | Partial (templates, text queue, `sms:` links) | `0042` | A per-customer thread of what went out; Twilio only if the owner pays for A2P 10DLC |
 | 9 | AI sales assistant | Not started (by decision: no AI keys) | — | Zero-key scripted web chat through the same `/book` tools, then an LLM behind `AI_PROVIDER` |
@@ -28,7 +28,7 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 
 ## Verified on every commit
 
-`pnpm typecheck` · `pnpm lint` · `pnpm test` (68) · `supabase/tests/run.sh` (01_flows + 02_retail) · `pnpm build` · Playwright at 390 px in guest mode (`.dev/redesign-e2e.mjs`, `.dev/retail-e2e.mjs`) · GitHub Actions green · Vercel READY on the demo.
+`pnpm typecheck` · `pnpm lint` · `pnpm test` (74) · `supabase/tests/run.sh` (01_flows + 02_retail) · `pnpm build` · Playwright at 390 px in guest mode (`.dev/redesign-e2e.mjs`, `.dev/retail-e2e.mjs`) · GitHub Actions green · Vercel READY on the demo.
 
 ## Known gaps in the first slice (by design)
 
@@ -38,3 +38,4 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 - A customer cannot be created offline (the picker needs signal); dealership jobs still queue offline as before.
 - The calendar is a list per day / per week, not a drag-and-drop grid; one tech per appointment.
 - The signature image is on the PDFs and the receipt page, not inline on the staff estimate page.
+- Clips on a finding come from the phone's camera; inside the Clover app on the Flex the in-app camera takes stills only (recording there is a follow-up). Findings need signal (no offline queue yet).

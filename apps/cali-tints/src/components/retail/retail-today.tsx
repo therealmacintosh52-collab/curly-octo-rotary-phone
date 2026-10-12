@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export interface RetailTodayCar {
   id: string;
   tag: string;
+  /** The repair order number (0043). */
+  ro_number?: string | null;
   vehicle: string | null;
   customer: string | null;
   performed_at: string;
@@ -198,7 +200,7 @@ function CarRow({ job: j }: { job: RetailTodayCar }) {
     <Link href={`/jobs/${j.id}`} className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-accent/50">
       <div className="min-w-0">
         <div className="font-medium">
-          <span className="tracking-wide">{j.tag}</span>
+          <span className="tracking-wide">{j.ro_number ?? j.tag}</span>
           {j.vehicle && <span className="text-muted-foreground"> · {j.vehicle}</span>}
         </div>
         <div className="truncate text-caption text-subtle">{[j.customer ?? "No customer on file", j.services.join(", ")].filter(Boolean).join(" · ")}</div>

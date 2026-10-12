@@ -15,7 +15,7 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 | Vehicle profile and history (VIN, YMM, trim, body class, size class, color, plate, odometer) | DOC TEK | `vehicles`, `odometer_readings`, `/retail/vehicles/[id]` | Built | none |
 | Services done per vehicle | DOC TEK | timeline (jobs, appointments, estimates) | Built | none |
 | Products / chemicals used per vehicle | DOC TEK | — | Not built | none |
-| Pre-existing damage, inspections, declined work on the vehicle | DOC TEK | — | Not built (declined estimates are on the timeline) | none |
+| Pre-existing damage, inspections, declined work on the vehicle | DOC TEK | `job_findings` (severity, status), `vehicle_open_findings`, the customer page | Partial (findings and declined work kept per vehicle; no diagram, no inspection templates) | none |
 | "Next visit" notes | DOC | `customers.notes`, `vehicles.notes` | Partial (free text, no reminder) | none |
 | VIN barcode scan | DOC URB ALP | `vin-scanner.tsx`, Clover scanner bridge | Existing | none |
 | VIN plate / door-jamb photo → vision reads the VIN | DOC | — | Not built (barcode + typed VIN) | `AI_PROVIDER` (reserved) |
@@ -86,7 +86,7 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 | Feature | Source | Where it lives | Status | Flag |
 |---|---|---|---|---|
 | Walk-around photos, compression, offline queue, timestamps | DOC | `job_photos`, `photo-picker.tsx`, outbox | Existing | none |
-| Video, resumable uploads, odometer / fuel / keys at intake | DOC | odometer only (`add_odometer`) | Partial | none |
+| Video, resumable uploads, odometer / fuel / keys at intake | DOC | clips on a finding (`src/lib/media/upload.ts`, TUS over 6 MB), odometer (`add_odometer`) | Partial (video + resumable yes; fuel / keys no; findings need signal) | none |
 | Damage pins on an SVG diagram | DOC | — | Not built | none |
 | Customer e-sign of pre-existing condition | DOC | — | Not built | none |
 | AI damage assist | DOC | — | Not built | `AI_PROVIDER` (reserved) |
@@ -99,9 +99,9 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 | Feature | Source | Where it lives | Status | Flag |
 |---|---|---|---|---|
 | Work board with custom stages | ALP | appointment statuses, Today | Partial (fixed statuses, no board) | none |
-| Tech mobile view | ALP | My jobs, Retail Today | Partial | none |
+| Tech mobile view | ALP | My jobs, Retail Today, the RO notes tab (`ro-notes.tsx`) | Partial | none |
 | Mid-job upsell → updated estimate link → approve | DOC TEK | new estimate from the customer page | Partial (manual) | none |
-| Declined work saved and resurfaced | TEK DOC | declined estimates on the timeline | Partial (no drip) | none |
+| Declined work saved and resurfaced | TEK DOC | `job_findings.status = declined`, "From last time" on the next RO, the customer page count | Built (no drip yet) | none |
 | Status texts (checked in, ready) | URB | — | Not built (rules exist for booked / reminder / cancelled only) | none |
 | Real-time dashboard: today's jobs, deposits outstanding | ALP | Retail Today, `retail_money_summary` | Built (refresh on load, not live) | none |
 
@@ -173,7 +173,7 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 
 | Requirement | Where it lives | Status |
 |---|---|---|
-| Roles owner / admin / manager / detailer, RLS, audit | `is_owner()`, `is_admin()`, `can_price_jobs()`, `audit_log` | Built |
+| Roles owner / admin / advisor / manager / detailer, RLS, audit | `is_owner()`, `is_admin()`, `can_price_jobs()` (owner, admin, advisor), `audit_log` | Built |
 | Customer access by token only (no customer login) | `anon` executes token RPCs; no table grants | Built |
 | Webhook signature verification | `/api/clover/webhook` shared secret + verification handshake | Built |
 | Secrets env-only, `.env.example` | `.env.example` | Built |

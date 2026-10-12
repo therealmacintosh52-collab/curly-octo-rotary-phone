@@ -13,7 +13,7 @@ const CameraCapture = dynamic(() => import("./camera-capture").then((m) => m.Cam
 export interface PendingPhoto {
   /** Device-side id; also the photo's client_id on the server so a retried upload never duplicates it. */
   id: string;
-  kind: "photo" | "before" | "after";
+  kind: "photo" | "before" | "after" | "finding";
   blob: Blob;
   name: string;
 }
@@ -32,7 +32,7 @@ export async function compressPhoto(file: Blob): Promise<Blob> {
  * camera app through the file input, or the in-app camera where the file
  * input cannot: the Clover Flex) and keeps up to eight compressed JPEGs.
  */
-export function PhotoPicker({ photos, onChange, disabled }: { photos: PendingPhoto[]; onChange: (p: PendingPhoto[]) => void; disabled?: boolean }) {
+export function PhotoPicker({ photos, onChange, disabled, kind = "photo", max = MAX_PHOTOS }: { photos: PendingPhoto[]; onChange: (p: PendingPhoto[]) => void; disabled?: boolean; /** What the photos are of: a plain job photo, or media on a finding (0043). */ kind?: PendingPhoto["kind"]; max?: number }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -42,12 +42,12 @@ export function PhotoPicker({ photos, onChange, disabled }: { photos: PendingPho
     const t = setTimeout(() => setNativeCapture(hasNativeFileCapture()), 0);
     return () => clearTimeout(t);
   }, []);
-  const full = photos.length >= MAX_PHOTOS;
+  const full = photos.length >= max;
 
   async function addBlob(blob: Blob, name: string) {
     setBusy(true);
     try {
-      onChange([...photos, { id: crypto.randomUUID(), kind: "photo", blob: await compressPhoto(blob), name }]);
+      onChange([...photos, { id: crypto.randomUUID(), kind, blob: await compressPhoto(blob), name }]);
     } catch {
       toast.error("Could not process that photo");
     } finally {
@@ -60,7 +60,7 @@ export function PhotoPicker({ photos, onChange, disabled }: { photos: PendingPho
     setBusy(true);
     try {
       const next = [...photos];
-      for (const file of Array.from(files).slice(0, MAX_PHOTOS - photos.length)) next.push({ id: crypto.randomUUID(), kind: "photo", blob: await compressPhoto(file), name: file.name });
+      for (const file of Array.from(files).slice(0, max - photos.length)) next.push({ id: crypto.randomUUID(), kind, blob: await compressPhoto(file), name: file.name });
       onChange(next);
     } catch {
       toast.error("Could not process that photo");

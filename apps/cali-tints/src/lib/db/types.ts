@@ -4,14 +4,15 @@
  * keep this file in sync by hand; it is the single source of truth for the app.
  */
 
-/** owner: everything, and the only one who sees money. admin: Settings, users, every job. manager: every job. detailer: their own cars. */
-export type UserRole = "owner" | "admin" | "manager" | "detailer";
+/** owner: everything, and the only one who sees money. admin: Settings, users, every job. advisor: every job, writes and sends estimates, sees retail money (0043). manager: every job. detailer: their own cars. */
+export type UserRole = "owner" | "admin" | "advisor" | "manager" | "detailer";
 export type JobStatus = "logged" | "invoiced";
 export type InvoiceStatus = "draft" | "submitted" | "partial" | "paid" | "void";
 export type InvoiceMode = "batch" | "per_job";
 export type SubmissionMethod = "email" | "portal" | "paper";
 export type SubmissionStatus = "sent" | "failed";
-export type PhotoKind = "photo" | "before" | "after";
+/** finding: media on a note or finding of the repair order; video: a short clip (0043). */
+export type PhotoKind = "photo" | "before" | "after" | "finding" | "video";
 export type PaymentMethod = "check" | "ach" | "card" | "cash" | "other";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -619,6 +620,8 @@ export type Job = {
   dup_reviewed_at: string | null;
   dup_reviewed_by: string | null;
   dup_review_note: string | null;
+  /** Retail jobs are the shop's repair orders: RO-000123, per company (0043); null on dealership jobs. */
+  ro_number?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -672,8 +675,39 @@ export type JobPhoto = {
   created_by: string | null;
   /** The id the device gave the photo; unique per job, so retried uploads never duplicate. */
   client_id: string | null;
+  /** Media on a finding of the repair order (0043). */
+  finding_id?: string | null;
+  mime?: string | null;
+  duration_s?: number | null;
   created_at: string;
 }
+
+export type FindingKind = "note" | "finding";
+/** Green / yellow / red. A note is always "ok". */
+export type FindingSeverity = "ok" | "soon" | "urgent";
+/** open → quoted (on an estimate) → approved / declined (by the customer) → done. Staff may set open, declined, done. */
+export type FindingStatus = "open" | "quoted" | "approved" | "declined" | "done";
+export type FindingMedia = { id: string; kind: PhotoKind; storage_path: string; mime: string | null; duration_s: number | null; size_bytes: number | null; created_at: string; url?: string | null };
+/** job_findings(): one note or finding on the repair order's notes tab, with its media. */
+export type JobFinding = {
+  id: string;
+  job_id: string;
+  vehicle_id: string | null;
+  kind: FindingKind;
+  severity: FindingSeverity;
+  title: string;
+  body: string | null;
+  recommended_service_id: string | null;
+  recommended_service: string | null;
+  status: FindingStatus;
+  estimate_line_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  job_ro_number: string | null;
+  job_performed_at: string;
+  media: FindingMedia[];
+};
 
 /** The dealership's open QuickBooks invoice for a month, as the app last saw it (owner-readable). */
 export type QuickBooksMonthInvoice = {
@@ -974,6 +1008,8 @@ export type JobListRow = {
   customer_id?: string | null;
   customer?: string | null;
   vehicle_id?: string | null;
+  /** Retail rows: the repair order number (0043). */
+  ro_number?: string | null;
   photo_count: number;
   deleted: boolean;
 };
@@ -1114,11 +1150,14 @@ export type CustomerTimeline = {
     odometer: { reading: number; read_at: string } | null;
     visits: number;
     last_visit: string | null;
+    /** Findings from earlier visits never done (open, declined, quoted) (0043). */
+    open_findings?: number;
   })[];
   jobs: {
     id: string;
     performed_at: string;
     tag: string;
+    ro_number?: string | null;
     vehicle: string | null;
     vehicle_id: string | null;
     services: string[];
@@ -1250,6 +1289,11 @@ export type Database = {
       release_expired_holds: { Args: Record<string, never>; Returns: number };
       quote_total: { Args: { p_size: VehicleSize; p_lines: { service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[] }[] }; Returns: QuoteResult };
       add_odometer: { Args: { p_vehicle: string; p_reading: number; p_read_at?: string | null; p_job?: string | null }; Returns: OdometerReading };
+      add_finding: { Args: { p: { job_id: string; kind?: FindingKind; severity?: FindingSeverity; title: string; body?: string | null; recommended_service_id?: string | null } }; Returns: JobFinding };
+      update_finding: { Args: { p_id: string; p: { title?: string; body?: string | null; severity?: FindingSeverity; status?: "open" | "declined" | "done"; recommended_service_id?: string | null } }; Returns: JobFinding };
+      delete_finding: { Args: { p_id: string }; Returns: { id: string; paths: string[] } };
+      job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
+      vehicle_open_findings: { Args: { p_vehicle: string; p_exclude_job?: string | null }; Returns: JobFinding[] };
       is_member: { Args: Record<string, never>; Returns: boolean };
       resolve_service_price: { Args: { p_dealership_id: string; p_service_id: string }; Returns: number | null };
       dealership_price_list: { Args: { p_dealership_id: string }; Returns: PriceListRow[] };

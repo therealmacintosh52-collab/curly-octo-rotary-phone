@@ -9,6 +9,7 @@ import { invoiceBundleFixture } from "@/test/fixtures";
 const ROLES: { value: UserRole; label: string; name: string }[] = [
   { value: "owner", label: "Owner", name: "Mike" },
   { value: "admin", label: "Admin", name: "Manny" },
+  { value: "advisor", label: "Advisor", name: "Alex" },
   { value: "manager", label: "Manager", name: "Victor" },
   { value: "detailer", label: "Detailer", name: "Sam" },
 ];
@@ -21,7 +22,7 @@ export default async function DevGuidePreview(props: PageProps<"/dev/preview/gui
   const who = ROLES.find((r) => r.value === role)!;
   const profile = { id: "u1", company_id: company.id, role, full_name: who.name, email: null, active: true, guide_seen_at: null } as Profile;
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: role !== "detailer", canSettings: role === "owner" || role === "admin", canMoney: role === "owner", canPrices: role === "owner" || role === "admin", demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: role !== "detailer", canSettings: role === "owner" || role === "admin", canMoney: role === "owner", canPrices: role === "owner" || role === "admin" || role === "advisor", demo: true }}>
       <SyncProvider>
         <AppShell>
           <Guide role={role} name={who.name} welcome={sp.welcome === "1"} roleSwitcher={<Segmented aria-label="See it as" size="sm" items={ROLES.map((r) => ({ value: r.value, label: r.label, href: `/guide?role=${r.value}` }))} value={role} />} />

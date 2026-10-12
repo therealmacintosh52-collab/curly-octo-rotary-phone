@@ -11,13 +11,13 @@ export interface Session {
   email: string | null;
   profile: Profile;
   company: Company;
-  /** owner, admin or manager: the whole company's jobs. */
+  /** owner, admin, advisor or manager: the whole company's jobs. */
   isAdmin: boolean;
   /** owner or admin: Settings (company, dealerships, users). */
   canSettings: boolean;
   /** owner only: invoices, payments, income, the price list, export. */
   canMoney: boolean;
-  /** owner or admin: prices on a job (New job, Edit job, job page). */
+  /** owner, admin or advisor: the amount of an "Other" line, estimate money, retail balances. */
   canPrices: boolean;
 }
 

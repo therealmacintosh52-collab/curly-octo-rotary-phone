@@ -48,7 +48,7 @@ Add and verify the sending domain (DNS records), create an API key, set `EMAIL_F
 3. Settings → Company: name, address, EIN, billing email, logo, timezone. Monthly invoicing: *Email each month's invoice automatically* on. Tax rate 0 unless a dealership requires tax.
 4. Settings → Dealerships: each dealership's AP contact and email(s). The shop (*Cali Tint · Fulton Ave*) is seeded as the **Retail** location: walk-in jobs logged there are paid at the counter on the Clover and never invoiced. Fix its street number.
 5. Settings → Services & prices: check the menu and prices; per-dealership prices in the grid.
-6. Settings → Users: add every employee. Roles: Detailer for the team, Manager for a lead who should see every job, Admin for someone who runs Settings without money. Only Mike is Owner.
+6. Settings → Users: add every employee. Roles: Detailer for the team, Manager for a lead who should see every job, **Advisor** for whoever runs the retail counter (writes and sends estimates, sees retail balances; no invoices, income or Settings), Admin for someone who runs Settings without money. Only Mike is Owner.
 7. Settings → Shop menu: the twelve retail services are seeded with **placeholder** prices and durations (a banner says so until each is edited); set the real price per car size, the add-ons, which services need a lift or a skill.
 8. Settings → Booking: hours, bays / lifts / techs (seeded 6 / 2 / one per detailer), days off, the policy (20 % deposit, 30-minute hold, 24-hour notice), the **review link** (Google: Business Profile → Ask for reviews → copy the short link; it goes into the review request 30 minutes after a paid job), quiet hours (default 20:00–08:00), and read the eleven email templates once. Under **Automations** every rule is on; switch off any Mike does not want.
 
@@ -88,6 +88,7 @@ Until the Clover app is approved, the team can use the web app on their phones (
 - Sign in as a manager: Jobs and the team dashboard only; `/invoices` redirects; the price list shows no prices.
 - Retail, on a phone: book a test appointment from `/book` (use Mike's own phone and email, tick both consents) → it shows under Retail → Today as a lead and Mike gets the "new online booking" email → Confirm it → the confirmation email arrives (needs Resend) → within five minutes a reminder text appears under **Texts to send** when the time is inside 24 hours → tap it → the messaging app opens with the text → Sent.
 - Write a test estimate for that customer → Email the link → open it on the phone → pick a tier, sign, approve → Mike gets the "estimate approved" email → Create the job → collect it as cash → sign the receipt → the receipt email arrives → 30 minutes later the review request is in the log and the text queue.
+- A retail job (the repair order): open it on a phone → **Notes** → **Add a finding** with a photo and a 10-second clip → it shows in the feed with its severity; open the same customer → the car says how many findings are not done.
 - Settings → Booking → Automations → **What went out**: every one of those runs is listed as sent (or skipped with the reason). Cancel the test appointment and refund nothing (cash was a test).
 
 ## 9. Ongoing

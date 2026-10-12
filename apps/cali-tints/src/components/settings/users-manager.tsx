@@ -17,11 +17,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const ROLE_LABEL: Record<UserRole, string> = { owner: "Owner", admin: "Admin", manager: "Manager", detailer: "Detailer" };
+const ROLE_LABEL: Record<UserRole, string> = { owner: "Owner", admin: "Admin", advisor: "Advisor", manager: "Manager", detailer: "Detailer" };
 /** What each role can do, shown under the picker. */
 const ROLE_HINT: Record<UserRole, string> = {
   owner: "Everything, and the only one who sees invoices, payments and income.",
   admin: "Every job with its prices; Settings for users and dealerships (not the price list or export). No invoices, payments or income.",
+  advisor: "Runs the retail counter: every job, writes and sends estimates with their prices, sees retail balances and deposits. No invoices, income or Settings.",
   manager: "Every job and the team dashboard. No money, no Settings.",
   detailer: "Logs cars and sees only their own. No money.",
 };
@@ -100,7 +101,7 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<"password" | "invite">("password");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"admin" | "manager" | "detailer">("detailer");
+  const [role, setRole] = useState<"admin" | "advisor" | "manager" | "detailer">("detailer");
   const [password, setPassword] = useState(() => randomPassword());
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
 
@@ -160,7 +161,7 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
       >
         <DialogHeader>
           <DialogTitle>Add user</DialogTitle>
-          <DialogDescription>Detailers log and see their own cars. Managers see every job, no prices. Admins see job prices and run users and dealerships. Only the owner sees invoices, payments and income.</DialogDescription>
+          <DialogDescription>Detailers log and see their own cars. Managers see every job, no prices. Advisors run the retail counter and write estimates. Admins run users and dealerships. Only the owner sees invoices, payments and income.</DialogDescription>
         </DialogHeader>
         <Tabs value={mode} onValueChange={(v) => setMode(v as "password" | "invite")}>
           <TabsList className="w-full">
@@ -178,13 +179,14 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
         </div>
         <div className="grid gap-1.5">
           <Label>Role</Label>
-          <Select value={role} onValueChange={(v) => setRole(v as "admin" | "manager" | "detailer")}>
+          <Select value={role} onValueChange={(v) => setRole(v as "admin" | "advisor" | "manager" | "detailer")}>
             <SelectTrigger aria-label="Role">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="detailer">Detailer</SelectItem>
               <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="advisor">Advisor</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
@@ -240,6 +242,7 @@ function EditUserDialog({ user, currentRole, isSelf, onClose }: { user: Profile;
             <SelectContent>
               <SelectItem value="detailer">Detailer</SelectItem>
               <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="advisor">Advisor</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               {currentRole === "owner" && <SelectItem value="owner">Owner</SelectItem>}
             </SelectContent>

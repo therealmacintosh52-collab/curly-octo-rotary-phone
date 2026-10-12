@@ -22,6 +22,7 @@ export default function DevSettingsPreview() {
   const users: Profile[] = [
     profile,
     { ...profile, id: "u4", role: "admin", full_name: "Manny", email: "manny@example.com" },
+    { ...profile, id: "u6", role: "advisor", full_name: "Alex", email: "alex@example.com" },
     { ...profile, id: "u2", role: "manager", full_name: "Victor", email: "victor@example.com" },
     { ...profile, id: "u3", role: "manager", full_name: "Dee One", email: "dee@example.com" },
     { ...profile, id: "u5", role: "detailer", full_name: "Sam", email: "sam@example.com" },

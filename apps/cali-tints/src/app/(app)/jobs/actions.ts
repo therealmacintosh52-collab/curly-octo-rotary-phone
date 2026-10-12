@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import type { JobFinding } from "@/lib/db/types";
+import { extensionFor, isVideoMime, MAX_VIDEO_BYTES, mediaMime } from "@/lib/media/kind";
 import { updateJobSchema } from "@/lib/jobs/schema";
 import type { UpdateJobInput } from "@/lib/jobs/schema";
 import { createClient } from "@/lib/supabase/server";
@@ -150,4 +153,109 @@ export async function recordRetailPaymentAction(jobId: string, input: { amount: 
   if (error) return { ok: false, error: errorMessage(error) };
   revalidateJob(jobId);
   return { ok: true, data: undefined };
+}
+
+// --- The repair order's notes tab (0043) ---------------------------------------
+
+const findingInput = z.object({
+  job_id: z.uuid(),
+  kind: z.enum(["note", "finding"]).default("finding"),
+  severity: z.enum(["ok", "soon", "urgent"]).default("soon"),
+  title: z.string().trim().min(1, "Give it a title").max(120),
+  body: z.string().trim().max(4000).optional().nullable(),
+  recommended_service_id: z.uuid().optional().nullable(),
+});
+export type FindingInput = z.input<typeof findingInput>;
+
+/** A tech's note or finding on a retail job (the RPC checks: admins, or the job's detailer, while the job is open). */
+export async function addFindingAction(input: FindingInput): Promise<ActionResult<JobFinding>> {
+  const parsed = findingInput.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_finding", { p: parsed.data });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidateJob(parsed.data.job_id);
+  return { ok: true, data };
+}
+
+export async function updateFindingAction(id: string, jobId: string, input: { title?: string; body?: string | null; severity?: "ok" | "soon" | "urgent"; status?: "open" | "declined" | "done"; recommended_service_id?: string | null }): Promise<ActionResult<JobFinding>> {
+  const parsed = z
+    .object({ title: z.string().trim().min(1).max(120).optional(), body: z.string().trim().max(4000).nullable().optional(), severity: z.enum(["ok", "soon", "urgent"]).optional(), status: z.enum(["open", "declined", "done"]).optional(), recommended_service_id: z.uuid().nullable().optional() })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("update_finding", { p_id: id, p: parsed.data });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidateJob(jobId);
+  return { ok: true, data };
+}
+
+/** Remove a note or finding and its files (the RPC decides who may; the files go afterwards, best effort). */
+export async function deleteFindingAction(id: string, jobId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("delete_finding", { p_id: id });
+  if (error) return { ok: false, error: errorMessage(error) };
+  const paths = (data?.paths ?? []).filter((p): p is string => typeof p === "string" && p.length > 0);
+  if (paths.length) {
+    try {
+      await createAdminClient().storage.from("job-photos").remove(paths);
+    } catch {
+      await supabase.storage.from("job-photos").remove(paths);
+    }
+  }
+  revalidateJob(jobId);
+  return { ok: true, data: undefined };
+}
+
+/** Photos on a finding, already compressed by the picker (same path as job photos, kind "finding"). */
+export async function addFindingPhotosAction(jobId: string, findingId: string, form: FormData): Promise<ActionResult<number>> {
+  const session = await getSession();
+  const supabase = await createClient();
+  const { data: job } = await supabase.from("jobs").select("id, company_id, deleted_at").eq("id", jobId).maybeSingle();
+  if (!job) return { ok: false, error: "Job not found" };
+  if (job.deleted_at) return { ok: false, error: "This job is deleted" };
+  let added = 0;
+  for (const entry of form.getAll("photo")) {
+    if (!(entry instanceof File) || entry.size === 0) continue;
+    if (entry.size > MAX_PHOTO_BYTES) return { ok: false, error: "A photo is over 5 MB" };
+    const mime = mediaMime(entry.type, entry.name) ?? "image/jpeg";
+    if (isVideoMime(mime)) continue;
+    const clientId = crypto.randomUUID();
+    const path = `${job.company_id}/${jobId}/${clientId}.${extensionFor(mime)}`;
+    const { error: upErr } = await supabase.storage.from("job-photos").upload(path, entry, { contentType: mime, upsert: true });
+    if (upErr) return { ok: false, error: errorMessage(upErr) };
+    const { error: rowErr } = await supabase.from("job_photos").insert({ company_id: job.company_id, job_id: jobId, kind: "finding", storage_path: path, size_bytes: entry.size, client_id: clientId, finding_id: findingId, mime, created_by: session.userId });
+    if (rowErr) {
+      await supabase.storage.from("job-photos").remove([path]);
+      return { ok: false, error: errorMessage(rowErr) };
+    }
+    added++;
+  }
+  revalidateJob(jobId);
+  return { ok: true, data: added };
+}
+
+/** The browser uploaded a clip (resumable) straight into the job's folder; register the row for it. */
+export async function registerFindingMediaAction(jobId: string, findingId: string, input: { path: string; mime: string; size: number; duration: number | null }): Promise<ActionResult<{ id: string }>> {
+  const session = await getSession();
+  const supabase = await createClient();
+  const { data: job } = await supabase.from("jobs").select("id, company_id, deleted_at").eq("id", jobId).maybeSingle();
+  if (!job) return { ok: false, error: "Job not found" };
+  const mime = mediaMime(input.mime);
+  if (!mime) return { ok: false, error: "That file type is not supported" };
+  if (!(input.size > 0) || input.size > MAX_VIDEO_BYTES) return { ok: false, error: "The clip is over 100 MB" };
+  const prefix = `${job.company_id}/${jobId}/`;
+  if (!input.path.startsWith(prefix) || /[^A-Za-z0-9._/-]/.test(input.path)) return { ok: false, error: "Bad path" };
+  const clientId = input.path.slice(prefix.length).split(".")[0];
+  const { data, error } = await supabase
+    .from("job_photos")
+    .insert({ company_id: job.company_id, job_id: jobId, kind: isVideoMime(mime) ? "video" : "finding", storage_path: input.path, size_bytes: Math.round(input.size), client_id: /^[0-9a-f-]{36}$/i.test(clientId) ? clientId : crypto.randomUUID(), finding_id: findingId, mime, duration_s: input.duration === null ? null : Math.round(input.duration * 100) / 100, created_by: session.userId })
+    .select("id")
+    .single();
+  if (error) {
+    await supabase.storage.from("job-photos").remove([input.path]);
+    return { ok: false, error: errorMessage(error) };
+  }
+  revalidateJob(jobId);
+  return { ok: true, data: { id: data.id } };
 }

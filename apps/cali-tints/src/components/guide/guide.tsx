@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
   decides which sections show, so a detailer never reads about Settings.
 */
 
-const ROLE_LABEL: Record<UserRole, string> = { owner: "Owner", admin: "Admin", manager: "Manager", detailer: "Detailer" };
+const ROLE_LABEL: Record<UserRole, string> = { owner: "Owner", admin: "Admin", advisor: "Advisor", manager: "Manager", detailer: "Detailer" };
 
 /** One input or button: what you do, what happens. */
 function Row({ what, does }: { what: string; does: React.ReactNode }) {
@@ -221,7 +221,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
               {money && <Row what="QuickBooks Online" does="Connect QuickBooks once with the Intuit login that owns the books. From then on every month's invoice is created there automatically and payments recorded in QuickBooks come back here. Sync now runs it by hand; Disconnect stops it. Owner only." />}
               <Row what="Dealerships" does="Each dealership's AP contact and emails (where invoices go), how they want invoices (email, portal, paper) and a tax override." />
               {money && <Row what="Services & prices" does="The menu and its prices, plus a per-dealership price grid. What each service costs is set here and only here: jobs carry no prices. Owner only." />}
-              <Row what="Users" does="Add people with a password or an email invite. Roles: Detailer (own cars), Manager (every job, no Settings), Admin (every job, users and dealerships, may price an Other line), Owner (the only one who sees invoices, payments and income). Deactivate to block sign-in without losing history." />
+              <Row what="Users" does="Add people with a password or an email invite. Roles: Detailer (own cars), Manager (every job, no Settings), Advisor (every job, writes and sends estimates, sees retail balances; no Settings), Admin (every job, users and dealerships, may price an Other line), Owner (the only one who sees invoices, payments and income). Deactivate to block sign-in without losing history." />
               {money && <Row what="Export" does="Every table as CSV for the accountant. Owner only." />}
             </Inputs>
             <Outputs items={["Changes apply immediately to new invoices; existing invoices keep the details they were made with."]} />

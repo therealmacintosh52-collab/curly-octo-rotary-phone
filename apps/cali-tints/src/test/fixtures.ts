@@ -323,6 +323,7 @@ export function jobListFixture(): JobListRow[] {
       invoice_status: null,
       quickbooks_doc_number: null,
       retail: true,
+      ro_number: paid ? "RO-000041" : "RO-000042",
       paid_at: paid ? nowIso : null,
       photo_count: 0,
       deleted: false,

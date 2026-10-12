@@ -56,7 +56,10 @@ export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = fa
       }
       const r = await setAppointmentStatusAction(a.id, status, reason);
       if (!r.ok) return void toast.error(r.error);
-      toast.success(status === "in_progress" ? "Checked in · the job is open" : status === "booked" ? "Confirmed" : "Updated");
+      if (status === "in_progress" && r.data.job_id) {
+        const jobId = r.data.job_id;
+        toast.success("Checked in · the repair order is open", { action: { label: "Open the notes", onClick: () => router.push(`/jobs/${jobId}?tab=notes`) } });
+      } else toast.success(status === "booked" ? "Confirmed" : "Updated");
       setCancelling(null);
       router.refresh();
     });

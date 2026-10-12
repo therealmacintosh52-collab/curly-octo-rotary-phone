@@ -1,4 +1,4 @@
-import type { Customer, CustomerListRow, CustomerTimeline, Vehicle } from "@/lib/db/types";
+import type { Customer, CustomerListRow, CustomerTimeline, Vehicle, JobFinding } from "@/lib/db/types";
 import type { PickedCustomer } from "@/components/retail/customer-picker";
 import type { RetailTodayData } from "@/components/retail/retail-today";
 import type { VehicleDetailData } from "@/components/retail/vehicle-detail";
@@ -102,11 +102,11 @@ const vehicleName = (v: Vehicle) => [v.year, v.make, v.model].filter(Boolean).jo
 type FixtureJob = CustomerTimeline["jobs"][number];
 const JOBS: Record<string, FixtureJob[]> = {
   [C1]: [
-    { id: "40000000-0000-4000-8000-000000000998", performed_at: ago(0, 2.5), tag: "R-101", vehicle: "2019 Toyota Camry", vehicle_id: V1, services: ["Full detail"], paid_at: ago(0, 1), payment_method: "clover", paid_amount: 200, deleted_at: null },
+    { id: "40000000-0000-4000-8000-000000000998", performed_at: ago(0, 2.5), tag: "R-101", ro_number: "RO-000041", vehicle: "2019 Toyota Camry", vehicle_id: V1, services: ["Full detail"], paid_at: ago(0, 1), payment_method: "clover", paid_amount: 200, deleted_at: null },
     { id: "40000000-0000-4000-8000-000000000901", performed_at: ago(62), tag: "R-044", vehicle: "2019 Toyota Camry", vehicle_id: V1, services: ["Clay bar", "Tire shine"], paid_at: ago(62), payment_method: "cash", paid_amount: 95, deleted_at: null },
     { id: "40000000-0000-4000-8000-000000000902", performed_at: ago(118), tag: "R-012", vehicle: "2019 Toyota Camry", vehicle_id: V1, services: ["Full detail"], paid_at: ago(118), payment_method: "clover", paid_amount: 200, deleted_at: null },
   ],
-  [C2]: [{ id: "40000000-0000-4000-8000-000000000999", performed_at: ago(0, 0.7), tag: "R-102", vehicle: "2022 Tesla Model 3", vehicle_id: V2, services: ["Full detail"], paid_at: null, payment_method: null, paid_amount: null, deleted_at: null }],
+  [C2]: [{ id: "40000000-0000-4000-8000-000000000999", performed_at: ago(0, 0.7), tag: "R-102", ro_number: "RO-000042", vehicle: "2022 Tesla Model 3", vehicle_id: V2, services: ["Full detail"], paid_at: null, payment_method: null, paid_amount: null, deleted_at: null }],
   [C3]: [
     { id: "40000000-0000-4000-8000-000000000903", performed_at: ago(20), tag: "R-088", vehicle: "2021 Ford F-150", vehicle_id: V3, services: ["Full detail", "Odor bomb"], paid_at: ago(20), payment_method: "check", paid_amount: 290, deleted_at: null },
     { id: "40000000-0000-4000-8000-000000000904", performed_at: ago(50), tag: "R-061", vehicle: "2020 Ford Transit", vehicle_id: V4, services: ["Full detail"], paid_at: ago(50), payment_method: "check", paid_amount: 290, deleted_at: null },
@@ -159,7 +159,7 @@ export function customerTimelineFixture(id: string, owner: boolean): CustomerTim
       .filter((v) => v.customer_id === c.id)
       .map((v) => {
         const vj = jobs.filter((j) => j.vehicle_id === v.id);
-        return { ...v, odometer: v.id === V1 ? { reading: 48210, read_at: ago(0, 2.5) } : v.id === V3 ? { reading: 61400, read_at: ago(20) } : null, visits: vj.length, last_visit: vj[0]?.performed_at ?? null };
+        return { ...v, odometer: v.id === V1 ? { reading: 48210, read_at: ago(0, 2.5) } : v.id === V3 ? { reading: 61400, read_at: ago(20) } : null, visits: vj.length, last_visit: vj[0]?.performed_at ?? null, open_findings: v.id === V2 ? 1 : 0 };
       }),
     jobs,
     estimates: customerEstimatesFixture(c.id, owner),
@@ -189,7 +189,7 @@ export function pickedCustomersFixture(): PickedCustomer[] {
 export function retailTodayFixture(money = false): RetailTodayData {
   const r101 = JOBS[C1][0];
   const r102 = JOBS[C2][0];
-  const car = (j: FixtureJob, customer: string) => ({ id: j.id, tag: j.tag, vehicle: j.vehicle, customer, performed_at: j.performed_at, paid_at: j.paid_at, services: j.services });
+  const car = (j: FixtureJob, customer: string) => ({ id: j.id, tag: j.tag, ro_number: j.ro_number ?? null, vehicle: j.vehicle, customer, performed_at: j.performed_at, paid_at: j.paid_at, services: j.services });
   const items = calendarItemsFixture(money);
   return {
     customers: customersFixture.length,
@@ -629,4 +629,55 @@ export function textQueueFixture(): TextQueueRow[] {
     { id: "tq-1", customer_id: C2, customer: "Marcus Reed", phone: "(916) 555-0142", body: "Hi Marcus, see you Mon, Oct 19 · 1:00 PM with the 2022 Tesla Model 3. Change or cancel here: https://cali-tints-demo.vercel.app/a/demo-booking-token-ana-camry-00001", reason: "Reminder before the visit", created_at: ago(0, 0.4) },
     { id: "tq-2", customer_id: C5, customer: "Luis Ortega", phone: "(916) 555-0123", body: "Hi Luis, thanks for bringing the 2018 Honda Civic in. If you have a minute, a review helps us more than you know: https://g.page/r/demo/review", reason: "Ask for a review", created_at: ago(0, 2) },
   ];
+}
+
+/** The notes tab of the demo repair orders (0043): findings with photos and a clip on RO-000042, and what was found last time on the same car. */
+export const FINDING_IDS = {
+  pads: "92000000-0000-4000-8000-000000000001",
+  spots: "92000000-0000-4000-8000-000000000002",
+  note: "92000000-0000-4000-8000-000000000003",
+  chip: "92000000-0000-4000-8000-000000000004",
+  haze: "92000000-0000-4000-8000-000000000005",
+} as const;
+const JOB_R101 = "40000000-0000-4000-8000-000000000998";
+const JOB_R102 = "40000000-0000-4000-8000-000000000999";
+const finding = (f: Partial<JobFinding> & Pick<JobFinding, "id" | "job_id" | "title">): JobFinding => ({
+  vehicle_id: f.job_id === JOB_R102 ? V2 : V1,
+  kind: "finding",
+  severity: "soon",
+  body: null,
+  recommended_service_id: null,
+  recommended_service: null,
+  status: "open",
+  estimate_line_id: null,
+  created_by: "u2",
+  created_at: ago(0, 0.5),
+  updated_at: ago(0, 0.5),
+  job_ro_number: f.job_id === JOB_R102 ? "RO-000042" : "RO-000041",
+  job_performed_at: ago(0, 0.7),
+  media: [],
+  ...f,
+});
+export function jobFindingsFixture(jobId: string): JobFinding[] {
+  if (jobId === JOB_R102)
+    return [
+      finding({ id: FINDING_IDS.note, job_id: jobId, kind: "note", severity: "ok", title: "Customer waits in the lobby", body: "Wants a call before anything beyond the detail.", created_at: ago(0, 0.6), updated_at: ago(0, 0.6) }),
+      finding({
+        id: FINDING_IDS.pads, job_id: jobId, severity: "urgent", title: "Rear brake pads at 2 mm", body: "Both sides. Rotors look fine. Metal within a month.",
+        recommended_service_id: RETAIL_SERVICE_ID(10), recommended_service: "Brakes (per axle)",
+        media: [
+          { id: "91000000-0000-4000-8000-000000000001", kind: "finding", storage_path: "demo/pads.jpg", mime: "image/jpeg", duration_s: null, size_bytes: 380000, created_at: ago(0, 0.5), url: "/demo/before.svg" },
+          { id: "91000000-0000-4000-8000-000000000002", kind: "video", storage_path: "demo/pads.mp4", mime: "video/mp4", duration_s: 12.4, size_bytes: 18400000, created_at: ago(0, 0.5), url: null },
+        ],
+      }),
+      finding({ id: FINDING_IDS.spots, job_id: jobId, severity: "soon", title: "Water spots on the hood and roof", body: "Hard-water etching, light.", recommended_service_id: RETAIL_SERVICE_ID(4), recommended_service: "Water spot removal", created_at: ago(0, 0.4), updated_at: ago(0, 0.4),
+        media: [{ id: "91000000-0000-4000-8000-000000000003", kind: "finding", storage_path: "demo/spots.jpg", mime: "image/jpeg", duration_s: null, size_bytes: 410000, created_at: ago(0, 0.4), url: "/demo/after.svg" }] }),
+    ];
+  if (jobId === JOB_R101) return [finding({ id: FINDING_IDS.haze, job_id: jobId, severity: "soon", title: "Headlights hazed", recommended_service_id: RETAIL_SERVICE_ID(5), recommended_service: "Headlight restoration", status: "done", created_at: ago(0, 2), updated_at: ago(0, 1) })];
+  return [];
+}
+/** Findings on the same car from an earlier visit that were never done. */
+export function fromLastTimeFixture(jobId: string): JobFinding[] {
+  if (jobId !== JOB_R102) return [];
+  return [finding({ id: FINDING_IDS.chip, job_id: "40000000-0000-4000-8000-000000000905", severity: "soon", title: "Rock chip on the hood, primer showing", recommended_service_id: null, recommended_service: null, status: "declined", job_ro_number: "RO-000017", job_performed_at: ago(45), created_at: ago(45), updated_at: ago(45) })];
 }

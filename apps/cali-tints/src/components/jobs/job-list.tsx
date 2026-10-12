@@ -112,9 +112,9 @@ export function JobList({ rows, page, count, params, filtered, today, flagged }:
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link href={`/jobs/${r.id}`} className="text-lg font-semibold tracking-wide after:absolute after:inset-0 after:rounded-xl">
-                        {r.tag}
+                        {r.retail && r.ro_number ? r.ro_number : r.tag}
                       </Link>
-                      <div className="mt-0.5 truncate text-sm">{shortVehicle(r.vehicle) || "—"}</div>
+                      <div className="mt-0.5 truncate text-sm">{[r.retail && r.ro_number ? r.tag : null, shortVehicle(r.vehicle) || "—"].filter(Boolean).join(" · ")}</div>
                       <div className="truncate text-caption text-muted-foreground">{r.services.join(", ") || "No services"}</div>
                     </div>
                     <div className="shrink-0 text-right">
@@ -171,8 +171,9 @@ export function JobList({ rows, page, count, params, filtered, today, flagged }:
                     <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(r.performed_at, "h:mm a")}</TableCell>
                     <TableCell>
                       <Link href={`/jobs/${r.id}`} className="font-semibold tracking-wide text-foreground hover:text-primary">
-                        {r.tag}
+                        {r.retail && r.ro_number ? r.ro_number : r.tag}
                       </Link>
+                      {r.retail && r.ro_number && <span className="ml-2 text-caption text-subtle">{r.tag}</span>}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">{r.vehicle || "—"}</TableCell>
                     <TableCell className="max-w-64 truncate">{r.services.join(", ")}</TableCell>

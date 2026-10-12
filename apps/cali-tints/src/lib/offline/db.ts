@@ -9,7 +9,7 @@ export interface OutboxItem {
   company_id: string;
   payload: JobPayload;
   /** `id` doubles as the server-side client_id so a retried sync never registers a photo twice (optional for items queued by older builds). */
-  photos: { id?: string; kind: "photo" | "before" | "after"; blob: Blob; name: string }[];
+  photos: { id?: string; kind: "photo" | "before" | "after" | "finding"; blob: Blob; name: string }[];
   /** Denormalised for the pending list UI. */
   summary: { tag_number: string; model: string | null; dealership_name: string; total: number };
   status: "pending" | "syncing" | "error" | "done";

@@ -168,6 +168,7 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
                       <div className="shrink-0 text-right text-caption text-subtle">
                         <Badge variant="outline">{SIZE_LABEL[v.size_class]}</Badge>
                         <div className="mt-1">{v.visits ? `${v.visits} ${v.visits === 1 ? "visit" : "visits"}` : "No visits"}</div>
+                        {!!v.open_findings && <div className="mt-0.5 text-warning" data-testid="vehicle-open-findings">{v.open_findings} {v.open_findings === 1 ? "finding" : "findings"} not done</div>}
                       </div>
                     </li>
                   ))}

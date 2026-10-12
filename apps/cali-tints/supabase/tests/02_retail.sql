@@ -1002,3 +1002,145 @@ begin
   assert jsonb_array_length(public.text_queue_list()) = 0, '0042: detailer reads the queue';
 end $$;
 select pg_temp.logout();
+
+-- 0043: the repair order: advisor, RO numbers, findings ------------------------
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('10000000-0000-4000-8000-000000000006', 'adv@test', '{"role":"advisor","full_name":"Alex"}');
+
+select pg_temp.logout();
+do $$
+declare n int; m int;
+begin
+  select count(*) into n from public.jobs j join public.dealerships d on d.id = j.dealership_id where d.retail and j.ro_number is null;
+  assert n = 0, '0043: every retail job has an RO number';
+  select count(*) into n from public.jobs j join public.dealerships d on d.id = j.dealership_id where not d.retail and j.ro_number is not null;
+  assert n = 0, '0043: dealer jobs have none';
+  select count(*), count(distinct ro_number) into n, m from public.jobs where ro_number is not null;
+  assert n = m and (select min(ro_number) from public.jobs where ro_number is not null) = 'RO-000001', '0043: sequential from RO-000001';
+  assert (select role::text from public.profiles where id = '10000000-0000-4000-8000-000000000006') = 'advisor', '0043: advisor profile';
+end $$;
+
+-- the advisor: every job, estimates with money, no invoices / settings / cash by hand
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare e public.estimates; s jsonb; n int; v_est uuid; j public.jobs; v_price numeric;
+  v_ana uuid := (select v from r_ids where k = 'cust_ana'); v_mazda uuid := (select v from r_ids where k = 'veh_mazda');
+begin
+  assert public.is_admin() and public.can_price_jobs() and not public.is_owner_admin() and not public.is_owner(), '0043: advisor predicates';
+  select count(*) into n from public.jobs; assert n >= 5, '0043: advisor sees every job';
+  e := public.create_estimate(jsonb_build_object('customer_id', v_ana, 'vehicle_id', v_mazda, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote',
+         'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_other'), 'label', 'Buff the hood', 'price', 90))))));
+  v_est := e.id;
+  assert e.total >= 90, '0043: advisor prices an estimate: ' || e.total;
+  s := public.send_estimate(v_est);
+  assert length(s ->> 'token') >= 20 and length(public.estimate_link(v_est)) >= 20, '0043: advisor sends and reads the link';
+  assert (public.estimate_detail(v_est) ->> 'total') is not null, '0043: advisor sees estimate money';
+  assert public.retail_money_summary() ? 'collected_week', '0043: advisor sees the money tiles';
+  assert public.team_dashboard() is not null, '0043: advisor has the team dashboard';
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000103', 'tag_number', 'ADV-1', 'vehicle_id', v_mazda,
+         'services', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))));
+  assert j.ro_number like 'RO-%', '0043: a new retail job gets an RO number: ' || coalesce(j.ro_number, 'null');
+  insert into r_ids values ('job_adv', j.id);
+  select price into v_price from public.dealership_price_list('00000000-0000-4000-8000-000000000101') limit 1;
+  assert v_price is null, '0043: the dealer price list stays owner/admin';
+  select count(*) into n from public.invoices; assert n = 0, '0043: no invoices';
+  select count(*) into n from public.invoice_payments; assert n = 0, '0043: no invoice payments';
+  select count(*) into n from public.service_prices_v; assert n = 0, '0043: no price list';
+  select count(*) into n from public.dealership_service_prices; assert n = 0, '0043: no dealer prices';
+  update public.companies set name = 'x'; get diagnostics n = row_count; assert n = 0, '0043: cannot edit the company';
+  update public.retail_settings set hold_minutes = 31; get diagnostics n = row_count; assert n = 0, '0043: cannot edit retail settings';
+  begin
+    perform public.automation_rules_list();
+    raise exception 'expected owner/admin only';
+  exception when sqlstate '42501' then null; end;
+  begin
+    perform public.record_retail_payment(j.id, 10, 'cash', null);
+    raise exception 'expected no cash by hand';
+  exception when sqlstate '42501' then null; end;
+  begin
+    update public.profiles set role = 'owner' where id = '10000000-0000-4000-8000-000000000004';
+    get diagnostics n = row_count;
+    assert n = 0, '0043: cannot change another role';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
+-- the manager is still refused on estimates; the detailer still sees no money
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+begin
+  begin
+    perform public.create_estimate(jsonb_build_object('customer_id', (select v from r_ids where k = 'cust_ana'), 'options', '[]'::jsonb));
+    raise exception 'expected refusal';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
+-- findings: the detailer writes on their own job, not on the advisor's
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare j public.jobs; f jsonb; g jsonb; lst jsonb; n int;
+  v_ana uuid := (select v from r_ids where k = 'cust_ana'); v_mazda uuid := (select v from r_ids where k = 'veh_mazda');
+begin
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000103', 'tag_number', 'DET-1', 'vehicle_id', v_mazda,
+         'services', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))));
+  insert into r_ids values ('job_det', j.id);
+  f := public.add_finding(jsonb_build_object('job_id', j.id, 'severity', 'urgent', 'title', 'Rear pads at 2 mm', 'body', 'Metal soon', 'recommended_service_id', (select v from r_ids where k = 'svc_oil')));
+  assert (f ->> 'status') = 'open' and (f ->> 'severity') = 'urgent' and (f ->> 'vehicle_id')::uuid = v_mazda and (f ->> 'recommended_service') is not null and (f ->> 'job_ro_number') like 'RO-%', '0043: finding added: ' || f::text;
+  g := public.add_finding(jsonb_build_object('job_id', j.id, 'kind', 'note', 'title', 'Customer waits', 'severity', 'urgent'));
+  assert (g ->> 'severity') = 'ok' and (g ->> 'kind') = 'note', '0043: a note has no severity';
+  insert into r_ids values ('finding_pads', (f ->> 'id')::uuid);
+  -- media on the finding
+  insert into public.job_photos (company_id, job_id, kind, storage_path, size_bytes, finding_id, mime, duration_s, created_by)
+    values (j.company_id, j.id, 'video', j.company_id::text || '/' || j.id::text || '/clip.mp4', 1200000, (f ->> 'id')::uuid, 'video/mp4', 12.5, auth.uid());
+  lst := public.job_findings(j.id);
+  assert jsonb_array_length(lst) = 2 and jsonb_array_length(lst -> 0 -> 'media') = 1 and (lst -> 0 -> 'media' -> 0 ->> 'kind') = 'video', '0043: the notes tab lists both with media: ' || lst::text;
+  f := public.update_finding((f ->> 'id')::uuid, jsonb_build_object('body', 'Metal very soon', 'severity', 'soon'));
+  assert (f ->> 'body') = 'Metal very soon' and (f ->> 'severity') = 'soon', '0043: finding edited';
+  begin
+    perform public.update_finding((f ->> 'id')::uuid, jsonb_build_object('status', 'approved'));
+    raise exception 'expected: approval comes from the estimate';
+  exception when sqlstate '22023' then null; end;
+  -- storage: own company folder may be overwritten, another company's not
+  insert into storage.objects (bucket_id, name) values ('job-photos', j.company_id::text || '/' || j.id::text || '/clip.mp4');
+  update storage.objects set name = name where bucket_id = 'job-photos' and name like j.company_id::text || '/%'; get diagnostics n = row_count; assert n = 1, '0043: own upload may be overwritten';
+  begin
+    insert into storage.objects (bucket_id, name) values ('job-photos', '00000000-0000-4000-8000-000000000009/x/clip.mp4');
+    raise exception 'expected: other company folder refused';
+  exception when sqlstate '42501' then null; end;
+  -- not on someone else's job
+  begin
+    perform public.add_finding(jsonb_build_object('job_id', (select v from r_ids where k = 'job_adv'), 'title', 'Nope'));
+    raise exception 'expected refusal on another job';
+  exception when sqlstate '42501' then null; end;
+  assert jsonb_array_length(public.job_findings((select v from r_ids where k = 'job_adv'))) = 0, '0043: nothing listed for another job';
+end $$;
+
+-- the advisor sees the finding from last time on the next visit, and may close it
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare lst jsonb; f jsonb; tl jsonb; d jsonb; n int;
+begin
+  lst := public.vehicle_open_findings((select v from r_ids where k = 'veh_mazda'), (select v from r_ids where k = 'job_adv'));
+  assert jsonb_array_length(lst) = 1 and (lst -> 0 ->> 'title') = 'Rear pads at 2 mm', '0043: from last time: ' || lst::text;
+  tl := public.customer_timeline((select v from r_ids where k = 'cust_ana'));
+  assert (select (x ->> 'open_findings')::int from jsonb_array_elements(tl -> 'vehicles') x where (x ->> 'id')::uuid = (select v from r_ids where k = 'veh_mazda')) = 1, '0043: timeline counts open findings';
+  assert (select x ->> 'ro_number' from jsonb_array_elements(tl -> 'jobs') x where (x ->> 'id')::uuid = (select v from r_ids where k = 'job_det')) like 'RO-%', '0043: timeline carries the RO number';
+  assert (select x ->> 'ro_number' from jsonb_array_elements(public.jobs_filtered(null, null, null, null, null, null, 'all', 50, 0) -> 'rows') x where (x ->> 'id')::uuid = (select v from r_ids where k = 'job_det')) like 'RO-%', '0043: the jobs list carries the RO number';
+  f := public.update_finding((select v from r_ids where k = 'finding_pads'), jsonb_build_object('status', 'declined'));
+  assert (f ->> 'status') = 'declined', '0043: declined stays on the vehicle';
+  assert jsonb_array_length(public.vehicle_open_findings((select v from r_ids where k = 'veh_mazda'), (select v from r_ids where k = 'job_adv'))) = 1, '0043: declined still resurfaces';
+  begin
+    perform public.delete_finding((select v from r_ids where k = 'finding_pads'));
+    raise exception 'expected: not the author, not owner/admin';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
+-- the owner removes it, media rows included
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare d jsonb; n int;
+begin
+  d := public.delete_finding((select v from r_ids where k = 'finding_pads'));
+  assert jsonb_array_length(d -> 'paths') = 1, '0043: delete returns the media paths: ' || d::text;
+  select count(*) into n from public.job_photos where finding_id = (select v from r_ids where k = 'finding_pads'); assert n = 0, '0043: media rows gone';
+end $$;
+select pg_temp.logout();

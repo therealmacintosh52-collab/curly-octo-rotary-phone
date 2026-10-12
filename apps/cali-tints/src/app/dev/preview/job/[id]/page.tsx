@@ -2,32 +2,23 @@ import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { JobDetail } from "@/components/jobs/job-detail";
-import { invoiceBundleFixture, jobListFixture, priceListFixture } from "@/test/fixtures";
-import type { Profile } from "@/lib/db/types";
-import { retailChargeFixture } from "@/test/retail-fixtures";
+import { jobListFixture, priceListFixture } from "@/test/fixtures";
+import { fromLastTimeFixture, jobFindingsFixture, retailChargeFixture, retailServicesFixture } from "@/test/retail-fixtures";
+import { previewSession } from "@/test/preview-session";
 
 /** Every row of the demo Jobs list opens as its own page (guest demo in production). */
 export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/job/[id]">) {
   const { id } = await props.params;
   const rows = jobListFixture();
   const row = rows.find((r) => r.id === id) ?? rows.find((r) => !r.invoice_id && !r.deleted) ?? rows[0];
-  const { company } = invoiceBundleFixture();
   const sp = await props.searchParams;
-  const asDetailer = sp.as === "detailer";
-  const asTeam = sp.as === "team";
-  const profile = (asDetailer
-    ? { id: "u5", company_id: company.id, role: "detailer", full_name: "Sam", email: null, active: true }
-    : asTeam
-      ? { id: "u4", company_id: company.id, role: "admin", full_name: "Manny", email: null, active: true }
-      : { id: "u1", company_id: company.id, role: "owner", full_name: "Mike", email: null, active: true }) as Profile;
-  const isAdmin = !asDetailer;
-  const canMoney = !asDetailer && !asTeam;
+  const { profile, isAdmin, canMoney, session } = previewSession(sp);
   const prices = Object.fromEntries(priceListFixture().map((s) => [s.name, s]));
   const [year, make, ...model] = (row.vehicle ?? "").split(" ");
   const open = !row.invoice_id && !row.deleted;
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin, canSettings: isAdmin, canMoney, canPrices: isAdmin, demo: true }}>
+    <SessionProvider value={session}>
       <SyncProvider>
         <AppShell>
           <JobDetail
@@ -51,6 +42,7 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
               invoice: row.invoice_id ? { id: row.invoice_id, display_number: row.display_number ?? "", status: row.invoice_status ?? "draft" } : null,
               quickbooks_doc_number: row.quickbooks_doc_number ?? null,
               retail: !!row.retail,
+              ro_number: row.ro_number ?? null,
               payment: { paid_at: row.paid_at ?? null, paid_amount: row.paid_at ? 200 : null, payment_method: row.paid_at ? ("clover" as const) : null, payment_ref: row.paid_at ? "K7Q2M3" : null },
               deleted_at: row.deleted ? row.performed_at : null,
               deleted_reason: row.deleted ? "Logged twice" : null,
@@ -76,6 +68,12 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
             canEdit={open && (isAdmin || row.detailer_id === "u5")}
             canDelete={open && isAdmin}
             canRestore={row.deleted && isAdmin}
+            findings={row.retail ? jobFindingsFixture(row.id) : []}
+            fromLastTime={row.retail ? fromLastTimeFixture(row.id) : []}
+            retailServices={row.retail ? retailServicesFixture(canMoney).filter((s) => s.retail).map((s) => ({ id: s.id, name: s.name })) : []}
+            canNote={open && (isAdmin || row.detailer_id === "u5")}
+            userId={profile.id}
+            initialTab={sp.tab === "notes" ? "notes" : "job"}
           />
         </AppShell>
       </SyncProvider>
