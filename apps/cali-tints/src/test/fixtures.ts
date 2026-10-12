@@ -162,6 +162,9 @@ export function fixtureCars(day: Date, dealer: typeof EDH, seed: number): Fixtur
     const price = dealer === SAC && service === "Used" ? 215 : PRICE[service];
     const at = new Date(day);
     at.setHours(8 + (i % 9), (k * 11) % 60, 0, 0);
+    // Today's cars never sit in the future (the previews run at any hour): fold them into the minutes just gone.
+    const now = Date.now();
+    if (at.getTime() > now && ymdOf(day) === ymdOf(new Date(now))) at.setTime(now - (i + 1) * 7 * 60000);
     out.push({ tag, vehicle: `${year} Mercedes-Benz ${model}`, vin: service === "Sold" ? null : VINS[k % VINS.length], detailer: DETAILERS[k % 3], service, price, ...dealer, day: ymdOf(day), performed_at: at.toISOString() });
   }
   return out;
@@ -252,7 +255,8 @@ export function jobListFixture(): JobListRow[] {
       ...{ dealership_id: c.dealership_id, dealership: c.dealership },
       detailer_id: c.detailer === "Victor" ? "u2" : c.detailer === "Dee One" ? "u3" : "u5",
       detailer: c.detailer,
-      services: c.service === "Used" && n % 5 === 0 ? [c.service, "Touch Up Detail"] : [c.service],
+      // The second car of the month-in-progress was logged with "Other" and no price: the owner's "Needs price" flag in previews.
+      services: n === 2 && !invoice ? [c.service, "Other"] : c.service === "Used" && n % 5 === 0 ? [c.service, "Touch Up Detail"] : [c.service],
       invoice_id: invoice?.id ?? null,
       display_number: invoice?.display_number ?? null,
       invoice_status: invoice?.status ?? null,
@@ -282,16 +286,17 @@ export function jobListFixture(): JobListRow[] {
   return rows;
 }
 
-/** The seeded menu, as the price list RPC returns it (previews). */
-export function priceListFixture(): PriceListRow[] {
-  return [
-    { service_id: "s1", name: "PDI", description: "New car pre-delivery inspection prep", category: "new", price: 60, price_min: null, price_max: null, is_override: false, sort_order: 10 },
-    { service_id: "s2", name: "Sold", description: "Delivery clean on a sold unit", category: "new", price: 20, price_min: null, price_max: null, is_override: false, sort_order: 20 },
-    { service_id: "s3", name: "Used", description: "Used car full detail", category: "used", price: 200, price_min: null, price_max: null, is_override: false, sort_order: 30 },
-    { service_id: "s4", name: "Service Loaner Detail", description: "Full detail on a service loaner", category: "service", price: 125, price_min: null, price_max: null, is_override: false, sort_order: 40 },
-    { service_id: "s5", name: "Touch Up Detail", description: "$20–40 by condition", category: "addon", price: 30, price_min: 20, price_max: 40, is_override: false, sort_order: 50 },
-    { service_id: "s6", name: "Tint Removal", description: "Strip old tint on a used unit", category: "addon", price: 40, price_min: null, price_max: null, is_override: false, sort_order: 60 },
-    { service_id: "s7", name: "Paint Correction (1-step)", description: "Single-stage machine polish; about $50", category: "addon", price: 50, price_min: 40, price_max: 60, is_override: false, sort_order: 70 },
-    { service_id: "s8", name: "Other", description: "Anything not on the menu; set the amount", category: "addon", price: 0, price_min: 0, price_max: 100000, is_override: false, sort_order: 80 },
+/** The seeded menu, as the price list RPC returns it (previews). Everyone but the owner gets it without prices. */
+export function priceListFixture(owner = true): PriceListRow[] {
+  const rows: PriceListRow[] = [
+    { service_id: "s1", name: "PDI", description: "New car pre-delivery inspection prep", category: "new", price: 60, price_min: null, price_max: null, is_override: false, sort_order: 10, open_amount: false },
+    { service_id: "s2", name: "Sold", description: "Delivery clean on a sold unit", category: "new", price: 20, price_min: null, price_max: null, is_override: false, sort_order: 20, open_amount: false },
+    { service_id: "s3", name: "Used", description: "Used car full detail", category: "used", price: 200, price_min: null, price_max: null, is_override: false, sort_order: 30, open_amount: false },
+    { service_id: "s4", name: "Service Loaner Detail", description: "Full detail on a service loaner", category: "service", price: 125, price_min: null, price_max: null, is_override: false, sort_order: 40, open_amount: false },
+    { service_id: "s5", name: "Touch Up Detail", description: "Quick touch-up by condition", category: "addon", price: 30, price_min: 20, price_max: 40, is_override: false, sort_order: 50, open_amount: false },
+    { service_id: "s6", name: "Tint Removal", description: "Strip old tint on a used unit", category: "addon", price: 40, price_min: null, price_max: null, is_override: false, sort_order: 60, open_amount: false },
+    { service_id: "s7", name: "Paint Correction (1-step)", description: "Single-stage machine polish", category: "addon", price: 50, price_min: 40, price_max: 60, is_override: false, sort_order: 70, open_amount: false },
+    { service_id: "s8", name: "Other", description: "Anything not on the menu", category: "addon", price: 0, price_min: 0, price_max: 100000, is_override: false, sort_order: 80, open_amount: true },
   ];
+  return owner ? rows : rows.map((r) => ({ ...r, price: null, price_min: null, price_max: null, is_override: false }));
 }

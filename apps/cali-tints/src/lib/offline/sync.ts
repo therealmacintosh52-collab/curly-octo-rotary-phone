@@ -60,7 +60,7 @@ async function run(): Promise<SyncResult> {
       if (error) throw error;
 
       await uploadPhotos(item, job.id);
-      const invoiceNumber = await invoiceNumberFor(job.invoice_id);
+      const invoiceNumber = await invoiceNumberFor(job.invoice_id, job.id);
 
       await addRecentJob({
         id: job.id,
@@ -97,12 +97,12 @@ async function run(): Promise<SyncResult> {
   return result;
 }
 
-/** The invoice number a synced car got (readable by its detailer under RLS). Best effort. */
-async function invoiceNumberFor(invoiceId: string | null): Promise<string | null> {
-  if (!invoiceId) return null;
+/** The invoice number a synced car got (invoices are the owner's; the RPC tells everyone the number). Best effort. */
+async function invoiceNumberFor(invoiceId: string | null, jobId?: string | null): Promise<string | null> {
+  if (!invoiceId || !jobId) return null;
   try {
-    const { data } = await createClient().from("invoices").select("display_number").eq("id", invoiceId).maybeSingle();
-    return data?.display_number ?? null;
+    const { data } = await createClient().rpc("job_invoice_number", { p_job_id: jobId });
+    return data ?? null;
   } catch {
     return null;
   }
@@ -123,7 +123,7 @@ export async function createJobDirect(item: OutboxItem): Promise<SavedCar> {
   const { data: job, error } = await supabase.rpc("create_job", { p: { ...item.payload, client_id: item.client_id } });
   if (error) throw error;
   await uploadPhotos(item, job.id);
-  return { id: job.id, invoice_id: job.invoice_id, invoice_number: await invoiceNumberFor(job.invoice_id) };
+  return { id: job.id, invoice_id: job.invoice_id, invoice_number: await invoiceNumberFor(job.invoice_id, job.id) };
 }
 
 /** Upload compressed photos to storage and register them on the job. */

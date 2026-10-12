@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { requireAdmin } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceListResult } from "@/lib/db/types";
 import { EMPTY_INVOICE_LIST, invoiceFilterArgs, parseInvoiceFilters, resolveInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
@@ -21,11 +21,12 @@ const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} 
 /**
  * One invoice per dealership per month, made on the 1st from that month's
  * jobs. This page lists them, shows the month in progress, and sends them.
+ * Owner only: everything here is money.
  */
 export default async function InvoicesPage(props: PageProps<"/invoices">) {
   const sp = await props.searchParams;
   const typed = parseInvoiceFilters(sp); // what the search box shows
-  const session = await requireAdmin();
+  const session = await requireOwner();
   const today = todayIn(session.company.timezone);
   const filters = resolveInvoiceFilters(typed, today); // "9/27" in the box → that day
   const supabase = await createClient();
@@ -37,16 +38,16 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     supabase.from("dealerships").select("id, name").eq("active", true).order("name"),
     // Unsent invoices by dealership, for "Send invoices".
     supabase.from("invoices").select("id, display_number, total, period_start, period_end, dealership_id, dealership:dealerships(name, ap_emails), invoice_items(tag_number, year, make, model)").eq("status", "draft").order("number").limit(200),
-    // The month in progress: jobs not yet on an invoice, per dealership.
-    supabase.from("jobs").select("dealership_id, job_services(price)").is("invoice_id", null).is("deleted_at", null),
+    // The month in progress: jobs not yet on an invoice, per dealership (the owner's price view).
+    supabase.from("job_service_prices_v").select("job_id, dealership_id, price, needs_price").is("invoice_id", null).is("deleted_at", null),
   ]);
   if (error) throw new Error(error.message);
   const result = (list as InvoiceListResult | null) ?? EMPTY_INVOICE_LIST;
 
   const soFar: MonthSoFarRow[] = (dealerships ?? []).map((d) => {
     const mine = (openJobs ?? []).filter((j) => j.dealership_id === d.id);
-    const total = mine.reduce((s, j) => s + (j.job_services as unknown as { price: number }[]).reduce((t, x) => t + Number(x.price), 0), 0);
-    return { dealership_id: d.id, dealership: d.name, cars: mine.length, total };
+    const total = mine.reduce((s, j) => s + Number(j.price), 0);
+    return { dealership_id: d.id, dealership: d.name, cars: new Set(mine.map((j) => j.job_id)).size, total, needsPrice: mine.filter((j) => j.needs_price).length };
   });
 
   const unsentGroups: UnsentGroup[] = Object.values(

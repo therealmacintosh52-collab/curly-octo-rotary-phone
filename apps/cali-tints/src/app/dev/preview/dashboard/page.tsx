@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Dashboard, resolveBreakdownMonth, resolveRange } from "@/components/dashboard/dashboard";
 import { DetailerDashboard } from "@/components/dashboard/detailer-dashboard";
 import { TeamDashboard } from "@/components/dashboard/team-dashboard";
+import { NeedsPriceBanner } from "@/components/dashboard/needs-price-banner";
 import { toDateInput } from "@/lib/dates";
 import type { DashboardStats, DetailerStats, Profile, TeamStats } from "@/lib/db/types";
 import { invoiceBundleFixture } from "@/test/fixtures";
@@ -86,7 +87,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   if (sp.as === "team") {
     const manny = { ...profile, id: "u4", role: "admin", full_name: "Manny" } as Profile;
     return (
-      <SessionProvider value={{ userId: manny.id, email: null, profile: manny, company, isAdmin: true, demo: true }}>
+      <SessionProvider value={{ userId: manny.id, email: null, profile: manny, company, isAdmin: true, canSettings: true, canMoney: false, demo: true }}>
         <SyncProvider>
           <AppShell>
             <TeamDashboard stats={teamFixture(today)} today={today} who={{ name: manny.full_name, tz: company.timezone }} />
@@ -124,9 +125,10 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   }
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, canSettings: true, canMoney: true, demo: true }}>
       <SyncProvider>
         <AppShell>
+          <NeedsPriceBanner count={1} />
           <Dashboard stats={stats} range={range} today={today} who={{ name: profile.full_name, tz: company.timezone }} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} />
           <p className="mt-8 text-center text-caption text-muted-foreground">
             Guest preview ·{" "}

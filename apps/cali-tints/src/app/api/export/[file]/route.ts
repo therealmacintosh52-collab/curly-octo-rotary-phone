@@ -5,8 +5,9 @@ import { toCsv, type CsvValue } from "@/lib/csv";
 
 /**
  * GET /api/export/{jobs|job-services|invoices|invoice-items|payments}.csv
- * Full-table exports for the company (admin only via RLS). Paginated reads
- * so large histories never hit the 1000-row PostgREST default.
+ * Full-table exports for the company (owner only: every file carries money).
+ * Paginated reads so large histories never hit the 1000-row PostgREST
+ * default. Line prices come from job_service_prices_v (the owner's view).
  */
 export async function GET(_req: Request, ctx: RouteContext<"/api/export/[file]">) {
   const { file } = await ctx.params;
@@ -17,7 +18,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/[file]">
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) return NextResponse.json({ error: "Owner or admin only" }, { status: 403 });
+  if (!profile || profile.role !== "owner") return NextResponse.json({ error: "Owner only" }, { status: 403 });
 
   async function all<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
     const out: T[] = [];
@@ -38,20 +39,23 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/[file]">
         type Row = {
           id: string; tag_number: string; vin: string | null; year: number | null; make: string | null; model: string | null; color: string | null;
           performed_at: string; ro_po_number: string | null; notes: string | null; status: string; deleted_at: string | null; delete_reason: string | null; created_at: string;
-          dealership: { name: string } | null; detailer: { full_name: string } | null; invoice: { display_number: string } | null; job_services: { price: number }[];
+          dealership: { name: string } | null; detailer: { full_name: string } | null; invoice: { display_number: string } | null;
         };
         const rows = await all<Row>((f, t) =>
           supabase
             .from("jobs")
-            .select("id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, status, deleted_at, delete_reason, created_at, dealership:dealerships(name), detailer:profiles!jobs_detailer_id_fkey(full_name), invoice:invoices(display_number), job_services(price)")
+            .select("id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, status, deleted_at, delete_reason, created_at, dealership:dealerships(name), detailer:profiles!jobs_detailer_id_fkey(full_name), invoice:invoices(display_number)")
             .order("performed_at")
             .range(f, t) as unknown as PromiseLike<{ data: Row[] | null; error: { message: string } | null }>,
         );
+        const prices = await all<{ job_id: string; price: number }>((f, t) => supabase.from("job_service_prices_v").select("job_id, price").order("job_service_id").range(f, t));
+        const totals = new Map<string, number>();
+        for (const p of prices) totals.set(p.job_id, (totals.get(p.job_id) ?? 0) + Number(p.price));
         csv = toCsv(
           rows.map((r) => ({
             job_id: r.id, performed_at: r.performed_at, tag_number: r.tag_number, vin: r.vin, year: r.year, make: r.make, model: r.model, color: r.color,
             dealership: r.dealership?.name ?? null, detailer: r.detailer?.full_name ?? null, ro_po_number: r.ro_po_number, notes: r.notes,
-            total: r.job_services.reduce((a, s) => a + Number(s.price), 0).toFixed(2), status: r.status, invoice_number: r.invoice?.display_number ?? null,
+            total: (totals.get(r.id) ?? 0).toFixed(2), status: r.status, invoice_number: r.invoice?.display_number ?? null,
             deleted_at: r.deleted_at, delete_reason: r.delete_reason, created_at: r.created_at,
           })),
           cols(["job_id", "performed_at", "tag_number", "vin", "year", "make", "model", "color", "dealership", "detailer", "ro_po_number", "notes", "total", "status", "invoice_number", "deleted_at", "delete_reason", "created_at"]),
@@ -59,12 +63,14 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/export/[file]">
         break;
       }
       case "job-services": {
-        type Row = { id: string; job_id: string; price: number; override_reason: string | null; created_at: string; service: { name: string } | null; job: { tag_number: string; performed_at: string } | null };
+        type Row = { id: string; job_id: string; label: string | null; created_at: string; service: { name: string } | null; job: { tag_number: string; performed_at: string } | null };
         const rows = await all<Row>((f, t) =>
-          supabase.from("job_services").select("id, job_id, price, override_reason, created_at, service:services(name), job:jobs(tag_number, performed_at)").order("created_at").range(f, t) as unknown as PromiseLike<{ data: Row[] | null; error: { message: string } | null }>,
+          supabase.from("job_services").select("id, job_id, label, created_at, service:services(name), job:jobs(tag_number, performed_at)").order("created_at").range(f, t) as unknown as PromiseLike<{ data: Row[] | null; error: { message: string } | null }>,
         );
+        const prices = await all<{ job_service_id: string; price: number; override_reason: string | null }>((f, t) => supabase.from("job_service_prices_v").select("job_service_id, price, override_reason").order("job_service_id").range(f, t));
+        const priceOf = new Map(prices.map((p) => [p.job_service_id, p]));
         csv = toCsv(
-          rows.map((r) => ({ line_id: r.id, job_id: r.job_id, performed_at: r.job?.performed_at ?? null, tag_number: r.job?.tag_number ?? null, service: r.service?.name ?? null, price: Number(r.price).toFixed(2), override_reason: r.override_reason })),
+          rows.map((r) => ({ line_id: r.id, job_id: r.job_id, performed_at: r.job?.performed_at ?? null, tag_number: r.job?.tag_number ?? null, service: r.label ?? r.service?.name ?? null, price: Number(priceOf.get(r.id)?.price ?? 0).toFixed(2), override_reason: priceOf.get(r.id)?.override_reason ?? null })),
           cols(["line_id", "job_id", "performed_at", "tag_number", "service", "price", "override_reason"]),
         );
         break;

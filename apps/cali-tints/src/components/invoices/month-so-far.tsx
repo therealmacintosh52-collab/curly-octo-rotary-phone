@@ -10,6 +10,8 @@ export interface MonthSoFarRow {
   dealership: string;
   cars: number;
   total: number;
+  /** Lines logged as "Other" without a price yet. */
+  needsPrice?: number;
 }
 
 /** The month in progress: per dealership, the jobs waiting to become the 1st's invoice. */
@@ -36,6 +38,14 @@ export function MonthSoFar({ rows, today, showMoney }: { rows: MonthSoFarRow[]; 
                   </Link>
                   <div className="text-caption text-subtle">
                     {r.cars} {r.cars === 1 ? "car" : "cars"} not invoiced yet
+                    {r.needsPrice ? (
+                      <>
+                        {" · "}
+                        <Link href={`/jobs?status=open&dealership=${r.dealership_id}&needs_price=1`} className="text-warning hover:underline">
+                          {r.needsPrice} {r.needsPrice === 1 ? "line needs" : "lines need"} a price
+                        </Link>
+                      </>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">

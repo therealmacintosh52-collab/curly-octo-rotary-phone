@@ -56,9 +56,10 @@ function PageLinks({ page, count, params }: { page: number; count: number; param
   );
 }
 
-/** "On INV-000061" / "Waiting for the month's invoice" / "Deleted". */
-function JobState({ r, short }: { r: JobListRow; short?: boolean }) {
+/** "On INV-000061" / "Waiting for the month's invoice" / "Deleted". The owner also sees "Needs price". */
+function JobState({ r, short, flagged }: { r: JobListRow; short?: boolean; flagged?: boolean }) {
   if (r.deleted) return <Badge variant="destructive" title="Deleted · kept in the archive">Deleted</Badge>;
+  if (flagged && !r.invoice_id) return <Badge variant="warning" title="Logged as Other without a price · set it with Edit job">Needs price</Badge>;
   if (r.invoice_id) return <Badge variant="info" title={`On invoice ${r.display_number ?? ""}`}>{short ? "Invoiced" : (r.display_number ?? "Invoiced")}</Badge>;
   return <Badge variant="muted" title="Goes on the month's invoice on the 1st">{short ? "Open" : "Not invoiced yet"}</Badge>;
 }
@@ -67,7 +68,8 @@ function JobState({ r, short }: { r: JobListRow; short?: boolean }) {
  * The Jobs list: every car logged, newest first under day headers. Desktop:
  * dense table. Phone: tappable cards. No money anywhere.
  */
-export function JobList({ rows, page, count, params, isAdmin, filtered, today }: { rows: JobListRow[]; page: number; count: number; params: string; isAdmin: boolean; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers. */ today: string }) {
+export function JobList({ rows, page, count, params, isAdmin, filtered, today, flagged }: { rows: JobListRow[]; page: number; count: number; params: string; isAdmin: boolean; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers. */ today: string; /** Owner only: job ids with a line still needing a price. */ flagged?: string[] }) {
+  const needsPrice = new Set(flagged ?? []);
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -114,7 +116,7 @@ export function JobList({ rows, page, count, params, isAdmin, filtered, today }:
                       <div className="truncate text-caption text-muted-foreground">{r.services.join(", ") || "No services"}</div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <JobState r={r} short />
+                      <JobState r={r} short flagged={needsPrice.has(r.id)} />
                       {r.photo_count > 0 && (
                         <div className="mt-1 flex items-center justify-end gap-1 text-caption text-subtle">
                           <CameraIcon className="size-3.5" /> {r.photo_count}
@@ -185,7 +187,7 @@ export function JobList({ rows, page, count, params, isAdmin, filtered, today }:
                           <JobState r={r} />
                         </Link>
                       ) : (
-                        <JobState r={r} />
+                        <JobState r={r} flagged={needsPrice.has(r.id)} />
                       )}
                     </TableCell>
                   </TableRow>

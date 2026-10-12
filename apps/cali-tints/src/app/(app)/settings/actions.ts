@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireOwnerAdmin } from "@/lib/auth";
+import { requireOwner, requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { closeMonth, type MonthCloseReport } from "@/lib/invoices/submit";
@@ -131,7 +131,7 @@ const serviceSchema = z.object({
 export type ServiceInput = z.input<typeof serviceSchema>;
 
 export async function saveServiceAction(input: ServiceInput): Promise<ActionResult<string>> {
-  const session = await requireOwnerAdmin();
+  const session = await requireOwner();
   const parsed = serviceSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { id, ...data } = parsed.data;
@@ -156,7 +156,7 @@ export async function saveServiceAction(input: ServiceInput): Promise<ActionResu
 
 /** Set (or clear with null) a dealership-specific price for one service. */
 export async function setDealershipPriceAction(dealershipId: string, serviceId: string, price: number | null): Promise<ActionResult> {
-  const session = await requireOwnerAdmin();
+  const session = await requireOwner();
   if (price !== null && !(price >= 0)) return { ok: false, error: "Price must be zero or more" };
   const supabase = await createClient();
   if (price === null) {

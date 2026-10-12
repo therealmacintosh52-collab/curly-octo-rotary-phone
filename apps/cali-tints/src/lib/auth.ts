@@ -4,17 +4,19 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Company, Profile } from "@/lib/db/types";
-import { canManageSettings, isCompanyWide } from "@/lib/roles";
+import { canManageSettings, canSeeMoney, isCompanyWide } from "@/lib/roles";
 
 export interface Session {
   userId: string;
   email: string | null;
   profile: Profile;
   company: Company;
-  /** owner, admin or manager: the whole company's cars and invoices. */
+  /** owner, admin or manager: the whole company's jobs. */
   isAdmin: boolean;
-  /** owner or admin: Settings (company, dealerships, prices, users, export). */
+  /** owner or admin: Settings (company, dealerships, users). */
   canSettings: boolean;
+  /** owner only: prices, invoices, payments, income, export. */
+  canMoney: boolean;
 }
 
 /**
@@ -41,6 +43,7 @@ export const getSession = cache(async (): Promise<Session> => {
     company,
     isAdmin: isCompanyWide(profile.role),
     canSettings: canManageSettings(profile.role),
+    canMoney: canSeeMoney(profile.role),
   };
 });
 
@@ -48,6 +51,13 @@ export const getSession = cache(async (): Promise<Session> => {
 export async function requireAdmin(): Promise<Session> {
   const session = await getSession();
   if (!session.isAdmin) redirect("/");
+  return session;
+}
+
+/** Money (invoices, prices, payments, export): the owner only. Everyone else goes to their dashboard. */
+export async function requireOwner(): Promise<Session> {
+  const session = await getSession();
+  if (!session.canMoney) redirect("/");
   return session;
 }
 

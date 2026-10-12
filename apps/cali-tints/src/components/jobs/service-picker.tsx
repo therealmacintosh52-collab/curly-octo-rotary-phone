@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 export interface SelectedService {
   service_id: string;
   name: string;
+  /** 0 when the price list carries no prices (everyone but the owner). */
   list_price: number;
   /** Quoted range from the service; inside it no reason is needed. */
   price_min: number | null;
@@ -25,6 +26,8 @@ export interface SelectedService {
   override_reason: string | null;
   /** What it was, for open-amount services ("Other" → "Headlight restoration"); shown on the invoice. */
   label?: string | null;
+  /** "Other": no list price; the owner sets the amount. */
+  open_amount?: boolean;
 }
 
 /** True when a price needs no written reason (matches price_within_policy() in SQL). */
@@ -34,7 +37,8 @@ export function priceWithinPolicy(s: { list_price: number; price_min: number | n
 }
 
 /** True for open-ended services like "Other": no list price, any amount within a huge range. */
-export function isOpenAmount(s: { list_price?: number; price?: number | string; price_min: number | string | null; price_max: number | string | null }): boolean {
+export function isOpenAmount(s: { open_amount?: boolean; list_price?: number; price?: number | string | null; price_min: number | string | null; price_max: number | string | null }): boolean {
+  if (typeof s.open_amount === "boolean") return s.open_amount;
   const list = Number(s.list_price ?? s.price ?? 0);
   return list === 0 && s.price_min !== null && s.price_max !== null && Number(s.price_min) === 0 && Number(s.price_max) >= 10000;
 }
@@ -48,18 +52,22 @@ export function priceLabel(price: number, min: number | null, max: number | null
 /**
  * Multi-select service chips grouped by category (New / Used / Service lane /
  * Add-ons) with per-line price override. Tapping a chip toggles it; the
- * pencil opens the override dialog.
+ * pencil opens the override dialog. With `showMoney` off (everyone but the
+ * owner) the chips carry no prices and only "Other" opens a dialog, asking
+ * what was done; the owner sets its price later.
  */
 export function ServicePicker({
   priceList,
   value,
   onChange,
   disabled,
+  showMoney = true,
 }: {
   priceList: PriceListRow[];
   value: SelectedService[];
   onChange: (next: SelectedService[]) => void;
   disabled?: boolean;
+  showMoney?: boolean;
 }) {
   const [editing, setEditing] = useState<SelectedService | null>(null);
 
@@ -71,22 +79,23 @@ export function ServicePicker({
       const next: SelectedService = {
         service_id: row.service_id,
         name: row.name,
-        list_price: Number(row.price),
+        list_price: Number(row.price ?? 0),
         price_min: row.price_min === null ? null : Number(row.price_min),
         price_max: row.price_max === null ? null : Number(row.price_max),
-        price: Number(row.price),
+        price: Number(row.price ?? 0),
         override_reason: null,
         label: null,
+        open_amount: isOpenAmount(row),
       };
       onChange([...value, next]);
-      // Open-amount services ("Other") have no price until you type one.
+      // Open-amount services ("Other") have no price (or no label) until you type one.
       if (isOpenAmount(next)) setEditing(next);
     }
   }
 
   function closeDialog() {
-    // Cancelling the amount on an open-amount service deselects it rather than leaving a $0 line.
-    if (editing && isOpenAmount(editing) && editing.price === 0) onChange(value.filter((s) => s.service_id !== editing.service_id));
+    // Cancelling on an open-amount service deselects it rather than leaving a blank line.
+    if (editing && isOpenAmount(editing) && (showMoney ? editing.price === 0 : !editing.label)) onChange(value.filter((s) => s.service_id !== editing.service_id));
     setEditing(null);
   }
 
@@ -111,8 +120,10 @@ export function ServicePicker({
             <div className="grid grid-cols-2 gap-2.5">
               {g.rows.map((row) => {
                 const selected = value.find((s) => s.service_id === row.service_id);
-                const overridden = selected && selected.price !== selected.list_price;
+                const overridden = showMoney && selected && selected.price !== selected.list_price;
                 const ranged = row.price_min !== null && row.price_max !== null;
+                const open = isOpenAmount(row);
+                const sub = showMoney ? (selected ? formatMoney(selected.price) : priceLabel(Number(row.price ?? 0), row.price_min === null ? null : Number(row.price_min), row.price_max === null ? null : Number(row.price_max))) : open ? "Type what was done" : row.description;
                 return (
                   <m.div
                     key={row.service_id}
@@ -140,16 +151,18 @@ export function ServicePicker({
                         </AnimatePresence>
                         <span className="truncate">{selected?.label || row.name}</span>
                       </span>
-                      <span className={cn("text-caption tabular-nums", overridden ? "text-warning" : "text-muted-foreground")}>
-                        {selected ? formatMoney(selected.price) : priceLabel(Number(row.price), row.price_min === null ? null : Number(row.price_min), row.price_max === null ? null : Number(row.price_max))}
-                        {overridden && !ranged && <span className="ml-1 line-through opacity-60">{formatMoney(selected.list_price)}</span>}
-                      </span>
+                      {sub && (
+                        <span className={cn("truncate text-caption tabular-nums", overridden ? "text-warning" : "text-muted-foreground")}>
+                          {sub}
+                          {overridden && !ranged && <span className="ml-1 line-through opacity-60">{formatMoney(selected.list_price)}</span>}
+                        </span>
+                      )}
                     </button>
-                    {selected && (
+                    {selected && (showMoney || open) && (
                       <button
                         type="button"
                         onClick={() => setEditing(selected)}
-                        aria-label={`Change price for ${row.name}`}
+                        aria-label={showMoney ? `Change price for ${row.name}` : `Say what was done for ${row.name}`}
                         className="flex w-11 items-center justify-center border-l border-primary/30 text-primary/80 transition-colors hover:bg-primary/15"
                       >
                         <PencilLineIcon className="size-4" />
@@ -163,7 +176,7 @@ export function ServicePicker({
         ))}
       </div>
 
-      <OverrideDialog service={editing} onClose={closeDialog} onApply={applyOverride} />
+      <OverrideDialog service={editing} onClose={closeDialog} onApply={applyOverride} showMoney={showMoney} />
     </>
   );
 }
@@ -172,10 +185,12 @@ function OverrideDialog({
   service,
   onClose,
   onApply,
+  showMoney,
 }: {
   service: SelectedService | null;
   onClose: () => void;
   onApply: (s: SelectedService) => void;
+  showMoney: boolean;
 }) {
   const [price, setPrice] = useState("");
   const [reason, setReason] = useState("");
@@ -195,8 +210,35 @@ function OverrideDialog({
   const changed = Number.isFinite(parsed) && parsed !== service?.list_price;
   const needsReason = !!service && Number.isFinite(parsed) && !priceWithinPolicy(service, parsed);
   const open = !!service && isOpenAmount(service);
-  const valid = Number.isFinite(parsed) && (open ? parsed > 0 && label.trim().length > 0 : parsed >= 0) && (!needsReason || reason.trim().length > 0);
+  const valid = showMoney
+    ? Number.isFinite(parsed) && (open ? parsed > 0 && label.trim().length > 0 : parsed >= 0) && (!needsReason || reason.trim().length > 0)
+    : label.trim().length > 0;
   const ranged = !!service && service.price_min !== null && service.price_max !== null && !open;
+
+  // No money: only "what was done" is asked; the owner prices it later.
+  if (!showMoney) {
+    return (
+      <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>What was it?</DialogTitle>
+            <DialogDescription>{service?.name} · type what was done; that is what the invoice will say. The owner sets the price.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="override-label">
+              What was done <span className="text-destructive">*</span>
+            </Label>
+            <Input id="override-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Headlight restoration" maxLength={120} autoFocus />
+          </div>
+          <DialogFooter>
+            <Button disabled={!valid} onClick={() => service && onApply({ ...service, price: 0, override_reason: null, label: label.trim() })}>
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>

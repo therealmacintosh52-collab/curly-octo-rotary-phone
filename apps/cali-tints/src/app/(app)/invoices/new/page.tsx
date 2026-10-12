@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { InvoiceConflictRow } from "@/lib/db/types";
 import { Page, PageHeader } from "@/components/app/page-header";
@@ -32,7 +32,7 @@ export interface PreviewJob {
  */
 export default async function NewInvoicePage(props: PageProps<"/invoices/new">) {
   const sp = await props.searchParams;
-  const session = await requireAdmin();
+  const session = await requireOwner();
   const supabase = await createClient();
 
   const { data: dealerships } = await supabase.from("dealerships").select("*").eq("active", true).order("name");
@@ -48,13 +48,17 @@ export default async function NewInvoicePage(props: PageProps<"/invoices/new">) 
   let conflicts: InvoiceConflictRow[] = [];
   if (dealership) {
     const sel =
-      "id, tag_number, vin, year, make, model, performed_at, ro_po_number, dup_review_note, detailer:profiles!jobs_detailer_id_fkey(full_name), job_services(price, service:services(name))";
+      "id, tag_number, vin, year, make, model, performed_at, ro_po_number, dup_review_note, detailer:profiles!jobs_detailer_id_fkey(full_name), job_services(id, service:services(name))";
     const base = supabase.from("jobs").select(sel).eq("dealership_id", dealership.id).is("deleted_at", null).is("invoice_id", null).order("performed_at");
     // Batch mode previews the range; per-job mode shows everything pending.
     const { data } =
       dealership.invoice_mode === "per_job" ? await base : await base.gte("performed_at", `${from}T00:00:00`).lte("performed_at", `${to}T23:59:59.999`);
+    // Line prices come from the owner's view (job_services.price is not readable directly).
+    const ids = (data ?? []).map((j) => j.id);
+    const { data: priceRows } = ids.length ? await supabase.from("job_service_prices_v").select("job_service_id, price").in("job_id", ids) : { data: [] as { job_service_id: string; price: number }[] };
+    const priceOf = new Map((priceRows ?? []).map((r) => [r.job_service_id, Number(r.price)]));
     preview = (data ?? []).map((j) => {
-      const services = (j.job_services as unknown as { price: number; service: { name: string } | null }[]).map((s) => ({ name: s.service?.name ?? "", price: Number(s.price) }));
+      const services = (j.job_services as unknown as { id: string; service: { name: string } | null }[]).map((s) => ({ name: s.service?.name ?? "", price: priceOf.get(s.id) ?? 0 }));
       return {
         id: j.id,
         tag_number: j.tag_number,

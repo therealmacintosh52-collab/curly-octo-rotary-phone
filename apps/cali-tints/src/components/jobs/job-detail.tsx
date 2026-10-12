@@ -73,6 +73,7 @@ export function JobDetail(p: JobDetailProps) {
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-title tracking-wide">{title}</h1>
             {deleted ? <Badge variant="destructive">Deleted</Badge> : inv ? <Badge variant="info">{inv.display_number}</Badge> : <Badge variant="muted">Not invoiced yet</Badge>}
+            {canSeeMoney && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
           </div>
         </div>
         {canSeeMoney && (
@@ -94,7 +95,7 @@ export function JobDetail(p: JobDetailProps) {
       )}
 
       <div className="mt-5">
-        <JobActions job={job} priceList={p.priceList} detailers={p.detailers} isAdmin={isAdmin} canEdit={p.canEdit} canDelete={p.canDelete} canRestore={p.canRestore} lockedReason={!p.canEdit && !deleted && inv ? "On an invoice, so the job is locked" : null} />
+        <JobActions job={job} priceList={p.priceList} detailers={p.detailers} isAdmin={isAdmin} showMoney={canSeeMoney} canEdit={p.canEdit} canDelete={p.canDelete} canRestore={p.canRestore} lockedReason={!p.canEdit && !deleted && inv ? "On an invoice, so the job is locked" : null} />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_360px]">
@@ -162,8 +163,9 @@ export function JobDetail(p: JobDetailProps) {
                     <div className="min-w-0">
                       <div>{s.label || s.name}</div>
                       {canSeeMoney && s.override_reason && <div className="text-caption text-warning">Price changed: {s.override_reason}</div>}
+                      {canSeeMoney && s.needs_price && <div className="text-caption text-warning">Needs a price: tap Edit job and set the amount</div>}
                     </div>
-                    {canSeeMoney && <span className="shrink-0 tabular-nums">{formatMoney(s.price)}</span>}
+                    {canSeeMoney && <span className={cn("shrink-0 tabular-nums", s.needs_price && "text-warning")}>{s.needs_price ? "Set price" : formatMoney(s.price)}</span>}
                   </li>
                 ))}
               </ul>

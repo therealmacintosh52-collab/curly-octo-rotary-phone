@@ -1,15 +1,18 @@
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
+import Link from "next/link";
 import { JobForm } from "@/components/jobs/job-form";
-import type { Company, Dealership, PriceListRow, Profile } from "@/lib/db/types";
+import type { Company, Dealership, Profile } from "@/lib/db/types";
+import { priceListFixture } from "@/test/fixtures";
 
 /**
- * Development-only preview of the job form with fixture data, so the UI can
- * be iterated on (and screenshot-tested) without a Supabase project.
- * Returns 404 in production builds.
+ * Fixture preview of New job (guest demo in production). `?as=detailer`
+ * shows the form as everyone but the owner gets it: services, no prices.
  */
-export default function DevPreviewPage() {
+export default async function DevPreviewPage(props: PageProps<"/dev/preview">) {
+  const sp = await props.searchParams;
+  const asDetailer = sp.as === "detailer";
 
   const company: Company = {
     id: "00000000-0000-4000-8000-000000000001",
@@ -35,8 +38,8 @@ export default function DevPreviewPage() {
   const profile: Profile = {
     id: "10000000-0000-4000-8000-000000000001",
     company_id: company.id,
-    role: "owner",
-    full_name: "Mike",
+    role: asDetailer ? "detailer" : "owner",
+    full_name: asDetailer ? "Sam" : "Mike",
     email: "owner@example.com",
     active: true,
     guide_seen_at: null,
@@ -87,19 +90,10 @@ export default function DevPreviewPage() {
       updated_at: "",
     },
   ];
-  const list: PriceListRow[] = [
-    { service_id: "s1", name: "PDI", description: "New car pre-delivery inspection prep", category: "new", price: 60, price_min: null, price_max: null, is_override: false, sort_order: 10 },
-    { service_id: "s2", name: "Sold", description: "Delivery clean on a sold unit", category: "new", price: 20, price_min: null, price_max: null, is_override: false, sort_order: 20 },
-    { service_id: "s3", name: "Used", description: "Used car full detail", category: "used", price: 200, price_min: null, price_max: null, is_override: false, sort_order: 30 },
-    { service_id: "s4", name: "Service Loaner Detail", description: "Full detail on a service loaner", category: "service", price: 125, price_min: null, price_max: null, is_override: false, sort_order: 40 },
-    { service_id: "s5", name: "Touch Up Detail", description: "$20–40 by condition", category: "addon", price: 30, price_min: 20, price_max: 40, is_override: false, sort_order: 50 },
-    { service_id: "s6", name: "Tint Removal", description: "Strip old tint on a used unit", category: "addon", price: 40, price_min: null, price_max: null, is_override: false, sort_order: 60 },
-    { service_id: "s7", name: "Paint Correction (1-step)", description: "Single-stage machine polish; about $50", category: "addon", price: 50, price_min: 40, price_max: 60, is_override: false, sort_order: 70 },
-    { service_id: "s8", name: "Other", description: "Anything not on the menu; set the amount", category: "addon", price: 0, price_min: 0, price_max: 100000, is_override: false, sort_order: 80 },
-  ];
+  const list = priceListFixture(!asDetailer);
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: true, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: !asDetailer, canSettings: !asDetailer, canMoney: !asDetailer, demo: true }}>
       <SyncProvider>
         <AppShell>
           <JobForm
@@ -111,6 +105,18 @@ export default function DevPreviewPage() {
             ]}
             recentJobs={[]}
           />
+          <p className="pb-28 text-center text-caption text-muted-foreground">
+            Guest preview ·{" "}
+            {asDetailer ? (
+              <Link href="/jobs/new" className="text-primary underline-offset-4 hover:underline">
+                back to the owner view
+              </Link>
+            ) : (
+              <Link href="/jobs/new?as=detailer" className="text-primary underline-offset-4 hover:underline" data-testid="view-as-detailer">
+                see it as a detailer (no prices)
+              </Link>
+            )}
+          </p>
         </AppShell>
       </SyncProvider>
     </SessionProvider>

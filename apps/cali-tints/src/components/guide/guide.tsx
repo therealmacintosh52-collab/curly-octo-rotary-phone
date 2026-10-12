@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CheckIcon } from "lucide-react";
 import type { UserRole } from "@/lib/db/types";
-import { canManageSettings, isCompanyWide } from "@/lib/roles";
+import { canManageSettings, canSeeMoney, isCompanyWide } from "@/lib/roles";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +66,7 @@ function Outputs({ items }: { items: React.ReactNode[] }) {
 export function Guide({ role, name, welcome = false, roleSwitcher }: { role: UserRole; name: string; /** First sign-in: a "Got it" button at the end. */ welcome?: boolean; /** Guest preview only: the role picker. */ roleSwitcher?: React.ReactNode }) {
   const wide = isCompanyWide(role);
   const settings = canManageSettings(role);
+  const money = canSeeMoney(role);
   const first = name.trim().split(/\s+/)[0] || "there";
 
   const toc = [
@@ -73,7 +74,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
     { id: "dashboard", label: "Dashboard" },
     { id: "new", label: "New job" },
     { id: "jobs", label: "Jobs" },
-    ...(wide ? [{ id: "invoices", label: "Invoices" }, { id: "invoice", label: "One invoice" }] : []),
+    ...(money ? [{ id: "invoices", label: "Invoices" }, { id: "invoice", label: "One invoice" }] : []),
     ...(settings ? [{ id: "settings", label: "Settings" }] : []),
     { id: "status", label: "What the statuses mean" },
     { id: "help", label: "If something looks wrong" },
@@ -105,16 +106,23 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
           <Outputs items={["Your dashboard opens.", "The bottom bar shows only the screens your role can use."]} />
         </Section>
 
-        <Section id="dashboard" title="Dashboard" intro={wide ? "The day at a glance for the whole company. Every number opens the jobs behind it." : "Your own cars at a glance. Nobody else's work, no money."}>
+        <Section id="dashboard" title="Dashboard" intro={money ? "The day at a glance for the whole company. Every number opens the jobs behind it." : wide ? "The whole team's day at a glance: cars, not money." : "Your own cars at a glance. Nobody else's work, no money."}>
           <Inputs>
-            {wide ? (
+            {money ? (
               <>
                 <Row what="Today · This week · This month" does="Cars detailed, with the split by service (Used, PDI, Sold…). Tap one to see those cars in the Jobs list." />
                 <Row what="Still to collect · Not sent yet · Sent, unpaid" does="What the dealerships owe and where each invoice stands. Tap to see the list." />
                 <Row what="Paid · Collected · Overdue" does="Money received in the last 90 days, and invoices unpaid longer than the reminder period in Settings." />
                 <Row what="Income range (Week, Month, YTD…)" does="Changes the income tiles below it. The page stays where you are." />
                 <Row what="Breakdown · month picker" does="Revenue by service and by week for that month." />
+                <Row what="Jobs needing a price" does="Open jobs where someone logged Other without a price. Tap to see them; set the price with Edit job before the month closes." />
                 <Row what="New job button" does="Same as the New tab: log the next car." />
+              </>
+            ) : wide ? (
+              <>
+                <Row what="Today · This week · This month" does="Cars the team detailed, with the split by service. Tap one to see those cars in the Jobs list." />
+                <Row what="This month by detailer" does="Who logged how many cars today and this month." />
+                <Row what="Today's cars" does="Every car logged today, by anyone. Tap one to open the job." />
               </>
             ) : (
               <>
@@ -134,8 +142,8 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             <Row what="Stock number" does="The dealership's stock number for the car. Required. Type it or tap Scan barcode and point the camera at the window sticker or the stock tag." />
             <Row what="VIN" does="Optional. Type the 17 characters or scan the barcode; the year, make and model fill in on their own." />
             <Row what="Year · Make · Model · Color" does="Filled by the VIN when you scan. Make lists the common ones; pick Other to type a make that is not there." />
-            <Row what="Services" does="Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. The price comes from the price list. Pick Other and type what was done when it is not on the menu." />
-            <Row what="Price" does="Pre-filled from the dealership's price list. Change it only when the job was different; a reason is asked when the price is outside the normal range." />
+            <Row what="Services" does={money ? "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. The price comes from the price list. Pick Other and type what was done when it is not on the menu." : "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. No prices here; the owner's price list does that. Pick Other and type what was done when it is not on the menu."} />
+            {money && <Row what="Price" does="Pre-filled from the dealership's price list. Change it only when the job was different; a reason is asked when the price is outside the normal range. Other logged by someone else shows Needs a price until you set it." />}
             {wide && <Row what="Detailer" does="Who did the car. Defaults to you." />}
             <Row what="RO / PO number" does="Optional. The dealership's repair or purchase order, printed on the invoice." />
             <Row what="Notes" does="Optional. Anything the office should know. Printed on the invoice." />
@@ -166,7 +174,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
           <Outputs items={["Nothing changes by searching or filtering.", "On the 1st, every Not invoiced job from the month moves to Invoiced on its own."]} />
         </Section>
 
-        {wide && (
+        {money && (
           <Section id="invoices" title="Invoices" only="Owner" intro="One invoice per dealership per month, made on the 1st from that month's jobs.">
             <Inputs>
               <Row what="This month so far" does="Each dealership's jobs waiting for the 1st, with the running total. Invoice now closes a dealership early (the rest of the month then gets a second invoice)." />
@@ -179,7 +187,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
           </Section>
         )}
 
-        {wide && (
+        {money && (
           <Section id="invoice" title="One invoice" only="Owner" intro="One month for one dealership: every car and service, where the money stands, and every email and payment.">
             <Inputs>
               <Row what="Where it stands" does="Three steps: Logged, Sent to the dealership, Paid. The current step is highlighted with the date." />
@@ -198,9 +206,9 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             <Inputs>
               <Row what="Company" does="Name, address, phone, billing email and EIN as they print on invoices. Monthly invoicing: email each month's invoice automatically, Run month close. Tax rate, invoice number prefix, overdue reminder days, timezone, logo." />
               <Row what="Dealerships" does="Each dealership's AP contact and emails (where invoices go), how they want invoices (email, portal, paper) and a tax override." />
-              <Row what="Services & prices" does="The menu and its prices, plus a per-dealership price grid. A service can have a normal range; prices outside it ask for a reason." />
-              <Row what="Users" does="Add people with a password or an email invite. Roles: Detailer (own cars), Manager (every invoice, sending, no Settings), Admin (everything), Owner. Deactivate to block sign-in without losing history." />
-              <Row what="Export" does="Every table as CSV for the accountant." />
+              {money && <Row what="Services & prices" does="The menu and its prices, plus a per-dealership price grid. A service can have a normal range; prices outside it ask for a reason. Owner only." />}
+              <Row what="Users" does="Add people with a password or an email invite. Roles: Detailer (own cars), Manager (every job, no money, no Settings), Admin (everything but money), Owner (the only one who sees money). Deactivate to block sign-in without losing history." />
+              {money && <Row what="Export" does="Every table as CSV for the accountant. Owner only." />}
             </Inputs>
             <Outputs items={["Changes apply immediately to new invoices; existing invoices keep the details they were made with."]} />
           </Section>

@@ -8,7 +8,7 @@ import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
 import { useSession } from "@/components/app/session-provider";
-import { isOwnerAdmin } from "@/lib/roles";
+import { isOwner, isOwnerAdmin } from "@/lib/roles";
 import { SlidingIndicator, useIndicatorReady } from "@/components/motion/sliding-indicator";
 import { cn } from "@/lib/utils";
 
@@ -19,18 +19,20 @@ interface NavItem {
   short?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
-  /** Owner and admin only (managers run invoicing but never Settings). */
+  /** Owner and admin only (managers never see Settings). */
   ownerAdminOnly?: boolean;
+  /** The owner only (money). */
+  ownerOnly?: boolean;
   /** Match nested routes too. */
   prefix?: boolean;
 }
 
-/** Jobs by the day, invoices by the month. Detailers see Dashboard (their own jobs) + New + Jobs (their own). */
+/** Jobs by the day, invoices by the month (owner only). Detailers see Dashboard (their own jobs) + New + Jobs (their own). */
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/jobs/new", label: "New job", short: "New", icon: PlusCircleIcon },
   { href: "/jobs", label: "Jobs", icon: CarFrontIcon, prefix: true },
-  { href: "/invoices", label: "Invoices", icon: FileTextIcon, adminOnly: true, prefix: true },
+  { href: "/invoices", label: "Invoices", icon: FileTextIcon, ownerOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, ownerAdminOnly: true, prefix: true },
 ];
 
@@ -49,7 +51,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { profile, company, isAdmin } = useSession();
   const ownerAdmin = isOwnerAdmin(profile.role);
-  const items = NAV.filter((i) => (isAdmin || !i.adminOnly) && (ownerAdmin || !i.ownerAdminOnly));
+  const owner = isOwner(profile.role);
+  const items = NAV.filter((i) => (isAdmin || !i.adminOnly) && (ownerAdmin || !i.ownerAdminOnly) && (owner || !i.ownerOnly));
   const home = "/";
   const sideRef = useRef<HTMLElement>(null);
   const tabRef = useRef<HTMLElement>(null);

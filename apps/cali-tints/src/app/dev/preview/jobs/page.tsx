@@ -32,14 +32,22 @@ const DETAILERS = [
   { id: "u5", full_name: "Sam" },
 ];
 
-/** Fixture preview of the Jobs list (guest demo in production). `?as=detailer` shows Sam's own jobs. */
+/** Fixture preview of the Jobs list (guest demo in production). `?as=team` is an admin's view, `?as=detailer` Sam's own jobs. */
 export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs">) {
   const sp = await props.searchParams;
   const typed = parseJobFilters(sp);
   const { company } = invoiceBundleFixture();
   const asDetailer = sp.as === "detailer";
-  const profile = (asDetailer ? { id: "u5", company_id: company.id, role: "detailer", full_name: "Sam", email: null, active: true } : { id: "u1", company_id: company.id, role: "owner", full_name: "Mike", email: null, active: true }) as Profile;
+  const asTeam = sp.as === "team";
+  const profile = (asDetailer
+    ? { id: "u5", company_id: company.id, role: "detailer", full_name: "Sam", email: null, active: true }
+    : asTeam
+      ? { id: "u4", company_id: company.id, role: "admin", full_name: "Manny", email: null, active: true }
+      : { id: "u1", company_id: company.id, role: "owner", full_name: "Mike", email: null, active: true }) as Profile;
   const isAdmin = !asDetailer;
+  const canMoney = !asDetailer && !asTeam;
+  // The owner sees which open jobs still need a price (fixture: the one logged with "Other").
+  const flagged = canMoney ? jobListFixture().filter((r) => r.services.includes("Other") && !r.invoice_id && !r.deleted).map((r) => r.id) : [];
 
   const today = toDateInput(new Date());
   const filters = resolveJobFilters(typed, today);
@@ -65,7 +73,7 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : []))).toString();
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin, canSettings: isAdmin, canMoney, demo: true }}>
       <SyncProvider>
         <AppShell>
           <Page>
@@ -91,7 +99,7 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
               >
                 <JobFilters filters={typed} searchDate={filters.searchDate} services={SERVICES} dealerships={DEALERSHIPS} detailers={DETAILERS} isAdmin={isAdmin} />
               </Suspense>
-              <JobList rows={rows.slice(0, 50)} page={1} count={rows.length} params={params} isAdmin={isAdmin} filtered={filtered} today={today} />
+              <JobList rows={rows.slice(0, 50)} page={1} count={rows.length} params={params} isAdmin={isAdmin} filtered={filtered} today={today} flagged={flagged} />
             </div>
           </Page>
         </AppShell>

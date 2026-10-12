@@ -6,7 +6,7 @@ export default async function SettingsLayout({ children }: LayoutProps<"/setting
   await requireOwnerAdmin();
   return (
     <Page>
-      <PageHeader title="Settings" description="Company profile, dealerships, price list, users and data export." />
+      <PageHeader title="Settings" description="Company profile, dealerships, users; for the owner also the price list and data export." />
       <div className="mt-5">
         <SettingsNav />
       </div>

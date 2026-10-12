@@ -15,7 +15,7 @@ export default async function DevInvoiceByIdPreview(props: PageProps<"/dev/previ
   const p = monthProps(row, base);
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company: base.company, isAdmin: true, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company: base.company, isAdmin: true, canSettings: true, canMoney: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <InvoiceDetail {...p} />

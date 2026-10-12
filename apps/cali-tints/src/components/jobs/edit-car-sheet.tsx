@@ -36,7 +36,7 @@ export interface EditableCar {
   performed_at: string;
   ro_po_number: string | null;
   notes: string | null;
-  services: { service_id: string; name: string; price: number; override_reason: string | null; label?: string | null }[];
+  services: { service_id: string; name: string; price: number; override_reason: string | null; label?: string | null; needs_price?: boolean }[];
 }
 
 /**
@@ -54,6 +54,7 @@ export function EditCarSheet({
   save,
   onClose,
   onSaved,
+  showMoney = true,
 }: {
   car: EditableCar;
   priceList: PriceListRow[];
@@ -64,6 +65,8 @@ export function EditCarSheet({
   save: (input: UpdateJobInput) => Promise<ActionResult>;
   onClose: () => void;
   onSaved?: () => void;
+  /** Owner only: prices on the chips and the override dialog. */
+  showMoney?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -93,6 +96,7 @@ export function EditCarSheet({
       price: s.price,
       override_reason: s.override_reason,
       label: s.label ?? null,
+      open_amount: listRow(s.service_id)?.open_amount,
     })),
   );
 
@@ -117,7 +121,7 @@ export function EditCarSheet({
         services: services.map((s) => ({ service_id: s.service_id, price: s.price, override_reason: s.override_reason, label: s.label ?? null })),
       });
       if (r.ok) {
-        toast.success("Invoice updated");
+        toast.success("Saved");
         onClose();
         onSaved?.();
         router.refresh();
@@ -232,7 +236,7 @@ export function EditCarSheet({
           </div>
           <div className="grid gap-2">
             <Label>Services</Label>
-            <ServicePicker priceList={priceList} value={services} onChange={setServices} />
+            <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={showMoney} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="e-notes">Notes</Label>

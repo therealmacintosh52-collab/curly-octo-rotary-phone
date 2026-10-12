@@ -4,7 +4,7 @@
  * keep this file in sync by hand; it is the single source of truth for the app.
  */
 
-/** owner/admin: everything. manager: the day (dashboard, invoices) but not Settings. detailer: their own cars. */
+/** owner: everything, and the only one who sees money. admin: Settings, users, every job. manager: every job. detailer: their own cars. */
 export type UserRole = "owner" | "admin" | "manager" | "detailer";
 export type JobStatus = "logged" | "invoiced";
 export type InvoiceStatus = "draft" | "submitted" | "partial" | "paid" | "void";
@@ -142,7 +142,32 @@ export type JobService = {
   override_reason: string | null;
   /** What an open-amount service ("Other") actually was; shown on the invoice in place of the name. */
   label: string | null;
+  /** Logged by a non-owner on an open-amount service: the owner still has to set the price. */
+  needs_price: boolean;
   created_at: string;
+}
+
+/** The owner's window onto service prices (view service_prices_v; empty for everyone else). */
+export type ServicePriceRow = {
+  service_id: string;
+  company_id: string;
+  default_price: number;
+  price_min: number | null;
+  price_max: number | null;
+}
+
+/** The owner's window onto job line prices (view job_service_prices_v; empty for everyone else). */
+export type JobServicePriceRow = {
+  job_service_id: string;
+  job_id: string;
+  service_id: string;
+  company_id: string;
+  dealership_id: string;
+  invoice_id: string | null;
+  deleted_at: string | null;
+  price: number;
+  override_reason: string | null;
+  needs_price: boolean;
 }
 
 export type JobPhoto = {
@@ -258,17 +283,19 @@ export type AuditLog = {
   created_at: string;
 }
 
-/** Shape returned by dealership_price_list(). */
+/** Shape returned by dealership_price_list(). Prices are null for everyone but the owner. */
 export type PriceListRow = {
   service_id: string;
   name: string;
   description: string | null;
   category: ServiceCategory;
-  price: number;
+  price: number | null;
   price_min: number | null;
   price_max: number | null;
   is_override: boolean;
   sort_order: number;
+  /** "Other": no list price, any amount; the owner sets it. */
+  open_amount: boolean;
 }
 
 /** Shape returned by find_duplicate_jobs(). */
@@ -457,11 +484,17 @@ export type Database = {
       vin_cache: Table<VinCache>;
       audit_log: Table<AuditLog>;
     };
-    Views: Record<string, never>;
+    Views: {
+      service_prices_v: { Row: ServicePriceRow; Relationships: [] };
+      job_service_prices_v: { Row: JobServicePriceRow; Relationships: [] };
+    };
     Functions: {
       current_company_id: { Args: Record<string, never>; Returns: string | null };
       current_user_role: { Args: Record<string, never>; Returns: UserRole | null };
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      is_owner: { Args: Record<string, never>; Returns: boolean };
+      job_invoice_number: { Args: { p_job_id: string }; Returns: string | null };
+      jobs_needing_price: { Args: Record<string, never>; Returns: number };
       is_member: { Args: Record<string, never>; Returns: boolean };
       resolve_service_price: { Args: { p_dealership_id: string; p_service_id: string }; Returns: number | null };
       dealership_price_list: { Args: { p_dealership_id: string }; Returns: PriceListRow[] };
@@ -533,18 +566,6 @@ export type Database = {
       };
       close_month: { Args: { p_company: string; p_through?: string | null }; Returns: string[] };
       invoice_now: { Args: { p_dealership_id: string }; Returns: string };
-      jobs_filter_summary: {
-        Args: {
-          p_q?: string | null;
-          p_service?: string | null;
-          p_detailer?: string | null;
-          p_dealership?: string | null;
-          p_from?: string | null;
-          p_to?: string | null;
-          p_status?: string;
-        };
-        Returns: { jobs: number; revenue: number };
-      };
     };
     Enums: {
       user_role: UserRole;

@@ -10,6 +10,19 @@ create or replace function pg_temp.logout() returns void language sql as $$
   select set_config('role', 'postgres', false);
   select set_config('request.jwt.claims', '', false);
 $$;
+-- Price columns are not readable by app users (0029); the tests peek at them as postgres.
+create or replace function pg_temp.js_price(p_job uuid, p_service uuid default null) returns numeric
+language sql security definer as $$
+  select price from public.job_services where job_id = p_job and (p_service is null or service_id = p_service) limit 1;
+$$;
+create or replace function pg_temp.js_reason(p_job uuid, p_service uuid default null) returns text
+language sql security definer as $$
+  select override_reason from public.job_services where job_id = p_job and (p_service is null or service_id = p_service) limit 1;
+$$;
+create or replace function pg_temp.svc_price(p_service uuid) returns numeric
+language sql security definer as $$
+  select default_price from public.services where id = p_service;
+$$;
 
 -- Fixture users (trigger creates profiles) -----------------------------------
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -52,8 +65,14 @@ begin
   assert j.vin = 'W1KZF8DB5NA123456', 'vin uppercased';
   assert j.detailer_id = auth.uid(), 'detailer is self';
   select count(*) into n from public.job_services where job_id = j.id; assert n = 2, 'two services';
-  assert (select price from public.job_services where job_id = j.id and service_id = '00000000-0000-4000-8000-000000000201') = 200.00, 'default price applied';
-  assert (select override_reason from public.job_services where job_id = j.id and service_id = '00000000-0000-4000-8000-000000000204') = 'Manager approved', 'override reason kept';
+  assert pg_temp.js_price(j.id, '00000000-0000-4000-8000-000000000201') = 200.00, 'default price applied';
+  -- 0029: a detailer's price is ignored; the list price is used and no reason is kept
+  assert pg_temp.js_price(j.id, '00000000-0000-4000-8000-000000000204') = 60.00 and pg_temp.js_reason(j.id, '00000000-0000-4000-8000-000000000204') is null, '0029: detailer price ignored, list price used';
+  begin
+    perform price from public.job_services where job_id = j.id;
+    raise exception 'expected price column to be unreadable';
+  exception when sqlstate '42501' then null; end;
+  assert (select needs_price from public.job_services where job_id = j.id and service_id = '00000000-0000-4000-8000-000000000201') = false, '0029: a priced service needs no price';
 
   -- idempotent retry returns the same row
   j2 := public.create_job(jsonb_build_object('client_id', '20000000-0000-4000-8000-000000000001',
@@ -67,26 +86,33 @@ begin
   select count(*) into n from public.find_duplicate_jobs('other', 'W1KZF8DB5NA123456', null); assert n = 1, 'dup by vin';
   select count(*) into n from public.find_duplicate_jobs('other', null, null); assert n = 0, 'no dup';
 
-  -- price override without reason is rejected
+  -- 0029: whatever price a detailer sends (below the list, in range, out of range) the list price is saved
   begin
-    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'B1',
+    j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'B1',
       'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 10))));
-    raise exception 'expected override rejection';
-  exception when sqlstate '22023' then null; end;
-
-  -- price range: inside the range no reason needed; outside it is required
-  begin
+    assert pg_temp.js_price(j2.id) = 200.00, '0029: low price ignored';
     j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'TU1',
         'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 35))));
-    assert (select price from public.job_services where job_id = j2.id) = 35.00 and (select override_reason from public.job_services where job_id = j2.id) is null, 'in-range price accepted without reason';
+    assert pg_temp.js_price(j2.id) = 30.00 and pg_temp.js_reason(j2.id) is null, '0029: in-range price ignored too';
+    j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'TU2',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 55))));
+    assert pg_temp.js_price(j2.id) = 30.00, '0029: out-of-range price ignored, no error';
+    -- "Other" has no list price: the owner gets a flag to fill it in
+    j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OTH0',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000212', 'price', 80, 'label', 'Wheel repair'))));
+    assert pg_temp.js_price(j2.id) = 0 and (select needs_price from public.job_services where job_id = j2.id), '0029: open-amount service needs a price';
+    assert (select label from public.job_services where job_id = j2.id) = 'Wheel repair', '0029: the label is kept';
     raise exception 'rollback fixture' using errcode = 'P0999';   -- keep later counts unchanged
   exception when sqlstate 'P0999' then null; end;
+  -- the price list shows names but no prices to a detailer
+  assert (select count(*) from public.dealership_price_list('00000000-0000-4000-8000-000000000101')) >= 5, 'price list has the menu';
+  assert (select count(*) from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where price is not null or price_min is not null or price_max is not null or is_override) = 0, '0029: price list hides prices from detailers';
+  assert (select open_amount from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Other') and not (select open_amount from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Used'), '0029: open-amount flag still tells Other apart';
   begin
-    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'TU2',
-      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 55))));
-    raise exception 'expected out-of-range rejection';
-  exception when sqlstate '22023' then null; end;
-  assert (select price_max from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Touch Up Detail') = 40.00, 'price list range';
+    perform public.resolve_service_price('00000000-0000-4000-8000-000000000101', '00000000-0000-4000-8000-000000000201');
+    raise exception 'expected resolve_service_price to be internal';
+  exception when sqlstate '42501' then null; end;
+  assert (select count(*) from public.service_prices_v) = 0, '0029: price view empty for detailers';
 
   -- per-job dealership no longer requires an RO/PO (0008); rolled back so later counts hold
   begin
@@ -99,13 +125,18 @@ begin
   -- dealership price override resolves (Sacramento full detail = 165)
   j2 := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'B2', 'ro_po_number', 'RO-77',
       'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-  assert (select price from public.job_services where job_id = j2.id) = 215.00, 'dealership price used';
+  assert pg_temp.js_price(j2.id) = 215.00, 'dealership price used';
 
   -- detailer cannot read invoices / audit / edit services
   select count(*) into n from public.invoices; assert n = 0, 'invoices hidden (rls)';
   select count(*) into n from public.audit_log; assert n = 0, 'audit hidden (rls)';
   update public.services set default_price = 1 where id = '00000000-0000-4000-8000-000000000201';
-  assert (select default_price from public.services where id = '00000000-0000-4000-8000-000000000201') = 200.00, 'detailer cannot change prices';
+  assert pg_temp.svc_price('00000000-0000-4000-8000-000000000201') = 200.00, 'detailer cannot change prices';
+  begin
+    perform default_price from public.services where id = '00000000-0000-4000-8000-000000000201';
+    raise exception 'expected default_price to be unreadable';
+  exception when sqlstate '42501' then null; end;
+  assert (select name from public.services where id = '00000000-0000-4000-8000-000000000201') = 'Used', 'service names stay readable';
   begin
     perform public.generate_invoice('00000000-0000-4000-8000-000000000101', '2000-01-01', '2100-01-01');
     raise exception 'expected admin-only';
@@ -146,12 +177,35 @@ begin
   select count(*) into n from public.jobs; assert n = 3, 'admin sees all jobs';
   select count(*) into n from public.audit_log where table_name = 'jobs'; assert n >= 3, 'audit rows written';
 
-  -- batch invoice for El Dorado Hills (2 jobs: A123 @ 230 (200 + 30 override), C9 @ 125)
+  -- 0029: the owner's price overrides follow the policy (reason outside the range, none inside)
+  begin
+    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OV1',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 10))));
+    raise exception 'expected override rejection';
+  exception when sqlstate '22023' then null; end;
+  begin
+    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OV2',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 55))));
+    raise exception 'expected out-of-range rejection';
+  exception when sqlstate '22023' then null; end;
+  begin
+    v_job := (public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OV3',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 35),
+                                    jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 150, 'override_reason', 'Repeat customer'))))).id;
+    assert (select price from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000210') = 35.00, '0029: owner in-range price kept';
+    assert (select price from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000201') = 150.00
+       and (select override_reason from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000201') = 'Repeat customer', '0029: owner override with reason kept';
+    assert (select price_max from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Touch Up Detail') = 40.00, 'price list range (owner)';
+    assert (select default_price from public.service_prices_v where service_id = '00000000-0000-4000-8000-000000000201') = 200.00, '0029: owner reads prices through the view';
+    raise exception 'rollback fixture' using errcode = 'P0999';
+  exception when sqlstate 'P0999' then null; end;
+
+  -- batch invoice for El Dorado Hills (2 jobs: A123 @ 260 (200 + 60, the detailer's 30 was ignored), C9 @ 125)
   v_inv := public.generate_invoice('00000000-0000-4000-8000-000000000101', (current_date - 30), current_date + 1, 'September batch');
   select * into inv from public.invoices where id = v_inv;
   assert inv.display_number = 'INV-000001', 'first number: ' || inv.display_number;
-  assert inv.subtotal = 355.00, 'subtotal ' || inv.subtotal;
-  assert inv.tax = 0 and inv.total = 355.00, 'tax 0 by default';
+  assert inv.subtotal = 385.00, 'subtotal ' || inv.subtotal;
+  assert inv.tax = 0 and inv.total = 385.00, 'tax 0 by default';
   assert inv.status = 'draft', 'draft';
   select count(*) into n from public.invoice_items where invoice_id = v_inv; assert n = 3, 'three snapshot lines';
   select count(*) into n from public.jobs where invoice_id = v_inv and status = 'invoiced'; assert n = 2, 'jobs linked+invoiced';
@@ -195,13 +249,13 @@ begin
     perform public.void_invoice(v_inv, 'oops');
     raise exception 'expected void block with payments';
   exception when sqlstate 'P0001' then null; end;
-  perform public.record_payment(v_inv, 255, current_date, 'ach');
+  perform public.record_payment(v_inv, 285, current_date, 'ach');
   select * into inv from public.invoices where id = v_inv;
-  assert inv.status = 'paid' and inv.paid_at is not null and inv.amount_paid = 355, 'paid';
+  assert inv.status = 'paid' and inv.paid_at is not null and inv.amount_paid = 385, 'paid';
   -- removing a payment reverts status
   delete from public.invoice_payments where id = v_pay;
   select * into inv from public.invoices where id = v_inv;
-  assert inv.status = 'partial' and inv.amount_paid = 255, 'payment removal recomputes';
+  assert inv.status = 'partial' and inv.amount_paid = 285, 'payment removal recomputes';
 
   -- per-job mode for Sacramento: two jobs on RO-77, one on RO-88, one with none → 3 invoices
   perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000102', 'tag_number', 'D1', 'ro_po_number', 'RO-77',
@@ -251,9 +305,6 @@ begin
   assert (select (public.dashboard_stats('2000-01-01', current_date) -> 'income' ->> 'collected')::numeric)
          = (select coalesce(sum(amount), 0) from public.invoice_payments where company_id = public.current_company_id()), 'income collected = payments';
   assert jsonb_array_length(public.dashboard_stats('2000-01-01', current_date) -> 'collected_by_day') >= 1, 'collected by day rows';
-  assert (public.jobs_filter_summary() ->> 'jobs')::int >= 3, 'filter summary counts';
-  assert (public.jobs_filter_summary(null, '00000000-0000-4000-8000-000000000201') ->> 'jobs')::int >= 1, 'filter summary by service';
-  assert (public.jobs_filter_summary(null, null, null, null, null, null, 'invoiced') ->> 'revenue')::numeric > 0, 'filter summary invoiced revenue';
 
   -- price list resolution
   assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000102') where name = 'Used') = 215.00, 'price list override';
@@ -344,68 +395,70 @@ begin
   assert (select count(*) from t_ids) = 1, 'fixture: another draft invoice';
 end $$;
 
--- Detailer 2 logs a car: it is an invoice at once, visible and fixable by them.
+-- Detailer 2 logs a car: it is an invoice at once, but the invoice itself is the owner's (0029).
 select pg_temp.login('10000000-0000-4000-8000-000000000003');
 do $$
-declare j public.jobs; j2 public.jobs; inv public.invoices; n int; f jsonb; v_num text; v_mine int;
+declare j public.jobs; j2 public.jobs; n int; v_num text;
 begin
   j := public.create_job(jsonb_build_object('client_id', '20000000-0000-4000-8000-000000000099',
         'dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'car1', 'model', 'GLE 450', 'performed_at', now(),
         'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
   assert j.invoice_id is not null and j.status = 'invoiced', 'car is invoiced on save';
-  select * into inv from public.invoices where id = j.invoice_id;
-  assert inv.id is not null, 'detailer can read the invoice for their own car (rls)';
-  assert inv.status = 'draft' and inv.period_start = inv.period_end, 'one-day draft';
-  assert inv.total = (select sum(price) from public.job_services where job_id = j.id), 'invoice total = the car''s services';
-  select count(*) into n from public.invoice_items where invoice_id = inv.id; assert n = 1, 'detailer sees the line (rls)';
-  v_num := inv.display_number;
+  select count(*) into n from public.invoices where id = j.invoice_id; assert n = 0, '0029: the invoice is hidden from the detailer (rls)';
+  select count(*) into n from public.invoice_items where invoice_id = j.invoice_id; assert n = 0, '0029: its lines too';
+  v_num := public.job_invoice_number(j.id);
+  assert v_num like 'INV-%', '0029: the detailer still learns the invoice number: ' || coalesce(v_num, 'null');
 
   -- retry with the same client_id (offline sync): same car, same invoice
   j2 := public.create_job(jsonb_build_object('client_id', '20000000-0000-4000-8000-000000000099',
         'dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ZZZ',
         'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
-  assert j2.id = j.id and j2.invoice_id = inv.id, 'retry keeps one invoice';
-  select count(*) into n from public.invoices where id = inv.id; assert n = 1, 'no duplicate invoice';
+  assert j2.id = j.id and j2.invoice_id = j.invoice_id, 'retry keeps one invoice';
 
-  -- fix a typo and add a service: lines re-snapshotted, number unchanged, car locked again
+  -- an invoiced car is locked, and fixing it through the invoice is the owner's job now
+  begin
+    update public.jobs set notes = 'x' where id = j.id;
+    raise exception 'expected lock';
+  exception when sqlstate 'P0001' then null; end;
+  begin
+    perform public.edit_invoice_car(j.invoice_id, jsonb_build_object('tag_number', 'car1x'));
+    raise exception 'expected owner-only';
+  exception when sqlstate '42501' then null; end;
+  begin
+    perform public.invoices_filtered();
+    raise exception 'expected owner-only list';
+  exception when sqlstate '42501' then null; end;
+  begin
+    perform public.delete_invoice_car(j.invoice_id, 'x');
+    raise exception 'expected owner-only';
+  exception when sqlstate '42501' then null; end;
+  insert into t_ids values ('det_inv', j.invoice_id);
+  insert into t_ids values ('det_job', j.id);
+
+  -- 0023: my own dashboard shows this car (logged today) and nothing about money
+  assert (public.my_dashboard() -> 'today' ->> 'cars')::int >= 1, 'my dashboard: cars today';
+  assert (select count(*) from jsonb_array_elements(public.my_dashboard() -> 'today_cars') e where e ->> 'invoice_id' = j.invoice_id::text and e ->> 'tag' = 'CAR1') = 1, 'my dashboard: my car listed';
+  assert (select count(*) from jsonb_array_elements(public.my_dashboard() -> 'today' -> 'by_service') e where e ->> 'name' = 'Used') = 1, 'my dashboard: by service';
+  assert not (public.my_dashboard() ? 'unpaid_total') and not (public.my_dashboard() -> 'today' ? 'revenue'), 'my dashboard: no money';
+end $$;
+
+-- The owner fixes the detailer's car through its invoice: lines re-snapshotted, number unchanged, car locked again.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare inv public.invoices; n int; v_num text; v_job uuid := (select v from t_ids where k = 'det_job');
+begin
+  select * into inv from public.invoices where id = (select v from t_ids where k = 'det_inv');
+  assert inv.status = 'draft' and inv.period_start = inv.period_end, 'one-day draft';
+  assert inv.total = (select sum(price) from public.job_service_prices_v where job_id = v_job), 'invoice total = the car''s services';
+  v_num := inv.display_number;
   inv := public.edit_invoice_car(inv.id, jsonb_build_object('tag_number', 'car1x',
            'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'),
                                          jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000209'))));
   assert inv.display_number = v_num, 'invoice number unchanged';
   select count(*) into n from public.invoice_items where invoice_id = inv.id; assert n = 2, 'two lines after the edit';
   assert (select count(*) from public.invoice_items where invoice_id = inv.id and tag_number = 'CAR1X') = 2, 're-snapshotted tag';
-  assert inv.subtotal = (select sum(price) from public.job_services where job_id = j.id) and inv.total = inv.subtotal, 'totals recomputed: ' || inv.total;
-  assert (select invoice_id from public.jobs where id = j.id) = inv.id and (select status from public.jobs where id = j.id) = 'invoiced', 'car relinked and locked';
-  begin
-    update public.jobs set notes = 'x' where id = j.id;
-    raise exception 'expected lock';
-  exception when sqlstate 'P0001' then null; end;
-
-  -- the list shows only invoices carrying my cars
-  f := public.invoices_filtered();
-  select count(distinct invoice_id) into v_mine from public.jobs where detailer_id = auth.uid() and invoice_id is not null and deleted_at is null;
-  assert (f ->> 'count')::int = v_mine and v_mine >= 2, 'detailer list = own invoices: ' || (f ->> 'count') || ' vs ' || v_mine;
-  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = inv.id::text) = 1, 'own invoice listed';
-  assert (select count(*) from public.invoices) = v_mine, 'rls: detailer sees exactly the invoices with their cars';
-  assert (select (r ->> 'car_count')::int from jsonb_array_elements(f -> 'rows') r where r ->> 'id' = inv.id::text) = 1, 'new rows are one car each';
-  assert (select count(*) from jsonb_array_elements(f -> 'rows') r where (r ->> 'car_count')::int = 2) = 1, 'the old two-car batch invoice (C9 + A123) still lists, with both cars';
-
-  -- not theirs to delete, and not their car to edit
-  begin
-    perform public.delete_invoice_car(inv.id, 'x');
-    raise exception 'expected admin-only';
-  exception when sqlstate '42501' then null; end;
-  begin
-    perform public.edit_invoice_car((select v from t_ids where k = 'other_draft'), '{"notes":"x"}'::jsonb);
-    raise exception 'expected own-car-only';
-  exception when sqlstate '42501' then null; end;
-  insert into t_ids values ('det_inv', inv.id);
-
-  -- 0023: my own dashboard shows this car (logged today) and nothing about money
-  assert (public.my_dashboard() -> 'today' ->> 'cars')::int >= 1, 'my dashboard: cars today';
-  assert (select count(*) from jsonb_array_elements(public.my_dashboard() -> 'today_cars') e where e ->> 'invoice_id' = inv.id::text and e ->> 'tag' = 'CAR1X') = 1, 'my dashboard: my car listed';
-  assert (select count(*) from jsonb_array_elements(public.my_dashboard() -> 'today' -> 'by_service') e where e ->> 'name' = 'Sold') = 1, 'my dashboard: by service';
-  assert not (public.my_dashboard() ? 'unpaid_total') and not (public.my_dashboard() -> 'today' ? 'revenue'), 'my dashboard: no money';
+  assert inv.subtotal = (select sum(price) from public.job_service_prices_v where job_id = v_job) and inv.total = inv.subtotal, 'totals recomputed: ' || inv.total;
+  assert (select invoice_id from public.jobs where id = v_job) = inv.id and (select status from public.jobs where id = v_job) = 'invoiced', 'car relinked and locked';
 end $$;
 
 -- Owner: logging, fixing, removing, the list and the dashboard.
@@ -534,15 +587,30 @@ begin
   assert n = 0, 'other detailer''s car not on my dashboard';
 end $$;
 
--- 0024: a manager runs the day (every invoice, payments, dashboard) but cannot touch settings.
+-- 0024/0029: a manager runs the day (every job, the team dashboard) but sees no money and cannot touch settings.
 select pg_temp.login('10000000-0000-4000-8000-000000000004');
 do $$
 declare n int; total int; r record;
 begin
-  assert public.is_admin() and not public.is_owner_admin(), 'manager: admin for the day, not for settings';
-  select count(*) into n from public.invoices; assert n >= 3, 'manager sees every invoice';
-  select count(*) into n from public.invoice_payments; assert n >= 1, 'manager sees payments';
-  assert (public.dashboard_stats() ->> 'unpaid_invoices')::int >= 1, 'manager gets the owner dashboard';
+  assert public.is_admin() and not public.is_owner_admin() and not public.is_owner(), 'manager: admin for the day, not for settings or money';
+  select count(*) into n from public.invoices; assert n = 0, '0029: manager sees no invoices';
+  select count(*) into n from public.invoice_payments; assert n = 0, '0029: manager sees no payments';
+  select count(*) into n from public.audit_log; assert n = 0, '0029: manager sees no audit log';
+  select count(*) into n from public.dealership_service_prices; assert n = 0, '0029: manager sees no dealership prices';
+  select count(*) into n from public.service_prices_v; assert n = 0, '0029: price views empty for a manager';
+  select count(*) into n from public.job_service_prices_v; assert n = 0, '0029: job price view empty for a manager';
+  begin
+    perform public.dashboard_stats();
+    raise exception 'expected owner-only dashboard';
+  exception when sqlstate '42501' then null; end;
+  select count(*) into n from public.uninvoiced_jobs('00000000-0000-4000-8000-000000000102', '2000-01-01', current_date); assert n = 0, '0029: invoice builder empty for a manager';
+  begin
+    perform public.invoice_now('00000000-0000-4000-8000-000000000101');
+    raise exception 'expected owner-only';
+  exception when sqlstate '42501' then null; end;
+  assert (select count(*) from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where price is not null) = 0, '0029: price list blank for a manager';
+  assert (public.team_dashboard() -> 'today' ->> 'cars')::int >= 1, 'manager gets the team dashboard';
+  assert public.job_invoice_number((select v from t_ids where k = 'det_job')) like 'INV-%', '0029: manager sees which invoice a car is on';
   update public.companies set name = 'Hacked' where id = '00000000-0000-4000-8000-000000000001';
   get diagnostics total = row_count; assert total = 0, 'manager cannot edit the company';
   update public.dealerships set name = 'Hacked' where company_id = '00000000-0000-4000-8000-000000000001';
@@ -662,6 +730,11 @@ begin
   assert t ? 'today' and t ? 'by_detailer' and t ? 'open_jobs', '0028: team dashboard keys';
   assert not (t ? 'income') and not (t ? 'unpaid_total') and not (t -> 'today' ? 'revenue'), '0028: team dashboard has no money';
   assert (public.jobs_filtered() ->> 'count')::int >= 5, '0028: manager sees every job';
+  -- 0029: a manager can fix an open job but their price is ignored
+  perform public.update_job((select id from public.jobs where tag_number = 'TM2'), jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000204', 'price', 5, 'override_reason', 'x'))));
+  assert pg_temp.js_price((select id from public.jobs where tag_number = 'TM2')) = 55.00 and pg_temp.js_reason((select id from public.jobs where tag_number = 'TM2')) is null, '0029: manager price ignored on edit';
+  assert public.job_invoice_number((select id from public.jobs where tag_number = 'TM1')) like 'INV-%', '0029: manager sees the invoice number of a closed job';
+  assert public.job_invoice_number((select id from public.jobs where tag_number = 'TM2')) is null, '0029: open job has no invoice number';
 end $$;
 select pg_temp.login('10000000-0000-4000-8000-000000000002');
 do $$
@@ -670,5 +743,30 @@ begin
   f := public.jobs_filtered();
   assert (select count(*) from jsonb_array_elements(f -> 'rows') r where r ->> 'detailer_id' <> '10000000-0000-4000-8000-000000000002') = 0, '0028: detailer sees only their own jobs';
   assert (public.jobs_filtered(p_status => 'deleted') ->> 'count')::int = 0, '0028: no archive for detailers';
+end $$;
+select pg_temp.logout();
+
+-- 0029: an open-amount service logged by a detailer waits for the owner's price.
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare j public.jobs;
+begin
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'NP1',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000212', 'label', 'Odor treatment', 'price', 120))));
+  assert (select needs_price from public.job_services where job_id = j.id) = true, '0029: Other needs a price';
+  assert pg_temp.js_price(j.id) = 0, '0029: the detailer''s amount is not saved';
+  assert public.jobs_needing_price() = 0, '0029: the flag count is for the owner only';
+  assert public.job_invoice_number((select v from t_ids where k = 'det_job')) is null, '0029: no invoice number for another detailer''s car';
+  insert into t_ids values ('np_job', j.id);
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_job uuid := (select v from t_ids where k = 'np_job'); n int;
+begin
+  assert public.jobs_needing_price() >= 1, '0029: owner sees how many jobs need a price';
+  select count(*) into n from public.job_service_prices_v where job_id = v_job and needs_price; assert n = 1, '0029: owner sees which service';
+  perform public.update_job(v_job, jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000212', 'label', 'Odor treatment', 'price', 120))));
+  assert pg_temp.js_price(v_job) = 120 and (select needs_price from public.job_services where job_id = v_job) = false, '0029: owner sets the price and clears the flag';
+  assert (select label from public.job_services where job_id = v_job) = 'Odor treatment', '0029: label kept through the edit';
 end $$;
 select pg_temp.logout();

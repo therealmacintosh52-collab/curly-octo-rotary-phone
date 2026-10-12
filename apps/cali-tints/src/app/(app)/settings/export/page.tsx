@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireOwnerAdmin } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ const EXPORTS = [
 ];
 
 export default async function ExportPage() {
-  await requireOwnerAdmin();
+  await requireOwner();
   return (
     <div className="grid gap-4">
       <p className="text-sm text-muted-foreground">

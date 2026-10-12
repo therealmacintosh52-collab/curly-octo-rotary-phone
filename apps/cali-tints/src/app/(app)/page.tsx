@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Dashboard, resolveBreakdownMonth, resolveRange } from "@/components/dashboard/dashboard";
 import { DetailerDashboard } from "@/components/dashboard/detailer-dashboard";
 import { TeamDashboard } from "@/components/dashboard/team-dashboard";
+import { NeedsPriceBanner } from "@/components/dashboard/needs-price-banner";
 import type { DashboardStats, DetailerStats, TeamStats } from "@/lib/db/types";
 import { isOwner } from "@/lib/roles";
 import { todayIn } from "@/lib/dates";
@@ -30,12 +31,19 @@ export default async function HomePage(props: PageProps<"/">) {
   const sp = await props.searchParams;
   const range = resolveRange(sp);
   const bm = resolveBreakdownMonth(sp, today);
-  const [{ data, error }, { data: monthData }] = await Promise.all([
+  const [{ data, error }, { data: monthData }, { data: needsPrice }] = await Promise.all([
     supabase.rpc("dashboard_stats", { p_start: range.start, p_end: range.end }),
     // The breakdown month is usually not the income range: one more call, same function.
     supabase.rpc("dashboard_stats", { p_start: bm.start, p_end: bm.end }),
+    // Open jobs where someone logged "Other" without a price.
+    supabase.rpc("jobs_needing_price", {}),
   ]);
   if (error || !data) throw new Error(error?.message ?? "Could not load dashboard");
   const month = (monthData as DashboardStats | null) ?? (data as DashboardStats);
-  return <Dashboard stats={data as DashboardStats} range={range} today={today} who={who} breakdown={{ ...bm, stats: { by_service: month.by_service, by_day: month.by_day } }} />;
+  return (
+    <>
+      <NeedsPriceBanner count={Number(needsPrice ?? 0)} />
+      <Dashboard stats={data as DashboardStats} range={range} today={today} who={who} breakdown={{ ...bm, stats: { by_service: month.by_service, by_day: month.by_day } }} />
+    </>
+  );
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getSession, requireAdmin } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
 import { invoiceEmailEnvelope, invoiceEmailHtml } from "@/lib/invoices/email";
@@ -19,7 +19,7 @@ const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use yyyy-mm-dd");
  * owners and the car's own detailer may do this.
  */
 export async function editInvoiceCarAction(input: UpdateJobInput & { invoice_id: string }): Promise<ActionResult> {
-  await getSession();
+  await requireOwner();
   const parsed = updateJobSchema.extend({ invoice_id: z.uuid() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { id: _jobId, invoice_id, ...p } = parsed.data;
@@ -35,7 +35,7 @@ export async function editInvoiceCarAction(input: UpdateJobInput & { invoice_id:
 
 /** A car that should never have been logged: void its invoice and soft-delete the car (kept for audit). */
 export async function deleteInvoiceCarAction(invoiceId: string, reason: string): Promise<ActionResult> {
-  await requireAdmin();
+  await requireOwner();
   if (!/^[0-9a-f-]{36}$/i.test(invoiceId)) return { ok: false, error: "Invalid invoice" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_invoice_car", { p_invoice_id: invoiceId, p_reason: reason.trim() || null });
@@ -48,7 +48,7 @@ export async function deleteInvoiceCarAction(invoiceId: string, reason: string):
 
 /** Back from the archive: un-void the invoice, restore its car, relink them (same number). */
 export async function restoreInvoiceCarAction(invoiceId: string): Promise<ActionResult> {
-  await requireAdmin();
+  await requireOwner();
   if (!/^[0-9a-f-]{36}$/i.test(invoiceId)) return { ok: false, error: "Invalid invoice" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("restore_invoice_car", { p_invoice_id: invoiceId });
@@ -61,7 +61,7 @@ export async function restoreInvoiceCarAction(invoiceId: string): Promise<Action
 
 /** Batch mode: one invoice for a date range. Returns the new invoice id. */
 export async function generateInvoiceAction(input: { dealership_id: string; start: string; end: string; notes?: string; exclude?: string[] }): Promise<ActionResult<string>> {
-  await requireAdmin();
+  await requireOwner();
   const parsed = z
     .object({ dealership_id: z.uuid(), start: dateStr, end: dateStr, notes: z.string().trim().max(1000).optional(), exclude: z.array(z.uuid()).max(500).optional() })
     .safeParse(input);
@@ -83,7 +83,7 @@ export async function generateInvoiceAction(input: { dealership_id: string; star
 
 /** Per-job mode: one invoice per RO/PO for every pending job. Returns the ids. */
 export async function generatePerJobInvoicesAction(input: { dealership_id: string; notes?: string; exclude?: string[] }): Promise<ActionResult<string[]>> {
-  await requireAdmin();
+  await requireOwner();
   const parsed = z.object({ dealership_id: z.uuid(), notes: z.string().trim().max(1000).optional(), exclude: z.array(z.uuid()).max(500).optional() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input" };
   const supabase = await createClient();
@@ -99,7 +99,7 @@ export async function generatePerJobInvoicesAction(input: { dealership_id: strin
 }
 
 export async function voidInvoiceAction(id: string, reason: string): Promise<ActionResult> {
-  await requireAdmin();
+  await requireOwner();
   const supabase = await createClient();
   const { error } = await supabase.rpc("void_invoice", { p_id: id, p_reason: reason.trim() || null });
   if (error) return { ok: false, error: errorMessage(error) };
@@ -120,7 +120,7 @@ const paymentSchema = z.object({
 export type PaymentInput = z.input<typeof paymentSchema>;
 
 export async function recordPaymentAction(input: PaymentInput): Promise<ActionResult> {
-  await requireAdmin();
+  await requireOwner();
   const parsed = paymentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const p = parsed.data;
@@ -141,7 +141,7 @@ export async function recordPaymentAction(input: PaymentInput): Promise<ActionRe
 }
 
 export async function deletePaymentAction(paymentId: string, invoiceId: string): Promise<ActionResult> {
-  await requireAdmin();
+  await requireOwner();
   const supabase = await createClient();
   const { error } = await supabase.from("invoice_payments").delete().eq("id", paymentId);
   if (error) return { ok: false, error: errorMessage(error) };
@@ -155,7 +155,7 @@ export async function deletePaymentAction(paymentId: string, invoiceId: string):
  * attempt, successful or not, is recorded in invoice_submissions.
  */
 export async function submitInvoiceByEmailAction(id: string): Promise<ActionResult<{ recipients: string[] }>> {
-  const session = await requireAdmin();
+  const session = await requireOwner();
   if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, error: "Invalid invoice" };
   const supabase = await createClient();
   const r = await emailInvoice(supabase, id, session.userId);
@@ -168,7 +168,7 @@ export async function submitInvoiceByEmailAction(id: string): Promise<ActionResu
 
 /** The owner closes one dealership's month early: every open job through today goes on one invoice now. */
 export async function invoiceNowAction(dealershipId: string): Promise<ActionResult<string>> {
-  await requireAdmin();
+  await requireOwner();
   if (!/^[0-9a-f-]{36}$/i.test(dealershipId)) return { ok: false, error: "Invalid dealership" };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("invoice_now", { p_dealership_id: dealershipId });
@@ -181,7 +181,7 @@ export async function invoiceNowAction(dealershipId: string): Promise<ActionResu
 
 /** The email as it will arrive. */
 export async function previewInvoiceEmailAction(id: string): Promise<ActionResult<{ to: string[]; cc: string[]; subject: string; html: string; attachments: { name: string; href: string | null }[] }>> {
-  await requireAdmin();
+  await requireOwner();
   if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, error: "Invalid invoice" };
   const bundle = await loadInvoiceBundle(id);
   if (!bundle) return { ok: false, error: "Invoice not found" };
@@ -203,7 +203,7 @@ export async function previewInvoiceEmailAction(id: string): Promise<ActionResul
 
 /** "Send invoices": email every chosen unsent invoice, one after another. Never throws for one bad address; the caller gets the list. */
 export async function sendInvoicesAction(ids: string[]): Promise<ActionResult<{ sent: number; failed: { id: string; number: string; error: string }[] }>> {
-  await requireAdmin();
+  await requireOwner();
   const parsed = z.array(z.uuid()).min(1).max(200).safeParse(ids);
   if (!parsed.success) return { ok: false, error: "Pick at least one invoice" };
   const supabase = await createClient();
@@ -222,7 +222,7 @@ export async function sendInvoicesAction(ids: string[]): Promise<ActionResult<{ 
 
 /** Manual "Mark as submitted" for portal / paper, with an optional confirmation upload. */
 export async function markSubmittedAction(formData: FormData): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireOwner();
   const id = String(formData.get("invoice_id") ?? "");
   const method = String(formData.get("method") ?? "");
   const note = String(formData.get("note") ?? "").trim();
@@ -255,7 +255,7 @@ export async function markSubmittedAction(formData: FormData): Promise<ActionRes
 
 /** Owner reviewed a flagged job and confirmed it is legitimately billable. */
 export async function reviewJobDuplicateAction(jobId: string, note: string): Promise<ActionResult> {
-  await requireAdmin();
+  await requireOwner();
   if (!/^[0-9a-f-]{36}$/i.test(jobId)) return { ok: false, error: "Invalid job" };
   const supabase = await createClient();
   const { error } = await supabase.rpc("review_job_duplicate", { p_id: jobId, p_note: note.trim() || null });
@@ -265,7 +265,7 @@ export async function reviewJobDuplicateAction(jobId: string, note: string): Pro
 }
 
 export async function updateInvoiceNotesAction(id: string, notes: string): Promise<ActionResult> {
-  await requireAdmin();
+  await requireOwner();
   const supabase = await createClient();
   const { error } = await supabase.from("invoices").update({ notes: notes.trim() || null }).eq("id", id);
   if (error) return { ok: false, error: errorMessage(error) };

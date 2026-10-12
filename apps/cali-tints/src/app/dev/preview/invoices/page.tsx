@@ -91,7 +91,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
   });
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, canSettings: true, canMoney: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <Page>

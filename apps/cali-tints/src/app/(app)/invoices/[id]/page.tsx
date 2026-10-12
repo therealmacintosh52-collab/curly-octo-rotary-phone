@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
 import type { PriceListRow } from "@/lib/db/types";
 import { InvoiceDetail } from "@/components/invoices/invoice-detail";
@@ -23,19 +23,19 @@ type CarRow = {
   notes: string | null;
   deleted_at: string | null;
   detailer: { full_name: string } | null;
-  job_services: { service_id: string; price: number; override_reason: string | null; label: string | null; service: { name: string } | null }[];
+  job_services: { id: string; service_id: string; label: string | null; service: { name: string } | null }[];
 };
 
 /**
- * One invoice = one car (older invoices may carry several). Admins send,
- * collect and record; the car's detailer sees it read-only and can fix a
- * typo while it is still an unsent draft. Rendering lives in InvoiceDetail,
- * shared with the guest demo.
+ * One invoice: a dealership's month (older invoices may carry one car). The
+ * owner sends it, records payments and fixes a car while it is still an
+ * unsent draft. Owner only. Rendering lives in InvoiceDetail, shared with
+ * the guest demo.
  */
 export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]">) {
   const { id } = await props.params;
-  const session = await getSession();
-  const bundle = await loadInvoiceBundle(id); // RLS: detailers only reach invoices carrying their cars
+  const session = await requireOwner();
+  const bundle = await loadInvoiceBundle(id);
   if (!bundle) notFound();
   const { invoice, items, dealership, company, payments, submissions } = bundle;
   const supabase = await createClient();
@@ -43,11 +43,14 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
   // The cars on this invoice (for Edit / Delete). Usually one.
   const { data: carRows } = await supabase
     .from("jobs")
-    .select("id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, deleted_at, detailer:profiles!jobs_detailer_id_fkey(full_name), job_services(service_id, price, override_reason, label, service:services(name))")
+    .select("id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, deleted_at, detailer:profiles!jobs_detailer_id_fkey(full_name), job_services(id, service_id, label, service:services(name))")
     .eq("invoice_id", id)
     .is("deleted_at", null);
   const cars = (carRows ?? []) as unknown as CarRow[];
   const car = cars.length === 1 ? cars[0] : null;
+  // Line prices come from the owner's view (job_services.price is not readable directly).
+  const { data: priceRows } = car ? await supabase.from("job_service_prices_v").select("job_service_id, price, override_reason").eq("job_id", car.id) : { data: [] as { job_service_id: string; price: number; override_reason: string | null }[] };
+  const priceOf = new Map((priceRows ?? []).map((r) => [r.job_service_id, r]));
   // Deleted with "Delete invoice": void, and the car it carried is soft-deleted. Lives in the archive.
   const itemJobIds = items.map((it) => it.job_id).filter((x): x is string => !!x);
   const { data: deletedJobs } = invoice.status === "void" && itemJobIds.length ? await supabase.from("jobs").select("id").in("id", itemJobIds).not("deleted_at", "is", null) : { data: [] };
@@ -97,7 +100,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
               ro_po_number: car.ro_po_number,
               notes: car.notes,
               detailer_name: car.detailer?.full_name ?? null,
-              services: car.job_services.map((s) => ({ service_id: s.service_id, name: s.service?.name ?? "", price: Number(s.price), override_reason: s.override_reason, label: s.label })),
+              services: car.job_services.map((s) => ({ service_id: s.service_id, name: s.service?.name ?? "", price: Number(priceOf.get(s.id)?.price ?? 0), override_reason: priceOf.get(s.id)?.override_reason ?? null, label: s.label })),
             }
           : null
       }
