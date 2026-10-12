@@ -34,7 +34,7 @@ Handoff per `ops/handoffs/TEMPLATE.md` plus:
 - A ranking table with explicit scores and the formula.
 - Top recommendation in one line, with the single biggest reason it could be wrong.
 - Research cache file written to `library/research/` with the same evidence table so nobody searches twice.
-Self-check before every handoff: every claim tagged · no untagged numbers · cache written · prospects are businesses, not people · under 120 lines · cost line filled · QUALITY SCORE with reasons.
+Self-check before every handoff: EVERY claim tagged, swept sentence by sentence (numbers, prices, payer statements, platform-behaviour phrases such as "pays out", "no login", "instant", market-size words such as "crowded"/"saturated", and search observations) · a WebSearch result count is never evidence of market size (FP-09) · every VERIFIED tag has date + quoted snippet that states the claim (tag lint) · no untagged numbers · cache written · prospects are businesses, not people · under 120 lines · cost line filled · QUALITY SCORE with reasons.
 
 ## Rules
 - No invented data. Unknown stays UNKNOWN.
