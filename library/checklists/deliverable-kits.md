@@ -30,12 +30,14 @@ Set S=<scratchpad>/qa and write all test inputs there, never into the repo.
   is a first filter only; record which paraphrases pass.
 - Remove the structural markers (DESC START/END): the check must fail, not skip silently.
 - Opt-out flags (e.g. `--no-desc`): run the opt-out on a file that HAS the markers and a
-  760-char description. If it exits 0 the flag is a bypass; record it and recommend
-  a contradiction check (markers present + flag = FAIL). (T-011b: still open.)
+  760-char description. If it exits 0 the flag is a bypass. T-011c: RESOLVED. `--no-desc` was
+  removed in T-010c (exit 2); skip is automatic only for no-marker + exact title. Residual:
+  retitling a GBP pack `# AI-search readiness check` and deleting markers skips the check (accepted).
 - Incentive paraphrases to try each time: "10 percent off" (digits spelled out), "free
   coffee for a review", "perfect score", "maximum rating", "ahead of your competitors",
   "number one choice on Google", "unhappy customers go to us directly". T-011b: these
-  exit 0 (WARN at most). Pattern lint stays a first filter only.
+  exit 0 (WARN at most). T-011c: all but the gating paraphrase ("unhappy customers go to
+  us directly", still exit 0) now FAIL. Pattern lint stays a first filter only.
 
 ## C. Placeholders and facts
 - `git ls-files <kit>` then grep: REPLACE-ME, TODO, TBD, XXX, lorem, example.com
