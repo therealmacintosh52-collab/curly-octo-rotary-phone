@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS clips (
 CREATE INDEX IF NOT EXISTS clips_job_idx ON clips(job_id, idx);
 CREATE TABLE IF NOT EXISTS feedback (
     id          TEXT PRIMARY KEY,
-    clip_id     TEXT NOT NULL REFERENCES clips(id) ON DELETE CASCADE,
+    clip_id     TEXT NOT NULL,         -- no FK: ratings must outlive re-runs (features are denormalised)
     job_id      TEXT NOT NULL,
     rating      INTEGER NOT NULL,     -- -1 | 0 | 1  (thumbs down / neutral / thumbs up)
     note        TEXT,
@@ -67,6 +67,19 @@ CREATE TABLE IF NOT EXISTS kv (
     value TEXT NOT NULL
 );
 """
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Rebuild the feedback table if an older schema still cascades it from clips."""
+    if conn.execute("PRAGMA foreign_key_list(feedback)").fetchall():
+        conn.executescript("""
+            CREATE TABLE feedback_new (
+                id TEXT PRIMARY KEY, clip_id TEXT NOT NULL, job_id TEXT NOT NULL, rating INTEGER NOT NULL,
+                note TEXT, features_json TEXT NOT NULL DEFAULT '{}', created_at REAL NOT NULL);
+            INSERT INTO feedback_new SELECT id, clip_id, job_id, rating, note, features_json, created_at FROM feedback;
+            DROP TABLE feedback;
+            ALTER TABLE feedback_new RENAME TO feedback;
+        """)
+
 
 _init_lock = threading.Lock()
 _initialized_paths: set[str] = set()
@@ -85,6 +98,7 @@ def init_db(path: Optional[Path] = None) -> None:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.executescript(_SCHEMA)
+            _migrate(conn)
             conn.commit()
         finally:
             conn.close()
@@ -236,6 +250,14 @@ def update_clip(clip_id: str, **fields: Any) -> None:
 def delete_clips(job_id: str) -> None:
     with connect() as c:
         c.execute("DELETE FROM clips WHERE job_id=?", (job_id,))
+
+
+def fail_stale_clips(reason: str) -> int:
+    """Clips left in 'rendering' by a previous process can never finish; mark them failed."""
+    with connect() as c:
+        cur = c.execute("UPDATE clips SET status='failed', error=?, updated_at=? WHERE status='rendering'",
+                        (reason, time.time()))
+    return cur.rowcount
 
 
 # ----------------------------------------------------------------------------- feedback

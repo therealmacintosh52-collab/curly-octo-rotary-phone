@@ -112,3 +112,47 @@ def score_candidates(candidates: list[dict], *, title: str | None = None,
             out.append({"index": int(r["index"]), "score": max(0, min(100, int(r["score"]))) / 100.0,
                         "hook": (r.get("hook") or "")[:80], "reason": (r.get("reason") or "")[:300]})
     return out or None
+
+
+COPY_SYSTEM = """You write platform-native copy for short vertical video clips. You receive the clip's
+transcript, the overall video title, recurring topics, and per-platform limits. For each platform
+return: a title (YouTube Shorts only, keyword-first, under the limit, no clickbait lies), a hook
+line (3-8 words, what would be on the cover), a caption whose first line is the hook (then one or
+two sentences of value, then a soft call to action; hashtags go at the end on their own line),
+a hashtag list (niche before broad, without the '#'), and SEO keywords. Match each platform's
+tone: TikTok casual and punchy, Instagram clean, YouTube searchable, Facebook plain and warm.
+Never invent facts that aren't in the transcript."""
+
+
+def _copy_schema(platforms: list[str]) -> dict:
+    per = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"}, "hook": {"type": "string"}, "caption": {"type": "string"},
+            "hashtags": {"type": "array", "items": {"type": "string"}},
+            "keywords": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["title", "hook", "caption", "hashtags", "keywords"],
+        "additionalProperties": False,
+    }
+    return {"type": "object", "properties": {p: per for p in platforms}, "required": list(platforms),
+            "additionalProperties": False}
+
+
+def generate_copy(clip: dict, *, platforms: list[str], platform_config: dict, keywords: list[str] | None = None,
+                  video_title: str | None = None) -> Optional[dict]:
+    """Per-platform copy for one clip, or None."""
+    limits = []
+    for p in platforms:
+        c = platform_config.get(p, {})
+        limits.append(f"- {p}: title max {c.get('title_max_chars') or 'n/a (no title field)'} chars, caption max "
+                      f"{c.get('caption_max_chars')} chars, {c.get('hashtag_count')} hashtags, "
+                      f"{c.get('keyword_count')} keywords. {c.get('notes', '')}")
+    user = (f"Video title: {video_title or 'untitled'}\n"
+            f"Recurring topics: {', '.join((keywords or [])[:12]) or 'n/a'}\n"
+            f"Clip length: {clip['end_s'] - clip['start_s']:.0f}s\n\nPlatform limits:\n" + "\n".join(limits) +
+            f"\n\nClip transcript:\n{(clip.get('transcript') or '')[:3000]}")
+    data = _structured(COPY_SYSTEM, user, _copy_schema(platforms), max_tokens=4000, effort="medium")
+    if not isinstance(data, dict):
+        return None
+    return {p: data[p] for p in platforms if isinstance(data.get(p), dict)}

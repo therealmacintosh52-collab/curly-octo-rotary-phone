@@ -161,6 +161,20 @@ def fallback_candidates(duration: float, scenes: list[float], cfg: dict) -> list
     return out
 
 
+def _fill_text_from_sentences(candidates: list[dict], sentences: list[dict]) -> None:
+    """Give grid/whole-source windows the sentences they overlap, so scoring and copy see the speech."""
+    for c in candidates:
+        if c.get("text"):
+            continue
+        idx = [i for i, s in enumerate(sentences) if s["end"] > c["start"] and s["start"] < c["end"]]
+        if not idx:
+            continue
+        incl = [sentences[i] for i in idx]
+        c["text"] = " ".join(s["text"] for s in incl)
+        c["n_words"] = sum(s["n_words"] for s in incl)
+        c["sentence_start"], c["sentence_end"] = idx[0], idx[-1]
+
+
 # ----------------------------------------------------------------------------- stage entry
 
 def analyze(job_dir: str | Path, *, video: str = "source.mp4", audio: str | None = "audio.wav",
@@ -171,7 +185,8 @@ def analyze(job_dir: str | Path, *, video: str = "source.mp4", audio: str | None
 
     progress(0.02, "detecting shot changes")
     try:
-        scenes = detect_scenes(job_dir / video, threshold=scene_threshold)
+        scenes = detect_scenes(job_dir / video, threshold=float(cfg.get("scene_threshold", scene_threshold)),
+                               frame_skip=int(cfg.get("scene_frame_skip", 1)))
     except Exception as exc:  # noqa: BLE001
         log.warning("scene detection failed: %s", exc)
         scenes = []
@@ -187,15 +202,27 @@ def analyze(job_dir: str | Path, *, video: str = "source.mp4", audio: str | None
     progress(0.80, "building candidate segments")
     words = (transcript or {}).get("words") or []
     sentences = build_sentences(words, end_chars=tuple(cfg.get("sentence_end_chars", [".", "!", "?"])))
+    candidates: list[dict] = []
+    mode = "fallback"
     if sentences:
         candidates = generate_candidates(sentences, duration, scenes, cfg)
-        mode = "transcript"
-    else:
+        if candidates:
+            mode = "transcript"
+    if not candidates:
+        # No transcript, or speech too sparse for any sentence-aligned window: scene-snapped grid.
         candidates = fallback_candidates(duration, scenes, cfg)
-        mode = "fallback"
+    whole_source = False
+    if not candidates and duration >= float(cfg["clip_length"].get("absolute_min_seconds", 3)):
+        # Source shorter than the minimum clip length: offer the whole thing (capped at the maximum)
+        # so a short upload still yields one usable vertical clip.
+        whole_source = True
+        candidates = [{"start": 0.0, "end": round(min(duration, float(cfg["clip_length"]["max_seconds"])), 3),
+                       "text": "", "sentence_start": -1, "sentence_end": -1, "n_words": 0}]
+    if sentences:
+        _fill_text_from_sentences(candidates, sentences)
 
     analysis = {
-        "duration": duration, "mode": mode,
+        "duration": duration, "mode": mode, "whole_source": whole_source,
         "scenes": scenes, "n_scenes": len(scenes) + 1,
         "energy": energy,
         "sentences": sentences, "n_words": len(words),

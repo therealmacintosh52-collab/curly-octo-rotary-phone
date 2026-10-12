@@ -121,10 +121,69 @@ def test_full_pipeline_phase2_creates_clips(client, sample_video, monkeypatch):
     assert job["meta"]["scoring"]["llm_used"] is False
     assert 1 <= len(job["clips"]) <= 2
     c = job["clips"][0]
-    assert c["status"] == "pending" and c["end_s"] - c["start_s"] >= 10
+    assert c["status"] == "done" and c["end_s"] - c["start_s"] >= 10
     assert "features" in c["score_breakdown"] and 0 < c["score"] <= 1
     assert c["transcript"]
     for name in ("transcript.json", "analysis.json", "candidates.json", "scores.json"):
         assert client.get(f"/api/jobs/{job['id']}/files/{name}").status_code == 200
     h = client.get("/api/health").json()
-    assert h["stages"] == ["ingest", "transcribe", "analyze", "score"]
+    assert h["stages"][:4] == ["ingest", "transcribe", "analyze", "score"]
+
+
+def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
+    """Upload → ... → render → copy → schedule, then exercise clip endpoints and exports."""
+    from app.pipeline import transcribe
+    from tests.fakes import FakeWhisperModel, fake_words
+    words = fake_words(
+        "Here's the thing about this test video. Nobody tells you how boring colour bars are. "
+        "The biggest mistake is watching all twenty seconds. So let me show you the trick. "
+        "You skip to the end and write this down. That's the secret. Thanks for watching.", wps=3.0)
+    monkeypatch.setattr(transcribe, "get_model", lambda *a, **k: FakeWhisperModel(words, duration=20.0))
+
+    with sample_video.open("rb") as fh:
+        r = client.post("/api/jobs", data={"options": '{"max_clips": 1}', "platforms": "tiktok,youtube_shorts"},
+                        files={"file": ("talk.mp4", fh, "video/mp4")})
+    job = _wait_done(client, r.json()["id"], timeout=240)
+    assert job["status"] == "done", job.get("error")
+    assert job["meta"]["render"] == {"n_clips": 1, "n_failed": 0}
+    assert job["meta"]["copy"]["n_clips"] == 1 and job["meta"]["schedule"]["n_posts"] == 2
+    c = job["clips"][0]
+    assert c["status"] == "done" and c["video_path"] == "clips/clip_01.mp4" and c["captions_path"] == "captions/clip_01.srt"
+    assert c["score_breakdown"]["render"]["n_caption_words"] > 5
+    assert set(c["copy"]) == {"tiktok", "youtube_shorts"} and c["copy"]["tiktok"]["caption"]
+    assert set(c["schedule"]) == {"tiktok", "youtube_shorts"} and c["schedule"]["tiktok"]["at"]
+    for rel in (c["video_path"], c["cover_path"], c["captions_path"]):
+        assert client.get(f"/api/jobs/{job['id']}/files/{rel}").status_code == 200
+
+    # clip endpoints
+    assert client.get(f"/api/clips/{c['id']}").json()["id"] == c["id"]
+    p = client.patch(f"/api/clips/{c['id']}", json={"copy": {"tiktok": {"title": "Edited"}}}).json()
+    assert p["copy"]["tiktok"]["title"] == "Edited" and p["copy"]["tiktok"]["source"] == "edited"
+    assert client.patch(f"/api/clips/{c['id']}", json={"start_s": 5, "end_s": 6}).status_code == 400
+    fb = client.post(f"/api/clips/{c['id']}/feedback", json={"rating": 1, "note": "nice"})
+    assert fb.status_code == 201 and fb.json()["weights"]
+    assert client.get("/api/feedback/weights").json()["n_feedback"] == 1
+    assert client.post(f"/api/clips/{c['id']}/feedback", json={"rating": 5}).status_code == 422
+
+    # exports
+    ics = client.get(f"/api/jobs/{job['id']}/schedule.ics")
+    assert ics.status_code == 200 and ics.text.count("BEGIN:VEVENT") == 2
+    z = client.get(f"/api/jobs/{job['id']}/export.zip")
+    assert z.status_code == 200
+    import io, zipfile
+    names = zipfile.ZipFile(io.BytesIO(z.content)).namelist()
+    assert {"clips/clip_01.mp4", "clips/clip_01_cover.jpg", "captions/clip_01.srt", "clips.json", "schedule.ics", "copy.md"} <= set(names)
+    assert client.get(f"/api/jobs/{job['id']}/export.json").json()["clips"][0]["copy"]["tiktok"]["title"] == "Edited"
+
+    # re-render with a different framing, then trim + re-render
+    rr = client.post(f"/api/clips/{c['id']}/rerender", params={"reframe": "blur"})
+    assert rr.status_code == 200
+    t0 = time.time()
+    while time.time() - t0 < 120:
+        cc = client.get(f"/api/clips/{c['id']}").json()
+        if cc["status"] in ("done", "failed"):
+            break
+        time.sleep(0.3)
+    assert cc["status"] == "done", cc.get("error")
+    assert cc["score_breakdown"]["render"]["reframe"]["mode"] == "blur"
+    assert client.get("/api/health").json()["stages"] == ["ingest", "transcribe", "analyze", "score", "render", "copy", "schedule"]

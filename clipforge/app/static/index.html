@@ -13,54 +13,75 @@
   body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
   header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
   header h1{margin:0;font-size:18px;letter-spacing:.3px}
-  header .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px}
-  header .pill.ok{color:var(--accent);border-color:#2b5b4a}
-  header .pill.bad{color:var(--bad);border-color:#6b2f2f}
-  main{display:grid;grid-template-columns:380px 1fr;gap:16px;padding:16px 20px;max-width:1500px;margin:0 auto}
+  .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .pill.ok{color:var(--accent);border-color:#2b5b4a}
+  .pill.bad{color:var(--bad);border-color:#6b2f2f}
+  main{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px 20px;max-width:1700px;margin:0 auto}
   @media (max-width:980px){main{grid-template-columns:1fr}}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
-  .card h2{margin:0 0 12px;font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  .card h2{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
   label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
-  input[type=text],input[type=url],select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 10px;font:inherit}
+  input[type=text],input[type=url],input[type=number],select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;font:inherit}
+  textarea{min-height:110px;resize:vertical;line-height:1.4}
   input[type=file]{width:100%;color:var(--muted);font-size:12px}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .chk{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
   .chk input{accent-color:var(--accent)}
-  button{background:var(--accent);color:#06281c;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+  button{background:var(--accent);color:#06281c;border:0;border-radius:8px;padding:9px 13px;font:inherit;font-weight:600;cursor:pointer}
   button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line);font-weight:500}
+  button.small{padding:5px 9px;font-size:12px}
   button.danger{background:transparent;color:var(--bad);border:1px solid #5a2b2b}
   button:disabled{opacity:.5;cursor:not-allowed}
-  .jobs{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:60vh;overflow:auto}
+  a.btn{display:inline-block;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12px;text-decoration:none}
+  .jobs{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:50vh;overflow:auto}
   .job{display:grid;grid-template-columns:1fr auto;gap:4px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer}
   .job.active{border-color:var(--accent2)}
   .job .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .job .s{font-size:12px;color:var(--muted)}
-  .status{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);height:fit-content}
-  .status.running{color:var(--accent2);border-color:#2d4a73}
+  .status{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);height:fit-content;white-space:nowrap}
+  .status.running,.status.rendering{color:var(--accent2);border-color:#2d4a73}
   .status.done{color:var(--accent);border-color:#2b5b4a}
   .status.failed{color:var(--bad);border-color:#6b2f2f}
-  .status.queued{color:var(--warn);border-color:#6b5a1f}
+  .status.queued,.status.pending{color:var(--warn);border-color:#6b5a1f}
   .bar{grid-column:1/-1;height:4px;background:#0b0d12;border-radius:2px;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--accent2);transition:width .4s}
   .detail-empty{color:var(--muted);padding:40px;text-align:center}
   .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13px}
   .kv b{color:var(--muted);font-weight:500}
-  video{width:100%;max-height:360px;background:#000;border-radius:8px;margin-top:10px}
+  video.src{width:100%;max-height:300px;background:#000;border-radius:8px;margin-top:10px}
   pre.err{white-space:pre-wrap;color:var(--bad);background:#1a1212;border:1px solid #4a2626;border-radius:8px;padding:10px;font-size:12px}
-  .clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}
   .muted{color:var(--muted)}
-  .clip .score{font-size:26px;font-weight:700;color:var(--accent);margin:4px 0}
-  .clip .score small{font-size:12px;color:var(--muted);font-weight:500}
-  .clip .hook{color:var(--accent2);font-style:italic;margin-bottom:4px}
-  .clip .tx{font-size:12.5px;line-height:1.4;margin:6px 0}
-  .clip details{margin-top:6px;font-size:12px}
-  .fbar{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;margin:3px 0;font-size:11px;color:var(--muted)}
-  .fbar i{display:block;height:6px;background:#0b0d12;border-radius:3px;overflow:hidden}
-  .fbar b{display:block;height:100%;background:var(--accent2)}
-  .toast{position:fixed;bottom:16px;right:16px;background:var(--panel2);border:1px solid var(--line);padding:10px 14px;border-radius:8px;max-width:420px;display:none}
+  .toast{position:fixed;bottom:16px;right:16px;background:var(--panel2);border:1px solid var(--line);padding:10px 14px;border-radius:8px;max-width:420px;display:none;z-index:9}
   .toast.bad{border-color:#6b2f2f;color:var(--bad)}
   .section{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
   .section h3{margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+  .clips{display:flex;flex-direction:column;gap:14px}
+  .clip{display:grid;grid-template-columns:230px 1fr;gap:16px}
+  @media (max-width:1200px){.clip{grid-template-columns:1fr}}
+  .clip .player{position:relative}
+  .clip video.v{width:230px;aspect-ratio:9/16;background:#000;border-radius:8px;display:block}
+  .clip img.cover{width:230px;aspect-ratio:9/16;object-fit:cover;border-radius:8px;display:block;border:1px solid var(--line)}
+  .clip .score{font-size:24px;font-weight:700;color:var(--accent)}
+  .clip .score small{font-size:12px;color:var(--muted);font-weight:500}
+  .clip .hook{color:var(--accent2);font-style:italic}
+  .clip .tx{font-size:12.5px;line-height:1.4;margin:6px 0;color:var(--muted);max-height:64px;overflow:auto}
+  .fbar{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;margin:3px 0;font-size:11px;color:var(--muted)}
+  .fbar i{display:block;height:6px;background:#0b0d12;border-radius:3px;overflow:hidden}
+  .fbar b{display:block;height:100%;background:var(--accent2)}
+  .tabs{display:flex;gap:4px;margin:10px 0 8px;flex-wrap:wrap}
+  .tab{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-weight:500}
+  .tab.active{background:var(--panel2);color:var(--text);border-color:var(--accent2)}
+  .tab.unfit{border-color:#6b5a1f}
+  .copybox{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px}
+  .copybox .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+  .tag{font-size:12px;color:var(--accent2);background:#162236;border-radius:999px;padding:2px 8px}
+  .warn{color:var(--warn);font-size:12px}
+  .fb button.on{background:var(--accent);color:#06281c}
+  details summary{cursor:pointer;color:var(--muted);font-size:12px}
+  .trim{display:grid;grid-template-columns:1fr 1fr auto auto;gap:6px;align-items:end;margin-top:8px}
+  .trim input{padding:5px 8px}
 </style>
 </head>
 <body>
@@ -69,8 +90,10 @@
   <span id="hp-ffmpeg" class="pill">ffmpeg: …</span>
   <span id="hp-whisper" class="pill">whisper: …</span>
   <span id="hp-llm" class="pill">LLM: …</span>
+  <span id="hp-fb" class="pill" title="Learned scoring weights from your thumbs up/down">feedback: …</span>
   <span style="flex:1"></span>
-  <button class="secondary" id="btn-cleanup" title="Delete jobs older than the configured retention">Clean up old jobs</button>
+  <button class="secondary small" id="btn-reset-fb" title="Forget learned scoring weights">Reset learning</button>
+  <button class="secondary small" id="btn-cleanup" title="Delete jobs older than the configured retention">Clean up old jobs</button>
 </header>
 
 <main>
@@ -84,17 +107,21 @@
         <input id="file" name="file" type="file" accept="video/*,audio/*,.mkv,.mov,.mp4,.webm,.m4a,.mp3,.wav">
         <label>Platforms</label>
         <div class="row" id="platforms"></div>
-        <label for="max-clips">Max clips</label>
-        <select id="max-clips">
-          <option>3</option><option>5</option><option selected>8</option><option>12</option>
-        </select>
+        <div class="grid2">
+          <div><label for="max-clips">Max clips</label>
+            <select id="max-clips"><option>3</option><option>5</option><option selected>8</option><option>12</option></select></div>
+          <div><label for="reframe">Framing</label>
+            <select id="reframe"><option value="auto" selected>Auto (face-centred)</option><option value="center">Centre crop</option><option value="blur">Full frame + blur</option></select></div>
+          <div><label for="whisper">Speech model</label>
+            <select id="whisper"><option value="">default</option><option>tiny</option><option>base</option><option>small</option><option>medium</option><option>large-v3</option></select></div>
+          <div><label for="lang">Language (blank = auto)</label><input id="lang" type="text" placeholder="en" maxlength="5"></div>
+        </div>
         <div class="row" style="margin-top:14px">
           <button type="submit" id="btn-submit">Create job</button>
           <span class="muted" id="submit-note"></span>
         </div>
       </form>
     </div>
-
     <div class="card" style="margin-top:16px">
       <h2>Jobs</h2>
       <div class="jobs" id="jobs"></div>
@@ -111,7 +138,7 @@
 
 <script>
 const $ = (s, el=document) => el.querySelector(s);
-const state = { jobs: [], selected: null, config: null, timer: null };
+const state = { jobs: [], selected: null, config: null, timer: null, tab: {}, detailJob: null };
 
 function toast(msg, bad=false){
   const t = $('#toast'); t.textContent = msg; t.className = 'toast' + (bad?' bad':''); t.style.display='block';
@@ -121,11 +148,14 @@ async function api(path, opts={}){
   const r = await fetch(path, opts);
   const ct = r.headers.get('content-type')||'';
   const body = ct.includes('json') ? await r.json() : await r.text();
-  if(!r.ok){ throw new Error(body.detail || body.error || (typeof body==='string'?body:JSON.stringify(body))); }
+  if(!r.ok){ throw new Error(body.detail?.[0]?.msg || body.detail || body.error || (typeof body==='string'?body:JSON.stringify(body))); }
   return body;
 }
+const jsonPost = (path, data, method='POST') => api(path, {method, headers:{'content-type':'application/json'}, body: JSON.stringify(data)});
 const fmtTime = s => { s=Math.max(0,Math.round(s)); const m=Math.floor(s/60), r=s%60; return `${m}:${String(r).padStart(2,'0')}`; };
 const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const label = p => state.config?.platforms?.platforms?.[p]?.label || p;
+async function clip(text){ try{ await navigator.clipboard.writeText(text); toast('Copied'); }catch(e){ toast('Clipboard blocked by browser', true); } }
 
 async function loadHealth(){
   try{
@@ -133,6 +163,8 @@ async function loadHealth(){
     $('#hp-ffmpeg').textContent = 'ffmpeg ' + (h.ffmpeg.version||'missing'); $('#hp-ffmpeg').className='pill '+(h.ok?'ok':'bad');
     $('#hp-whisper').textContent = 'whisper ' + (h.whisper_available ? h.whisper_model : 'unavailable'); $('#hp-whisper').className='pill '+(h.whisper_available?'ok':'bad');
     $('#hp-llm').textContent = h.llm_enabled ? 'LLM ' + h.llm_model : 'LLM off (heuristics)'; $('#hp-llm').className='pill '+(h.llm_enabled?'ok':'');
+    const w = await api('/api/feedback/weights');
+    $('#hp-fb').textContent = w.learned ? `feedback: ${w.n_feedback} rating${w.n_feedback==1?'':'s'} learned` : 'feedback: none yet';
   }catch(e){ toast('health check failed: '+e.message, true); }
 }
 async function loadConfig(){
@@ -147,8 +179,8 @@ async function loadConfig(){
 async function loadJobs(){
   state.jobs = await api('/api/jobs');
   renderJobs();
-  if(state.selected){ const j = state.jobs.find(x=>x.id===state.selected); if(j) await loadDetail(state.selected); }
-  const busy = state.jobs.some(j => j.status==='running' || j.status==='queued');
+  let busy = state.jobs.some(j => j.status==='running' || j.status==='queued');
+  if(state.selected && state.jobs.find(x=>x.id===state.selected)){ const j = await loadDetail(state.selected); if(j?.clips?.some(c=>c.status==='rendering')) busy = true; }
   clearTimeout(state.timer); state.timer = setTimeout(loadJobs, busy ? 1500 : 8000);
 }
 function renderJobs(){
@@ -165,63 +197,132 @@ function renderJobs(){
     box.appendChild(d);
   }
 }
+
+function clipCard(j, c){
+  const f = c.score_breakdown?.features || {};
+  const bars = Object.entries(f).filter(([k])=>k!=='filler_penalty').map(([k,v]) =>
+    `<div class="fbar"><span>${k.replace(/_/g,' ')}</span><i><b style="width:${Math.round(v*100)}%"></b></i></div>`).join('');
+  const llm = c.score_breakdown?.llm != null ? ` · LLM ${(c.score_breakdown.llm*100).toFixed(0)}` : '';
+  const files = p => `/api/jobs/${j.id}/files/${p}`;
+  const platforms = Object.keys(c.copy||{});
+  const tab = state.tab[c.id] && platforms.includes(state.tab[c.id]) ? state.tab[c.id] : platforms[0];
+  const cp = tab ? c.copy[tab] : null;
+  const sc = tab ? (c.schedule||{})[tab] : null;
+  const rf = c.score_breakdown?.render?.reframe;
+  let media = '';
+  if(c.status==='done' && c.video_path) media = `<video class="v" controls preload="metadata" poster="${files(c.cover_path)}" src="${files(c.video_path)}"></video>`;
+  else if(c.status==='rendering') media = `<div class="cover" style="width:230px;aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;color:var(--muted)">rendering…</div>`;
+  else if(c.status==='failed') media = `<pre class="err">${esc(c.error||'render failed')}</pre>`;
+  else media = `<div style="width:230px;aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;color:var(--muted)">not rendered</div>`;
+  return `<div class="card clip" data-clip="${c.id}">
+    <div class="player">${media}
+      <div class="row" style="margin-top:8px">
+        ${c.video_path ? `<a class="btn" href="${files(c.video_path)}" download>MP4</a>`:''}
+        ${c.cover_path ? `<a class="btn" href="${files(c.cover_path)}" download>Cover</a>`:''}
+        ${c.captions_path ? `<a class="btn" href="${files(c.captions_path)}" download>SRT</a>`:''}
+      </div>
+      <div class="row" style="margin-top:8px">
+        <select class="small" data-reframe style="width:auto;padding:5px 8px;font-size:12px">
+          <option value="">re-render: same framing</option><option value="auto">auto (face)</option><option value="center">centre</option><option value="blur">full + blur</option>
+        </select>
+        <button class="secondary small" data-act="rerender" ${c.status==='rendering'?'disabled':''}>Re-render</button>
+      </div>
+      <div class="trim">
+        <div><label>Start (s)</label><input type="number" step="0.1" min="0" value="${c.start_s.toFixed(1)}" data-start></div>
+        <div><label>End (s)</label><input type="number" step="0.1" min="0" value="${c.end_s.toFixed(1)}" data-end></div>
+        <button class="secondary small" data-act="trim" ${c.status==='rendering'?'disabled':''}>Trim</button>
+      </div>
+      ${rf ? `<div class="muted" style="font-size:11px;margin-top:6px">framing: ${rf.mode}${rf.face?.found?` · face at ${(rf.face.cx*100).toFixed(0)}%`:''}</div>`:''}
+    </div>
+    <div>
+      <div class="row" style="justify-content:space-between">
+        <div class="row"><b>Clip ${c.idx+1}</b><span class="muted">${fmtTime(c.start_s)} – ${fmtTime(c.end_s)} · ${c.duration.toFixed(1)}s</span><span class="status ${c.status}">${c.status}</span></div>
+        <div class="row fb">
+          <span class="score">${(c.score*100).toFixed(0)}<small> / 100${llm}</small></span>
+          <button class="secondary small" data-act="up" title="Good pick: teach the scorer">👍</button>
+          <button class="secondary small" data-act="down" title="Bad pick: teach the scorer">👎</button>
+        </div>
+      </div>
+      ${c.score_breakdown?.llm_hook ? `<div class="hook">“${esc(c.score_breakdown.llm_hook)}”</div>`:''}
+      <div class="tx">${esc(c.transcript||'(no speech detected in this range)')}</div>
+      <details><summary>why this clip</summary>${bars}${c.score_breakdown?.llm_reason?`<div class="muted" style="font-size:12px;margin-top:4px">${esc(c.score_breakdown.llm_reason)}</div>`:''}</details>
+      ${platforms.length ? `<div class="tabs">${platforms.map(p=>`<button class="tab ${p===tab?'active':''} ${c.copy[p].fits?'':'unfit'}" data-tab="${p}">${esc(label(p))}</button>`).join('')}</div>` : `<div class="muted" style="margin-top:8px">Copy appears after the copy stage.</div>`}
+      ${cp ? `<div class="copybox">
+          <div class="meta">${sc ? `📅 ${esc(sc.local)} (${esc(sc.timezone)})` : 'not scheduled'} · copy by ${esc(cp.source)}${cp.fits?'':` · <span class="warn">⚠ ${esc(cp.fit_note||'does not fit')}</span>`}</div>
+          ${state.config.platforms.platforms[tab]?.title_max_chars ? `<label>Title</label><div class="row"><input type="text" data-field="title" value="${esc(cp.title)}" style="flex:1"><button class="secondary small" data-act="copytitle">Copy</button></div>`:''}
+          <label>Hook / cover text</label><input type="text" data-field="hook" value="${esc(cp.hook)}">
+          <label>Caption</label><textarea data-field="caption">${esc(cp.caption)}</textarea>
+          <div class="tags">${(cp.hashtags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+          <div class="muted" style="font-size:12px">keywords: ${esc((cp.keywords||[]).join(', '))}</div>
+          <div class="row" style="margin-top:8px">
+            <button class="small" data-act="copycaption">Copy caption</button>
+            <button class="secondary small" data-act="savecopy">Save edits</button>
+          </div>
+        </div>`:''}
+    </div>
+  </div>`;
+}
+
 async function loadDetail(id){
-  let j; try{ j = await api('/api/jobs/'+id); }catch(e){ return; }
+  let j; try{ j = await api('/api/jobs/'+id); }catch(e){ return null; }
+  state.detailJob = j;
   const src = j.meta?.source; const m = src?.media;
+  const tr = j.meta?.transcript, an = j.meta?.analysis, sc = j.meta?.scoring, rd = j.meta?.render;
   let html = `<div class="row" style="justify-content:space-between">
       <h2 style="margin:0">${esc(j.title || j.source_name || j.source_url || j.id)}</h2>
       <div class="row">
-        ${j.status==='failed' ? `<button class="secondary" data-act="rerun">Re-run</button>`:''}
-        ${j.status==='running' ? `<button class="secondary" data-act="cancel">Cancel</button>`:''}
-        <button class="danger" data-act="delete">Delete</button>
+        ${j.status==='done' && j.clips?.length ? `<a class="btn" href="/api/jobs/${j.id}/export.zip">⬇ Download all (zip)</a><a class="btn" href="/api/jobs/${j.id}/schedule.ics">📅 Schedule .ics</a><a class="btn" href="/api/jobs/${j.id}/export.json" target="_blank">JSON</a>`:''}
+        ${j.status!=='running' ? `<button class="secondary small" data-act="rerun">Re-run</button>`:''}
+        ${j.status==='running' ? `<button class="secondary small" data-act="cancel">Cancel</button>`:''}
+        <button class="danger small" data-act="delete">Delete</button>
       </div></div>
     <div class="kv" style="margin-top:10px">
-      <b>Job</b><span>${j.id} · <span class="status ${j.status}">${j.status}</span> · ${esc(j.message||'')}</span>
+      <b>Job</b><span>${j.id} · <span class="status ${j.status}">${j.status}${j.stage&&j.status==='running'?' · '+esc(j.stage):''}</span> · ${esc(j.message||'')}</span>
       <b>Source</b><span>${j.source_url ? `<a href="${esc(j.source_url)}" target="_blank" style="color:var(--accent2)">${esc(j.source_url)}</a>` : esc(j.source_name||'upload')}</span>
       ${m ? `<b>Media</b><span>${m.width}×${m.height} · ${m.fps?.toFixed?.(2)} fps · ${fmtTime(m.duration)} · ${m.video_codec}/${m.audio_codec||'no audio'} · ${(m.size_bytes/1048576).toFixed(1)} MB</span>`:''}
       ${src?.remote?.uploader ? `<b>Uploader</b><span>${esc(src.remote.uploader)}</span>`:''}
-      <b>Platforms</b><span>${(j.options?.platforms||[]).join(', ')}</span>
-    </div>`;
-  if(j.error) html += `<pre class="err">${esc(j.error)}</pre>`;
-  if(src?.files?.video) html += `<video controls preload="metadata" src="/api/jobs/${j.id}/files/${src.files.video}"></video>`;
-  const tr = j.meta?.transcript, an = j.meta?.analysis, sc = j.meta?.scoring;
-  if(tr || an || sc){
-    html += `<div class="section"><h3>Analysis</h3><div class="kv">
-      ${tr ? `<b>Transcript</b><span>${tr.available ? `${tr.n_words} words · ${esc(tr.language||'?')} · whisper ${esc(tr.model||'')}` : `<span style="color:var(--warn)">unavailable: ${esc(tr.error||'')}</span>`}</span>`:''}
+      <b>Options</b><span>${(j.options?.platforms||[]).map(label).join(', ')} · max ${j.options?.max_clips||'default'} clips · framing ${esc(j.options?.reframe||'auto')}</span>
+      ${tr ? `<b>Transcript</b><span>${tr.available ? `${tr.n_words} words · ${esc(tr.language||'?')} · whisper ${esc(tr.model||'')}` : `<span class="warn">unavailable: ${esc(tr.error||'')}</span>`}</span>`:''}
       ${an ? `<b>Segments</b><span>${an.n_scenes} shots · ${an.n_sentences} sentences · ${an.n_candidates} candidates (${an.mode})</span>`:''}
       ${sc ? `<b>Scoring</b><span>${sc.llm_used ? 'heuristics + LLM' : 'heuristics only'} · ${sc.n_selected} of ${sc.n_candidates} selected${sc.keywords?.length ? ' · keywords: '+esc(sc.keywords.join(', ')):''}</span>`:''}
-    </div></div>`;
-  }
+      ${rd ? `<b>Render</b><span>${rd.n_clips - rd.n_failed} of ${rd.n_clips} clips rendered</span>`:''}
+    </div>`;
+  if(j.error) html += `<pre class="err">${esc(j.error)}</pre>`;
+  if(src?.files?.video) html += `<details style="margin-top:8px"><summary>source preview</summary><video class="src" controls preload="metadata" src="/api/jobs/${j.id}/files/${src.files.video}"></video></details>`;
   html += `<div class="section"><h3>Clips</h3>`;
-  if(!j.clips?.length){
-    html += `<div class="muted">${j.status==='done' ? 'No clips were selected (source may be too short for the configured clip length).' : 'Clips appear here once the pipeline reaches the score stage.'}</div>`;
-  } else {
-    html += `<div class="clips">` + j.clips.map(c => {
-      const f = c.score_breakdown?.features || {};
-      const bars = Object.entries(f).filter(([k])=>k!=='filler_penalty').map(([k,v]) =>
-        `<div class="fbar" title="${k}: ${(v*100).toFixed(0)}"><span>${k.replace(/_/g,' ')}</span><i><b style="width:${Math.round(v*100)}%"></b></i></div>`).join('');
-      const llm = c.score_breakdown?.llm != null ? ` · LLM ${(c.score_breakdown.llm*100).toFixed(0)}` : '';
-      return `<div class="card clip">
-        <div class="row" style="justify-content:space-between"><b>#${c.idx+1}</b><span class="status ${c.status}">${c.status}</span></div>
-        <div class="muted">${fmtTime(c.start_s)} – ${fmtTime(c.end_s)} · ${c.duration.toFixed(1)}s</div>
-        <div class="score">${(c.score*100).toFixed(0)}<small> / 100${llm}</small></div>
-        ${c.score_breakdown?.llm_hook ? `<div class="hook">“${esc(c.score_breakdown.llm_hook)}”</div>`:''}
-        <div class="tx">${esc((c.transcript||'(no speech)').slice(0,220))}${(c.transcript||'').length>220?'…':''}</div>
-        <details><summary class="muted">feature breakdown</summary>${bars}</details>
-      </div>`; }).join('') + `</div>`;
-  }
+  if(!j.clips?.length) html += `<div class="muted">${j.status==='done' ? 'No clips were selected (source may be too short for the configured clip length).' : 'Clips appear here once the pipeline reaches the score stage.'}</div>`;
+  else html += `<div class="clips">${j.clips.map(c=>clipCard(j,c)).join('')}</div>`;
   html += `</div>`;
-  const box = $('#detail'); box.innerHTML = html;
-  box.querySelectorAll('[data-act]').forEach(b => b.onclick = () => jobAction(j.id, b.dataset.act));
+  const box = $('#detail');
+  // Preserve in-progress edits/playback: skip re-render if nothing structural changed.
+  const sig = JSON.stringify([j.status, j.stage, j.message, j.progress, j.clips?.map(c=>[c.id,c.status,c.updated_at])]);
+  if(box.dataset.sig === sig) return j;
+  if(box.querySelector('textarea:focus, input:focus')) return j;  // user is typing
+  box.dataset.sig = sig; box.innerHTML = html;
+  box.querySelectorAll('[data-act]').forEach(b => b.onclick = () => action(j, b));
+  box.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { const card=b.closest('.clip'); state.tab[card.dataset.clip]=b.dataset.tab; box.dataset.sig=''; loadDetail(j.id); });
+  return j;
 }
-async function jobAction(id, act){
+
+async function action(j, btn){
+  const act = btn.dataset.act;
+  const card = btn.closest('.clip'); const cid = card?.dataset.clip;
+  const c = cid ? j.clips.find(x=>x.id===cid) : null;
+  const tab = c ? (state.tab[cid] && c.copy?.[state.tab[cid]] ? state.tab[cid] : Object.keys(c.copy||{})[0]) : null;
   try{
-    if(act==='delete'){ if(!confirm('Delete this job and all its files?')) return; await api('/api/jobs/'+id,{method:'DELETE'}); state.selected=null; $('#detail').innerHTML='<div class="detail-empty">Job deleted.</div>'; }
-    if(act==='rerun') await api(`/api/jobs/${id}/run`,{method:'POST'});
-    if(act==='cancel') await api(`/api/jobs/${id}/cancel`,{method:'POST'});
-    await loadJobs();
+    if(act==='delete'){ if(!confirm('Delete this job and all its files?')) return; await api('/api/jobs/'+j.id,{method:'DELETE'}); state.selected=null; $('#detail').innerHTML='<div class="detail-empty">Job deleted.</div>'; $('#detail').dataset.sig=''; }
+    else if(act==='rerun') await api(`/api/jobs/${j.id}/run`,{method:'POST'});
+    else if(act==='cancel') await api(`/api/jobs/${j.id}/cancel`,{method:'POST'});
+    else if(act==='up' || act==='down'){ await jsonPost(`/api/clips/${cid}/feedback`, {rating: act==='up'?1:-1}); toast(act==='up' ? 'Thanks — scorer nudged toward clips like this' : 'Noted — scorer nudged away from clips like this'); loadHealth(); }
+    else if(act==='rerender'){ const rf = card.querySelector('[data-reframe]').value; await api(`/api/clips/${cid}/rerender${rf?'?reframe='+rf:''}`,{method:'POST'}); toast('Re-rendering clip '+(c.idx+1)); }
+    else if(act==='trim'){ const s=parseFloat(card.querySelector('[data-start]').value), e=parseFloat(card.querySelector('[data-end]').value); await jsonPost(`/api/clips/${cid}`, {start_s:s, end_s:e}, 'PATCH'); await api(`/api/clips/${cid}/rerender`,{method:'POST'}); toast('Trimmed; re-rendering'); }
+    else if(act==='copycaption') return clip(card.querySelector('[data-field=caption]').value);
+    else if(act==='copytitle') return clip(card.querySelector('[data-field=title]').value);
+    else if(act==='savecopy'){ const data={}; card.querySelectorAll('[data-field]').forEach(i=>data[i.dataset.field]=i.value); await jsonPost(`/api/clips/${cid}`, {copy:{[tab]:data}}, 'PATCH'); toast('Saved'); }
+    $('#detail').dataset.sig=''; await loadJobs();
   }catch(e){ toast(e.message, true); }
 }
+
 $('#job-form').onsubmit = async (ev) => {
   ev.preventDefault();
   const fd = new FormData();
@@ -230,8 +331,12 @@ $('#job-form').onsubmit = async (ev) => {
   if(url) fd.append('url', url);
   if(file) fd.append('file', file);
   const plats = [...$('#platforms').querySelectorAll('input:checked')].map(i=>i.value);
+  if(!plats.length){ toast('Pick at least one platform', true); return; }
   fd.append('platforms', plats.join(','));
-  fd.append('options', JSON.stringify({ max_clips: Number($('#max-clips').value) }));
+  const opts = { max_clips: Number($('#max-clips').value), reframe: $('#reframe').value };
+  if($('#whisper').value) opts.whisper_model = $('#whisper').value;
+  if($('#lang').value.trim()) opts.language = $('#lang').value.trim();
+  fd.append('options', JSON.stringify(opts));
   $('#btn-submit').disabled = true; $('#submit-note').textContent = file ? 'uploading…' : 'creating…';
   try{
     const j = await api('/api/jobs', {method:'POST', body: fd});
@@ -244,6 +349,10 @@ $('#job-form').onsubmit = async (ev) => {
 $('#btn-cleanup').onclick = async () => {
   try{ const r = await api('/api/cleanup',{method:'POST'}); toast(`Removed ${r.count} job(s) older than ${r.days} days`); await loadJobs(); }
   catch(e){ toast(e.message,true); }
+};
+$('#btn-reset-fb').onclick = async () => {
+  if(!confirm('Forget all learned scoring weights?')) return;
+  try{ await api('/api/feedback/reset',{method:'POST'}); toast('Learned weights reset'); loadHealth(); }catch(e){ toast(e.message,true); }
 };
 loadHealth(); loadConfig().then(loadJobs);
 </script>

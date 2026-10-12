@@ -90,11 +90,39 @@ def test_analyze_writes_files(tmp_path, scene_video):
     shutil.copy(scene_video, job / "source.mp4")
     ff.extract_audio_wav(scene_video, job / "audio.wav")
     transcript = {"words": fake_words("One two three four. Five six seven eight nine ten eleven twelve. "
-                                      "Thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.", wps=2.0)}
+                                      "Thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.", wps=1.6)}
     analysis, cands = segment.analyze(job, transcript=transcript, duration=12.0)
-    assert analysis["mode"] == "transcript" and analysis["n_scenes"] == 3
+    assert analysis["mode"] == "transcript" and analysis["n_scenes"] == 3 and analysis["whole_source"] is False
     assert len(analysis["energy"]["values"]) > 100
     assert cands == segment.load_candidates(job) and segment.load_analysis(job)["n_scenes"] == 3
     # Without words → fallback mode.
     analysis2, cands2 = segment.analyze(job, transcript=None, duration=12.0, audio=None)
     assert analysis2["mode"] == "fallback" and analysis2["energy"]["values"] == []
+
+
+def test_analyze_short_source_yields_whole_clip(tmp_path, scene_video):
+    import shutil
+    job = tmp_path / "job"; job.mkdir()
+    shutil.copy(scene_video, job / "source.mp4")
+    analysis, cands = segment.analyze(job, transcript=None, duration=8.0, audio=None)
+    assert analysis["mode"] == "fallback" and analysis["whole_source"] is True and len(cands) == 1
+    assert cands[0]["start"] == 0.0 and cands[0]["end"] == 8.0 and cands[0]["text"] == ""
+    words = fake_words("Short and sweet. That is all.", wps=2.5)
+    analysis2, cands2 = segment.analyze(job, transcript={"words": words}, duration=5.0, audio=None)
+    assert analysis2["whole_source"] is True and cands2[0]["text"] == "Short and sweet. That is all."
+    assert cands2[0]["n_words"] == 6 and (cands2[0]["sentence_start"], cands2[0]["sentence_end"]) == (0, 1)
+    _, none = segment.analyze(job, transcript=None, duration=2.0, audio=None)
+    assert none == []
+
+
+def test_analyze_sparse_speech_in_long_source_uses_grid_with_overlapping_text(tmp_path, scene_video):
+    import shutil
+    job = tmp_path / "job"; job.mkdir()
+    shutil.copy(scene_video, job / "source.mp4")
+    words = fake_words("Only one sentence here.", start=50.0, wps=2.0)  # 50-52 s of speech in a 100 s video
+    analysis, cands = segment.analyze(job, transcript={"words": words}, duration=100.0, audio=None)
+    assert analysis["mode"] == "fallback" and analysis["whole_source"] is False and len(cands) > 3
+    assert cands[0]["start"] == 0.0 and cands[0]["end"] <= 60.0
+    with_text = [c for c in cands if c["text"]]
+    assert with_text and all(c["start"] < 52 and c["end"] > 50 for c in with_text)
+    assert all(c["text"] == "" for c in cands if c["end"] <= 50 or c["start"] >= 52)

@@ -4,20 +4,21 @@
     "max_seconds": 60,
     "target_seconds": 35,
     "pad_before": 0.35,
-    "pad_after": 0.45
+    "pad_after": 0.45,
+    "absolute_min_seconds": 3
   },
   "max_clips": 8,
   "min_gap_seconds": 5,
   "weights": {
-    "audio_energy": 0.20,
+    "audio_energy": 0.2,
     "speech_density": 0.12,
     "hook_phrases": 0.18,
     "question": 0.08,
     "emphasis": 0.08,
     "scene_change_density": 0.07,
-    "keyword_density": 0.10,
+    "keyword_density": 0.1,
     "self_contained": 0.07,
-    "length_fit": 0.10
+    "length_fit": 0.1
   },
   "llm": {
     "enabled_when_key_present": true,
@@ -25,22 +26,83 @@
     "max_candidates_sent": 24
   },
   "hook_phrases": [
-    "here's the thing", "the secret", "nobody tells you", "what most people", "the biggest mistake",
-    "i'm going to show you", "let me show you", "the truth is", "this is why", "the reason",
-    "you need to", "stop doing", "never", "always", "the best way", "the worst", "number one",
-    "most important", "game changer", "changed my life", "crazy", "insane", "unbelievable",
-    "wait for it", "listen", "pay attention", "write this down", "step one", "first thing",
-    "pro tip", "hack", "trick", "mistake", "warning", "if you", "how to", "why you", "what if"
+    "here's the thing",
+    "the secret",
+    "nobody tells you",
+    "what most people",
+    "the biggest mistake",
+    "i'm going to show you",
+    "let me show you",
+    "the truth is",
+    "this is why",
+    "the reason",
+    "you need to",
+    "stop doing",
+    "never",
+    "always",
+    "the best way",
+    "the worst",
+    "number one",
+    "most important",
+    "game changer",
+    "changed my life",
+    "crazy",
+    "insane",
+    "unbelievable",
+    "wait for it",
+    "listen",
+    "pay attention",
+    "write this down",
+    "step one",
+    "first thing",
+    "pro tip",
+    "hack",
+    "trick",
+    "mistake",
+    "warning",
+    "if you",
+    "how to",
+    "why you",
+    "what if"
   ],
   "emphasis_words": [
-    "huge", "massive", "incredible", "amazing", "literally", "actually", "exactly", "honestly",
-    "seriously", "absolutely", "guaranteed", "proven", "free", "fast", "easy", "simple", "secret"
+    "huge",
+    "massive",
+    "incredible",
+    "amazing",
+    "literally",
+    "actually",
+    "exactly",
+    "honestly",
+    "seriously",
+    "absolutely",
+    "guaranteed",
+    "proven",
+    "free",
+    "fast",
+    "easy",
+    "simple",
+    "secret"
   ],
-  "filler_words": ["um", "uh", "like", "you know", "sort of", "kind of", "i mean"],
-  "sentence_end_chars": [".", "!", "?"],
+  "filler_words": [
+    "um",
+    "uh",
+    "like",
+    "you know",
+    "sort of",
+    "kind of",
+    "i mean"
+  ],
+  "sentence_end_chars": [
+    ".",
+    "!",
+    "?"
+  ],
   "feedback": {
     "learning_rate": 0.15,
     "min_weight": 0.02,
     "max_weight": 0.5
-  }
+  },
+  "scene_threshold": 27.0,
+  "scene_frame_skip": 1
 }
