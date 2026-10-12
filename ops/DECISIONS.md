@@ -28,8 +28,13 @@ Two tables. Approvals carry IDs `A-###`; an agent may act on a hard-gate item on
 | A-001 | 2026-10-12 | Choose stream #1 after reading T-001/T-002 | — | — | Until stream target met |
 | A-002 | 2026-10-12 | Cancel Zendrop subscription (owner does it in the Zendrop app; agents cannot) | — | — | One-time |
 | A-003 | 2026-10-12 | Standing permissions below | — | — | Until revoked |
-| A-004 | 2026-10-12 | Fill the UNKNOWNS block in `ops/CONTEXT.md` (now 10 questions) | — | — | One-time |
+| A-004 | 2026-10-12 | Fill the UNKNOWNS block in `ops/CONTEXT.md` (9 questions, numbered in CONTEXT order) | — | — | One-time |
 | A-006 | 2026-10-12 | Check Shopify billing for store ft6xi1-n1: were the Jun and Jul $29 Zendrop charges actually collected? (owner-only; agents cannot see it) | — | — | One-time |
+| A-007 | 2026-10-12 | Send the EXP-A2 ($99 Google Business Profile pack) text once to each listed business (wording: `library/outreach/gbp-pack-offer-2026-10-13.md`) | — | — | One send per business |
+| A-008 | 2026-10-12 | Send the EXP-A4 ($450 site / $150 deposit, or $590 annual) text once to each listed Elk Grove prospect (`library/outreach/founding-site-offer-2026-10-13.md`) | — | — | One send per business |
+| A-009 | 2026-10-12 | Send the EXP-A3 ($49 AI-search readiness check) text once to each listed business (`library/outreach/ai-search-check-offer-2026-10-13.md`) | — | — | One send per business |
+| A-010 | 2026-10-12 | Apply for a business license (Elk Grove or Sacramento per your address), fee up to $25 | — | — | One-time |
+| A-011 | 2026-10-12 | Activate a payment rail for business payments (only if you have none; name the app) | — | — | One-time |
 | A-005 | 2026-10-12 | Tax reserve % (placeholder 25% until confirmed with a tax pro) | — | — | Until changed |
 
 ## Standing permissions (proposed; inactive until A-003 = yes; strike any line you disagree with)
