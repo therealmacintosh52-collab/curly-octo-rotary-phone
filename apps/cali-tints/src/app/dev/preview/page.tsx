@@ -96,7 +96,7 @@ export default async function DevPreviewPage(props: PageProps<"/dev/preview">) {
   const list = priceListFixture(!asDetailer);
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: !asDetailer, canSettings: !asDetailer, canMoney: !asDetailer, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: !asDetailer, canSettings: !asDetailer, canMoney: !asDetailer, canPrices: !asDetailer, demo: true }}>
       <SyncProvider>
         <AppShell>
           <JobForm

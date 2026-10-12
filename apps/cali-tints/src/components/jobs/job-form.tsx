@@ -61,8 +61,8 @@ interface SavedCar {
  * the 1st.
  */
 export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Props) {
-  const { company, demo, canMoney } = useSession();
-  const showMoney = !!canMoney;
+  const { company, demo, canMoney, canPrices } = useSession();
+  const showMoney = !!(canPrices ?? canMoney);
   const { online } = useSync();
   const tagRef = useRef<HTMLInputElement>(null);
 
@@ -197,6 +197,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     if (!year) return "Year is required";
     if (!(make === "Other" ? customMake.trim() : make)) return "Make is required";
     if (!model.trim()) return "Model is required";
+    if (!color || color === "Other") return "Color is required";
     if (services.length === 0) return "Select at least one service";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performedAt)) return "Date is invalid";
     return null;
@@ -249,7 +250,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       year: year ? Number(year) : null,
       make: make === "Other" ? customMake.trim() || null : make || null,
       model: model.trim() || null,
-      color: color === "Other" ? null : color || null,
+      color,
       performed_at: dateInputToIso(performedAt),
       ro_po_number: null,
       notes: notes.trim() || null,
@@ -344,7 +345,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-title">New job</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Date, stock number, year, make, model, services, save. It lands on the dealership&apos;s QuickBooks invoice right away.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Date, stock number, year, make, model, color, services, save. It lands on the dealership&apos;s QuickBooks invoice right away.</p>
         </div>
         <AnimatePresence>
           {savedCount > 0 && (
@@ -524,7 +525,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
             <ModelCombobox id="model" value={model} onChange={setModel} options={modelOptions} placeholder="e.g. GLE 450" />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="color">Color</Label>
+            <Label htmlFor="color">Color <span className="text-destructive">*</span></Label>
             <Select value={color} onValueChange={setColor}>
               <SelectTrigger id="color" aria-label="Color">
                 <SelectValue placeholder="Color" />

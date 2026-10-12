@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Company, Profile } from "@/lib/db/types";
-import { canManageSettings, canSeeMoney, isCompanyWide } from "@/lib/roles";
+import { canManageSettings, canPriceJobs, canSeeMoney, isCompanyWide } from "@/lib/roles";
 
 export interface Session {
   userId: string;
@@ -15,8 +15,10 @@ export interface Session {
   isAdmin: boolean;
   /** owner or admin: Settings (company, dealerships, users). */
   canSettings: boolean;
-  /** owner only: prices, invoices, payments, income, export. */
+  /** owner only: invoices, payments, income, the price list, export. */
   canMoney: boolean;
+  /** owner or admin: prices on a job (New job, Edit job, job page). */
+  canPrices: boolean;
 }
 
 /**
@@ -44,6 +46,7 @@ export const getSession = cache(async (): Promise<Session> => {
     isAdmin: isCompanyWide(profile.role),
     canSettings: canManageSettings(profile.role),
     canMoney: canSeeMoney(profile.role),
+    canPrices: canPriceJobs(profile.role),
   };
 });
 

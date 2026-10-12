@@ -17,7 +17,7 @@ export const updateJobSchema = z.object({
   year: z.number({ error: "Year is required" }).int().min(1900).max(2100),
   make: z.string({ error: "Make is required" }).trim().min(1, "Make is required").max(60),
   model: z.string({ error: "Model is required" }).trim().min(1, "Model is required").max(80),
-  color: z.string().trim().max(40).nullable(),
+  color: z.string({ error: "Color is required" }).trim().min(1, "Color is required").max(40),
   performed_at: z.string().datetime({ offset: true }),
   ro_po_number: z.string().trim().max(40).nullable(),
   notes: z.string().trim().max(2000).nullable(),

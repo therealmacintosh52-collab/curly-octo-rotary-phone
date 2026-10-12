@@ -20,8 +20,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const ROLE_LABEL: Record<UserRole, string> = { owner: "Owner", admin: "Admin", manager: "Manager", detailer: "Detailer" };
 /** What each role can do, shown under the picker. */
 const ROLE_HINT: Record<UserRole, string> = {
-  owner: "Everything, and the only one who sees money: prices, invoices, payments, income.",
-  admin: "Runs the company: users, dealerships, every job. No money.",
+  owner: "Everything, and the only one who sees invoices, payments and income.",
+  admin: "Every job with its prices; Settings for users and dealerships (not the price list or export). No invoices, payments or income.",
   manager: "Every job and the team dashboard. No money, no Settings.",
   detailer: "Logs cars and sees only their own. No money.",
 };
@@ -160,7 +160,7 @@ function AddUserDialog({ onClose }: { onClose: () => void }) {
       >
         <DialogHeader>
           <DialogTitle>Add user</DialogTitle>
-          <DialogDescription>Detailers log and see their own cars. Managers see every job. Admins also run Settings and users. Only the owner sees money.</DialogDescription>
+          <DialogDescription>Detailers log and see their own cars. Managers see every job, no prices. Admins see job prices and run users and dealerships. Only the owner sees invoices, payments and income.</DialogDescription>
         </DialogHeader>
         <Tabs value={mode} onValueChange={(v) => setMode(v as "password" | "invite")}>
           <TabsList className="w-full">

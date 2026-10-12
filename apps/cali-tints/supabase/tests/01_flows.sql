@@ -883,3 +883,42 @@ begin
   assert (f -> 'rows' -> 0) ? 'quickbooks_doc_number', '0032: invoice rows carry the QuickBooks number';
 end $$;
 select pg_temp.logout();
+
+-- 0033: an admin sees and sets prices on jobs; invoices, payments and income stay the owner's.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('10000000-0000-4000-8000-000000000005', 'admin@test', '{"role":"admin","full_name":"Manny"}');
+select pg_temp.login('10000000-0000-4000-8000-000000000005');
+do $$
+declare j public.jobs; n int;
+begin
+  assert public.is_owner_admin() and not public.is_owner() and public.can_price_jobs(), '0033: admin may price jobs';
+  assert (select price from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Used') = 205.00, '0033: admin sees the price list (owner changed Used to 205)';
+  select count(*) into n from public.job_service_prices_v; assert n > 0, '0033: admin reads job line prices';
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ADM1', 'color', 'Polar White',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 150, 'override_reason', 'Repeat customer'))));
+  assert (select price from public.job_service_prices_v where job_id = j.id) = 150.00, '0033: admin override kept';
+  begin
+    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ADM2',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 10))));
+    raise exception 'expected a reason to be required for an admin too';
+  exception when sqlstate '22023' then null; end;
+  select count(*) into n from public.invoices; assert n = 0, '0033: admin sees no invoices';
+  select count(*) into n from public.invoice_payments; assert n = 0, '0033: admin sees no payments';
+  select count(*) into n from public.service_prices_v; assert n = 0, '0033: the price-list view stays the owner''s';
+  begin
+    perform public.dashboard_stats();
+    raise exception 'expected owner-only dashboard';
+  exception when sqlstate '42501' then null; end;
+  begin
+    perform public.invoices_filtered();
+    raise exception 'expected owner-only list';
+  exception when sqlstate '42501' then null; end;
+end $$;
+-- Manager and detailer: still nothing.
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+begin
+  assert not public.can_price_jobs(), '0033: manager cannot price jobs';
+  assert (select count(*) from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where price is not null) = 0, '0033: price list still blank for a manager';
+end $$;
+select pg_temp.logout();

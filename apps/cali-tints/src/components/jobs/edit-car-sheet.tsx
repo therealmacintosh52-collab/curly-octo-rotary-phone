@@ -108,6 +108,7 @@ export function EditCarSheet({
     if (!year) return toast.error("Year is required");
     if (!(otherMake ? customMake.trim() : make)) return toast.error("Make is required");
     if (!model.trim()) return toast.error("Model is required");
+    if (!color) return toast.error("Color is required");
     if (services.length === 0) return toast.error("Select at least one service");
     start(async () => {
       const r = await save({
@@ -118,7 +119,7 @@ export function EditCarSheet({
         year: Number(year),
         make: make === "Other" ? customMake.trim() : make,
         model: model.trim(),
-        color: color || null,
+        color,
         // Unchanged date keeps the original timestamp; a new date is stored per dateInputToIso.
         performed_at: performedAt === toDateInput(new Date(car.performed_at)) ? car.performed_at : dateInputToIso(performedAt),
         ro_po_number: car.ro_po_number ?? null,

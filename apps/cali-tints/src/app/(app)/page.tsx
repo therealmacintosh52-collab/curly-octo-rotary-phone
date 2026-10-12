@@ -21,11 +21,16 @@ export default async function HomePage(props: PageProps<"/">) {
     return <DetailerDashboard stats={data as DetailerStats} today={today} who={who} />;
   }
 
-  // Admins and managers: the whole team's day, still no money.
+  // Admins and managers: the whole team's day, no money. Admins also see which jobs still need a price.
   if (!isOwner(session.profile.role)) {
-    const { data, error } = await supabase.rpc("team_dashboard", {});
+    const [{ data, error }, { data: needsPrice }] = await Promise.all([supabase.rpc("team_dashboard", {}), session.canPrices ? supabase.rpc("jobs_needing_price", {}) : Promise.resolve({ data: 0 })]);
     if (error || !data) throw new Error(error?.message ?? "Could not load dashboard");
-    return <TeamDashboard stats={data as TeamStats} today={today} who={who} />;
+    return (
+      <>
+        <NeedsPriceBanner count={Number(needsPrice ?? 0)} />
+        <TeamDashboard stats={data as TeamStats} today={today} who={who} />
+      </>
+    );
   }
 
   const sp = await props.searchParams;

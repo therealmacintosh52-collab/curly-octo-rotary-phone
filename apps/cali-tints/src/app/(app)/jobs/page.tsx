@@ -31,13 +31,13 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
   const supabase = await createClient();
 
   // Owner only: open jobs with a line logged as "Other" and no price yet. `?needs_price=1` narrows the list to them.
-  const needsPriceOnly = session.canMoney && sp.needs_price === "1";
+  const needsPriceOnly = session.canPrices && sp.needs_price === "1";
   const [{ data: list, error }, { data: services }, { data: dealerships }, { data: detailers }, { data: flaggedRows }] = await Promise.all([
     supabase.rpc("jobs_filtered", needsPriceOnly ? { ...jobFilterArgs(filters), p_limit: 500, p_offset: 0 } : jobFilterArgs(filters)),
     supabase.from("services").select("id, name").order("sort_order"),
     supabase.from("dealerships").select("id, name").order("name"),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
-    session.canMoney ? supabase.from("job_service_prices_v").select("job_id").eq("needs_price", true).is("invoice_id", null).is("deleted_at", null) : Promise.resolve({ data: [] as { job_id: string }[] }),
+    session.canPrices ? supabase.from("job_service_prices_v").select("job_id").eq("needs_price", true).is("invoice_id", null).is("deleted_at", null) : Promise.resolve({ data: [] as { job_id: string }[] }),
   ]);
   if (error) throw new Error(error.message);
   const flagged = new Set((flaggedRows ?? []).map((r) => r.job_id));

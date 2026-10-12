@@ -28,7 +28,7 @@ export default function DevSettingsPreview() {
   ];
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: true, canSettings: true, canMoney: true, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: true, canSettings: true, canMoney: true, canPrices: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <Page>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CheckIcon } from "lucide-react";
 import type { UserRole } from "@/lib/db/types";
-import { canManageSettings, canSeeMoney, isCompanyWide } from "@/lib/roles";
+import { canManageSettings, canPriceJobs, canSeeMoney, isCompanyWide } from "@/lib/roles";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +67,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
   const wide = isCompanyWide(role);
   const settings = canManageSettings(role);
   const money = canSeeMoney(role);
+  const prices = canPriceJobs(role);
   const first = name.trim().split(/\s+/)[0] || "there";
 
   const toc = [
@@ -142,9 +143,9 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             <Row what="Dealership" does="Who gets billed. Remembers your last pick." />
             <Row what="Stock number" does="The dealership's stock number for the car. Required. Type it or tap Scan barcode and point the camera at the window sticker or the stock tag." />
             <Row what="VIN" does="Optional. Type the 17 characters or scan the barcode; the year, make and model fill in on their own." />
-            <Row what="Year · Make · Model" does="Required. Filled by the VIN when you scan; otherwise pick them. Make lists the common ones; pick Other to type a make that is not there. Color is optional." />
-            <Row what="Services" does={money ? "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. The price comes from the price list. Pick Other and type what was done when it is not on the menu." : "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. No prices here; the owner's price list does that. Pick Other and type what was done when it is not on the menu."} />
-            {money && <Row what="Price" does="Pre-filled from the dealership's price list. Change it only when the job was different; a reason is asked when the price is outside the normal range. Other logged by someone else shows Needs a price until you set it." />}
+            <Row what="Year · Make · Model · Color" does="Required. Year, make and model are filled by the VIN when you scan; otherwise pick them. Make lists the common ones; pick Other to type a make that is not there." />
+            <Row what="Services" does={prices ? "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. The price comes from the price list. Pick Other and type what was done when it is not on the menu." : "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. No prices here; the owner's price list does that. Pick Other and type what was done when it is not on the menu."} />
+            {prices && <Row what="Price" does="Pre-filled from the dealership's price list. Change it only when the job was different; a reason is asked when the price is outside the normal range. Other logged by someone else shows Needs a price until you set it." />}
             {wide && <Row what="Detailer" does="Who did the car. Defaults to you." />}
             <Row what="RO / PO number" does="Optional. The dealership's repair or purchase order, printed on the invoice." />
             <Row what="Notes" does="Optional. Anything the office should know. Printed on the invoice." />
@@ -220,7 +221,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
               {money && <Row what="QuickBooks Online" does="Connect QuickBooks once with the Intuit login that owns the books. From then on every month's invoice is created there automatically and payments recorded in QuickBooks come back here. Sync now runs it by hand; Disconnect stops it. Owner only." />}
               <Row what="Dealerships" does="Each dealership's AP contact and emails (where invoices go), how they want invoices (email, portal, paper) and a tax override." />
               {money && <Row what="Services & prices" does="The menu and its prices, plus a per-dealership price grid. A service can have a normal range; prices outside it ask for a reason. Owner only." />}
-              <Row what="Users" does="Add people with a password or an email invite. Roles: Detailer (own cars), Manager (every job, no money, no Settings), Admin (everything but money), Owner (the only one who sees money). Deactivate to block sign-in without losing history." />
+              <Row what="Users" does="Add people with a password or an email invite. Roles: Detailer (own cars), Manager (every job, no prices, no Settings), Admin (every job with prices, users and dealerships), Owner (the only one who sees invoices, payments and income). Deactivate to block sign-in without losing history." />
               {money && <Row what="Export" does="Every table as CSV for the accountant. Owner only." />}
             </Inputs>
             <Outputs items={["Changes apply immediately to new invoices; existing invoices keep the details they were made with."]} />

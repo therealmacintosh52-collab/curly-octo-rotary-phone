@@ -56,7 +56,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     supabase.rpc("dealership_price_list", { p_dealership_id: job.dealership_id }),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [{ id: session.profile.id, full_name: session.profile.full_name }] }),
     // The owner's prices for this job's lines (empty for everyone else).
-    session.canMoney ? supabase.from("job_service_prices_v").select("job_service_id, price, override_reason").eq("job_id", id) : Promise.resolve({ data: [] as { job_service_id: string; price: number; override_reason: string | null }[] }),
+    session.canPrices ? supabase.from("job_service_prices_v").select("job_service_id, price, override_reason").eq("job_id", id) : Promise.resolve({ data: [] as { job_service_id: string; price: number; override_reason: string | null }[] }),
     // Invoices are the owner's; everyone else still learns which invoice the car is on.
     job.invoice_id && !job.invoice ? supabase.rpc("job_invoice_number", { p_job_id: id }) : Promise.resolve({ data: null as string | null }),
   ]);
@@ -97,7 +97,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     priceList: (priceListRes.data ?? []) as PriceListRow[],
     detailers: detailers ?? [],
     isAdmin: session.isAdmin,
-    canSeeMoney: session.canMoney,
+    canSeeMoney: session.canPrices,
     canEdit: own && open,
     canDelete: session.isAdmin && open,
     canRestore: session.isAdmin && !!job.deleted_at,

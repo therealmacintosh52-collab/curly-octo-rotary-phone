@@ -87,7 +87,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   if (sp.as === "team") {
     const manny = { ...profile, id: "u4", role: "admin", full_name: "Manny" } as Profile;
     return (
-      <SessionProvider value={{ userId: manny.id, email: null, profile: manny, company, isAdmin: true, canSettings: true, canMoney: false, demo: true }}>
+      <SessionProvider value={{ userId: manny.id, email: null, profile: manny, company, isAdmin: true, canSettings: true, canMoney: false, canPrices: true, demo: true }}>
         <SyncProvider>
           <AppShell>
             <TeamDashboard stats={teamFixture(today)} today={today} who={{ name: manny.full_name, tz: company.timezone }} />
@@ -125,7 +125,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
   }
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, canSettings: true, canMoney: true, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin: true, canSettings: true, canMoney: true, canPrices: true, demo: true }}>
       <SyncProvider>
         <AppShell>
           <NeedsPriceBanner count={1} />

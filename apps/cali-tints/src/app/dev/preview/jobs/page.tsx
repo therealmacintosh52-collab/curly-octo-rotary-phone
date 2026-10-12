@@ -73,7 +73,7 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
   const params = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : []))).toString();
 
   return (
-    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin, canSettings: isAdmin, canMoney, demo: true }}>
+    <SessionProvider value={{ userId: profile.id, email: null, profile, company, isAdmin, canSettings: isAdmin, canMoney, canPrices: isAdmin && !asDetailer, demo: true }}>
       <SyncProvider>
         <AppShell>
           <Page>

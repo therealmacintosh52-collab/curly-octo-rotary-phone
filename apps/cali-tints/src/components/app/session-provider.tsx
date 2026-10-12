@@ -11,8 +11,10 @@ export interface ClientSession {
   isAdmin: boolean;
   /** Owner or admin: Settings. */
   canSettings?: boolean;
-  /** Owner only: prices, totals, invoices, payments. */
+  /** Owner only: invoices, payments, income. */
   canMoney?: boolean;
+  /** Owner or admin: prices on a job. */
+  canPrices?: boolean;
   /** Guest preview: fixture data, no database. Saves are simulated. */
   demo?: boolean;
 }
