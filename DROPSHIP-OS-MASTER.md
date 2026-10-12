@@ -61,13 +61,18 @@ decision in §2 is kill-or-commit, not a product decision.
    run BFCM → Christmas as one campaign. Anything later than Oct 24
    misses BFCM prep (T-30 = Oct 28) and the next honest window is
    Valentine's (prep Jan 15, 2027).
-3. **Pricing floor for US-stock.** Zendrop's US-stock catalog is mostly
-   "Amazon Products" relistings at Amazon retail; 3× is impossible
-   there. Options: (a) China-direct "Zendrop Fulfillment" items (costs
-   $0.50–$13, 2–3 week transit — fine for BFCM-to-Christmas, not for
-   late-December promises); (b) relax the floor to ~2× for US-stock
-   only (violates §5 as written — explicit approval needed); (c) another
-   US-stock network (Doba/CJ US/Spocket, owner-account gated).
+3. **Pricing floor.** Zendrop cannot support 3× on either side of its
+   catalog: US-stock is Amazon relists at retail, and China-direct
+   shipping to the US is **$4.64–$30.08 per item** (quoted 2026-10-12),
+   which pushes landed cost past market ÷ 3 on everything under ~$40.
+   Transit is a quoted 8 days, so timing is fine; cost is not. Ten
+   candidates were quoted: 0 clear 3×, three clear ~2× (galaxy
+   projector, Bluetooth sleep-mask headband, USB heated eye mask).
+   Options: (a) accept ~2× / 50% gross for a 3-product BFCM test;
+   (b) hold 3× and move sourcing to a cheaper-shipping platform
+   (CJ / AliExpress Choice / Spocket — owner accounts, not reachable
+   here); (c) park. Full sheet:
+   `dropship-os/suppliers/bfcm26-candidates-2026-10-12.md`.
 
 ### If "commit": BFCM → Christmas 2026 plan
 
@@ -76,8 +81,8 @@ frozen, no viable product.
 
 | Window | Play |
 |---|---|
-| Oct 12–24 | Owner reactivates store. Agent: archive the 9 Zendrop pushes + Spacelift leftovers (confirm list first), re-verify policies/payments/nav, shortlist 5 China-direct candidates from Zendrop trending with ≥3× at a sellable price, pull landed cost + US transit for each |
-| Oct 24–Nov 8 | Push the 5 shortlisted via Zendrop (real photos come with them), write 3 hooks each, build "Holiday Gift Shop" smart collection (tag `holiday-2026`), set gift-deadline copy from each item's real transit |
+| Oct 12–24 | **Done 2026-10-12:** candidate shortlist with real landed costs + transit (3 viable at ~2×, none at 3×). Still owner-gated: reactivate store; then agent archives the 9 Zendrop pushes + Spacelift leftovers (confirm list first), re-verifies policies/payments/nav |
+| Oct 24–Nov 8 | Push the 3 shortlisted via Zendrop (real photos come with them), verify per-order vs per-unit shipping with one test order (bundles only work if per-order), write 3 hooks each, build "Holiday Gift Shop" smart collection (tag `holiday-2026`), order-by date **Dec 14** (Dec 25 − 8 d transit − 3 d buffer) on every page |
 | Nov 9–12 | Soft launch: $10–20/day per product, organic short-form, judge cost-per-checkout-initiated |
 | Nov 13–26 | Kill at ~$50 spend with no ATCs; scale winners +20–30%/2–3 days; BFCM offer capped at 20% (§5) |
 | Nov 27–30 | BFCM. Order-by date for Christmas arrival = Dec 25 minus the supplier's quoted transit minus 3 days buffer — stated on every product page |
@@ -218,6 +223,7 @@ Review weekly (Mondays), together with the trend scan.
 | 2026-10-12 | Recorded the 9 Zendrop products pushed in June and their real landed costs; **all 9 fail the 3× floor** | First real quotes on file; US-stock Zendrop = Amazon relists at retail parity |
 | 2026-10-12 | Queued three owner decisions ahead of any product work: reactivate-or-close, kill-or-commit (commit = live by Oct 24 for BFCM), pricing floor for US-stock | $0 revenue in 4 months with fixed costs still accruing; a product decision before these is theatre |
 | 2026-10-12 | Zendrop MCP connector adopted as the sourcing channel; June "no autonomous route" finding superseded | Costs, shipping and transit now readable without owner clicks |
+| 2026-10-12 | BFCM shortlist quoted (10 China-direct candidates): **0 clear 3×, 3 clear ~2×**. Root cause is Zendrop's $4.64–$30 per-item US shipping, not product cost | §5 floor is unreachable on Zendrop; owner must pick 2×, a cheaper-shipping supplier, or park |
 
 ## 11. Operating cadence
 

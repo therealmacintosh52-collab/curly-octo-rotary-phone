@@ -55,11 +55,11 @@ instead of a fixed niche. Winners graduate to an evergreen catalog.
    Amazon relists. Choose China-direct ("Zendrop Fulfillment", 2–3 week
    transit, $0.50–$13 costs), a relaxed ~2× floor for US-stock, or
    another supplier network.
-4. If committing: archive the 9 Zendrop pushes + Spacelift leftovers
-   (confirm the list first), shortlist 5 China-direct candidates with
-   real landed cost + transit, build the "Holiday Gift Shop" collection,
-   soft-launch Nov 9–12, BFCM Nov 27–30, Christmas cutoffs stated per
-   item. Full timeline: master doc §2.
+4. If committing at ~2×: archive the 9 Zendrop pushes + Spacelift
+   leftovers (confirm the list first), push the 3 shortlisted via
+   Zendrop, confirm per-order shipping with a test order, build the
+   "Holiday Gift Shop" collection, soft-launch Nov 9–12, BFCM Nov 27–30,
+   order-by Dec 14 on every page. Full timeline: master doc §2.
 
 ## Key operating rules
 

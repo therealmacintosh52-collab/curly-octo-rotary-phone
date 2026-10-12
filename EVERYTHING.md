@@ -55,18 +55,20 @@ No active campaign. Before any product work, the owner decides:
 2. **Kill or commit.** Commit = store live by **Oct 24** (BFCM prep T-30
    is Oct 28) with a real test budget ($10–20/day × 3–5 products).
    Miss that and the next honest window is Valentine's 2027 (prep Jan 15).
-3. **Pricing floor for US-stock.** 3× is arithmetically impossible on
-   Amazon relists. Options: China-direct "Zendrop Fulfillment" (costs
-   $0.50–$13, 2–3 week transit, fine for BFCM-to-Christmas), relax to
-   ~2× for US-stock only (violates §5 as written), or another US-stock
-   network (Doba / CJ US / Spocket — owner accounts).
+3. **Pricing floor.** 3× is unreachable on Zendrop: US-stock is Amazon
+   relists at retail; China-direct ships to the US at $4.64–$30.08 per
+   item (8-day transit). Ten BFCM candidates quoted 2026-10-12: 0 clear
+   3×, 3 clear ~2× (galaxy projector, Bluetooth sleep-mask headband,
+   USB heated eye mask). Choose: ~2× test, a cheaper-shipping supplier
+   (CJ / AliExpress Choice / Spocket), or park.
+   `dropship-os/suppliers/bfcm26-candidates-2026-10-12.md`.
 
 If "commit" — BFCM → Christmas 2026:
 
 | Window | Play |
 |---|---|
-| Oct 12–24 | Owner reactivates. Agent archives the 9 Zendrop pushes + Spacelift leftovers (confirm first), re-verifies policies/payments/nav, shortlists 5 China-direct candidates with real landed cost + transit |
-| Oct 24–Nov 8 | Push the 5 via Zendrop (real photos), 3 hooks each, "Holiday Gift Shop" smart collection (tag `holiday-2026`), gift-deadline copy from real transit |
+| Oct 12–24 | Shortlist done (3 at ~2×). Owner reactivates; agent archives the 9 Zendrop pushes + Spacelift leftovers (confirm first), re-verifies policies/payments/nav |
+| Oct 24–Nov 8 | Push the 3 via Zendrop (real photos), test order to confirm per-order shipping, 3 hooks each, "Holiday Gift Shop" collection (tag `holiday-2026`), order-by Dec 14 on every page |
 | Nov 9–12 | Soft launch, $10–20/day per product, judge cost per checkout-initiated |
 | Nov 13–26 | Kill at ~$50 with no ATCs; scale winners +20–30%/2–3 days; BFCM offer ≤20% |
 | Nov 27–30 | BFCM; Christmas order-by date = Dec 25 − quoted transit − 3 days, on every page |

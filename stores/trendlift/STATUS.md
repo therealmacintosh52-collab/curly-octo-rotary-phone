@@ -80,7 +80,12 @@ and shipping data is readable without the owner's clicks.
       Spacelift leftovers (destructive — list first, confirm, then do),
       de-duplicate the Lazy Susan, re-verify policies pages, payments,
       DAD10 discount, navigation.
-- [ ] Then: BFCM/Christmas candidate sourcing per master doc §2.
+- [x] BFCM/Christmas candidate sourcing (2026-10-12): 10 China-direct
+      items quoted with US shipping + transit —
+      `dropship-os/suppliers/bfcm26-candidates-2026-10-12.md`. 0 clear
+      3×, 3 clear ~2× (galaxy projector, Bluetooth sleep-mask headband,
+      USB heated eye mask). Blocker is Zendrop's $4.64–$30 per-item US
+      shipping. Awaiting the pricing-floor decision above.
 - [x] Policies pages, DAD10 discount, navigation, FD gift note, ad
       creative pack — built 2026-06-11 (unverifiable while frozen).
 
@@ -118,3 +123,4 @@ gated (June research).
 | 2026-06-21 | Father's Day passed. Campaign never activated: no supplier costs, no real photos, store never went live. **Closed, no launch.** |
 | ~2026-08 | Store frozen by Shopify (inferred: Zendrop's Shopify-billed charges canceled 08-10 and 09-09; Admin API refuses as of 10-12). |
 | 2026-10-12 | Full live audit via Zendrop MCP + Shopify MCP (refused). First real landed costs recorded; 0/9 products viable at 3×. Docs refreshed; lifecycle set to dormant/frozen; owner decisions queued (reactivate, kill-or-commit, pricing floor). |
+| 2026-10-12 | Owner said go ("flick it"). BFCM shortlist built from 100 trending + 4 keyword scans: 10 quoted, 0 at 3×, 3 at ~2×. Zendrop CN→US shipping $4.64–$30.08/item is the structural blocker; transit 8 d. Decision on the floor still with the owner. |
