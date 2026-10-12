@@ -1,11 +1,18 @@
 /**
- * Booking + assistant + widgets check (after npm run build):
+ * Booking + payments + CRM + assistant + widgets check (after npm run build).
+ *
+ * The static build is served with a stand-in for the Netlify functions
+ * (in-memory leads, a fake Stripe checkout that bounces to /thank-you/), so
+ * the whole customer path and the owner's board run end to end without
+ * Netlify or Stripe:
  *   - open/closed pill carries a live state
- *   - /book/: calendar draws, an open day and a start time can be picked, the
- *     hidden fields, text link and calendar file fill in, ?service=&note= prefill
- *   - service widgets: shade slider, colour picker, lettering, PPF zones,
- *     builder and symptoms all update "Your pick" and the Book link
- *   - assistant: opens, guided flow answers, book/call actions appear
+ *   - /book/: calendar, slots, hidden fields, text / .ics fallbacks, prefill;
+ *     the deposit choice appears when payments are on; submitting saves the
+ *     lead and lands on the paid thank-you page
+ *   - quote form saves a lead even with no inbox connected
+ *   - /admin/: sign in, the two leads show, status changes stick, filters
+ *   - service widgets update "Your pick" and the Book link
+ *   - assistant: guided flow answers with book / call actions
  * Screenshots → qa/.
  */
 import { createServer } from 'node:http';
@@ -18,26 +25,50 @@ const _LOCAL_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const CHROME = process.env.PW_CHROME || (existsSync(_LOCAL_CHROME) ? _LOCAL_CHROME : chromium.executablePath());
 const DIST = path.join(ROOT, 'dist'); const QA = path.join(ROOT, 'qa'); mkdirSync(QA, { recursive: true });
 const MIME={'.html':'text/html','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.avif':'image/avif','.woff2':'font/woff2','.webm':'video/webm','.mp4':'video/mp4'};
-const server=createServer((req,res)=>{const u=decodeURIComponent((req.url||'/').split('?')[0]);if(u.startsWith('/.netlify/functions/chat')){res.writeHead(200,{'Content-Type':'application/json'});res.end('{"ok":true,"llm":false}');return;}let f=path.join(DIST,u);if(u.endsWith('/'))f=path.join(f,'index.html');if(!existsSync(f)||statSync(f).isDirectory()){res.writeHead(404);res.end();return;}const buf=readFileSync(f);res.writeHead(200,{'Content-Type':MIME[path.extname(f)]||'application/octet-stream','Content-Length':buf.length});res.end(buf);});
-await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const BASE=`http://127.0.0.1:${server.address().port}`;
+const ADMIN = 'shop-secret';
+const leads = [];
+const send = (res, code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
+const readBody = (req) => new Promise((r) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => r(b)); });
+const server = createServer(async (req, res) => {
+  const u = new URL(req.url, 'http://x');
+  if (u.pathname.startsWith('/.netlify/functions/')) {
+    const fn = u.pathname.split('/').pop();
+    const body = req.method === 'GET' ? {} : JSON.parse((await readBody(req)) || '{}');
+    const owner = req.headers['x-admin-key'] === ADMIN;
+    if (fn === 'chat') return send(res, 200, { ok: true, llm: false });
+    if (fn === 'leads') {
+      if (req.method === 'GET' && u.searchParams.get('ping')) return send(res, 200, { ok: true, crm: true, stripe: true });
+      if (req.method === 'GET') return owner ? send(res, 200, { leads, summary: { new: leads.filter((l) => l.status === 'new').length, today: leads.length, week: leads.length, deposits_cents: 5000 } }) : send(res, 401, { error: 'unauthorized' });
+      if (req.method === 'POST') { const l = { id: `l${leads.length + 1}`, created: new Date().toISOString(), status: 'new', quote_cents: 0, deposit: { status: 'none', amount_cents: 0 }, payments: [], notes: [], email: '', duration: '', ...body, note: body.message || body.note || '' }; leads.unshift(l); return send(res, 200, { ok: true, id: l.id }); }
+      if (req.method === 'PATCH') { if (!owner) return send(res, 401, {}); const l = leads.find((x) => x.id === body.id); if (!l) return send(res, 404, {}); Object.assign(l, body.status ? { status: body.status } : {}, Number.isFinite(body.quote_cents) ? { quote_cents: body.quote_cents } : {}); if (body.note) l.notes.push({ when: new Date().toISOString(), text: body.note }); return send(res, 200, { ok: true, lead: l }); }
+    }
+    if (fn === 'checkout') {
+      if (req.method === 'GET') return send(res, 200, { enabled: true, deposit_cents: 5000, currency: 'usd' });
+      const l = leads.find((x) => x.id === body.lead_id); if (!l) return send(res, 404, { error: 'lead not found' });
+      return send(res, 200, { url: `/thank-you/?paid=${body.kind}&lead=${l.id}`, amount_cents: 5000 });
+    }
+    return send(res, 404, { error: 'no such function' });
+  }
+  const p = decodeURIComponent(u.pathname); let f = path.join(DIST, p); if (p.endsWith('/')) f = path.join(f, 'index.html');
+  if (!existsSync(f) || statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
+  const buf = readFileSync(f); res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream', 'Content-Length': buf.length }); res.end(buf);
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const BASE = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
 let fail = 0;
 const ok = (c, msg) => { console.log(`${c ? '✓' : '✗'} ${msg}`); if (!c) fail++; };
 const page = async (vp, mobile = false) => { const pg = await browser.newPage({ viewport: vp, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile }); pg.on('pageerror', (e) => { console.log('  pageerror:', e.message); fail++; }); return pg; };
 
-// 1. Open/closed pill
+// 1. Pill + booking flow + deposit checkout
 {
   const pg = await page({ width: 1440, height: 900 });
-  await pg.goto(BASE + '/book/', { waitUntil: 'load' }); await pg.waitForSelector('.cal__day'); await pg.waitForTimeout(600);
+  await pg.goto(BASE + '/book/', { waitUntil: 'load' }); await pg.waitForSelector('.cal__day'); await pg.waitForTimeout(700);
   const pill = await pg.evaluate(() => { const el = document.querySelector('.page-head [data-open-now]'); return { cls: el.className, label: el.querySelector('[data-open-label]').textContent }; });
   ok(/is-open|is-closed/.test(pill.cls) && /Open|Closed/.test(pill.label), `open-now pill is live: "${pill.label}"`);
-
-  // 2. Booking flow
   const days = await pg.locator('.cal__day:not(:disabled)').count();
   ok(days > 0, `calendar shows ${days} bookable days this month`);
   await pg.locator('.book__svc').first().click();
-  // first enabled day (this month, or flip to next)
   let dayBtn = pg.locator('.cal__day:not(:disabled)').first();
   if (!(await dayBtn.count())) { await pg.locator('[data-cal-next]').click(); dayBtn = pg.locator('.cal__day:not(:disabled)').first(); }
   await dayBtn.click(); await pg.waitForTimeout(200);
@@ -47,21 +78,65 @@ const page = async (vp, mobile = false) => { const pg = await browser.newPage({ 
   const st = await pg.evaluate(() => ({
     service: document.querySelector('[data-f-service]').value, date: document.querySelector('[data-f-date]').value, time: document.querySelector('[data-f-time]').value,
     subject: document.querySelector('[data-f-subject]').value, gcal: document.querySelector('[data-f-gcal]').value, enabled: !document.querySelector('[data-submit]').disabled,
-    sms: document.querySelector('[data-sms]').getAttribute('href'), ics: document.querySelector('[data-ics]').getAttribute('href'), summary: document.querySelector('[data-summary]').textContent,
+    sms: document.querySelector('[data-sms]').getAttribute('href'), ics: document.querySelector('[data-ics]').getAttribute('href'),
+    pay: !document.querySelector('[data-pay]').hidden, depositText: document.querySelector('[data-pay-deposit]').textContent,
   }));
   ok(st.service === 'Window Tinting' && /\d{4}/.test(st.date) && /AM|PM/.test(st.time), `hidden fields: ${st.service} / ${st.date} / ${st.time}`);
   ok(st.enabled && /^Booking request:/.test(st.subject), `submit enabled, subject "${st.subject}"`);
   ok(st.gcal.startsWith('https://calendar.google.com/calendar/render?action=TEMPLATE'), 'owner add-to-Google-Calendar link filled');
   ok(st.sms.startsWith('sms:+19167012005') && st.ics.startsWith('data:text/calendar'), 'text-the-shop and .ics fallbacks ready');
+  ok(st.pay && /\$50/.test(st.depositText), `deposit choice shown with the service deposit: "${st.depositText}"`);
+  await pg.fill('#bk-name', 'Ana Diaz'); await pg.fill('#bk-phone', '9165550100'); await pg.fill('#bk-vehicle', '2021 Tesla Model 3'); await pg.fill('#bk-note', '20% rear, ceramic');
   await pg.screenshot({ path: path.join(QA, 'desktop-book.png') });
-  // prefill
+  await pg.locator('[data-submit]').click();
+  await pg.waitForURL(/thank-you\/\?paid=deposit/, { timeout: 8000 }).catch(() => {});
+  ok(/thank-you\/\?paid=deposit&lead=l1/.test(pg.url()), `deposit checkout bounced to the thank-you page: ${pg.url().replace(BASE, '')}`);
+  await pg.waitForTimeout(300);
+  ok(/Deposit received/.test(await pg.locator('h1').textContent()), 'thank-you page shows the deposit state');
+  ok(leads.length === 1 && leads[0].vehicle === '2021 Tesla Model 3' && leads[0].source === 'booking', `lead saved in the CRM with the vehicle (${leads[0]?.vehicle})`);
   await pg.goto(BASE + '/book/?service=ceramic-coating&note=2021%20Tesla%20Model%203', { waitUntil: 'load' }); await pg.waitForTimeout(500);
   const pre = await pg.evaluate(() => ({ svc: document.querySelector('input[name=svc]:checked')?.value, note: document.querySelector('[data-f-note]').value }));
   ok(pre.svc === 'ceramic-coating' && pre.note === '2021 Tesla Model 3', `prefill from the query string: ${pre.svc}, "${pre.note}"`);
   await pg.close();
 }
 
-// 3. Widgets
+// 2. Quote form → CRM even without an inbox
+{
+  const pg = await page({ width: 1440, height: 900 });
+  await pg.goto(BASE + '/contact/', { waitUntil: 'load' }); await pg.waitForTimeout(500);
+  const form = pg.locator('form[data-quote-form]').first();
+  await form.locator('input[name=name]').fill('Ben Ortiz'); await form.locator('input[name=phone]').fill('9165550101'); await form.locator('input[name=vehicle]').fill('2018 F-150');
+  await form.locator('button[type=submit]').click(); await pg.waitForTimeout(800);
+  const msg = await form.locator('.form-status').textContent();
+  ok(/your request is with the shop/.test(msg), `quote form saved to the CRM: "${msg.slice(0, 60)}…"`);
+  ok(leads.length === 2 && leads[0].source === 'quote' && leads[0].name === 'Ben Ortiz', 'quote lead recorded');
+  await pg.close();
+}
+
+// 3. Owner board
+{
+  const pg = await page({ width: 1440, height: 900 });
+  await pg.goto(BASE + '/admin/', { waitUntil: 'load' }); await pg.waitForTimeout(600);
+  await pg.fill('#crm-pw', 'wrong'); await pg.locator('[data-crm-login] button').click(); await pg.waitForTimeout(400);
+  ok(/did not match/.test(await pg.locator('[data-crm-login] .form-status').textContent()), 'wrong password is refused');
+  await pg.fill('#crm-pw', ADMIN); await pg.locator('[data-crm-login] button').click(); await pg.waitForTimeout(600);
+  ok(!(await pg.locator('[data-crm-board]').isHidden()), 'board opens with the right password');
+  const cards = await pg.locator('.lead').count();
+  ok(cards === 2, `both leads on the board (${cards})`);
+  ok((await pg.locator('.lead').first().textContent()).includes('Ben Ortiz'), 'newest lead first');
+  await pg.locator('.lead').nth(1).locator('.lead__status').selectOption('confirmed'); await pg.waitForTimeout(500);
+  ok(leads.find((l) => l.name === 'Ana Diaz')?.status === 'confirmed', 'status change saved');
+  await pg.locator('.lead').nth(1).locator('[data-quote]').fill('350'); await pg.locator('.lead').nth(1).locator('[data-act=quote]').click(); await pg.waitForTimeout(500);
+  ok(leads.find((l) => l.name === 'Ana Diaz')?.quote_cents === 35000, 'quote saved as cents');
+  ok(await pg.locator('.lead').nth(1).locator('[data-act=balance]').count() === 1, 'balance link button appears once a quote exists');
+  await pg.locator('[data-filter=new]').click(); await pg.waitForTimeout(200);
+  ok((await pg.locator('.lead').count()) === 1, 'status filter narrows the list');
+  await pg.locator('[data-filter=open]').click(); await pg.waitForTimeout(200);
+  await pg.screenshot({ path: path.join(QA, 'desktop-admin.png') });
+  await pg.close();
+}
+
+// 4. Widgets
 const widget = async (slug, act, expect) => {
   const pg = await page({ width: 1440, height: 900 });
   await pg.goto(`${BASE}/services/${slug}/`, { waitUntil: 'load' }); await pg.waitForSelector('[data-widget] [data-summary]'); await pg.waitForTimeout(500);
@@ -81,7 +156,7 @@ await widget('paint-correction', async (pg) => { await pg.locator('.iw__pick lab
 await widget('detailing', async (pg) => { await pg.locator('[data-item]').nth(0).check({ force: true }); await pg.locator('[data-item]').nth(2).check({ force: true }); }, /Exterior wash and decontamination, Shampoo seats/);
 await widget('tint-removal-repair', async (pg) => { await pg.locator('[data-symptom="0"]').click(); }, /Purple or faded/);
 
-// 4. Assistant (guided flow; the stub endpoint reports llm:false)
+// 5. Assistant (guided flow; the stub endpoint reports llm:false)
 {
   const pg = await page({ width: 390, height: 844 }, true);
   await pg.goto(BASE + '/', { waitUntil: 'load' }); await pg.waitForTimeout(800);
@@ -103,7 +178,7 @@ await widget('tint-removal-repair', async (pg) => { await pg.locator('[data-symp
   await pg.close();
 }
 
-// 5. Phone booking layout
+// 6. Phone booking layout
 {
   const pg = await page({ width: 390, height: 844 }, true);
   await pg.goto(BASE + '/book/', { waitUntil: 'load' }); await pg.waitForTimeout(500);
@@ -114,4 +189,5 @@ await widget('tint-removal-repair', async (pg) => { await pg.locator('[data-symp
 }
 
 await browser.close(); server.close();
+console.log(fail ? `${fail} failed` : 'all passed');
 process.exit(fail ? 1 : 0);

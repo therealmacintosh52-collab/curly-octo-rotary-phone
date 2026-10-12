@@ -53,10 +53,6 @@ const sat = S.hours_rows.find(([d]) => d === 'Saturday')?.[1];
     <div class="wrap">
       <div class="split">
         <div>
-          <!-- Answer-first: everything an assistant needs to answer
-               "who does X in Sacramento" without reading further. -->
-          <Glance glance={s.glance} />
-
           <Interactive slug={s.slug} nav={s.nav} cfg={s.interactive} />
 
           <SplitImage src={s.image.src} alt={s.image.alt} caption={s.image.caption} />
@@ -78,6 +74,11 @@ const sat = S.hours_rows.find(([d]) => d === 'Saturday')?.[1];
             We will tell you what it takes, how long the car is in, and what it costs on your
             vehicle — before you commit to anything.
           </p>
+
+          <!-- Quick facts: the structured who/where/hours/pricing block that
+               search engines and AI assistants lift answers from. Kept on the
+               page, out of the way at the end. -->
+          <Glance glance={s.glance} heading="Quick facts" />
 
           <h2 style="margin-top:1.8em">Serving Sacramento and the surrounding cities</h2>
           <p>

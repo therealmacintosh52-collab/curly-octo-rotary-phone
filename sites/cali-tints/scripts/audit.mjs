@@ -90,7 +90,8 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
 
 const jsErrors = [];
 page.on('pageerror', (e) => jsErrors.push(String(e)));
-page.on('console', (m) => { if (m.type() === 'error' && !/maps|favicon/i.test(m.text())) jsErrors.push(m.text()); });
+// A 404 from /.netlify/functions/* is expected on a static host (GitHub Pages): the site probes for the CRM and assistant and falls back.
+page.on('console', (m) => { if (m.type() === 'error' && !/maps|favicon/i.test(m.text()) && !/\.netlify\/functions/.test(m.location()?.url || '')) jsErrors.push(m.text()); });
 
 for (const p of pages) {
   jsErrors.length = 0;
@@ -248,7 +249,7 @@ else {
     if (!existsSync(path.join(DIST, l, 'index.html'))) errors.push(`sitemap lists a missing page: ${l}`);
   }
   for (const p of pages) {
-    if (['/thank-you/', '/privacy/', '/404.html', '/404/'].includes(p)) continue;
+    if (['/thank-you/', '/privacy/', '/404.html', '/404/', '/admin/'].includes(p)) continue;
     if (!listed.includes(p)) warnings.push(`built but not in sitemap: ${p}`);
   }
 }

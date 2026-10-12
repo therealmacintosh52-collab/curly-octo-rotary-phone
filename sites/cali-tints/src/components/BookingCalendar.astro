@@ -19,11 +19,13 @@ import OpenNow from './OpenNow.astro';
 const S = data.site;
 const B = data.booking;
 const host = S.base_url.replace(/^https?:\/\//, '');
+const P = data.payments;
 const config = {
   tz: S.tz, hours: S.hours_open, slot: B.slot_minutes, lead: B.lead_hours, weeks: B.weeks_ahead,
   phone: S.phone_display, phoneLink: S.phone_link, name: S.name, address: `${S.street}, ${S.city}, ${S.region} ${S.zip}`,
   services: data.services.map((s) => ({ slug: s.slug, name: s.nav, minutes: s.duration_minutes })),
-  placeholder: EMAIL_IS_PLACEHOLDER,
+  placeholder: EMAIL_IS_PLACEHOLDER, endpoint: data.form_endpoint, thanks: `${S.base_url}/thank-you/`,
+  deposits: Object.fromEntries(data.services.map((s) => [s.slug, s.deposit_cents])), currency: P.currency, fullOptional: P.full_payment_optional,
 };
 ---
 {B.provider_url ? (
@@ -69,7 +71,7 @@ const config = {
     </div>
 
     <aside class="book__side">
-      <form class="quote-card book__form" id="booking" data-quote-form method="post" action={data.form_endpoint} data-mailto={S.email}>
+      <form class="quote-card book__form" id="booking" data-booking-form method="post" action={data.form_endpoint}>
         <h2>Your booking request</h2>
         <p class="book__summary" data-summary>Pick a service, a day and a time on the left.</p>
         <input type="hidden" name="service" data-f-service />
@@ -81,6 +83,14 @@ const config = {
         <div class="field"><label for="bk-phone">Mobile number (we confirm by text)</label><input id="bk-phone" name="phone" type="tel" autocomplete="tel" required /></div>
         <div class="field"><label for="bk-vehicle">Vehicle (year, make, model)</label><input id="bk-vehicle" name="vehicle" type="text" placeholder="2021 Toyota Camry" required /></div>
         <div class="field"><label for="bk-note">Anything we should know?</label><textarea id="bk-note" name="message" data-f-note placeholder="Shade, colour, which windows or panels, existing film or wrap on the car."></textarea></div>
+        <fieldset class="book__pay" data-pay hidden>
+          <legend>Hold the slot</legend>
+          <label><input type="radio" name="pay" value="deposit" checked /><span><b>Pay the deposit now</b><small data-pay-deposit>Card, secure checkout. Comes off the final price.</small></span></label>
+          <label data-pay-full-opt><input type="radio" name="pay" value="full" /><span><b>Pay in full now</b><small>Optional. Only if you already have a quoted price from the shop.</small></span></label>
+          <label><input type="radio" name="pay" value="later" /><span><b>No payment now</b><small>The shop confirms by text; pay at the counter.</small></span></label>
+          <div class="field book__full" data-pay-amount hidden><label for="bk-amount">Quoted amount (USD)</label><input id="bk-amount" type="number" min="10" step="1" placeholder="e.g. 350" /></div>
+          <p class="form-note">{P.note}</p>
+        </fieldset>
         <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <input type="hidden" name="_subject" value={`Booking request from ${host}`} data-f-subject />

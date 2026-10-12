@@ -1,0 +1,87 @@
+---
+/**
+ * Owner's CRM: every booking request, quote request and assistant hand-off in
+ * one board. Lives behind ADMIN_PASSWORD (Netlify env) and talks to
+ * /.netlify/functions/leads and /checkout. Not indexed, not in the sitemap.
+ * src/scripts/admin.ts does the work; this file is the shell.
+ */
+import data from '../../data/site.json';
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+const S = data.site;
+const P = data.payments;
+const cfg = {
+  statuses: [['new', 'New'], ['confirmed', 'Confirmed'], ['in_bay', 'In the bay'], ['done', 'Done'], ['lost', 'Lost']],
+  services: data.services.map((s) => s.nav),
+  phone: S.phone_display, currency: P.currency, name: S.name,
+};
+---
+<Base title="Shop CRM | Cali Tints" description="Owner dashboard: bookings, leads, deposits and follow-ups for Cali Tints." path="/admin/" noindex={true}>
+  <section class="crm" data-crm data-config={JSON.stringify(cfg)}>
+    <div class="wrap">
+      <div class="crm__top">
+        <div>
+          <span class="eyebrow">Shop CRM</span>
+          <h1>Bookings and leads</h1>
+        </div>
+        <div class="crm__tools">
+          <button type="button" class="btn btn-outline btn-sm" data-crm-add><Icon name="user" /><span>Add a lead</span></button>
+          <button type="button" class="btn btn-outline btn-sm" data-crm-export>Export CSV</button>
+          <button type="button" class="btn btn-outline btn-sm" data-crm-logout hidden>Sign out</button>
+        </div>
+      </div>
+
+      <form class="panel crm__login" data-crm-login>
+        <h2>Sign in</h2>
+        <p>Use the shop password set in Netlify (<code>ADMIN_PASSWORD</code>). It stays on this device until the tab is closed.</p>
+        <div class="field"><label for="crm-pw">Password</label><input id="crm-pw" type="password" autocomplete="current-password" required /></div>
+        <button class="btn btn-accent" type="submit">Open the board</button>
+        <p class="form-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="crm__board" data-crm-board hidden>
+        <div class="crm__stats" data-crm-stats>
+          <div class="stat"><div><b data-stat="new">0</b><span>New, needs a reply</span></div></div>
+          <div class="stat"><div><b data-stat="today">0</b><span>Came in today</span></div></div>
+          <div class="stat"><div><b data-stat="week">0</b><span>Last 7 days</span></div></div>
+          <div class="stat"><div><b data-stat="deposits">$0</b><span>Paid online</span></div></div>
+        </div>
+        <div class="crm__filters">
+          <div class="crm__tabs" role="tablist">
+            <button type="button" class="crm__tab is-on" data-filter="open" role="tab">Open</button>
+            {cfg.statuses.map(([k, label]) => <button type="button" class="crm__tab" data-filter={k} role="tab">{label}</button>)}
+            <button type="button" class="crm__tab" data-filter="all" role="tab">All</button>
+          </div>
+          <input type="search" class="crm__search" placeholder="Search name, phone, car…" data-crm-search aria-label="Search leads" />
+        </div>
+        <div class="crm__list" data-crm-list></div>
+        <p class="crm__empty" data-crm-empty hidden>Nothing here yet. New booking and quote requests land in this list the moment they are sent.</p>
+      </div>
+
+      <div class="panel crm__offline" data-crm-offline hidden>
+        <h2>The CRM is not switched on for this host</h2>
+        <p>Leads are stored by a serverless function, which runs on Netlify, not on GitHub Pages. Host the site on Netlify and set <code>ADMIN_PASSWORD</code> (and <code>STRIPE_SECRET_KEY</code> for deposits). Until then, booking and quote requests go by email and text only.</p>
+      </div>
+
+      <dialog class="crm__dialog" data-crm-dialog>
+        <form method="dialog" class="crm__form" data-crm-form>
+          <h2 data-dialog-title>Add a lead</h2>
+          <input type="hidden" name="id" />
+          <div class="g2 grid">
+            <div class="field"><label>Name<input name="name" type="text" required /></label></div>
+            <div class="field"><label>Phone<input name="phone" type="tel" /></label></div>
+            <div class="field"><label>Vehicle<input name="vehicle" type="text" /></label></div>
+            <div class="field"><label>Service<select name="service"><option value="">—</option>{cfg.services.map((n) => <option>{n}</option>)}</select></label></div>
+            <div class="field"><label>Date<input name="date" type="text" placeholder="Tuesday, October 14, 2026" /></label></div>
+            <div class="field"><label>Time<input name="time" type="text" placeholder="10:00 AM" /></label></div>
+          </div>
+          <div class="field"><label>Note<textarea name="note" rows="3"></textarea></label></div>
+          <div class="btn-row"><button class="btn btn-accent" value="save">Save</button><button class="btn btn-outline" value="cancel" formnovalidate>Cancel</button></div>
+        </form>
+      </dialog>
+    </div>
+  </section>
+</Base>
+<script>
+  import '../../scripts/admin';
+</script>

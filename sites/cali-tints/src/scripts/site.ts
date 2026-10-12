@@ -50,6 +50,27 @@ function paintOpen() {
 paintOpen();
 setInterval(paintOpen, 60_000);
 
+/* ------------------------------------------------------------ spotlight
+   Pointer-following highlight on cards, and a light 3D tilt on the service
+   cards. Fine pointers only; nothing runs on touch. */
+if (window.matchMedia('(pointer: fine)').matches && !prefersReduced) {
+  const spots = document.querySelectorAll<HTMLElement>('.card, .panel, .review, .book__svc, .iw, .quote-card, .book__form, .split-img__stage, .faq details, .stat');
+  spots.forEach((el) => {
+    el.classList.add('spot');
+    el.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+      el.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+      if (el.matches('a.card')) {
+        el.classList.add('tilt');
+        const dx = (e.clientX - r.left) / r.width - 0.5, dy = (e.clientY - r.top) / r.height - 0.5;
+        el.style.transform = `perspective(900px) rotateX(${(-dy * 6).toFixed(2)}deg) rotateY(${(dx * 8).toFixed(2)}deg) translateY(-4px)`;
+      }
+    });
+    el.addEventListener('pointerleave', () => { if (el.matches('a.card')) el.style.transform = ''; });
+  });
+}
+
 /* ----------------------------------------------------------- footer year */
 document.querySelectorAll('[data-year]').forEach((el) => {
   el.textContent = String(new Date().getFullYear());
@@ -89,24 +110,39 @@ document.querySelectorAll<HTMLFormElement>('form[data-quote-form]').forEach((for
     status.className = `form-status show ${kind}`;
   };
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const hp1 = form.querySelector<HTMLInputElement>('input[name="_gotcha"]');
     const hp2 = form.querySelector<HTMLInputElement>('input[name="_honey"]');
-    if (hp1?.value || hp2?.value) { e.preventDefault(); return; }
+    if (hp1?.value || hp2?.value) return;
+
+    // The CRM (Netlify function) gets every request first, so nothing is lost
+    // even before an inbox is connected. Silently skipped where it does not run.
+    let saved = false;
+    try {
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(Array.from(fd.entries()).filter(([k]) => !k.startsWith('_')).map(([k, v]) => [k, String(v)]));
+      const r = await fetch('/.netlify/functions/leads', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, source: 'quote' }) });
+      saved = r.ok;
+    } catch { saved = false; }
 
     const action = form.getAttribute('action') || '';
     // Shipped with a placeholder inbox until the shop supplies a real address.
     // It must not pretend to have sent anything.
     if (action.includes('REPLACE-ME') || action.includes('example.com')) {
-      e.preventDefault();
-      say(es
-        ? `Este formulario aún no está conectado. Por favor llame al ${PHONE}.`
-        : `This form isn't connected to an inbox yet. Please call ${PHONE} — we'll take care of you.`,
-        'err');
+      if (saved) {
+        form.reset();
+        say(es ? `Recibido. Le llamamos con los siguientes pasos.` : `Got it — your request is with the shop. We'll call or text you back. Need us sooner? Call ${PHONE}.`, 'ok');
+        track('generate_lead', { form_id: form.id || 'quote' });
+      } else {
+        say(es
+          ? `Este formulario aún no está conectado. Por favor llame al ${PHONE}.`
+          : `This form isn't connected to an inbox yet. Please call ${PHONE} — we'll take care of you.`,
+          'err');
+      }
       return;
     }
 
-    e.preventDefault();
     const btn = form.querySelector<HTMLButtonElement>('button[type=submit]');
     const label = btn?.textContent ?? 'Send';
     if (btn) { btn.disabled = true; btn.textContent = es ? 'Enviando…' : 'Sending…'; }

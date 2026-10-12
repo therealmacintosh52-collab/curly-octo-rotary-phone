@@ -11,7 +11,10 @@ interface Svc { slug: string; name: string; minutes: number }
 interface Cfg {
   tz: string; hours: ([number, number] | null)[]; slot: number; lead: number; weeks: number;
   phone: string; phoneLink: string; name: string; address: string; services: Svc[]; placeholder: boolean;
+  endpoint: string; thanks: string; deposits: Record<string, number>; currency: string; fullOptional: boolean;
 }
+const LEADS = '/.netlify/functions/leads';
+const CHECKOUT = '/.netlify/functions/checkout';
 
 const root = document.querySelector<HTMLElement>('[data-booking]');
 if (root) boot(root);
@@ -165,4 +168,76 @@ function boot(el: HTMLElement) {
   }
   renderCal(); renderSlots(); renderSummary();
   el.querySelectorAll<HTMLInputElement>('#bk-vehicle, [data-f-note]').forEach((i) => i.addEventListener('input', () => { if (!submit.disabled) renderSummary(); }));
+
+  // ------------------------------------------------------------ sending
+  // Order: save the lead in the CRM (if the host runs it), then either send
+  // the customer to Stripe for the deposit / full payment, or email the shop
+  // (if an inbox is connected). Every path ends with a visible result, and
+  // the text / call fallbacks stay on screen.
+  const form = el.querySelector<HTMLFormElement>('[data-booking-form]')!;
+  const statusEl = form.querySelector<HTMLElement>('.form-status')!;
+  const payBox = form.querySelector<HTMLElement>('[data-pay]')!;
+  const amountBox = form.querySelector<HTMLElement>('[data-pay-amount]')!;
+  let crm = false, stripe = false;
+  const money = (c: number) => (c / 100).toLocaleString('en-US', { style: 'currency', currency: cfg.currency.toUpperCase(), maximumFractionDigits: 0 });
+  const say = (msg: string, kind: 'ok' | 'err') => { statusEl.textContent = msg; statusEl.className = `form-status show ${kind}`; };
+  const payChoice = () => (form.querySelector<HTMLInputElement>('input[name=pay]:checked')?.value) || 'later';
+
+  fetch(`${LEADS}?ping=1`).then((r) => (r.ok ? r.json() : null)).then((j) => {
+    crm = Boolean(j?.crm); stripe = Boolean(j?.stripe);
+    if (stripe) { payBox.hidden = false; if (!cfg.fullOptional) form.querySelector<HTMLElement>('[data-pay-full-opt]')!.hidden = true; renderDeposit(); }
+  }).catch(() => {});
+  function renderDeposit() {
+    const d = service ? cfg.deposits[service.slug] : 0;
+    const t = form.querySelector<HTMLElement>('[data-pay-deposit]'); if (t) t.textContent = d ? `${money(d)} by card, secure checkout. Comes off the final price.` : 'Pick a service to see the deposit.';
+    amountBox.hidden = payChoice() !== 'full';
+  }
+  form.querySelectorAll<HTMLInputElement>('input[name=pay]').forEach((r) => r.addEventListener('change', renderDeposit));
+  el.querySelectorAll<HTMLInputElement>('input[name=svc]').forEach((r) => r.addEventListener('change', renderDeposit));
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if ((form.querySelector<HTMLInputElement>('input[name=_gotcha]')?.value) || (form.querySelector<HTMLInputElement>('input[name=_honey]')?.value)) return;
+    if (submit.disabled) return;
+    const fd = new FormData(form);
+    const payload = Object.fromEntries(Array.from(fd.entries()).filter(([k]) => !k.startsWith('_')).map(([k, v]) => [k, String(v)]));
+    const btnLabel = submit.textContent; submit.disabled = true; submit.textContent = 'Sending…';
+
+    let leadId = '';
+    if (crm) {
+      try { const r = await fetch(LEADS, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, source: 'booking' }) }); if (r.ok) leadId = (await r.json()).id || ''; } catch {}
+    }
+    const choice = payChoice();
+    if (stripe && leadId && choice !== 'later') {
+      const amount = choice === 'full' ? Math.round(Number((form.querySelector<HTMLInputElement>('#bk-amount')?.value) || 0) * 100) : 0;
+      if (choice === 'full' && amount < 1000) { say('Enter the amount you were quoted, or choose the deposit.', 'err'); submit.disabled = false; submit.textContent = btnLabel; return; }
+      try {
+        const r = await fetch(CHECKOUT, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lead_id: leadId, kind: choice, amount_cents: amount }) });
+        const j = await r.json();
+        if (r.ok && j.url) { location.href = j.url; return; }
+        say(`Checkout did not open (${j.error || 'error'}). Your request is saved; the shop will text you.`, 'err');
+      } catch { say('Checkout did not open. Your request is saved; the shop will text you.', 'err'); }
+    }
+    // Email the shop when an inbox is connected.
+    const action = form.getAttribute('action') || '';
+    const emailLive = !(action.includes('REPLACE-ME') || action.includes('example.com'));
+    if (emailLive) {
+      try {
+        const r = await fetch(action, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
+        if (!r.ok) throw new Error('bad status');
+        location.href = cfg.thanks + (leadId ? `?lead=${leadId}` : ''); return;
+      } catch { say(`The email did not go through${leadId ? ', but your request is saved and the shop will text you' : ''}. You can also text or call ${cfg.phone}.`, leadId ? 'ok' : 'err'); }
+    } else if (leadId) {
+      say(`Request saved. The shop confirms by text, usually within the hour during business hours. Need it sooner? Call ${cfg.phone}.`, 'ok');
+      track('generate_lead', { form_id: 'booking' });
+    } else {
+      say(`This form isn't connected to an inbox yet. Use "Text this to the shop" below, or call ${cfg.phone}, and the slot is yours.`, 'err');
+    }
+    submit.disabled = false; submit.textContent = btnLabel;
+  });
+}
+
+function track(name: string, params: Record<string, unknown> = {}) {
+  const w = window as unknown as { dataLayer?: unknown[] };
+  (w.dataLayer = w.dataLayer || []).push({ event: name, ...params });
 }

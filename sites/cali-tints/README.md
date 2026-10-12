@@ -17,7 +17,7 @@ node scripts/lh.mjs    # Lighthouse mobile (prints the table)
 npm run contrast       # hero copy vs what is behind it, frame by frame
 node scripts/shots.mjs      # QA screenshots -> qa/
 npm run scroll-check   # reveals, count-up, before/after images load; screenshots + qa/scroll.mp4
-npm run booking-check  # open/closed pill, calendar + slots, service widgets, assistant flow; screenshots
+npm run booking-check  # pill, calendar, deposit checkout, quote → CRM, admin board, widgets, assistant; screenshots
 npm run splits         # before/after images from the owner's collage -> public/assets/img/splits/
 npm run video -- clip.mov   # encode a new hero clip to spec + recut posters
 npm run posters        # hero poster set only (jpg/webp/avif)
@@ -149,6 +149,56 @@ Quicker win that works today: Instagram profile → Edit → Action buttons →
 Book now → same link. With Square as the booking provider the Book button is
 native. Without an API key the webhook still replies with hours, the phone
 number and the booking link.
+
+### Deposits and payment (Stripe)
+
+`src/data/site.json → payments` sets the default deposit (`deposit_cents`, $50)
+and `services[].deposit_cents` overrides it (wraps and fleet $150, PPF, coating
+and upholstery $100, correction $75). With `STRIPE_SECRET_KEY` set on Netlify,
+the booking form grows a "Hold the slot" choice: **pay the deposit now** (default),
+**pay in full now** (optional, only when the customer already has a quoted
+amount; they type it in), or **no payment now**. `netlify/functions/checkout.mjs`
+creates a Stripe Checkout session (hosted page, Stripe's own PCI scope) and sends
+the customer there; `stripe-webhook.mjs` marks the lead paid when Stripe
+confirms and moves it to Confirmed. From the CRM the owner enters the quote and
+presses "Send balance link", which creates a Checkout link for the remaining
+balance and opens a text message to the customer with it. Cash or card taken at
+the counter is recorded by hand on the lead. Nothing about pricing is invented:
+the deposit is fixed per service, the balance comes from the quote the owner
+typed. Setup: Stripe dashboard → Developers → API keys → `STRIPE_SECRET_KEY`;
+Webhooks → add endpoint `https://<site>/.netlify/functions/stripe-webhook` for
+`checkout.session.completed` → `STRIPE_WEBHOOK_SECRET`. Without the key the
+booking form simply has no payment step and says so.
+
+### The CRM (`/admin/`)
+
+A single board for the owner: every booking request, quote request and
+assistant hand-off, newest first, with New → Confirmed → In the bay → Done /
+Lost, call and "text confirmation" buttons (the text is pre-written with the
+service, date and time), the quote field, the balance link, record-a-payment,
+notes, search, status tabs, add-a-lead for walk-ins and phone calls, and a CSV
+export. Leads are stored in Netlify Blobs by `netlify/functions/leads.mjs`
+(`netlify/lib/store.mjs`); the page is `src/pages/admin/index.astro` +
+`src/scripts/admin.ts`, `noindex`, outside the sitemap, disallowed in
+`robots.txt`, and signs in with `ADMIN_PASSWORD` (set in Netlify). The quote
+form and the booking form both save to the CRM **before** emailing, so nothing
+is lost while the inbox is still unconnected. On GitHub Pages the page explains
+that the CRM runs on Netlify.
+
+### The dark theme and the interactive touches
+
+The site is dark by default: the tokens in `src/styles/legacy.css` (`--paper`,
+`--card`, `--text`, `--slate`, `--line`, the greens) are the only source of
+colour, every white surface became `var(--card)`, and the old blue and orange
+glows from the reference site were swapped for the shop's green. Cards carry a
+pointer-following spotlight and the service cards a light 3D tilt
+(`.spot`/`.tilt` in `global.css`, driven from `site.ts`, fine pointers only),
+primary buttons sweep a highlight on hover, section headings fade to green, and
+the before/after images zoom slightly. All of it is skipped under
+`prefers-reduced-motion`. Each service page opens with its interactive block;
+the structured "Quick facts" (the former "At a glance" block, which exists so
+search engines and AI assistants can lift a complete answer) now sits at the end
+of the page instead of the top.
 
 ### Interactive service pages
 

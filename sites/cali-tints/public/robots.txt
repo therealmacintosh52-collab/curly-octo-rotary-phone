@@ -6,6 +6,7 @@
 
 User-agent: *
 Allow: /
+Disallow: /admin/
 
 # --- AI crawlers and answer engines, explicitly allowed -------------------
 User-agent: GPTBot

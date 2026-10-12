@@ -247,7 +247,8 @@
         "type": "shade",
         "heading": "Pick your shade",
         "text": "Slide to see how dark each window goes. California allows 70% or lighter on the front side windows; behind that, your call."
-      }
+      },
+      "deposit_cents": 5000
     },
     {
       "slug": "tint-removal-repair",
@@ -345,7 +346,8 @@
             "The front windows are darker than 70%. We remove the fronts and re-film them to the legal limit, with a certificate for the fix-it ticket."
           ]
         ]
-      }
+      },
+      "deposit_cents": 5000
     },
     {
       "slug": "vinyl-wraps",
@@ -425,7 +427,8 @@
         "type": "colour",
         "heading": "Try a colour",
         "text": "Pick a colour and finish, then how much of the car it covers."
-      }
+      },
+      "deposit_cents": 15000
     },
     {
       "slug": "commercial-wraps",
@@ -500,7 +503,8 @@
         "type": "lettering",
         "heading": "Put your name on the van",
         "text": "Type your business name and phone number to see it on a panel."
-      }
+      },
+      "deposit_cents": 15000
     },
     {
       "slug": "paint-protection-film",
@@ -575,7 +579,8 @@
         "type": "zones",
         "heading": "Choose what to protect",
         "text": "Tap the panels. The front end takes almost all the rock chips; the rest is for people who keep the car a long time."
-      }
+      },
+      "deposit_cents": 10000
     },
     {
       "slug": "ceramic-coating",
@@ -650,7 +655,8 @@
         "type": "timeline",
         "heading": "How long does protection last?",
         "text": "Drag across the years to compare wax, a sealant and a ceramic coating."
-      }
+      },
+      "deposit_cents": 10000
     },
     {
       "slug": "detailing",
@@ -737,7 +743,8 @@
           "Wheels, tyres and wheel wells",
           "Machine polish (light)"
         ]
-      }
+      },
+      "deposit_cents": 5000
     },
     {
       "slug": "paint-correction",
@@ -812,7 +819,8 @@
         "type": "stages",
         "heading": "How much correction?",
         "text": "Pick a stage to see what it removes."
-      }
+      },
+      "deposit_cents": 7500
     },
     {
       "slug": "customization",
@@ -902,7 +910,8 @@
           "Remote start",
           "Window visors and accessories"
         ]
-      }
+      },
+      "deposit_cents": 5000
     },
     {
       "slug": "upholstery",
@@ -992,7 +1001,8 @@
           "Full re-trim in leather",
           "Full re-trim in cloth"
         ]
-      }
+      },
+      "deposit_cents": 10000
     },
     {
       "slug": "inspections-mechanic",
@@ -1093,7 +1103,8 @@
             "Oil, filters, fluids, belts and a look over everything underneath."
           ]
         ]
-      }
+      },
+      "deposit_cents": 5000
     }
   ],
   "guides": [
@@ -1453,7 +1464,7 @@
     "slot_minutes": 60,
     "lead_hours": 2,
     "weeks_ahead": 6,
-    "note": "Pick a day and time and send the request. The shop confirms by text or a call; nothing is charged online."
+    "note": "Pick a day and time and send the request. The shop confirms by text or a call. A deposit holds the slot and comes off the final price."
   },
   "assistant": {
     "name": "Cali",
@@ -1466,5 +1477,12 @@
       "Book a time",
       "Call the shop"
     ]
+  },
+  "payments": {
+    "deposit_cents": 5000,
+    "currency": "usd",
+    "full_payment_optional": true,
+    "collect_phone": false,
+    "note": "A deposit holds the slot and comes off the final price. Pay the rest at the shop, or in full online if you already have a quote."
   }
 }

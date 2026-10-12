@@ -12,7 +12,7 @@ export default defineConfig({
     sitemap({
       // Thank-you, privacy and 404 carry noindex or no search value.
       filter: (page) =>
-        !page.includes('/thank-you/') && !page.includes('/privacy/') && !page.includes('/404'),
+        !page.includes('/thank-you/') && !page.includes('/privacy/') && !page.includes('/404') && !page.includes('/admin/'),
     }),
   ],
 });

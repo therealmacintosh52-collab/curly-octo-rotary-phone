@@ -26,5 +26,16 @@ const S = data.site;
       <li>We book a day, and tell you how long the car will be with us.</li>
     </ol>
     <p>If it is time-sensitive — a fix-it ticket with a deadline, a lease return this week — do not wait on the callback. Call <a href={`tel:${S.phone_link}`}>{S.phone_display}</a>.</p>
+    <p class="panel" data-paid hidden><b data-paid-title>Payment received.</b> <span data-paid-text>Your deposit is on file and your slot is held; the shop texts you to confirm.</span></p>
   </div></section>
 </Base>
+<script>
+  // Stripe sends people back here with ?paid=deposit|full. The page is static, so the note is toggled in the browser.
+  const q = new URLSearchParams(location.search); const paid = q.get('paid');
+  const box = document.querySelector<HTMLElement>('[data-paid]');
+  if (box && (paid === 'deposit' || paid === 'full')) {
+    box.hidden = false;
+    if (paid === 'full') { box.querySelector('[data-paid-title]')!.textContent = 'Paid in full, thank you.'; box.querySelector('[data-paid-text]')!.textContent = 'Your receipt is in your email from Stripe. The shop texts you to confirm the day.'; }
+    const h1 = document.querySelector('h1'); if (h1) h1.textContent = paid === 'full' ? 'Paid and booked' : 'Deposit received, slot held';
+  }
+</script>
