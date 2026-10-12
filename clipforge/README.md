@@ -10,15 +10,21 @@ machine at http://localhost:8000. Nothing is uploaded anywhere.
    Vertical phone videos keep their full resolution. Audio-only files (podcasts, voice memos)
    get a dark 9:16 canvas so you still get captioned clips.
 2. Transcribes it with faster-whisper (word-level timestamps).
-3. Finds shot cuts (PySceneDetect) and the audio energy curve (librosa).
-4. Builds candidate windows on sentence boundaries and scores them on hooks, energy,
+3. Works out what the video is about: subject, niche, ideal audience, core promise, tone, names
+   and jargon, search keywords (`brief.json`). Heuristics use `config/niches.json`; with an API key
+   the model writes the brief, can run a few web searches for what is current in that niche this
+   month (hashtags, phrasings, format shifts, with sources and a checked date), and corrects
+   transcript errors on names and jargon before captions are burned in. You can steer it with a
+   one-line hint when creating the job, and correct it afterwards from the UI (copy is rewritten).
+4. Finds shot cuts (PySceneDetect) and the audio energy curve (librosa).
+5. Builds candidate windows on sentence boundaries and scores them on hooks, energy,
    questions, keywords, self-containment and length. If an Anthropic key is set, the model
    rates the top candidates and the scores are blended.
-5. Fits each pick to every platform. Each platform has hard limits and an ideal window its
+6. Fits each pick to every platform. Each platform has hard limits and an ideal window its
    algorithm rewards (`ideal_range` in `platforms.json`). A pick inside the window is shared;
    otherwise it is trimmed to the best-scoring run of whole sentences that keeps the hook, or
    extended with neighbouring sentences. Set `fit_mode` to `limits` to enforce only the caps.
-6. Renders every platform's cut to that platform's own spec: its safe zones for the burned-in
+7. Renders every platform's cut to that platform's own spec: its safe zones for the burned-in
    captions (each app's UI covers different parts of the frame), frame rate, bitrate ceiling,
    H.264 profile, audio bitrate, loudness target (measured on the finished file and corrected to
    within 0.6 LU), and file-size cap (re-encoded if exceeded). Face-centred crop (YuNet / Haar via
@@ -27,10 +33,12 @@ machine at http://localhost:8000. Nothing is uploaded anywhere.
    `placement` to `universal` in `platforms.json` to get one file per cut built to the strictest
    spec of all selected platforms instead. Every file is probed afterwards and the checks
    (resolution, codecs, fps, duration, size, bitrate, loudness) are shown per platform.
-7. Writes per-platform titles, captions, hashtags and keywords for that platform's cut, checks
-   them against the platform's limits (title and caption length, hook visible before the fold,
-   hashtag count, #Shorts tag), and builds a posting schedule.
-8. Thumbs up/down on clips teaches the scorer what you like for the next job.
+8. Writes per-platform titles (plus options to A/B test), captions, YouTube descriptions,
+   hashtags (1 broad + niche + at most 1 current) and keywords for that platform's cut, aimed at the
+   brief's audience and following `config/playbook.json` (what each platform rewards right now, with
+   an as-of date). Checks them against the platform's limits, burns the hook into a cover variant,
+   and builds a posting schedule.
+9. Thumbs up/down on clips teaches the scorer what you like for the next job.
 
 ## Requirements
 
@@ -58,6 +66,8 @@ Edit `.env` (all optional):
 |---|---|---|
 | `ANTHROPIC_API_KEY` | empty | Enables LLM scoring and copywriting. Without it everything runs on heuristics. |
 | `CLIPFORGE_LLM_MODEL` | `claude-opus-5-5` | Model used when a key is present. |
+| `CLIPFORGE_LLM_WEB_SEARCH` | `1` | Let the model research current trends for the niche (a few searches per job). |
+| `CLIPFORGE_LLM_POLISH_SUBTITLES` | `1` | Let the model fix transcript names/jargon before captions are burned in. |
 | `CLIPFORGE_WHISPER_MODEL` | `small` | `tiny`, `base`, `small`, `medium`, `large-v3`, or a local model directory. |
 | `CLIPFORGE_WHISPER_DEVICE` / `_COMPUTE` | `auto` / `int8` | Pass `cuda` + `float16` on an NVIDIA GPU. |
 | `CLIPFORGE_JOBS_DIR` | `./jobs` | Where every job's files live. |
@@ -73,6 +83,10 @@ JSON configs in `config/`:
 - `scoring.json`: clip length range and target, max clips, feature weights, hook/emphasis/filler
   word lists, LLM blend weight, scene-detection threshold, feedback learning rate.
 - `schedule.json`: best posting windows per platform and weekday, daily caps, spacing, stagger.
+- `niches.json`: niche taxonomy (keywords, audience, tone, hashtags, CTA) for offline detection and
+  as seed context for the model. Add your own niches here.
+- `playbook.json`: what the platforms reward right now (ranking signals, hook formulas, caption
+  structure, per-platform notes). Dated; update it as platforms change.
 
 ## Files per job
 
@@ -115,6 +129,7 @@ The UI's "Clean up old jobs" button and `POST /api/cleanup?days=N` do the same.
 | `GET` | `/api/jobs/{id}/export.zip[?platform=tiktok]` | all platforms grouped by folder, or one platform's pack (files, cover, SRT, copy.txt with spec checks, .ics) |
 | `GET` | `/api/jobs/{id}/export.json`, `/schedule.ics` | metadata and calendar |
 | `GET` / `PATCH` | `/api/clips/{id}` | read / edit copy or trim (`start_s`, `end_s`) |
+| `GET` / `PATCH` | `/api/jobs/{id}/brief` | read / correct the brief (subject, audience, niche, promise, tone); PATCH rewrites copy |
 | `POST` | `/api/clips/{id}/rerender?reframe=auto|center|blur` | re-render one clip |
 | `POST` | `/api/clips/{id}/feedback` | `{"rating": 1|0|-1, "note": "..."}` |
 | `GET` / `POST` | `/api/feedback/weights`, `/api/feedback/reset` | learned scoring weights |

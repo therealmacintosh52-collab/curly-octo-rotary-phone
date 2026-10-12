@@ -70,8 +70,10 @@ def hashtags_for(keywords: list[str], platform: str, n: int) -> list[str]:
 
 
 def heuristic_copy(clip: dict, *, platform: str, pcfg: dict, keywords: list[str],
-                   video_title: str | None = None) -> dict:
+                   video_title: str | None = None, brief: dict | None = None, playbook: dict | None = None) -> dict:
     text = clip.get("transcript") or ""
+    brief = brief or {}
+    ppb = ((playbook or {}).get("platforms") or {}).get(platform, {})
     sents = _sentences(text)
     hook_src = (clip.get("score_breakdown") or {}).get("llm_hook") or (sents[0] if sents else (video_title or "Watch this"))
     title_limit = int(pcfg.get("title_max_chars") or 70) or 70
@@ -97,11 +99,25 @@ def heuristic_copy(clip: dict, *, platform: str, pcfg: dict, keywords: list[str]
     order = {k: i for i, k in enumerate(seen)}
     seen.sort(key=lambda k: (len(k) < 5, order[k]))
     kw_count = int(pcfg.get("keyword_count", 6))
-    tags = hashtags_for(seen, platform, int(pcfg.get("hashtag_count", 4)))
+    n_tags = int(pcfg.get("hashtag_max") or pcfg.get("hashtag_count", 4))
+    # niche hashtags first (from the brief), then the clip's own words, then platform tags
+    niche_tags = [t for t in (brief.get("hashtags") or [])]
+    trend_tags = ((brief.get("trends") or {}).get("hashtags") or [])[:1]
+    tags: list[str] = []
+    for t in trend_tags + niche_tags[:max(1, n_tags - 2)] + seen:
+        h = _hashtag(t)
+        if len(h) > 3 and h not in tags:
+            tags.append(h)
+        if len(tags) >= max(0, n_tags - 1):
+            break
+    for extra in PLATFORM_TAGS.get(platform, []):
+        if len(tags) < n_tags and "#" + extra not in tags:
+            tags.append("#" + extra)
+    tags = tags[:n_tags]
     parts = [hook_line + ("" if hook_line.endswith(("!", "?", ".", "…")) else ".")]
     if body:
         parts.append(body)
-    parts.append(CTA.get(platform, ""))
+    parts.append(brief.get("cta") or CTA.get(platform, ""))
     caption = "\n\n".join(p for p in parts if p).strip()
     if tags:
         caption += "\n\n" + " ".join(tags)
@@ -110,8 +126,18 @@ def heuristic_copy(clip: dict, *, platform: str, pcfg: dict, keywords: list[str]
         caption = caption[:cap_limit - 1].rstrip() + "…"
     if platform == "youtube_shorts" and "#shorts" not in title.lower() and len(title) + 8 <= title_limit:
         title = f"{title} #Shorts"
+    description = ""
+    if pcfg.get("title_max_chars"):
+        subj = brief.get("subject") or video_title or ""
+        description = (hook_line + ("" if hook_line.endswith(("!", "?", ".", "…")) else ".") + " " + (f"From: {subj}. " if subj else "") +
+                       (f"For {brief['audience']}. " if brief.get("audience") else "") +
+                       f"What would you add? Comment below.\n" + " ".join(tags)).strip()
     return {"title": title if pcfg.get("title_max_chars", 0) else hook_line, "hook": hook_line,
-            "caption": caption, "hashtags": tags, "keywords": seen[:kw_count], "source": "heuristic"}
+            "title_options": [hook_line] + [_clean_title(s_, 60) for s_ in sents[1:3] if s_],
+            "caption": caption, "description": description, "hashtags": tags, "keywords": seen[:kw_count],
+            "rationale": f"Hook from the clip's opening line; hashtags from the {brief.get('niche_label', 'detected')} niche; "
+                         f"CTA per the {ppb.get('cta', 'platform')} playbook." if brief else "",
+            "source": "heuristic"}
 
 
 def fit_check(duration: float, pcfg: dict) -> tuple[bool, Optional[str]]:
@@ -124,17 +150,21 @@ def fit_check(duration: float, pcfg: dict) -> tuple[bool, Optional[str]]:
 
 
 def generate_copy(clip: dict, *, platforms: list[str], keywords: list[str], video_title: str | None = None,
-                  use_llm: Optional[bool] = None, pconf: dict | None = None) -> dict:
+                  use_llm: Optional[bool] = None, pconf: dict | None = None, brief: dict | None = None,
+                  playbook: dict | None = None) -> dict:
     pconf = pconf or settings.load_config("platforms")
+    playbook = playbook or settings.load_config("playbook")
     out: dict = {}
     variants = clip.get("variants") or {}
+    clip_texts = {}
     for p in platforms:
         pcfg = pconf["platforms"].get(p, {})
         v = variants.get(p)
         pclip = dict(clip)
         if v and v.get("fits", True) and v.get("text"):
             pclip["transcript"] = v["text"]  # write copy for what this platform's cut actually says
-        out[p] = heuristic_copy(pclip, platform=p, pcfg=pcfg, keywords=keywords, video_title=video_title)
+            clip_texts[p] = v["text"]
+        out[p] = heuristic_copy(pclip, platform=p, pcfg=pcfg, keywords=keywords, video_title=video_title, brief=brief, playbook=playbook)
         dur = float(v["duration"]) if v else clip["end_s"] - clip["start_s"]
         fits, note = fit_check(dur, pcfg)
         if v and not v.get("fits", True):
@@ -145,7 +175,8 @@ def generate_copy(clip: dict, *, platforms: list[str], keywords: list[str], vide
         use_llm = settings.llm_enabled()
     if use_llm and (clip.get("transcript") or "").strip():
         llm_out = llm_mod.generate_copy(clip, platforms=platforms, platform_config=pconf["platforms"],
-                                        keywords=keywords, video_title=video_title)
+                                        keywords=keywords, video_title=video_title, brief=brief, playbook=playbook,
+                                        clip_texts=clip_texts)
         if llm_out:
             for p, data in llm_out.items():
                 if p in out:
@@ -154,6 +185,9 @@ def generate_copy(clip: dict, *, platforms: list[str], keywords: list[str], vide
                     merged = dict(out[p])
                     merged.update({
                         "title": _clean_title(data.get("title") or merged["title"], title_limit),
+                        "title_options": [_clean_title(t, 70) for t in (data.get("title_options") or merged.get("title_options") or [])][:3],
+                        "description": (data.get("description") or merged.get("description") or "")[:4500] if pcfg.get("title_max_chars") else "",
+                        "rationale": (data.get("rationale") or "")[:300],
                         "hook": _clean_title(data.get("hook") or merged["hook"], 60),
                         "caption": (data.get("caption") or merged["caption"])[: int(pcfg.get("caption_max_chars") or 2200)],
                         "hashtags": [t if t.startswith("#") else "#" + t for t in (data.get("hashtags") or merged["hashtags"])][: int(pcfg.get("hashtag_count", 4)) + 1],

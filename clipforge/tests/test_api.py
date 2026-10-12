@@ -128,7 +128,7 @@ def test_full_pipeline_phase2_creates_clips(client, sample_video, monkeypatch):
     for name in ("transcript.json", "analysis.json", "candidates.json", "scores.json"):
         assert client.get(f"/api/jobs/{job['id']}/files/{name}").status_code == 200
     h = client.get("/api/health").json()
-    assert h["stages"][:4] == ["ingest", "transcribe", "analyze", "score"]
+    assert h["stages"][:5] == ["ingest", "transcribe", "brief", "analyze", "score"]
 
 
 def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
@@ -194,7 +194,7 @@ def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
         time.sleep(0.3)
     assert cc["status"] == "done", cc.get("error")
     assert cc["score_breakdown"]["render"]["reframe"]["mode"] == "blur"
-    assert client.get("/api/health").json()["stages"] == ["ingest", "transcribe", "analyze", "score", "fit", "render", "copy", "schedule"]
+    assert client.get("/api/health").json()["stages"] == ["ingest", "transcribe", "brief", "analyze", "score", "fit", "render", "copy", "schedule"]
 
 
 def test_render_groups_separate_platforms_unless_identical(client, sample_video, monkeypatch):
@@ -235,3 +235,27 @@ def test_render_groups_separate_platforms_unless_identical(client, sample_video,
     groups = runner.plan_render_groups(clip, ["tiktok", "instagram_reels", "facebook_reels"], pconf)
     assert len(groups) == 1 and groups[0]["folder"] == "universal" and groups[0]["scope"] == "universal"
     assert groups[0]["profile"]["render"]["max_file_mb"] == 287
+
+
+def test_pipeline_has_brief_stage_and_hint(client, sample_video, monkeypatch):
+    from app.pipeline import transcribe
+    from tests.fakes import FakeWhisperModel, fake_words
+    words = fake_words("Here's the thing about reselling on eBay. Nobody tells you listings with keyword titles sell faster. "
+                       "The biggest mistake is sourcing all day. Write this down and check sold comps first.", wps=3.0)
+    monkeypatch.setattr(transcribe, "get_model", lambda *a, **k: FakeWhisperModel(words, duration=20.0))
+    with sample_video.open("rb") as fh:
+        r = client.post("/api/jobs", data={"options": '{"max_clips": 1, "brief_hint": "eBay tips for new sellers"}', "platforms": "tiktok"},
+                        files={"file": ("talk.mp4", fh, "video/mp4")})
+    job = _wait_done(client, r.json()["id"], timeout=300)
+    assert job["status"] == "done", job.get("error")
+    b = job["meta"]["brief"]
+    assert b["source"] == "heuristic" and b["niche"] == "reselling_ecommerce" and b["subject"] == "eBay tips for new sellers"
+    assert b["trends"] is None and b["subtitles_polished"] == 0
+    assert "brief" in client.get("/api/health").json()["stages"]
+    c = job["clips"][0]
+    assert "#" + b["hashtags"][0] in c["copy"]["tiktok"]["hashtags"] or any(t.lstrip("#") in b["hashtags"] for t in c["copy"]["tiktok"]["hashtags"])
+    assert c["variants"]["tiktok"].get("cover_hook_path", "").endswith("_cover_hook.jpg")
+    assert client.get(f"/api/jobs/{job['id']}/files/{c['variants']['tiktok']['cover_hook_path']}").status_code == 200
+    import io, zipfile
+    z = zipfile.ZipFile(io.BytesIO(client.get(f"/api/jobs/{job['id']}/export.zip").content))
+    assert "brief.txt" in z.namelist() and "tiktok/clip_01_cover_hook.jpg" in z.namelist()

@@ -303,3 +303,69 @@ def render_clip(job_dir: str | Path, *, idx: int, start: float, end: float, src_
             "reframe": {"mode": mode, "requested": reframe, "face": face, "cx": cx}, "loudnorm": af,
             "loudness_correction_db": corrected_db,
             "profile": {"fps": fps, "maxrate_mbps": maxrate, "max_file_mb": max_mb, "loudness_lufs": lufs}}
+
+
+_font_file: Optional[str] = None
+
+
+def _bold_font_file() -> Optional[str]:
+    """A bold TTF for ffmpeg drawtext: fontconfig if available, else well-known paths."""
+    global _font_file
+    if _font_file is not None:
+        return _font_file or None
+    import shutil as _sh
+    import subprocess as _sp
+    cands: list[str] = []
+    if _sh.which("fc-match"):
+        try:
+            out = _sp.run(["fc-match", "-f", "%{file}", "DejaVu Sans:bold"], capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", check=False).stdout.strip()
+            if out:
+                cands.append(out)
+        except Exception:  # noqa: BLE001
+            pass
+    cands += ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/Library/Fonts/Arial Bold.ttf",
+              "/System/Library/Fonts/Supplemental/Arial Bold.ttf", "C:/Windows/Fonts/arialbd.ttf"]
+    _font_file = next((c for c in cands if Path(c).exists()), "")
+    return _font_file or None
+
+
+def cover_with_text(job_dir: str | Path, cover_rel: str, text: str, out_rel: str, *, safe_zone: dict | None = None,
+                    width: int = 1080, height: int = 1920) -> Optional[str]:
+    """Write a cover variant with the hook burned in (big, centred, inside the safe zone). Returns the
+    relative path or None when no usable font is available."""
+    font = _bold_font_file()
+    text = (text or "").strip()
+    if not font or not text:
+        return None
+    job_dir = Path(job_dir)
+    sz = safe_zone or {}
+    top = int(height * float(sz.get("top_pct", 0.12)))
+    bottom = int(height * float(sz.get("bottom_pct", 0.22)))
+    # wrap to ~16 chars per line, max 3 lines
+    words, lines, cur = text.split(), [], ""
+    for w in words:
+        if len(cur) + len(w) + 1 > 16 and cur:
+            lines.append(cur); cur = w
+        else:
+            cur = (cur + " " + w).strip()
+    if cur:
+        lines.append(cur)
+    lines = lines[:3]
+    size = 96 if max(len(l) for l in lines) <= 12 else 78
+    tf_rel = out_rel[:-4] + ".txt"
+    tf = job_dir / tf_rel
+    tf.write_text("\n".join(lines), encoding="utf-8")
+    esc = lambda path: str(path).replace("\\", "/").replace(":", "\\:")   # drawtext option syntax (Windows drive colons)
+    y = f"({top}+({height}-{top}-{bottom}-text_h)/2)"
+    vf = (f"drawtext=fontfile='{esc(font)}':textfile='{esc(tf_rel)}':fontsize={size}:fontcolor=white:line_spacing=12:"
+          f"borderw=6:bordercolor=black@0.85:shadowx=0:shadowy=0:x=(w-text_w)/2:y={y}:"
+          f"box=1:boxcolor=black@0.35:boxborderw=28")
+    try:
+        ff.run(["ffmpeg", "-y", "-v", "error", "-i", cover_rel, "-vf", vf, "-q:v", "2", out_rel], cwd=job_dir)
+    except ff.FFmpegError as exc:
+        log.warning("cover text overlay failed: %s", exc)
+        tf.unlink(missing_ok=True)
+        return None
+    tf.unlink(missing_ok=True)
+    return out_rel

@@ -1,0 +1,17 @@
+{
+  "as_of": "2026-10",
+  "_help": "What the recommendation systems reward right now, used to steer copy. Update as platforms change; the UI shows the as_of date.",
+  "general": {
+    "ranking_signals": ["watch time and completion rate (the first 1-3 s decide most of it)", "rewatches and loops", "shares and sends to friends (weighted above likes on every platform)", "saves", "comments and replies (ask one specific question)", "early velocity in the first hour"],
+    "hook_formulas": ["Nobody tells you [surprising truth about X]", "Stop doing [common thing]; do [this] instead", "I tested [N] [things] and only [one] worked", "The [number] mistake that costs [audience] [outcome]", "If you [situation], watch this before you [action]", "[Bold claim]. Here's the proof.", "POV: you just found out [thing]"],
+    "caption_structure": ["Line 1 = the hook, under the fold limit, no hashtags", "1-2 lines of payoff or context, written for the exact audience", "one soft CTA tied to a ranking signal (save, share with someone, comment X)", "hashtags on the last line: 1 broad + 2-3 niche + 1 trending/current"],
+    "title_rules": ["lead with the keyword people search", "specific numbers and outcomes beat adjectives", "no clickbait that the clip doesn't pay off", "under ~60 characters where a title exists"],
+    "avoid": ["engagement bait ('like if you agree')", "walls of 20+ hashtags", "the same caption on every platform", "claims the transcript doesn't support", "trending audio references that don't exist in the clip"]
+  },
+  "platforms": {
+    "youtube_shorts": {"notes": "Shorts search and browse both matter: keyword-first title, #Shorts in title or description, a real description (2-4 lines) with the keywords and a question. Longer-than-60 s Shorts need a strong mid-point hook or completion falls off.", "hashtags": "3 max, placed in the description; the title gets #Shorts only", "cta": "Subscribe or 'comment your [X]'"},
+    "instagram_reels": {"notes": "Reels distribution is driven by sends (shares via DM) and saves more than likes. First line of the caption is shown before 'more'. 3-5 hashtags, niche over broad. Trial Reels are an option for testing new formats with non-followers.", "hashtags": "3-5, niche-specific, placed at the end of the caption", "cta": "'Send this to someone who...' or 'Save for later'"},
+    "tiktok": {"notes": "Search is a major traffic source: put the searchable phrase in the caption and say it out loud in the first seconds. Rewatches and completion dominate. 3-5 hashtags: one broad, the rest exact-niche. Creator Rewards needs 60 s+.", "hashtags": "3-5, one broad plus exact-niche terms; #fyp adds little but is harmless", "cta": "'Follow for part 2' or a specific question"},
+    "facebook_reels": {"notes": "Older, share-heavy audience. Plain language, lead with the payoff, keep hashtags to 1-3. Shares to friends and groups are the main amplifier.", "hashtags": "1-3", "cta": "'Share this with someone who...'"}
+  }
+}

@@ -70,7 +70,7 @@ def test_score_candidates_heuristic_only():
 def test_score_candidates_blends_llm(monkeypatch):
     cands, analysis, text = _setup()
     sent = {}
-    def fake_llm(top, title=None, keywords=None):
+    def fake_llm(top, title=None, keywords=None, brief=None):
         sent["n"] = len(top)
         # Make the LLM love the lowest-heuristic candidate it sees.
         worst = min(top, key=lambda c: c["heuristic"])

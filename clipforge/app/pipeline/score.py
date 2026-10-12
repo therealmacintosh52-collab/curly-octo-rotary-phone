@@ -151,11 +151,13 @@ def select_clips(scored: list[dict], *, max_clips: int, min_gap: float, max_over
 
 def score_candidates(candidates: list[dict], *, analysis: dict, full_text: str, cfg: dict | None = None,
                      title: str | None = None, options: dict | None = None,
-                     progress: ProgressFn = _noop, use_llm: Optional[bool] = None) -> dict:
+                     progress: ProgressFn = _noop, use_llm: Optional[bool] = None, brief: dict | None = None) -> dict:
     cfg = cfg or settings.load_config("scoring")
     options = options or {}
     weights = effective_weights(cfg)
     keywords = top_keywords(full_text)
+    if brief and brief.get("keywords"):
+        keywords = list(dict.fromkeys([k.lower() for k in brief["keywords"]] + keywords))
     energy, scenes = analysis.get("energy", {}), analysis.get("scenes", [])
 
     progress(0.05, f"scoring {len(candidates)} candidates")
@@ -174,7 +176,7 @@ def score_candidates(candidates: list[dict], *, analysis: dict, full_text: str, 
     if use_llm and scored:
         top = sorted(scored, key=lambda x: x["heuristic"], reverse=True)[: int(llm_cfg.get("max_candidates_sent", 24))]
         progress(0.5, f"asking LLM to rate {len(top)} candidates")
-        ratings = llm_mod.score_candidates(top, title=title, keywords=keywords)
+        ratings = llm_mod.score_candidates(top, title=title, keywords=keywords, brief=brief)
         if ratings:
             llm_used = True
             w = float(llm_cfg.get("blend_weight", 0.5))
