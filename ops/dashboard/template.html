@@ -1,0 +1,176 @@
+<title>Income Org Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column, phone-first; sticky status strip; collapsible sections in chain order. */
+:root{
+  --bg:#f6f4ef; --fg:#1d1f1c; --muted:#6b6f66; --line:#d9d6cc; --panel:#fffdf8;
+  --accent:#0f6e6a; --accent-ink:#ffffff;
+  --ok:#2e7d4f; --warn:#b26a00; --bad:#b3261e; --info:#3b5bdb;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15171a; --fg:#e8e6df; --muted:#9a9e95; --line:#2d3136; --panel:#1c1f23;
+  --accent:#4fd1c5; --accent-ink:#0b1d1c; --ok:#5fd38d; --warn:#f0b35a; --bad:#ff7b72; --info:#8ab4ff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15171a; --fg:#e8e6df; --muted:#9a9e95; --line:#2d3136; --panel:#1c1f23;
+  --accent:#4fd1c5; --accent-ink:#0b1d1c; --ok:#5fd38d; --warn:#f0b35a; --bad:#ff7b72; --info:#8ab4ff; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-block:0 48px;padding-inline:16px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px 8px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline}
+header.top h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.01em}
+.status{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.dot.live{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+.dot.err{background:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-block:14px}
+.kpi{border:1px solid var(--line);background:var(--panel);padding:10px 12px;min-width:0}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.kpi .v{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums;margin-top:2px;word-break:break-word}
+details{border-top:1px solid var(--line);padding-block:6px}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:600;padding-block:8px;display:flex;justify-content:space-between;gap:10px;align-items:baseline;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary .meta{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400}
+summary::after{content:"+";color:var(--muted);font-family:var(--mono)}
+details[open] summary::after{content:"–"}
+.md{min-width:0;font-size:14px}
+.md h1{font-size:15px;margin:10px 0 4px}
+.md h2{font-size:14px;margin:14px 0 4px;color:var(--accent)}
+.md h3{font-size:13.5px;margin:10px 0 4px}
+.md p{margin:6px 0}
+.md ul{padding-left:18px;margin:4px 0}
+.md li{margin:3px 0}
+.md code{font-family:var(--mono);font-size:12.5px;background:color-mix(in srgb,var(--fg) 7%,transparent);padding:1px 4px;border-radius:3px;word-break:break-word}
+.md pre{overflow-x:auto;background:color-mix(in srgb,var(--fg) 6%,transparent);padding:10px;border-radius:4px}
+.md pre code{background:none;padding:0}
+.tbl{overflow-x:auto;margin:6px 0}
+.md table{border-collapse:collapse;font-size:12.5px;min-width:100%}
+.md th,.md td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top;max-width:360px}
+.md th{background:color-mix(in srgb,var(--fg) 5%,transparent);font-weight:600}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.p-done,.p-pass,.p-confirmed,.p-winner{color:var(--ok)}
+.p-doing,.p-running,.p-review,.p-testing{color:var(--info)}
+.p-todo,.p-planned,.p-queued,.p-pending,.p-unconfirmed{color:var(--muted)}
+.p-blocked,.p-rejected,.p-fail,.p-killed,.p-critical{color:var(--bad)}
+.p-high,.p-med,.p-reserve{color:var(--warn)}
+.note{font-size:12.5px;color:var(--muted);margin-block:8px}
+.err{font-size:12.5px;color:var(--bad);margin-block:6px}
+button.ghost{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:4px 10px;border-radius:4px;cursor:pointer}
+button.ghost:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.dot.live{animation:pulse 2.4s ease-in-out infinite}}
+@keyframes pulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--ok) 10%,transparent)}}
+</style>
+<div class="wrap">
+<header class="top">
+  <h1>Income Org Board</h1>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">loading snapshot…</span><button class="ghost" id="refresh" hidden>Refresh now</button></div>
+</header>
+<div class="kpis" id="kpis"></div>
+<div id="sections"></div>
+<p class="note" id="foot"></p>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+<script>
+/*__SNAPSHOT__*/
+(function(){
+  const OWNER="therealmacintosh52-collab", REPO="curly-octo-rotary-phone", REF="refs/heads/claude/affectionate-brown-h3wfam";
+  const SECTIONS=[
+    ["STATE.md","State · approvals first",true,60000],
+    ["TODAY.md","Your action list",true,60000],
+    ["TASKS.md","Task chain",false,60000],
+    ["EXPERIMENTS.md","Experiments",false,120000],
+    ["IDEAS.md","Idea queue",false,120000],
+    ["LOG.md","Log (newest last)",false,60000],
+    ["INCIDENTS.md","Incidents",false,120000],
+    ["LEDGER.md","Ledger",false,120000],
+    ["METRICS.md","Metrics & scoreboard",false,120000],
+  ];
+  const files=Object.assign({},window.SNAPSHOT.files);
+  const src={}; for(const [f] of SECTIONS) src[f]="snapshot";
+  let commit=window.SNAPSHOT.commit, live=false;
+  const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  function pillify(html){
+    return html.replace(/<td>\s*([A-Za-z-]+)\s*<\/td>/g,(m,w)=>{
+      const k=w.toLowerCase(); const known=["done","doing","todo","review","blocked","rejected","pass","fail","planned","running","killed","winner","queued","testing","reserve","confirmed","unconfirmed","pending","critical","high","med"];
+      return known.includes(k)?`<td><span class="pill p-${k}">${w}</span></td>`:m;});
+  }
+  function render(f){
+    let md=files[f]||"_(empty)_";
+    if(f==="LOG.md"){ const lines=md.split("\n"); const hdr=lines.filter(l=>!l.startsWith("|")||/^\|\s*timestamp/i.test(l)||/^\|\s*-/.test(l)); const rows=lines.filter(l=>l.startsWith("|")&&!/^\|\s*timestamp/i.test(l)&&!/^\|\s*-/.test(l)); md=hdr.join("\n")+"\n"+rows.slice(-25).join("\n"); }
+    let html=marked.parse(esc(md),{gfm:true,breaks:false});
+    html=pillify(html).replace(/<table>/g,'<div class="tbl"><table>').replace(/<\/table>/g,"</table></div>");
+    const el=document.getElementById("md-"+f.replace(".","-")); if(el) el.innerHTML=html;
+    const m=document.getElementById("meta-"+f.replace(".","-")); if(m) m.textContent=src[f];
+  }
+  function kpis(){
+    const st=files["STATE.md"]||"";
+    const approvals=(st.match(/^- A-\d{3}/gm)||[]).length;
+    const openApprovals=(st.match(/^- A-\d{3}[^\n]*answer: —/gm)||[]).length;
+    const tasks=files["TASKS.md"]||""; const count=s=>(tasks.match(new RegExp("\\|\\s*"+s+"\\s*\\|","g"))||[]).length;
+    const exps=files["EXPERIMENTS.md"]||""; const running=(exps.match(/\|\s*running\s*\|/g)||[]).length, planned=(exps.match(/\|\s*planned\s*\|/g)||[]).length;
+    const money=(st.match(/Lifetime in[^\n]*/)||[""])[0].replace(/\*\*/g,"");
+    const inc=((files["INCIDENTS.md"]||"").match(/^\| INC-/gm)||[]).length;
+    const crit=((files["INCIDENTS.md"]||"").match(/\|\s*CRITICAL\s*\|/g)||[]).length;
+    document.getElementById("kpis").innerHTML=[
+      ["Approvals waiting on you", openApprovals+" of "+approvals],
+      ["Tasks doing / todo / done", count("doing")+" / "+count("todo")+" / "+count("done")],
+      ["Experiments running / planned", running+" / "+planned],
+      ["Incidents (critical)", inc+" ("+crit+")"],
+      ["Money", money||"see State"],
+    ].map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${esc(v)}</div></div>`).join("");
+  }
+  function foot(){
+    const c=commit||{}; document.getElementById("foot").textContent=`Branch claude/affectionate-brown-h3wfam · last commit ${c.sha||"?"} “${c.msg||""}” at ${c.when||"?"} · snapshot built ${window.SNAPSHOT.builtAt}. Live rows come from your GitHub connector; the snapshot is what was true when this page was last published.`;
+  }
+  function status(kind,text){ const d=document.getElementById("dot"); d.className="dot "+(kind||""); document.getElementById("statusText").textContent=text; }
+  // build DOM
+  const wrap=document.getElementById("sections");
+  for(const [f,title,open] of SECTIONS){
+    const id=f.replace(".","-");
+    const d=document.createElement("details"); if(open) d.open=true;
+    d.innerHTML=`<summary><span>${title}</span><span class="meta" id="meta-${id}">snapshot</span></summary><div class="md" id="md-${id}"></div>`;
+    wrap.appendChild(d);
+  }
+  for(const [f] of SECTIONS) render(f); kpis(); foot();
+  status("", "snapshot · "+window.SNAPSHOT.builtAt.replace("T"," ").replace("Z"," UTC"));
+  // live overlay
+  function extractText(result){
+    if(result&&result.content) for(const b of result.content){
+      if(b.type==="resource"&&b.resource&&typeof b.resource.text==="string") return b.resource.text;
+      if(b.type==="text"&&typeof b.text==="string"&&!/^successfully downloaded/i.test(b.text)) return b.text.replace(/^\[Resource from github[^\]]*\]\s*/,"");
+    }
+    if(typeof result?.payload==="string"&&!/^successfully downloaded/i.test(result.payload)) return result.payload;
+    return null;
+  }
+  const errCopy=e=>({
+    needs_reauth:"GitHub connector needs reconnecting (claude.ai Settings → Connectors). Showing snapshot.",
+    server_not_connected:"Add the GitHub connector in claude.ai Settings → Connectors to go live. Showing snapshot.",
+    not_in_manifest:"GitHub access was declined for this page. Showing snapshot.",
+    blocked_by_policy:"GitHub reads are blocked by policy for this viewer. Showing snapshot.",
+    approval_required:"GitHub needs your approval for this page. Tap Refresh now to approve.",
+    server_unavailable:"GitHub is briefly unavailable; keeping last good data.",
+    tool_error:"GitHub reported an error for one file; keeping last good data.",
+  })[e.code]||("Live updates unavailable ("+e.code+"). Showing snapshot.");
+  (async()=>{
+    const mcp=await (window.claude&&window.claude.use?window.claude.use("mcp"):Promise.resolve(null));
+    if(!mcp){ status("", "snapshot only · open in claude.ai with GitHub connected for live"); return; }
+    status("", "connecting to GitHub…");
+    const btn=document.getElementById("refresh"); btn.hidden=false;
+    btn.onclick=async()=>{ try{ await mcp.invalidate("github"); }catch(_){} };
+    let okCount=0, lastErr=null;
+    for(const [f,,,interval] of SECTIONS){
+      mcp.watchTool("github","get_file_contents",{owner:OWNER,repo:REPO,path:"ops/"+f,ref:REF},ev=>{
+        if(ev.type==="data"){ const t=extractText(ev.result); if(t!=null&&t!==files[f]){ files[f]=t; src[f]="live"+(ev.result.cache?" · cached "+new Date(ev.result.cache.storedAt).toLocaleTimeString():""); render(f); kpis(); } else if(t!=null){ src[f]="live"; render(f);} okCount++; live=true; status("live","live via GitHub · "+new Date().toLocaleTimeString()); }
+        else { lastErr=ev.error; if(["needs_reauth","server_not_connected","not_in_manifest","blocked_by_policy","approval_required"].includes(ev.error.code)){ status("err",errCopy(ev.error)); } else { status(live?"live":"",errCopy(ev.error)); } }
+      },{refetchInterval:interval,cache:{staleTime:0,gcTime:600000}});
+    }
+    mcp.watchTool("github","list_commits",{owner:OWNER,repo:REPO,sha:"claude/affectionate-brown-h3wfam",perPage:1,fields:["sha","commit"]},ev=>{
+      if(ev.type!=="data") return;
+      let p=ev.result.payload; if(typeof p==="string"){ try{p=JSON.parse(p);}catch(_){return;} }
+      const c=Array.isArray(p)?p[0]:(p&&p[0]); if(!c) return;
+      commit={sha:(c.sha||"").slice(0,7),msg:(c.commit&&c.commit.message||"").split("\n")[0],when:c.commit&&c.commit.committer&&c.commit.committer.date||""}; foot();
+    },{refetchInterval:60000,cache:{staleTime:0,gcTime:600000}});
+  })();
+})();
+</script>

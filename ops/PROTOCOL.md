@@ -42,7 +42,7 @@ Circuit breakers: max 3 fix attempts per task, then stop and escalate with diagn
 ## 6. Ownership (single writer per file)
 | File / dir | Sole writer |
 |---|---|
-| `ops/CONTEXT.md`, `ops/DECISIONS.md`, `ops/PROTOCOL.md`, `.claude/agents/*` | Orchestrator |
+| `ops/CONTEXT.md`, `ops/DECISIONS.md`, `ops/PROTOCOL.md`, `ops/dashboard/*`, `.claude/agents/*` | Orchestrator |
 | `ops/TASKS.md`, `ops/LOG.md`, `ops/STATE.md`, `ops/EVIDENCE.md` | scribe |
 | `ops/LEDGER.md` | auditor |
 | `ops/INCIDENTS.md`, `ops/METRICS.md` | system-qc |
