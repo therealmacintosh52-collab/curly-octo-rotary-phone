@@ -14,7 +14,11 @@ from pathlib import Path
 from typing import Callable
 
 from .. import db, settings
+from . import captions as captions_stage
+from . import copy as copy_stage
 from . import ingest as ingest_stage
+from . import render as render_stage
+from . import schedule as schedule_stage
 from . import score as score_stage
 from . import segment as segment_stage
 from . import transcribe as transcribe_stage
@@ -124,11 +128,86 @@ def _run_score(ctx: JobContext) -> None:
                           "n_selected": len(result["selected"]), "keywords": result["keywords"][:12]})
 
 
+def render_one_clip(job_id: str, clip: dict, *, reframe: str | None = None, progress=None) -> dict:
+    """Render a single clip (used by the render stage and the re-render endpoint)."""
+    job = db.get_job(job_id)
+    if not job:
+        raise KeyError(job_id)
+    job_dir = job_dir_for(job_id)
+    media = (job.get("meta", {}).get("source") or ingest_stage.load_source_meta(job_dir))["media"]
+    transcript = transcribe_stage.load_transcript(job_dir) or {}
+    reframe = reframe or job["options"].get("reframe") or settings.load_config("platforms")["defaults"].get("reframe", "auto")
+    progress = progress or (lambda f, m: None)
+    db.update_clip(clip["id"], status="rendering", error=None)
+    try:
+        caps = captions_stage.write_captions(job_dir, clip["idx"], transcript.get("words") or [], clip["start_s"], clip["end_s"])
+        res = render_stage.render_clip(job_dir, idx=clip["idx"], start=clip["start_s"], end=clip["end_s"],
+                                       src_media=media, captions_ass=caps["ass"] if caps["n_words"] else None,
+                                       reframe=reframe, progress=progress)
+        db.update_clip(clip["id"], status="done", video_path=res["video_path"], cover_path=res["cover_path"],
+                       captions_path=caps["srt"])
+        meta = dict(db.get_clip(clip["id"]).get("score_breakdown") or {})
+        meta["render"] = {"reframe": res["reframe"], "duration": res["duration"], "n_caption_words": caps["n_words"]}
+        db.update_clip(clip["id"], score_breakdown=meta)
+        return res
+    except Exception as exc:  # noqa: BLE001
+        log.error("clip %s render failed: %s", clip["id"], exc)
+        db.update_clip(clip["id"], status="failed", error=str(exc)[:1500])
+        raise
+
+
+def _run_render(ctx: JobContext) -> None:
+    clips = db.list_clips(ctx.job_id)
+    if not clips:
+        ctx.progress(1.0, "no clips to render")
+        return
+    n = len(clips)
+    failures = 0
+    for i, clip in enumerate(clips):
+        def prog(f: float, m: str, i=i) -> None:
+            ctx.progress((i + f) / n, m)
+        try:
+            render_one_clip(ctx.job_id, clip, progress=prog)
+        except Exception:  # noqa: BLE001 - recorded on the clip; keep going
+            failures += 1
+    if failures == n:
+        raise RuntimeError("every clip failed to render; see clip errors")
+    ctx.set_meta(render={"n_clips": n, "n_failed": failures})
+
+
+def _run_copy(ctx: JobContext) -> None:
+    clips = db.list_clips(ctx.job_id)
+    platforms = ctx.options.get("platforms") or list(settings.load_config("platforms")["platforms"])
+    keywords = (ctx.job.get("meta", {}).get("scoring") or {}).get("keywords") or []
+    llm_hits = 0
+    for i, clip in enumerate(clips):
+        ctx.progress(i / max(1, len(clips)), f"writing copy for clip {i + 1}")
+        copy = copy_stage.generate_copy(clip, platforms=platforms, keywords=keywords, video_title=ctx.job.get("title"),
+                                        use_llm=ctx.options.get("use_llm"))
+        llm_hits += sum(1 for v in copy.values() if v.get("source") == "llm")
+        db.update_clip(clip["id"], copy=copy)
+    ctx.set_meta(copy={"n_clips": len(clips), "llm_platforms": llm_hits})
+    ctx.progress(1.0, "copy written")
+
+
+def _run_schedule(ctx: JobContext) -> None:
+    clips = db.list_clips(ctx.job_id)
+    platforms = ctx.options.get("platforms") or list(settings.load_config("platforms")["platforms"])
+    plan = schedule_stage.build_schedule(clips, platforms)
+    for clip in clips:
+        db.update_clip(clip["id"], schedule=plan.get(clip["id"], {}))
+    ctx.set_meta(schedule={"n_posts": sum(len(v) for v in plan.values()), "timezone": settings.TIMEZONE})
+    ctx.progress(1.0, "schedule built")
+
+
 STAGES: list[Stage] = [
     ("ingest", _run_ingest),
     ("transcribe", _run_transcribe),
     ("analyze", _run_analyze),
     ("score", _run_score),
+    ("render", _run_render),
+    ("copy", _run_copy),
+    ("schedule", _run_schedule),
 ]
 
 _active: dict[str, JobContext] = {}

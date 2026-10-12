@@ -34,13 +34,38 @@ def check_ffmpeg() -> dict:
             "version": m.group(1) if m else "unknown"}
 
 
-def run(cmd: Sequence[str], *, timeout: int | None = None) -> subprocess.CompletedProcess:
+def run(cmd: Sequence[str], *, timeout: int | None = None, cwd: str | Path | None = None) -> subprocess.CompletedProcess:
     """Run an ffmpeg/ffprobe command, raising FFmpegError with stderr tail on failure."""
-    proc = subprocess.run(list(cmd), capture_output=True, text=True, timeout=timeout, check=False)
+    proc = subprocess.run(list(cmd), capture_output=True, text=True, timeout=timeout, check=False, cwd=cwd)
     if proc.returncode != 0:
         tail = "\n".join(proc.stderr.strip().splitlines()[-12:])
         raise FFmpegError(f"command failed ({proc.returncode}): {' '.join(cmd[:6])} ...\n{tail}")
     return proc
+
+
+def run_with_progress(cmd: Sequence[str], *, total_seconds: float, on_progress=None,
+                      cwd: str | Path | None = None, timeout: int | None = None) -> None:
+    """Run ffmpeg with `-progress pipe:1` and call on_progress(frac) as it encodes."""
+    full = list(cmd)
+    if "-progress" not in full:
+        full[1:1] = ["-progress", "pipe:1", "-nostats"]
+    proc = subprocess.Popen(full, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd)
+    try:
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            if on_progress and line.startswith(("out_time_us=", "out_time_ms=")):
+                try:
+                    us = float(line.split("=", 1)[1])
+                    on_progress(max(0.0, min(1.0, (us / 1e6) / max(0.01, total_seconds))))
+                except ValueError:
+                    pass
+        _, err = proc.communicate(timeout=timeout)
+    except Exception:
+        proc.kill()
+        raise
+    if proc.returncode != 0:
+        tail = "\n".join((err or "").strip().splitlines()[-12:])
+        raise FFmpegError(f"command failed ({proc.returncode}): {' '.join(full[:8])} ...\n{tail}")
 
 
 @dataclass

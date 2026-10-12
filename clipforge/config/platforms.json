@@ -10,7 +10,18 @@
     "true_peak_dbtp": -1.0,
     "caption_safe_top_pct": 0.12,
     "caption_safe_bottom_pct": 0.22,
-    "cover_time_pct": 0.15
+    "cover_time_pct": 0.15,
+    "render_preset": "veryfast",
+    "render_crf": 20,
+    "caption_font": "DejaVu Sans",
+    "caption_font_size": 66,
+    "caption_max_words_per_line": 4,
+    "caption_max_line_seconds": 2.4,
+    "caption_uppercase": false,
+    "caption_colour": "FFFFFF",
+    "caption_highlight_colour": "FFE11A",
+    "caption_outline_px": 4,
+    "reframe": "auto"
   },
   "platforms": {
     "youtube_shorts": {

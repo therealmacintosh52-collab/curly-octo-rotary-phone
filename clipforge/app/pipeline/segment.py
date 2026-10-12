@@ -171,7 +171,8 @@ def analyze(job_dir: str | Path, *, video: str = "source.mp4", audio: str | None
 
     progress(0.02, "detecting shot changes")
     try:
-        scenes = detect_scenes(job_dir / video, threshold=scene_threshold)
+        scenes = detect_scenes(job_dir / video, threshold=float(cfg.get("scene_threshold", scene_threshold)),
+                               frame_skip=int(cfg.get("scene_frame_skip", 1)))
     except Exception as exc:  # noqa: BLE001
         log.warning("scene detection failed: %s", exc)
         scenes = []
