@@ -16,6 +16,7 @@ from typing import Callable
 from .. import db, settings
 from . import captions as captions_stage
 from . import copy as copy_stage
+from . import fit as fit_stage
 from . import ingest as ingest_stage
 from . import render as render_stage
 from . import schedule as schedule_stage
@@ -128,26 +129,92 @@ def _run_score(ctx: JobContext) -> None:
                           "n_selected": len(result["selected"]), "keywords": result["keywords"][:12]})
 
 
+def _platforms_for(job: dict) -> list[str]:
+    return job.get("options", {}).get("platforms") or list(settings.load_config("platforms")["platforms"])
+
+
+def fit_clip_variants(job_id: str, clip: dict) -> dict:
+    """Derive per-platform cuts for one clip from the job's analysis; stores and returns them."""
+    job = db.get_job(job_id)
+    if not job:
+        raise KeyError(job_id)
+    job_dir = job_dir_for(job_id)
+    analysis = segment_stage.load_analysis(job_dir)
+    transcript = transcribe_stage.load_transcript(job_dir) or {}
+    scores = score_stage.load_scores(job_dir) or {}
+    cfg = settings.load_config("scoring")
+    weights = scores.get("weights") or score_stage.effective_weights(cfg)
+    keywords = scores.get("keywords") or []
+
+    def scorer(s: float, e: float, text: str, n_words: int) -> float:
+        feats = score_stage.features_for({"start": s, "end": e, "text": text, "n_words": n_words},
+                                         energy=analysis.get("energy", {}), scenes=analysis.get("scenes", []),
+                                         keywords=keywords, cfg=cfg)
+        return score_stage.heuristic_score(feats, weights)
+
+    variants = fit_stage.fit_variants(clip["start_s"], clip["end_s"], clip.get("transcript") or "",
+                                      platforms=_platforms_for(job), sentences=analysis.get("sentences", []),
+                                      words=transcript.get("words") or [], duration=float(analysis["duration"]),
+                                      scorer=scorer)
+    db.update_clip(clip["id"], variants=variants)
+    return variants
+
+
+def _run_fit(ctx: JobContext) -> None:
+    clips = db.list_clips(ctx.job_id)
+    n_trim = 0
+    for i, clip in enumerate(clips):
+        ctx.progress(i / max(1, len(clips)), f"fitting clip {i + 1} to each platform")
+        variants = fit_clip_variants(ctx.job_id, clip)
+        n_trim += sum(1 for v in variants.values() if v["reason"] != "master")
+    ctx.set_meta(fit={"n_clips": len(clips), "n_platform_cuts": n_trim})
+    ctx.progress(1.0, "platform cuts planned")
+
+
 def render_one_clip(job_id: str, clip: dict, *, reframe: str | None = None, progress=None) -> dict:
-    """Render a single clip (used by the render stage and the re-render endpoint)."""
+    """Render a clip's master cut plus every distinct platform variant (used by the render stage
+    and the re-render endpoint)."""
     job = db.get_job(job_id)
     if not job:
         raise KeyError(job_id)
     job_dir = job_dir_for(job_id)
     media = (job.get("meta", {}).get("source") or ingest_stage.load_source_meta(job_dir))["media"]
     transcript = transcribe_stage.load_transcript(job_dir) or {}
+    words = transcript.get("words") or []
     reframe = reframe or job["options"].get("reframe") or settings.load_config("platforms")["defaults"].get("reframe", "auto")
     progress = progress or (lambda f, m: None)
     db.update_clip(clip["id"], status="rendering", error=None)
     try:
-        caps = captions_stage.write_captions(job_dir, clip["idx"], transcript.get("words") or [], clip["start_s"], clip["end_s"])
+        variants = dict(clip.get("variants") or {})
+        groups = fit_stage.unique_ranges(variants, (clip["start_s"], clip["end_s"]))
+        total = 1 + len(groups)
+
+        def sub(k: int):
+            return lambda f, m: progress((k + f) / total, m)
+
+        caps = captions_stage.write_captions(job_dir, clip["idx"], words, clip["start_s"], clip["end_s"])
         res = render_stage.render_clip(job_dir, idx=clip["idx"], start=clip["start_s"], end=clip["end_s"],
                                        src_media=media, captions_ass=caps["ass"] if caps["n_words"] else None,
-                                       reframe=reframe, progress=progress)
-        db.update_clip(clip["id"], status="done", video_path=res["video_path"], cover_path=res["cover_path"],
-                       captions_path=caps["srt"])
+                                       reframe=reframe, progress=sub(0))
+        master_paths = {"video_path": res["video_path"], "cover_path": res["cover_path"], "captions_path": caps["srt"]}
+        for platform, v in variants.items():
+            if v.get("fits", True) and (round(v["start"], 3), round(v["end"], 3)) == (round(clip["start_s"], 3), round(clip["end_s"], 3)):
+                v.update(master_paths, shared=True)
+
+        for k, ((vs, ve), plats) in enumerate(groups.items(), start=1):
+            suffix = plats[0]
+            vcaps = captions_stage.write_captions(job_dir, clip["idx"], words, vs, ve, suffix=suffix)
+            vres = render_stage.render_clip(job_dir, idx=clip["idx"], start=vs, end=ve, src_media=media,
+                                            captions_ass=vcaps["ass"] if vcaps["n_words"] else None,
+                                            reframe=reframe, progress=sub(k), suffix=suffix, face_hint=res["reframe"])
+            for pl in plats:
+                variants[pl].update(video_path=vres["video_path"], cover_path=vres["cover_path"],
+                                    captions_path=vcaps["srt"], shared=False)
+
+        db.update_clip(clip["id"], status="done", variants=variants, **master_paths)
         meta = dict(db.get_clip(clip["id"]).get("score_breakdown") or {})
-        meta["render"] = {"reframe": res["reframe"], "duration": res["duration"], "n_caption_words": caps["n_words"]}
+        meta["render"] = {"reframe": res["reframe"], "duration": res["duration"], "n_caption_words": caps["n_words"],
+                          "n_variant_renders": len(groups)}
         db.update_clip(clip["id"], score_breakdown=meta)
         return res
     except JobCancelled:
@@ -210,6 +277,7 @@ STAGES: list[Stage] = [
     ("transcribe", _run_transcribe),
     ("analyze", _run_analyze),
     ("score", _run_score),
+    ("fit", _run_fit),
     ("render", _run_render),
     ("copy", _run_copy),
     ("schedule", _run_schedule),

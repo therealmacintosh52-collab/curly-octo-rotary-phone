@@ -14,11 +14,16 @@ machine at http://localhost:8000. Nothing is uploaded anywhere.
 4. Builds candidate windows on sentence boundaries and scores them on hooks, energy,
    questions, keywords, self-containment and length. If an Anthropic key is set, the model
    rates the top candidates and the scores are blended.
-5. Renders each pick as a 1080×1920 clip: face-centred crop (YuNet / Haar via OpenCV, centre
-   crop fallback, or full-frame-over-blur), word-highlighted burned-in captions, loudness
+5. Fits each pick to every platform. Each platform has hard limits and an ideal window its
+   algorithm rewards (`ideal_range` in `platforms.json`). A pick inside the window is shared;
+   otherwise it is trimmed to the best-scoring run of whole sentences that keeps the hook, or
+   extended with neighbouring sentences. Set `fit_mode` to `limits` to enforce only the caps.
+6. Renders each distinct cut as a 1080×1920 clip: face-centred crop (YuNet / Haar via OpenCV,
+   centre crop fallback, or full-frame-over-blur), word-highlighted burned-in captions, loudness
    normalised to -14 LUFS, plus a cover frame and an SRT file.
-6. Writes per-platform titles, captions, hashtags and keywords, and a posting schedule.
-7. Thumbs up/down on clips teaches the scorer what you like for the next job.
+7. Writes per-platform titles, captions, hashtags and keywords for that platform's cut, and a
+   posting schedule.
+8. Thumbs up/down on clips teaches the scorer what you like for the next job.
 
 ## Requirements
 
@@ -73,9 +78,10 @@ jobs/<job_id>/
   analysis.json       shot cuts, energy curve, sentences
   candidates.json     every candidate window
   scores.json         features, heuristic/LLM scores, selection
-  clips/clip_NN.mp4   rendered 1080x1920 clip
-  clips/clip_NN_cover.jpg
-  captions/clip_NN.ass / .srt
+  clips/clip_NN.mp4             master cut, 1080x1920
+  clips/clip_NN_<platform>.mp4  platform-specific cut (only when it differs from the master)
+  clips/clip_NN[_platform]_cover.jpg
+  captions/clip_NN[_platform].ass / .srt
 ```
 
 Job and clip metadata (scores, copy, schedule, feedback) live in `jobs/clipforge.db` (SQLite).
@@ -119,7 +125,8 @@ To exercise the real whisper model once: `CLIPFORGE_TEST_REAL_WHISPER=1 pytest t
   Haar cascade. Both come from the OpenCV project.
 - Cancelling a job mid-render leaves unrendered clips as "pending"; re-run the job to finish them.
   Re-render and trim are refused while the job itself is still processing.
-- One master 9:16 render is produced per clip and shared across platforms; the copy for each
-  platform flags clips that exceed that platform's duration limit (e.g. Shorts at 60 s).
+- Platform duration limits in `platforms.json` are conservative as of October 2026: Shorts and
+  Reels 3 min, TikTok 10 min, Facebook Reels 3 min. Check the upload screen in each app if a
+  limit matters; they change without notice, and some accounts get longer caps.
 - Scoring weights learned from feedback are stored in the database and override
   `scoring.json`; reset them from the header button or `POST /api/feedback/reset`.

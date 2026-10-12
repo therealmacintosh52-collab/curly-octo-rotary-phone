@@ -122,13 +122,13 @@ def build_srt(words: list[dict], cfg: dict | None = None) -> str:
 
 
 def write_captions(job_dir: str | Path, clip_idx: int, words_all: list[dict], start: float, end: float,
-                   cfg: dict | None = None) -> dict:
-    """Write captions/clip_NN.ass and .srt; returns relative paths and the clip's word list."""
+                   cfg: dict | None = None, suffix: str | None = None) -> dict:
+    """Write captions/clip_NN[_suffix].ass and .srt; returns relative paths and the clip's word list."""
     job_dir = Path(job_dir)
     cap_dir = job_dir / "captions"
     cap_dir.mkdir(exist_ok=True)
     words = words_in_range(words_all, start, end)
-    stem = f"clip_{clip_idx + 1:02d}"
+    stem = f"clip_{clip_idx + 1:02d}" + (f"_{suffix}" if suffix else "")
     ass_rel, srt_rel = f"captions/{stem}.ass", f"captions/{stem}.srt"
     (job_dir / ass_rel).write_text(build_ass(words, end - start, cfg=cfg), encoding="utf-8")
     (job_dir / srt_rel).write_text(build_srt(words, cfg=cfg), encoding="utf-8")

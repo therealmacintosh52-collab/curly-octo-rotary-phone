@@ -205,22 +205,31 @@ function clipCard(j, c){
     `<div class="fbar"><span>${k.replace(/_/g,' ')}</span><i><b style="width:${Math.round(v*100)}%"></b></i></div>`).join('');
   const llm = c.score_breakdown?.llm != null ? ` · LLM ${(c.score_breakdown.llm*100).toFixed(0)}` : '';
   const files = p => `/api/jobs/${j.id}/files/${p}`;
-  const platforms = Object.keys(c.copy||{});
+  const platforms = Object.keys(c.copy||{}).length ? Object.keys(c.copy) : Object.keys(c.variants||{});
   const tab = state.tab[c.id] && platforms.includes(state.tab[c.id]) ? state.tab[c.id] : platforms[0];
-  const cp = tab ? c.copy[tab] : null;
+  const cp = tab ? (c.copy||{})[tab] : null;
   const sc = tab ? (c.schedule||{})[tab] : null;
+  const v = tab ? (c.variants||{})[tab] : null;           // this platform's cut
+  const vid = (v && v.video_path) ? v.video_path : c.video_path;
+  const cov = (v && v.cover_path) ? v.cover_path : c.cover_path;
+  const srt = (v && v.captions_path) ? v.captions_path : c.captions_path;
+  const vStart = v ? v.start : c.start_s, vEnd = v ? v.end : c.end_s;
+  const nn = String(c.idx+1).padStart(2,'0');
+  const fname = (ext) => `clip_${nn}${v && !v.shared ? '_'+tab : ''}${ext}`;
   const rf = c.score_breakdown?.render?.reframe;
+  const cutLabel = {master:'same cut on every platform', trimmed:'trimmed to fit', extended:'extended to meet the minimum', hard_cut:'cut at the platform cap', too_short:'source too short'};
   let media = '';
-  if(c.status==='done' && c.video_path) media = `<video class="v" controls preload="metadata" poster="${files(c.cover_path)}" src="${files(c.video_path)}"></video>`;
-  else if(c.status==='rendering') media = `<div class="cover" style="width:230px;aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;color:var(--muted)">rendering…</div>`;
+  if(c.status==='done' && vid) media = `<video class="v" controls preload="metadata" poster="${files(cov)}" src="${files(vid)}"></video>`;
+  else if(c.status==='rendering') media = `<div style="width:230px;aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;color:var(--muted)">rendering…</div>`;
   else if(c.status==='failed') media = `<pre class="err">${esc(c.error||'render failed')}</pre>`;
   else media = `<div style="width:230px;aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;color:var(--muted)">not rendered</div>`;
   return `<div class="card clip" data-clip="${c.id}">
     <div class="player">${media}
+      <div class="muted" style="font-size:12px;margin-top:6px">${tab ? `<b>${esc(label(tab))}</b> cut · ` : ''}${fmtTime(vStart)} – ${fmtTime(vEnd)} · ${(vEnd-vStart).toFixed(1)}s${v ? ` · ${cutLabel[v.reason]||v.reason}` : ''}</div>
       <div class="row" style="margin-top:8px">
-        ${c.video_path ? `<a class="btn primary" href="${files(c.video_path)}" download="clip_${String(c.idx+1).padStart(2,'0')}.mp4">⬇ Download MP4</a>`:''}
-        ${c.cover_path ? `<a class="btn" href="${files(c.cover_path)}" download="clip_${String(c.idx+1).padStart(2,'0')}_cover.jpg">Cover</a>`:''}
-        ${c.captions_path ? `<a class="btn" href="${files(c.captions_path)}" download="clip_${String(c.idx+1).padStart(2,'0')}.srt">SRT</a>`:''}
+        ${c.status==='done' && vid ? `<a class="btn primary" href="${files(vid)}" download="${fname('.mp4')}">⬇ Download MP4</a>`:''}
+        ${c.status==='done' && cov ? `<a class="btn" href="${files(cov)}" download="${fname('_cover.jpg')}">Cover</a>`:''}
+        ${c.status==='done' && srt ? `<a class="btn" href="${files(srt)}" download="${fname('.srt')}">SRT</a>`:''}
       </div>
       <div class="row" style="margin-top:8px">
         <select class="small" data-reframe style="width:auto;padding:5px 8px;font-size:12px">
@@ -237,7 +246,7 @@ function clipCard(j, c){
     </div>
     <div>
       <div class="row" style="justify-content:space-between">
-        <div class="row"><b>Clip ${c.idx+1}</b><span class="muted">${fmtTime(c.start_s)} – ${fmtTime(c.end_s)} · ${c.duration.toFixed(1)}s</span><span class="status ${c.status}">${c.status}</span></div>
+        <div class="row"><b>Clip ${c.idx+1}</b><span class="muted">master ${fmtTime(c.start_s)} – ${fmtTime(c.end_s)} · ${c.duration.toFixed(1)}s</span><span class="status ${c.status}">${c.status}</span></div>
         <div class="row fb">
           <span class="score">${(c.score*100).toFixed(0)}<small> / 100${llm}</small></span>
           <button class="secondary small" data-act="up" title="Good pick: teach the scorer">👍</button>
@@ -245,9 +254,9 @@ function clipCard(j, c){
         </div>
       </div>
       ${c.score_breakdown?.llm_hook ? `<div class="hook">“${esc(c.score_breakdown.llm_hook)}”</div>`:''}
-      <div class="tx">${esc(c.transcript||'(no speech detected in this range)')}</div>
+      <div class="tx">${esc((v && v.text) || c.transcript || '(no speech detected in this range)')}</div>
       <details><summary>why this clip</summary>${bars}${c.score_breakdown?.llm_reason?`<div class="muted" style="font-size:12px;margin-top:4px">${esc(c.score_breakdown.llm_reason)}</div>`:''}</details>
-      ${platforms.length ? `<div class="tabs">${platforms.map(p=>`<button class="tab ${p===tab?'active':''} ${c.copy[p].fits?'':'unfit'}" data-tab="${p}">${esc(label(p))}</button>`).join('')}</div>` : `<div class="muted" style="margin-top:8px">Copy appears after the copy stage.</div>`}
+      ${platforms.length ? `<div class="tabs">${platforms.map(p=>{ const pv=(c.variants||{})[p]; const fits = pv ? pv.fits : (c.copy?.[p]?.fits ?? true); return `<button class="tab ${p===tab?'active':''} ${fits?'':'unfit'}" data-tab="${p}">${esc(label(p))}${pv?` · ${Math.round(pv.duration)}s`:''}</button>`; }).join('')}</div>` : `<div class="muted" style="margin-top:8px">Platform cuts appear after the fit stage.</div>`}
       ${cp ? `<div class="copybox">
           <div class="meta">${sc ? `📅 ${esc(sc.local)} (${esc(sc.timezone)})` : 'not scheduled'} · copy by ${esc(cp.source)}${cp.fits?'':` · <span class="warn">⚠ ${esc(cp.fit_note||'does not fit')}</span>`}</div>
           ${state.config.platforms.platforms[tab]?.title_max_chars ? `<label>Title</label><div class="row"><input type="text" data-field="title" value="${esc(cp.title)}" style="flex:1"><button class="secondary small" data-act="copytitle">Copy</button></div>`:''}
@@ -286,6 +295,7 @@ async function loadDetail(id){
       ${tr ? `<b>Transcript</b><span>${tr.available ? `${tr.n_words} words · ${esc(tr.language||'?')} · whisper ${esc(tr.model||'')}` : `<span class="warn">unavailable: ${esc(tr.error||'')}</span>`}</span>`:''}
       ${an ? `<b>Segments</b><span>${an.n_scenes} shots · ${an.n_sentences} sentences · ${an.n_candidates} candidates (${an.mode})</span>`:''}
       ${sc ? `<b>Scoring</b><span>${sc.llm_used ? 'heuristics + LLM' : 'heuristics only'} · ${sc.n_selected} of ${sc.n_candidates} selected${sc.keywords?.length ? ' · keywords: '+esc(sc.keywords.join(', ')):''}</span>`:''}
+      ${j.meta?.fit ? `<b>Platform cuts</b><span>${j.meta.fit.n_platform_cuts} platform-specific cut${j.meta.fit.n_platform_cuts===1?'':'s'} across ${j.meta.fit.n_clips} clips (the rest share the master cut)</span>`:''}
       ${rd ? `<b>Render</b><span>${rd.n_clips - rd.n_failed} of ${rd.n_clips} clips rendered</span>`:''}
     </div>`;
   if(j.error) html += `<pre class="err">${esc(j.error)}</pre>`;
@@ -296,7 +306,7 @@ async function loadDetail(id){
   html += `</div>`;
   const box = $('#detail');
   // Preserve in-progress edits/playback: skip re-render if nothing structural changed.
-  const sig = JSON.stringify([j.status, j.stage, j.message, j.progress, j.clips?.map(c=>[c.id,c.status,c.updated_at])]);
+  const sig = JSON.stringify([j.status, j.stage, j.message, j.progress, j.clips?.map(c=>[c.id,c.status,c.updated_at,state.tab[c.id]])]);
   if(box.dataset.sig === sig) return j;
   if(box.querySelector('textarea:focus, input:focus')) return j;  // user is typing
   box.dataset.sig = sig; box.innerHTML = html;

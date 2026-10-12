@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS clips (
     captions_path    TEXT,
     copy_json        TEXT NOT NULL DEFAULT '{}',
     schedule_json    TEXT NOT NULL DEFAULT '{}',
+    variants_json    TEXT NOT NULL DEFAULT '{}',
     error            TEXT,
     created_at       REAL NOT NULL,
     updated_at       REAL NOT NULL
@@ -69,7 +70,10 @@ CREATE TABLE IF NOT EXISTS kv (
 """
 
 def _migrate(conn: sqlite3.Connection) -> None:
-    """Rebuild the feedback table if an older schema still cascades it from clips."""
+    """Bring older databases up to the current schema."""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(clips)").fetchall()}
+    if "variants_json" not in cols:
+        conn.execute("ALTER TABLE clips ADD COLUMN variants_json TEXT NOT NULL DEFAULT '{}'")
     if conn.execute("PRAGMA foreign_key_list(feedback)").fetchall():
         conn.executescript("""
             CREATE TABLE feedback_new (
@@ -139,6 +143,7 @@ def _row_to_clip(row: sqlite3.Row) -> dict[str, Any]:
     d["score_breakdown"] = json.loads(d.pop("score_json") or "{}")
     d["copy"] = json.loads(d.pop("copy_json") or "{}")
     d["schedule"] = json.loads(d.pop("schedule_json") or "{}")
+    d["variants"] = json.loads(d.pop("variants_json") or "{}")
     d["duration"] = round(d["end_s"] - d["start_s"], 3)
     return d
 
@@ -238,7 +243,8 @@ def list_clips(job_id: str) -> list[dict]:
 def update_clip(clip_id: str, **fields: Any) -> None:
     if not fields:
         return
-    for key, col in (("score_breakdown", "score_json"), ("copy", "copy_json"), ("schedule", "schedule_json")):
+    for key, col in (("score_breakdown", "score_json"), ("copy", "copy_json"), ("schedule", "schedule_json"),
+                     ("variants", "variants_json")):
         if key in fields:
             fields[col] = json.dumps(fields.pop(key))
     fields["updated_at"] = time.time()

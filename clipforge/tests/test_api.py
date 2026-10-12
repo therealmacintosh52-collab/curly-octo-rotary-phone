@@ -152,6 +152,12 @@ def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
     assert c["score_breakdown"]["render"]["n_caption_words"] > 5
     assert set(c["copy"]) == {"tiktok", "youtube_shorts"} and c["copy"]["tiktok"]["caption"]
     assert set(c["schedule"]) == {"tiktok", "youtube_shorts"} and c["schedule"]["tiktok"]["at"]
+    # per-platform cuts: a ~15 s master on a 20 s source stays legal everywhere; every variant has files
+    assert set(c["variants"]) == {"tiktok", "youtube_shorts"} and job["meta"]["fit"]["n_clips"] == 1
+    for plat, v in c["variants"].items():
+        assert v["fits"] and v["video_path"] and v["cover_path"] and v["captions_path"], (plat, v)
+        assert c["copy"][plat]["fits"] and abs(c["copy"][plat]["duration"] - v["duration"]) < 0.01
+        assert client.get(f"/api/jobs/{job['id']}/files/{v['video_path']}").status_code == 200
     for rel in (c["video_path"], c["cover_path"], c["captions_path"]):
         assert client.get(f"/api/jobs/{job['id']}/files/{rel}").status_code == 200
 
@@ -186,4 +192,4 @@ def test_full_pipeline_all_stages(client, sample_video, monkeypatch):
         time.sleep(0.3)
     assert cc["status"] == "done", cc.get("error")
     assert cc["score_breakdown"]["render"]["reframe"]["mode"] == "blur"
-    assert client.get("/api/health").json()["stages"] == ["ingest", "transcribe", "analyze", "score", "render", "copy", "schedule"]
+    assert client.get("/api/health").json()["stages"] == ["ingest", "transcribe", "analyze", "score", "fit", "render", "copy", "schedule"]
