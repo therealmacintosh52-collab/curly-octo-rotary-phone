@@ -96,6 +96,7 @@
   <span id="hp-whisper" class="pill">whisper: …</span>
   <span id="hp-llm" class="pill">LLM: …</span>
   <span id="hp-fb" class="pill" title="Learned scoring weights from your thumbs up/down">feedback: …</span>
+  <span id="hp-pb" class="pill" title="Date of the platform playbook and niche data in config/">playbook …</span>
   <span style="flex:1"></span>
   <button class="secondary small" id="btn-reset-fb" title="Forget learned scoring weights">Reset learning</button>
   <button class="secondary small" id="btn-cleanup" title="Delete jobs older than the configured retention">Clean up old jobs</button>
@@ -110,6 +111,8 @@
         <input id="url" name="url" type="url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off">
         <label for="file">…or upload a file</label>
         <input id="file" name="file" type="file" accept="video/*,audio/*,.mkv,.mov,.mp4,.webm,.m4a,.mp3,.wav">
+        <label for="hint">What is this video about, and who is it for? (optional, steers titles and captions)</label>
+        <input id="hint" type="text" placeholder="e.g. eBay reselling tips for beginners who have a day job" maxlength="200">
         <label>Platforms</label>
         <div class="row" id="platforms"></div>
         <div class="grid2">
@@ -169,6 +172,7 @@ async function loadHealth(){
     $('#hp-whisper').textContent = 'whisper ' + (h.whisper_available ? h.whisper_model : 'unavailable'); $('#hp-whisper').className='pill '+(h.whisper_available?'ok':'bad');
     $('#hp-llm').textContent = h.llm_enabled ? 'LLM ' + h.llm_model : 'LLM off (heuristics)'; $('#hp-llm').className='pill '+(h.llm_enabled?'ok':'');
     const w = await api('/api/feedback/weights');
+    if(state.config?.playbook?.as_of) $('#hp-pb').textContent = 'playbook ' + state.config.playbook.as_of;
     $('#hp-fb').textContent = w.learned ? `feedback: ${w.n_feedback} rating${w.n_feedback==1?'':'s'} learned` : 'feedback: none yet';
   }catch(e){ toast('health check failed: '+e.message, true); }
 }
@@ -268,9 +272,13 @@ function clipCard(j, c){
           ${cp.spec ? `<div class="spec">${cp.spec.checks.map(ch=>`<span class="chk2 ${ch.ok?'ok':'bad'}" title="${esc(ch.name)}: ${esc(String(ch.value))} (limit ${esc(String(ch.limit))})">${ch.ok?'✓':'✗'} ${esc(ch.name)}</span>`).join('')}</div>`:''}
           ${state.config.platforms.platforms[tab]?.title_max_chars ? `<label>Title</label><div class="row"><input type="text" data-field="title" value="${esc(cp.title)}" style="flex:1"><button class="secondary small" data-act="copytitle">Copy</button></div>`:''}
           <label>Hook / cover text</label><input type="text" data-field="hook" value="${esc(cp.hook)}">
+          ${(cp.title_options||[]).length ? `<div class="muted" style="font-size:12px;margin-top:4px">Options to test: ${cp.title_options.map(t=>`<span class="tag" style="cursor:pointer" title="use this hook" data-opt="${esc(t)}">${esc(t)}</span>`).join(' ')}</div>`:''}
           <label>Caption</label><textarea data-field="caption">${esc(cp.caption)}</textarea>
+          ${state.config.platforms.platforms[tab]?.title_max_chars ? `<label>Description</label><textarea data-field="description" style="min-height:70px">${esc(cp.description||'')}</textarea>`:''}
           <div class="tags">${(cp.hashtags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
           <div class="muted" style="font-size:12px">keywords: ${esc((cp.keywords||[]).join(', '))}</div>
+          ${cp.rationale ? `<div class="muted" style="font-size:12px;margin-top:4px">why: ${esc(cp.rationale)}</div>`:''}
+          ${v && v.cover_hook_path ? `<div class="row" style="margin-top:8px;align-items:flex-start"><img src="${files(v.cover_hook_path)}" alt="cover with hook" style="width:90px;aspect-ratio:9/16;border-radius:6px;border:1px solid var(--line)"><a class="btn" href="${files(v.cover_hook_path)}" download="${fname('_cover_hook.jpg')}">⬇ Cover with hook</a></div>`:''}
           <div class="row" style="margin-top:8px">
             <button class="small" data-act="copycaption">Copy caption</button>
             <button class="secondary small" data-act="savecopy">Save edits</button>
@@ -299,6 +307,10 @@ async function loadDetail(id){
       ${m ? `<b>Media</b><span>${m.width}×${m.height} · ${m.fps?.toFixed?.(2)} fps · ${fmtTime(m.duration)} · ${m.video_codec}/${m.audio_codec||'no audio'} · ${(m.size_bytes/1048576).toFixed(1)} MB</span>`:''}
       ${src?.remote?.uploader ? `<b>Uploader</b><span>${esc(src.remote.uploader)}</span>`:''}
       <b>Options</b><span>${(j.options?.platforms||[]).map(label).join(', ')} · max ${j.options?.max_clips||'default'} clips · framing ${esc(j.options?.reframe||'auto')}</span>
+      ${j.meta?.brief ? `<b>Subject</b><span>${esc(j.meta.brief.subject||'')} <span class="muted">· ${esc(j.meta.brief.niche_label||'')} · brief by ${esc(j.meta.brief.source||'')}${j.meta.brief.subtitles_polished?` · ${j.meta.brief.subtitles_polished} subtitle words corrected`:''}</span></span>
+      <b>Audience</b><span>${esc(j.meta.brief.audience||'')}${j.meta.brief.promise?` <span class="muted">· promise: ${esc(j.meta.brief.promise)}</span>`:''}</span>
+      ${j.meta.brief.trends ? `<b>Trends</b><span>${esc((j.meta.brief.trends.summary||'').slice(0,400))}${(j.meta.brief.trends.summary||'').length>400?'…':''} <span class="muted">(checked ${esc(j.meta.brief.trends.checked_at||'')}${(j.meta.brief.trends.sources||[]).length?`, ${j.meta.brief.trends.sources.length} sources`:''})</span>${(j.meta.brief.trends.hashtags||[]).length?`<div class="tags">${j.meta.brief.trends.hashtags.map(t=>`<span class="tag">#${esc(t)}</span>`).join('')}</div>`:''}</span>` : `<b>Trends</b><span class="muted">no live research (add an API key with web search on to pull current hashtags and phrasing for this niche)</span>`}
+      <b>Fix brief</b><span class="row"><input type="text" id="brief-subject" placeholder="subject" value="${esc(j.meta.brief.subject||'')}" style="width:220px"><input type="text" id="brief-audience" placeholder="audience" value="${esc(j.meta.brief.audience||'')}" style="width:260px"><select id="brief-niche" style="width:auto">${Object.entries(state.config?.niches?.niches||{}).map(([k,n])=>`<option value="${k}" ${k===j.meta.brief.niche?'selected':''}>${esc(n.label)}</option>`).join('')}<option value="general" ${j.meta.brief.niche==='general'?'selected':''}>General</option></select><button class="secondary small" data-act="savebrief">Save &amp; rewrite copy</button></span>`:''}
       ${tr ? `<b>Transcript</b><span>${tr.available ? `${tr.n_words} words · ${esc(tr.language||'?')} · whisper ${esc(tr.model||'')}` : `<span class="warn">unavailable: ${esc(tr.error||'')}</span>`}</span>`:''}
       ${an ? `<b>Segments</b><span>${an.n_scenes} shots · ${an.n_sentences} sentences · ${an.n_candidates} candidates (${an.mode})</span>`:''}
       ${sc ? `<b>Scoring</b><span>${sc.llm_used ? 'heuristics + LLM' : 'heuristics only'} · ${sc.n_selected} of ${sc.n_candidates} selected${sc.keywords?.length ? ' · keywords: '+esc(sc.keywords.join(', ')):''}</span>`:''}
@@ -319,6 +331,7 @@ async function loadDetail(id){
   box.dataset.sig = sig; box.innerHTML = html;
   box.querySelectorAll('[data-act]').forEach(b => b.onclick = () => action(j, b));
   box.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { const card=b.closest('.clip'); state.tab[card.dataset.clip]=b.dataset.tab; box.dataset.sig=''; loadDetail(j.id); });
+  box.querySelectorAll('[data-opt]').forEach(t => t.onclick = () => { const card=t.closest('.clip'); const f=card.querySelector('[data-field=hook]'); if(f){ f.value=t.dataset.opt; f.focus(); } });
   return j;
 }
 
@@ -336,6 +349,7 @@ async function action(j, btn){
     else if(act==='trim'){ const s=parseFloat(card.querySelector('[data-start]').value), e=parseFloat(card.querySelector('[data-end]').value); await jsonPost(`/api/clips/${cid}`, {start_s:s, end_s:e}, 'PATCH'); await api(`/api/clips/${cid}/rerender`,{method:'POST'}); toast('Trimmed; re-rendering'); }
     else if(act==='copycaption') return clip(card.querySelector('[data-field=caption]').value);
     else if(act==='copytitle') return clip(card.querySelector('[data-field=title]').value);
+    else if(act==='savebrief'){ await jsonPost(`/api/jobs/${j.id}/brief`, {subject: $('#brief-subject').value, audience: $('#brief-audience').value, niche: $('#brief-niche').value, rewrite_copy: true}, 'PATCH'); toast('Brief saved; copy rewritten'); }
     else if(act==='savecopy'){ const data={}; card.querySelectorAll('[data-field]').forEach(i=>data[i.dataset.field]=i.value); await jsonPost(`/api/clips/${cid}`, {copy:{[tab]:data}}, 'PATCH'); toast('Saved'); }
     $('#detail').dataset.sig=''; await loadJobs();
   }catch(e){ toast(e.message, true); }
@@ -353,6 +367,7 @@ $('#job-form').onsubmit = async (ev) => {
   fd.append('platforms', plats.join(','));
   const opts = { max_clips: Number($('#max-clips').value), reframe: $('#reframe').value };
   if($('#whisper').value) opts.whisper_model = $('#whisper').value;
+  if($('#hint').value.trim()) opts.brief_hint = $('#hint').value.trim();
   if($('#lang').value.trim()) opts.language = $('#lang').value.trim();
   fd.append('options', JSON.stringify(opts));
   $('#btn-submit').disabled = true; $('#submit-note').textContent = file ? 'uploading…' : 'creating…';
@@ -372,7 +387,7 @@ $('#btn-reset-fb').onclick = async () => {
   if(!confirm('Forget all learned scoring weights?')) return;
   try{ await api('/api/feedback/reset',{method:'POST'}); toast('Learned weights reset'); loadHealth(); }catch(e){ toast(e.message,true); }
 };
-loadHealth(); loadConfig().then(loadJobs);
+loadConfig().then(()=>{ loadHealth(); loadJobs(); });
 </script>
 </body>
 </html>

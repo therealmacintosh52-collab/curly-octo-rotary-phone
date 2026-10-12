@@ -6,6 +6,7 @@ Later phases append stages to STAGES; Phase 1 only has ingest.
 """
 from __future__ import annotations
 
+import json
 import logging
 import threading
 import traceback
@@ -14,7 +15,9 @@ from pathlib import Path
 from typing import Callable
 
 from .. import db, settings
+from . import brief as brief_stage
 from . import captions as captions_stage
+from . import llm as llm_mod
 from . import copy as copy_stage
 from . import fit as fit_stage
 from . import spec as spec_mod
@@ -100,6 +103,41 @@ def _run_transcribe(ctx: JobContext) -> None:
     })
 
 
+def _run_brief(ctx: JobContext) -> None:
+    """Understand the whole video (subject, niche, audience, trends) and tidy the transcript."""
+    src = ctx.job.get("meta", {}).get("source") or ingest_stage.load_source_meta(ctx.job_dir)
+    transcript = transcribe_stage.load_transcript(ctx.job_dir) or {}
+    words = transcript.get("words") or []
+    ctx.progress(0.05, "working out what the video is about")
+    use_llm = ctx.options.get("use_llm")
+    brief = brief_stage.build_brief(ctx.job_dir, text=transcript.get("text", ""), words=words,
+                                    remote_meta=src.get("remote") or {}, platforms=_platforms_for(ctx.job),
+                                    hint=ctx.options.get("brief_hint"), use_llm=use_llm,
+                                    web_search=ctx.options.get("web_search"))
+    polished = 0
+    llm_on = settings.llm_enabled() if use_llm is None else bool(use_llm)
+    if llm_on and words and (ctx.options.get("polish_subtitles") if ctx.options.get("polish_subtitles") is not None else settings.LLM_POLISH_SUBTITLES):
+        ctx.progress(0.6, "correcting transcript names and jargon")
+        fixed = llm_mod.polish_words(words, brief=brief)
+        if fixed:
+            polished = sum(1 for a, b in zip(words, fixed) if a["word"] != b["word"])
+            raw = ctx.job_dir / "transcript.raw.json"
+            if not raw.exists():
+                raw.write_text((ctx.job_dir / transcribe_stage.TRANSCRIPT_JSON).read_text(encoding="utf-8"), encoding="utf-8")
+            transcript["words"] = fixed
+            wi = 0
+            for seg in transcript.get("segments", []):
+                n = len(seg.get("words") or [])
+                seg["words"] = fixed[wi:wi + n]; wi += n
+                seg["text"] = " ".join(w["word"] for w in seg["words"]) or seg.get("text", "")
+            transcript["text"] = " ".join(s["text"] for s in transcript.get("segments", [])) or transcript.get("text", "")
+            (ctx.job_dir / transcribe_stage.TRANSCRIPT_JSON).write_text(json.dumps(transcript, ensure_ascii=False), encoding="utf-8")
+    ctx.set_meta(brief={k: brief.get(k) for k in ("source", "subject", "niche", "niche_label", "audience", "promise", "tone",
+                                                   "entities", "keywords", "hashtags", "cta", "platform_angles", "hint")}
+                 | {"trends": brief.get("trends"), "subtitles_polished": polished})
+    ctx.progress(1.0, f"{brief.get('niche_label', 'general')}: {brief.get('subject', '')[:60]}")
+
+
 def _run_analyze(ctx: JobContext) -> None:
     media = _source_media(ctx)
     transcript = transcribe_stage.load_transcript(ctx.job_dir)
@@ -118,7 +156,7 @@ def _run_score(ctx: JobContext) -> None:
     result = score_stage.score_candidates(
         candidates, analysis=analysis, full_text=transcript.get("text", ""),
         title=ctx.job.get("title"), options=ctx.options, progress=ctx.progress,
-        use_llm=ctx.options.get("use_llm"),
+        use_llm=ctx.options.get("use_llm"), brief=brief_stage.load_brief(ctx.job_dir),
     )
     score_stage.save_scores(ctx.job_dir, result)
     db.delete_clips(ctx.job_id)  # re-runs start clean
@@ -289,13 +327,23 @@ def _run_copy(ctx: JobContext) -> None:
     clips = db.list_clips(ctx.job_id)
     platforms = ctx.options.get("platforms") or list(settings.load_config("platforms")["platforms"])
     keywords = (ctx.job.get("meta", {}).get("scoring") or {}).get("keywords") or []
+    brief = brief_stage.load_brief(ctx.job_dir)
+    pconf = settings.load_config("platforms")
     llm_hits = 0
     for i, clip in enumerate(clips):
         ctx.progress(i / max(1, len(clips)), f"writing copy for clip {i + 1}")
         copy = copy_stage.generate_copy(clip, platforms=platforms, keywords=keywords, video_title=ctx.job.get("title"),
-                                        use_llm=ctx.options.get("use_llm"))
+                                        use_llm=ctx.options.get("use_llm"), brief=brief)
         llm_hits += sum(1 for v in copy.values() if v.get("source") == "llm")
-        db.update_clip(clip["id"], copy=copy)
+        # cover frame with the platform's hook burned in, inside that platform's safe zone
+        variants = dict(clip.get("variants") or {})
+        for pl, v in variants.items():
+            if v.get("cover_path") and copy.get(pl, {}).get("hook"):
+                out_rel = v["cover_path"][:-4] + "_hook.jpg"
+                sz = spec_mod.profile_for(pl, pconf)["safe_zone"]
+                if render_stage.cover_with_text(ctx.job_dir, v["cover_path"], copy[pl]["hook"], out_rel, safe_zone=sz):
+                    v["cover_hook_path"] = out_rel
+        db.update_clip(clip["id"], copy=copy, variants=variants)
     ctx.set_meta(copy={"n_clips": len(clips), "llm_platforms": llm_hits})
     ctx.progress(1.0, "copy written")
 
@@ -313,6 +361,7 @@ def _run_schedule(ctx: JobContext) -> None:
 STAGES: list[Stage] = [
     ("ingest", _run_ingest),
     ("transcribe", _run_transcribe),
+    ("brief", _run_brief),
     ("analyze", _run_analyze),
     ("score", _run_score),
     ("fit", _run_fit),

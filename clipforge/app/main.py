@@ -99,6 +99,8 @@ def config() -> dict:
         "platforms": settings.load_config("platforms"),
         "scoring": settings.load_config("scoring"),
         "schedule": settings.load_config("schedule"),
+        "niches": settings.load_config("niches"),
+        "playbook": settings.load_config("playbook"),
         "timezone": settings.TIMEZONE,
     }
 
@@ -331,6 +333,55 @@ def feedback_reset() -> dict:
     return feedback_mod.reset()
 
 
+class BriefPatch(BaseModel):
+    subject: Optional[str] = Field(None, max_length=200)
+    audience: Optional[str] = Field(None, max_length=300)
+    promise: Optional[str] = Field(None, max_length=300)
+    tone: Optional[str] = Field(None, max_length=100)
+    niche: Optional[str] = Field(None, max_length=60)
+    rewrite_copy: bool = True
+
+
+@app.get("/api/jobs/{job_id}/brief")
+def get_brief(job_id: str) -> dict:
+    if not db.get_job(job_id):
+        raise HTTPException(404, "job not found")
+    from .pipeline import brief as brief_mod
+    return brief_mod.load_brief(runner.job_dir_for(job_id)) or {}
+
+
+@app.patch("/api/jobs/{job_id}/brief")
+def patch_brief(job_id: str, body: BriefPatch) -> dict:
+    """Correct the brief (subject, audience, niche...) and optionally rewrite every clip's copy from it."""
+    job = db.get_job(job_id)
+    if not job:
+        raise HTTPException(404, "job not found")
+    if runner.is_active(job_id):
+        raise HTTPException(409, "job is still processing")
+    from .pipeline import brief as brief_mod, copy as copy_mod
+    brief = brief_mod.load_brief(runner.job_dir_for(job_id)) or {}
+    niches = settings.load_config("niches")
+    for k in ("subject", "audience", "promise", "tone"):
+        val = getattr(body, k)
+        if val:
+            brief[k] = val.strip()
+    if body.niche:
+        if body.niche not in niches["niches"] and body.niche != "general":
+            raise HTTPException(400, f"unknown niche; valid: {list(niches['niches'])}")
+        n = niches["niches"].get(body.niche, niches["default"])
+        brief.update(niche=body.niche, niche_label=n["label"], hashtags=n["hashtags"], cta=n["cta"])
+    brief["source"] = "edited"
+    (runner.job_dir_for(job_id) / brief_mod.BRIEF_JSON).write_text(json.dumps(brief, ensure_ascii=False, indent=2), encoding="utf-8")
+    db.merge_job_meta(job_id, brief={**(job["meta"].get("brief") or {}), **{k: brief.get(k) for k in ("source", "subject", "niche", "niche_label", "audience", "promise", "tone", "hashtags", "cta")}})
+    if body.rewrite_copy:
+        platforms = job["options"].get("platforms") or list(settings.load_config("platforms")["platforms"])
+        keywords = (job["meta"].get("scoring") or {}).get("keywords") or []
+        for clip in db.list_clips(job_id):
+            db.update_clip(clip["id"], copy=copy_mod.generate_copy(clip, platforms=platforms, keywords=keywords,
+                                                                   video_title=job.get("title"), brief=brief))
+    return brief
+
+
 # ----------------------------------------------------------------------------- export
 
 def _export_bundle(job_id: str) -> dict:
@@ -367,8 +418,14 @@ def _copy_text(platform: str, label: str, c: dict) -> str:
              f"({v.get('duration', c['duration']):.1f}s, {v.get('reason', 'master')})", ""]
     if data.get("title"):
         lines += ["TITLE", data["title"], ""]
-    lines += ["CAPTION", data.get("caption", ""), "", "HASHTAGS", " ".join(data.get("hashtags", [])), "",
-              "KEYWORDS", ", ".join(data.get("keywords", [])), ""]
+    if data.get("title_options"):
+        lines += ["TITLE / HOOK OPTIONS TO TEST"] + [f"  - {t}" for t in data["title_options"]] + [""]
+    lines += ["CAPTION", data.get("caption", ""), ""]
+    if data.get("description"):
+        lines += ["DESCRIPTION", data["description"], ""]
+    lines += ["HASHTAGS", " ".join(data.get("hashtags", [])), "", "KEYWORDS", ", ".join(data.get("keywords", [])), ""]
+    if data.get("rationale"):
+        lines += ["WHY", data["rationale"], ""]
     sp = data.get("spec") or {}
     if sp.get("checks"):
         lines += ["COPY CHECKS"] + [f"  [{'ok' if ch['ok'] else 'FAIL'}] {ch['name']}: {ch['value']} (limit {ch['limit']})" for ch in sp["checks"]]
@@ -409,6 +466,7 @@ def export_zip(job_id: str, platform: Optional[str] = Query(None)) -> Response:
                 dest = pl if platform else folder          # single-platform pack: flatten into that platform's folder
                 put(v["video_path"], f"{dest}/{nn}.mp4")
                 put(v.get("cover_path"), f"{dest}/{nn}_cover.jpg")
+                put(v.get("cover_hook_path"), f"{dest}/{nn}_cover_hook.jpg")
                 put(v.get("captions_path"), f"{dest}/{nn}.srt")
                 z.writestr(f"{pl}/{nn}_copy.txt", _copy_text(pl, labels.get(pl, pl), c))
             if not c.get("variants") and c.get("video_path"):
@@ -419,6 +477,14 @@ def export_zip(job_id: str, platform: Optional[str] = Query(None)) -> Response:
                 c["schedule"] = {k: v for k, v in (c.get("schedule") or {}).items() if k == platform}
         z.writestr("schedule.ics", schedule_mod.to_ics(bundle["job"], clips_db, labels))
         z.writestr("clips.json", json.dumps(bundle, indent=2))
+        brief = (db.get_job(job_id) or {}).get("meta", {}).get("brief") or {}
+        if brief:
+            z.writestr("brief.txt", "\n".join([f"Subject: {brief.get('subject', '')}", f"Niche: {brief.get('niche_label', '')}",
+                                               f"Audience: {brief.get('audience', '')}", f"Promise: {brief.get('promise', '')}",
+                                               f"Tone: {brief.get('tone', '')}", f"Keywords: {', '.join(brief.get('keywords') or [])}",
+                                               f"Entities: {', '.join(brief.get('entities') or [])}", "",
+                                               "Trends: " + (((brief.get('trends') or {}).get('summary')) or 'no live research (no API key or web search off)'),
+                                               "Sources: " + ", ".join(((brief.get('trends') or {}).get('sources')) or [])]) + "\n")
         readme = ["ClipForge export", "", "Layout: <platform>/ holds files built to that platform's spec (safe zones, encode, "
                   "loudness, size cap). universal/ holds a file that passed every selected platform's spec; a folder named "
                   "a+b holds a file shared by just those platforms. Each platform folder has clip_NN_copy.txt with the title, "
