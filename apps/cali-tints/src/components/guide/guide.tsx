@@ -74,6 +74,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
     { id: "dashboard", label: "Dashboard" },
     { id: "new", label: "New job" },
     { id: "jobs", label: "Jobs" },
+    { id: "clover-flex", label: "On the Clover Flex" },
     ...(money ? [{ id: "invoices", label: "Invoices" }, { id: "invoice", label: "One invoice" }] : []),
     ...(settings ? [{ id: "settings", label: "Settings" }] : []),
     { id: "status", label: "What the statuses mean" },
@@ -172,6 +173,16 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             {wide && <Row what="Delete job" does="Moves it to the Archive with the reason you type. Nothing is ever erased; Restore brings it back." />}
           </Inputs>
           <Outputs items={["Nothing changes by searching or filtering.", "On the 1st, every Not invoiced job from the month moves to Invoiced on its own."]} />
+        </Section>
+
+        <Section id="clover-flex" title="On the Clover Flex" intro="The same app, installed on the company's Clover handhelds from the Clover App Market. Nothing about payments: it is for logging cars.">
+          <Inputs>
+            <Row what="Open Cali Tints" does="Tap the Cali Tints icon on the Flex. Sign in once; it remembers you." />
+            <Row what="Scan barcode" does="Uses the Clover's own scanner: aim at the VIN sticker or the stock tag and it fills in on its own." />
+            <Row what="Before · After" does="Opens the camera inside the app (the Flex has no photo gallery app). Allow the camera the first time it asks." />
+            <Row what="No signal" does="The app shows No connection. Jobs you saved are kept on the device and send themselves when Wi-Fi is back." />
+          </Inputs>
+          <Outputs items={["Everything you do on the Flex shows up on every other device and on the owner's computer right away.", "The owner installs updates from the Clover App Market; nothing to do on your side."]} />
         </Section>
 
         {money && (

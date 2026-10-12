@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cali Tints</string>
+    <string name="offline_title">No connection</string>
+    <string name="offline_body">Cali Tints needs Wi-Fi or data to open. Jobs you already saved are kept on this device and send themselves when the signal is back.</string>
+    <string name="offline_retry">Try again</string>
+    <string name="camera_denied">Camera access was turned off for Cali Tints. Allow it under Settings → Apps → Cali Tints to take photos.</string>
+</resources>

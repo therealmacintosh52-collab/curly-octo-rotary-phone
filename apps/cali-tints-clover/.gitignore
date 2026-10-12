@@ -1,0 +1,17 @@
+# Gradle
+.gradle/
+build/
+app/build/
+.kotlin/
+# Local SDK path, never shared
+local.properties
+# Signing material and built packages, never committed
+*.keystore
+*.jks
+*.apk
+*.aab
+keystore.properties
+# IDE
+.idea/
+*.iml
+.DS_Store

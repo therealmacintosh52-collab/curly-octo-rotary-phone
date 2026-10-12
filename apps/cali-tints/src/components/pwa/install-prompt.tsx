@@ -27,7 +27,8 @@ export function InstallPrompt() {
       /* ignore */
     }
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    if (dismissed || standalone) return;
+    const inCloverApp = !!(window as Window & { CaliClover?: unknown }).CaliClover;
+    if (dismissed || standalone || inCloverApp) return;
 
     const onPrompt = (e: Event) => {
       e.preventDefault();

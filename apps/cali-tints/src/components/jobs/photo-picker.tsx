@@ -114,7 +114,7 @@ function PhotoSlot({
             type="button"
             disabled={disabled || busy || full}
             onClick={() => inputRef.current?.click()}
-            aria-label={`Choose a ${label.toLowerCase()} photo from files`}
+            aria-label={kind === "before" ? "Choose a before photo from files" : "Choose an after photo from files"}
             title="Choose a file"
             className="flex h-14 w-12 shrink-0 items-center justify-center rounded-xl border border-dashed border-border bg-card text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-60"
           >

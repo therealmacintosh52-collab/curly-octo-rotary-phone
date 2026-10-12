@@ -26,17 +26,18 @@ jobs:
           --health-retries 10
         ports: ["54329:5432"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: apps/cali-tints/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      # `pnpm typecheck` runs `next typegen` first: PageProps/LayoutProps/RouteContext live in the generated .next/types on a fresh checkout.
       - run: pnpm typecheck
       - run: pnpm test
       - name: SQL tests

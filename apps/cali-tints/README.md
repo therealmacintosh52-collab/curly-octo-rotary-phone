@@ -20,6 +20,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 6. [Guest preview](#guest-preview-share-a-link-no-login)
 7. [Email (Resend)](#email-resend)
 7. [QuickBooks Online](#quickbooks-online)
+7. [The Clover app](#the-clover-app)
 7. [Deploy to Vercel](#deploy-to-vercel)
 8. [PWA & offline](#pwa--offline)
 9. [Data model & security](#data-model--security)
@@ -33,7 +34,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 
 | Area | What it does |
 |---|---|
-| New job `/jobs/new` | Big stock number input, VIN camera scan (Code 39/128, QR, DataMatrix, PDF417) → NHTSA decode with cache, Mercedes model list + free text, Make has an **Other** you type in, service chips (the owner sees prices and can override them with a reason), **Other** asks what was done and puts that on the invoice line, 7-day duplicate warning, before/after photos. **Save & next** saves the job; the success card offers **Open job** |
+| New job `/jobs/new` | Big stock number input, VIN camera scan (Code 39/128, QR, DataMatrix, PDF417; the Clover scanner inside the Clover app) → NHTSA decode with cache, Mercedes model list + free text, Make has an **Other** you type in, service chips (the owner sees prices and can override them with a reason), **Other** asks what was done and puts that on the invoice line, 7-day duplicate warning, before/after photos. **Save & next** saves the job; the success card offers **Open job** |
 | Photos | Before/After on every job: the picker opens the device camera (or the in-app camera where a WebView has no file chooser, e.g. the Clover Flex), compresses to ~0.4 MB JPEG, up to four each. Job page: gallery, lightbox, **Add photos**, Remove while the job is open. Storage `job-photos/<company>/<job>/<client_id>.jpg`; a retried upload overwrites the file and skips the row (`job_photos.client_id`, migration `0030`) |
 | Offline | Jobs queue in IndexedDB with their compressed photos and sync when online (idempotent on a client id, so retries never duplicate). `/jobs/outbox` shows the queue with retry/discard. App shell is cached by a service worker |
 | Jobs `/jobs` | Every car logged, newest first under day headers. Search stock number/VIN/model/service/dealership, or a date (`9/27`, `sep 27`, `september`, `yesterday`, `last week`), or scan the VIN barcode on the car; filter by dealership, detailer, service, dates; **All · Not invoiced · Invoiced · Archive**. Detailers see their own jobs. A job page shows the car, services, photos and where it stands (logged → on the month's invoice → paid); **Edit job** and **Delete job** while it is not on an invoice; deleted jobs sit in the Archive and can be restored |
@@ -143,6 +144,10 @@ Every month's invoice is created in QuickBooks Online as an Invoice (DocNumber =
 
 Access tokens last an hour and refresh themselves; the refresh token lasts about 100 days of inactivity, after which the owner sees *Reconnect QuickBooks*. Tax: the detailing is labor and the rate is expected to be 0; a non-zero tax amount is noted in the QuickBooks private note rather than mapped to a tax code. **QuickBooks Desktop** is not supported directly; use Settings → Export (CSV) or an invoice's Excel download and import it there.
 
+## The Clover app
+
+`apps/cali-tints-clover/` is an Android WebView shell for the company's Clover devices (Flex, Mini, Station), distributed as a **private app** on the Clover App Market. It adds what the page cannot reach on a Clover: the device's barcode scanner (`window.CaliClover.scan()` → `src/lib/native/clover.ts` → `vin-scanner.tsx`) and the camera for before/after photos (`getUserMedia` granted after the Android CAMERA permission; `photo-picker.tsx` uses the in-app shutter because the Flex has no gallery app). No payments, no Clover data permissions. The APK is built by GitHub Actions (`.github/workflows/cali-tints-clover.yml`); build, signing and the App Market steps are in `apps/cali-tints-clover/README.md` and `SUBMISSION.md`. The public `/privacy` and `/terms` pages are the listing's policy links. The whole go-live order (accounts, Supabase, Vercel, Resend, QuickBooks, Clover, day-one checks, costs) is in [`docs/GO-LIVE.md`](docs/GO-LIVE.md).
+
 ## Deploy to Vercel
 
 1. Import the repo in Vercel. Set **Root Directory** to `apps/cali-tints` (Framework: Next.js, Install: `pnpm install`, Build: `pnpm build`).
@@ -195,7 +200,7 @@ pnpm db:test       # migrations + RLS/RPC/trigger tests on a local Postgres 16 (
 pnpm build
 ```
 
-`supabase/tests/run.sh` creates a throwaway database, installs a small stub of Supabase's `auth`/`storage` schemas, applies the migrations and seed, then runs `tests/01_flows.sql`, which asserts detailer isolation, idempotent `create_job`, price override rules, invoice generation/locking, payment status transitions, void/unlock, per-job grouping, dashboard stats, storage path policies, and (0015) car-is-invoice: auto-invoicing for detailers and retries, the backfill, edit/delete rules, the filtered list and detailer read access. CI (`.github/workflows/cali-tints-ci.yml`) runs all of the above.
+`pnpm typecheck` runs `next typegen` first so the generated `PageProps`/`LayoutProps`/`RouteContext` types exist on a fresh checkout (CI). `supabase/tests/run.sh` creates a throwaway database, installs a small stub of Supabase's `auth`/`storage` schemas, applies the migrations and seed, then runs `tests/01_flows.sql`, which asserts detailer isolation, idempotent `create_job`, price override rules, invoice generation/locking, payment status transitions, void/unlock, per-job grouping, dashboard stats, storage path policies, and (0015) car-is-invoice: auto-invoicing for detailers and retries, the backfill, edit/delete rules, the filtered list and detailer read access. CI (`.github/workflows/cali-tints-ci.yml`) runs all of the above.
 
 ## CSV / DMS integration contract
 

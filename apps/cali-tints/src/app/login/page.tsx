@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { LoginForm } from "./login-form";
 
@@ -23,6 +24,9 @@ export default async function LoginPage(props: PageProps<"/login">) {
         <LoginForm next={next} initialError={error} />
         <p className="mt-8 text-center text-xs text-muted-foreground">
           Accounts are created by the owner from Settings → Users.
+        </p>
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          <Link href="/privacy" className="underline-offset-4 hover:text-foreground hover:underline">Privacy</Link> · <Link href="/terms" className="underline-offset-4 hover:text-foreground hover:underline">Terms</Link>
         </p>
       </div>
     </main>

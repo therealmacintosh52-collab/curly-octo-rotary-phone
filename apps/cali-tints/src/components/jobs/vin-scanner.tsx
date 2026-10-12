@@ -5,6 +5,7 @@ import { FlashlightIcon, ScanLineIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { extractVin } from "@/lib/vin";
+import { scanWithClover, stopCloverScan, useCloverBridge } from "@/lib/native/clover";
 import { CAMERA_CONSTRAINTS, cameraErrorMessage, setTorch, torchSupported as torchOk } from "@/lib/camera";
 
 /**
@@ -14,16 +15,26 @@ import { CAMERA_CONSTRAINTS, cameraErrorMessage, setTorch, torchSupported as tor
  * camera view is mounted fresh on every open so its state starts clean.
  */
 export function VinScanner({ open, onOpenChange, onDetected }: { open: boolean; onOpenChange: (o: boolean) => void; onDetected: (vin: string) => void }) {
+  const clover = useCloverBridge();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[92dvh] gap-0 p-0">
+      <SheetContent side="bottom" className={clover ? "gap-0 p-0" : "h-[92dvh] gap-0 p-0"}>
         <SheetHeader className="p-4 pb-2">
           <SheetTitle className="flex items-center gap-2">
             <ScanLineIcon className="size-5 text-primary" /> Scan VIN
           </SheetTitle>
-          <SheetDescription>Point at the door-jamb sticker or the windshield plate barcode. Hold steady.</SheetDescription>
+          <SheetDescription>{clover ? "The Clover scanner opens on top. Aim at the door-jamb sticker or the windshield plate barcode." : "Point at the door-jamb sticker or the windshield plate barcode. Hold steady."}</SheetDescription>
         </SheetHeader>
-        {open && (
+        {open && clover && (
+          <CloverScan
+            onDetected={(vin) => {
+              onDetected(vin);
+              onOpenChange(false);
+            }}
+            onCancel={() => onOpenChange(false)}
+          />
+        )}
+        {open && !clover && (
           <CameraView
             onDetected={(vin) => {
               onDetected(vin);
@@ -33,6 +44,64 @@ export function VinScanner({ open, onOpenChange, onDetected }: { open: boolean; 
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** Inside the Clover app: the device's own scanner does the reading; this panel shows progress and retries. */
+function CloverScan({ onDetected, onCancel }: { onDetected: (vin: string) => void; onCancel: () => void }) {
+  const [state, setState] = useState<{ kind: "scanning" } | { kind: "error"; message: string }>({ kind: "scanning" });
+  const [attempt, setAttempt] = useState(0);
+  const onDetectedRef = useRef(onDetected);
+  useEffect(() => {
+    onDetectedRef.current = onDetected;
+  }, [onDetected]);
+
+  useEffect(() => {
+    let alive = true;
+    scanWithClover()
+      .then((text) => {
+        if (!alive) return;
+        const vin = extractVin(text);
+        if (vin) {
+          navigator.vibrate?.(60);
+          onDetectedRef.current(vin);
+        } else setState({ kind: "error", message: `That barcode is not a VIN (${text.slice(0, 24)}). Try the sticker on the door jamb.` });
+      })
+      .catch((err: Error & { code?: string }) => {
+        if (!alive) return;
+        setState({ kind: "error", message: err.code === "cancelled" ? "Scan cancelled." : err.message });
+      });
+    return () => {
+      alive = false;
+      stopCloverScan();
+    };
+  }, [attempt]);
+
+  return (
+    <div className="flex flex-col items-center gap-4 px-6 pb-8 pt-4 text-center" data-testid="clover-scan">
+      {state.kind === "scanning" ? (
+        <>
+          <ScanLineIcon className="size-10 animate-pulse text-primary" />
+          <p className="text-sm text-muted-foreground">Scanning with the Clover…</p>
+        </>
+      ) : (
+        <>
+          <p className="text-sm">{state.message}</p>
+          <Button
+            type="button"
+            onClick={() => {
+              setState({ kind: "scanning" });
+              setAttempt((a) => a + 1);
+            }}
+          >
+            Scan again
+          </Button>
+        </>
+      )}
+      <Button type="button" variant="ghost" onClick={onCancel}>
+        Cancel
+      </Button>
+    </div>
   );
 }
 

@@ -1,0 +1,65 @@
+# Builds the Cali Tints Clover app (apps/cali-tints-clover): unit tests, a
+# debug APK for Dev Kit testing and a release APK (signed when the signing
+# secrets are set, otherwise debug-signed) as workflow artifacts.
+name: Cali Tints Clover app
+
+on:
+  push:
+    paths: ["apps/cali-tints-clover/**", ".github/workflows/cali-tints-clover.yml"]
+  pull_request:
+    paths: ["apps/cali-tints-clover/**", ".github/workflows/cali-tints-clover.yml"]
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: "Web app URL the APK opens"
+        default: "https://cali-tints-demo.vercel.app"
+        required: false
+      version_name:
+        description: "Version name (e.g. 1.0.3)"
+        default: "1.0.0"
+        required: false
+      version_code:
+        description: "Version code (integer, higher than the last upload)"
+        default: "1"
+        required: false
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/cali-tints-clover
+    env:
+      APP_URL: ${{ github.event.inputs.app_url || 'https://cali-tints-demo.vercel.app' }}
+      VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.0' }}
+      VERSION_CODE: ${{ github.event.inputs.version_code || github.run_number }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests
+        run: ./gradlew --no-daemon test
+      - name: Debug APK
+        run: ./gradlew --no-daemon assembleDebug -PappUrl="$APP_URL" -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE"
+      - name: Release keystore (when configured)
+        if: ${{ env.KEYSTORE_B64 != '' }}
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore" && echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+      - name: Release APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease -PappUrl="$APP_URL" -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cali-tints-clover-debug
+          path: apps/cali-tints-clover/app/build/outputs/apk/debug/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cali-tints-clover-release
+          path: apps/cali-tints-clover/app/build/outputs/apk/release/*.apk
