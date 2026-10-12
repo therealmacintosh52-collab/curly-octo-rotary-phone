@@ -20,7 +20,7 @@ export default async function DevAppointmentPreview(props: PageProps<"/dev/previ
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
             <RetailNav />
           </div>
-          <AppointmentDetail a={a} showMoney={canPrices} publicUrl={isAdmin ? `/a/${APPOINTMENT_TOKEN}` : null} />
+          <AppointmentDetail a={a} showMoney={canPrices} publicUrl={isAdmin ? `/a/${APPOINTMENT_TOKEN}` : null} depositsOnline />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

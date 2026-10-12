@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { JobActions } from "./job-actions";
 import { JobPhotos } from "./job-photos";
+import type { RetailCharge } from "@/lib/db/types";
 import { RetailPayment, type RetailPaymentInfo } from "./retail-payment";
 import type { EditableCar } from "./edit-car-sheet";
 import { cn } from "@/lib/utils";
@@ -33,8 +34,8 @@ export interface JobDetailProps {
   isAdmin: boolean;
   /** Owner, admin: sees the Needs-a-price flag and may type the amount of an "Other" line. No other price appears on a job. */
   canSetAmount: boolean;
-  /** Retail jobs: what the counter collects (from retail_charge), while unpaid. */
-  amountDue?: number | null;
+  /** retail_charge() for a retail job: the balance, the deposit, the ledger, the receipt signature. */
+  charge?: RetailCharge | null;
   canEdit: boolean;
   canDelete: boolean;
   canRestore: boolean;
@@ -195,7 +196,7 @@ export function JobDetail(p: JobDetailProps) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          {retail && job.payment && <RetailPayment jobId={job.id} payment={job.payment} amountDue={p.amountDue ?? null} canRecordByHand={isAdmin && canSetAmount} open={!deleted} />}
+          {retail && job.payment && <RetailPayment jobId={job.id} payment={job.payment} charge={p.charge ?? null} canRecordByHand={isAdmin && canSetAmount} open={!deleted} />}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

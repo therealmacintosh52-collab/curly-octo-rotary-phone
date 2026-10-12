@@ -4,7 +4,7 @@ import { supabasePublicKey, supabaseUrl } from "@/lib/supabase/env";
 import { DEMO_COOKIE, DEMO_COOKIE_MAX_AGE, demoKey, demoRewriteTarget, isDemoCookieValid, safeEqual } from "@/lib/demo";
 
 /** Paths that never require a session. */
-const PUBLIC_PATHS = ["/login", "/offline", "/privacy", "/terms", "/manifest.webmanifest", "/sw.js", "/auth/callback", "/auth/reset", "/demo", "/api/cron", "/e", "/api/e", "/book", "/a"];
+const PUBLIC_PATHS = ["/login", "/offline", "/privacy", "/terms", "/manifest.webmanifest", "/sw.js", "/auth/callback", "/auth/reset", "/demo", "/api/cron", "/e", "/api/e", "/book", "/a", "/r", "/api/r", "/api/clover/webhook"];
 
 function hasSupabaseEnv() {
   return !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -51,7 +51,7 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith("/dev/")) {
       return NextResponse.redirect(new URL("/demo", request.url));
     }
-    if (!hasSupabaseEnv() && pathname !== "/demo" && pathname !== "/offline" && pathname !== "/privacy" && pathname !== "/terms" && !pathname.startsWith("/e/") && !pathname.startsWith("/book") && !pathname.startsWith("/a/")) {
+    if (!hasSupabaseEnv() && pathname !== "/demo" && pathname !== "/offline" && pathname !== "/privacy" && pathname !== "/terms" && !pathname.startsWith("/e/") && !pathname.startsWith("/book") && !pathname.startsWith("/a/") && !pathname.startsWith("/r/")) {
       return NextResponse.redirect(new URL("/demo", request.url));
     }
   } else if (process.env.NODE_ENV !== "production" && pathname.startsWith("/dev/")) {

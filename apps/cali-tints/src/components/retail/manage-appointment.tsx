@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarClockIcon, CheckCircle2Icon, MapPinIcon, XIcon } from "lucide-react";
+import { CalendarClockIcon, CheckCircle2Icon, CreditCardIcon, MapPinIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { AppointmentView, Slot } from "@/lib/db/types";
-import { cancelByTokenAction, rescheduleByTokenAction, slotsByTokenAction } from "@/app/a/[token]/actions";
+import { cancelByTokenAction, rescheduleByTokenAction, slotsByTokenAction, startDepositAction } from "@/app/a/[token]/actions";
 import { formatMoney } from "@/lib/money";
 import { formatAddress } from "@/lib/address";
 import { dayLabelIn, durationLabel, timeIn } from "@/lib/retail/slots";
@@ -30,9 +30,33 @@ const PUBLIC_STATUS: Record<AppointmentView["status"], string> = {
 };
 
 /** The customer's appointment page: when, what, where, and Move / Cancel inside the policy. */
-export function ManageAppointment({ a, token, isNew = false, demo = false }: { a: AppointmentView; token: string; isNew?: boolean; demo?: boolean }) {
+export function ManageAppointment({ a, token, isNew = false, demo = false, depositsOnline = false, justPaid = false, failed = false }: { a: AppointmentView; token: string; isNew?: boolean; demo?: boolean; /** DEPOSITS_ONLINE=clover and the keys present. */ depositsOnline?: boolean; /** Back from Clover with ?paid=1: the webhook may still be on its way. */ justPaid?: boolean; failed?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [paying, startPay] = useTransition();
+  const depositDue = (a.deposit_required ?? 0) > 0 && !a.deposit_paid_at && (a.status === "lead" || a.status === "booked" || a.status === "confirmed");
+  // Back from Clover: the signed webhook is what confirms the payment; re-read the page for a minute until it lands.
+  useEffect(() => {
+    if (!justPaid || a.deposit_paid_at || demo) return;
+    let n = 0;
+    const t = setInterval(() => {
+      n += 1;
+      router.refresh();
+      if (n >= 12) clearInterval(t);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [justPaid, a.deposit_paid_at, demo, router]);
+  function payDeposit() {
+    startPay(async () => {
+      if (demo) {
+        toast.success("Opening Clover · guest preview", { description: "On the real shop this opens Clover's payment page" });
+        return;
+      }
+      const r = await startDepositAction(token);
+      if (!r.ok) return void toast.error(r.error);
+      window.location.assign(r.data.url);
+    });
+  }
   const [mode, setMode] = useState<"view" | "move" | "cancel">("view");
   const [slot, setSlot] = useState<Slot | null>(null);
   const [reason, setReason] = useState("");
@@ -87,6 +111,38 @@ export function ManageAppointment({ a, token, isNew = false, demo = false }: { a
             <div className="font-semibold">You are on the list{a.customer?.first_name ? `, ${a.customer.first_name}` : ""}.</div>
             <div className="text-muted-foreground">{a.pay_choice === "deposit" ? "The shop will send the deposit link and confirm your time." : "The shop confirms your time shortly. Keep this page: it is your link to move or cancel."}</div>
           </div>
+        </section>
+      )}
+
+      {(depositDue || a.deposit_paid_at || justPaid || failed) && (
+        <section className={cn("rounded-2xl border p-4 text-sm", a.deposit_paid_at ? "border-success/30 bg-success/8" : justPaid ? "border-info/30 bg-info/8" : "border-border bg-card")} data-testid="manage-deposit">
+          {a.deposit_paid_at ? (
+            <div className="flex items-start gap-2">
+              <CheckCircle2Icon className="mt-0.5 size-5 shrink-0 text-success" />
+              <div>
+                <div className="font-semibold">Deposit paid{a.deposit_paid !== null ? ` · ${formatMoney(a.deposit_paid)}` : ""}</div>
+                <div className="text-muted-foreground">You are booked. The rest is due at pickup.</div>
+              </div>
+            </div>
+          ) : justPaid ? (
+            <div>
+              <div className="font-semibold">Payment received · confirming…</div>
+              <div className="text-muted-foreground">Clover is telling us about your payment; this page updates on its own. If it has not after a minute, call the shop{a.company.phone ? ` at ${a.company.phone}` : ""}.</div>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <div className="font-semibold">Deposit to book: {formatMoney(a.deposit_required ?? 0)}{a.policy?.deposit_refundable ? "" : " (non-refundable)"}</div>
+              {failed && <div className="text-destructive">That payment did not go through. Try again, or pay at drop-off.</div>}
+              {depositsOnline ? (
+                <>
+                  <Button onClick={payDeposit} loading={paying} data-testid="manage-pay-deposit"><CreditCardIcon /> Pay the deposit</Button>
+                  <div className="text-caption text-subtle">Card payment on Clover&apos;s secure page. The booking confirms itself once it goes through.</div>
+                </>
+              ) : (
+                <div className="text-muted-foreground">The shop takes the deposit at drop-off and confirms your time.</div>
+              )}
+            </div>
+          )}
         </section>
       )}
 

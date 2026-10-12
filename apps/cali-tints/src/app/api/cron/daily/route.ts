@@ -28,6 +28,8 @@ export async function GET(req: Request) {
   const { data: expired, error: expireError } = await db.rpc("expire_estimates");
   // Holds that ran out give their bay back (the 5-minute runner takes this over in the next slice).
   const { data: released, error: releaseError } = await db.rpc("release_expired_holds");
+  // Deposit links nobody paid within the hour are closed.
+  const { data: linksClosed } = await db.rpc("expire_pending_payments");
 
   const out: Record<string, unknown>[] = [];
   for (const c of companies ?? []) {
@@ -39,5 +41,5 @@ export async function GET(req: Request) {
       out.push({ company: c.name, error: errorMessage(err) });
     }
   }
-  return NextResponse.json({ ok: true, ran_at: new Date().toISOString(), estimatesExpired: expireError ? expireError.message : expired, holdsReleased: releaseError ? releaseError.message : released, companies: out });
+  return NextResponse.json({ ok: true, ran_at: new Date().toISOString(), estimatesExpired: expireError ? expireError.message : expired, holdsReleased: releaseError ? releaseError.message : released, payLinksClosed: linksClosed, companies: out });
 }

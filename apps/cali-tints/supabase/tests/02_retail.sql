@@ -696,3 +696,189 @@ begin
   exception when others then null; end;
 end $$;
 select pg_temp.logout();
+
+-- ===========================================================================
+-- 0041: deposits, the balance at the counter, the signed receipt.
+-- ===========================================================================
+-- The customer pays the deposit online for the lead (APT-000001 is done; use the staff booking for Ana: appt_staff, booked).
+select set_config('request.jwt.claims', '', false);
+select set_config('role', 'anon', false);
+do $$
+declare t text := (select token from r_atok where k = 'hold1'); d jsonb; n int;
+begin
+  -- hold1 is done already: a deposit is refused
+  begin
+    perform public.start_deposit_by_token('appointment', t);
+    raise exception 'expected no deposit on a finished appointment';
+  exception when sqlstate 'P0001' then null; end;
+  begin
+    select count(*) into n from public.payments;
+    raise exception 'expected anon denied';
+  exception when sqlstate '42501' then null; end;
+end $$;
+select set_config('role', 'postgres', false);
+-- a fresh public booking for Jordan: hold → lead with "pay the deposit"
+select set_config('request.jwt.claims', '', false);
+select set_config('role', 'anon', false);
+do $$
+declare v_mon date := (select mon from r_days); h jsonb; c jsonb; d jsonb;
+begin
+  h := public.create_hold(jsonb_build_object('size_class', 'sedan', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full'))), 'starts_at', (v_mon + 1 + time '13:00') at time zone 'America/Los_Angeles'));
+  -- v_mon + 1 is blacked out; the engine refuses
+  raise exception 'expected blackout refused';
+exception when sqlstate 'P0001' then null;
+end $$;
+do $$
+declare v_mon date := (select mon from r_days); h jsonb; c jsonb; d jsonb;
+begin
+  h := public.create_hold(jsonb_build_object('size_class', 'sedan', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full'))), 'starts_at', (v_mon + 2 + time '13:00') at time zone 'America/Los_Angeles'));
+  insert into r_atok values ('dep1', h ->> 'token');
+  c := public.confirm_hold(h ->> 'token', jsonb_build_object('contact', jsonb_build_object('first_name', 'Jordan', 'phone', '(916) 555-0199'), 'pay_choice', 'deposit'));
+  assert (c ->> 'status') = 'lead' and (c ->> 'deposit_required')::numeric = 42, '0041: lead with a 20% deposit on 210: ' || c::text;
+  d := public.start_deposit_by_token('appointment', h ->> 'token');
+  assert (d ->> 'amount')::numeric = 42 and (d ->> 'amount_cents')::int = 4200 and (d -> 'customer' ->> 'first_name') = 'Jordan' and (d ->> 'display_number') like 'APT-%', '0041: deposit link data: ' || d::text;
+  insert into r_atok values ('pay1', d ->> 'payment_id');
+  -- asking again reuses the same pending row
+  assert (public.start_deposit_by_token('appointment', h ->> 'token') ->> 'payment_id') = (d ->> 'payment_id'), '0041: one pending row';
+end $$;
+select set_config('role', 'postgres', false);
+select set_config('request.jwt.claims', '', false);
+
+-- The server attaches the Clover session; the webhook pays it; the lead is booked.
+do $$
+declare v_pay uuid := (select token::uuid from r_atok where k = 'pay1'); r jsonb; a public.appointments; n int;
+begin
+  perform public.attach_checkout_session(v_pay, 'sess_abc123', '{"href":"https://example"}'::jsonb);
+  r := public.record_payment_system_retail(jsonb_build_object('checkout_session_id', 'sess_nope', 'status', 'paid'));
+  assert (r ->> 'ok')::boolean = false, '0041: unknown session ignored';
+  r := public.record_payment_system_retail(jsonb_build_object('checkout_session_id', 'sess_abc123', 'status', 'paid', 'provider_ref', 'PAY1', 'raw', '{"x":1}'::jsonb));
+  assert (r ->> 'ok')::boolean and (r ->> 'status') = 'paid', '0041: webhook pays: ' || r::text;
+  select * into a from public.appointments where token = (select token from r_atok where k = 'dep1');
+  assert a.status = 'booked' and a.deposit_paid_at is not null and a.deposit_payment_id = v_pay and a.confirmed_at is not null, '0041: a paid deposit books the lead';
+  r := public.record_payment_system_retail(jsonb_build_object('checkout_session_id', 'sess_abc123', 'status', 'paid'));
+  assert (r ->> 'already')::boolean, '0041: webhook twice is harmless';
+  insert into r_ids values ('appt_dep', a.id);
+  n := public.expire_pending_payments();
+  assert n = 0, '0041: nothing stale yet';
+end $$;
+
+-- The customer sees the deposit as paid; staff see the ledger; the manager cannot see amounts.
+select set_config('request.jwt.claims', '', false);
+select set_config('role', 'anon', false);
+do $$
+declare c jsonb := public.appointment_by_token((select token from r_atok where k = 'dep1'));
+begin
+  assert (c ->> 'status') = 'booked' and (c ->> 'deposit_paid_at') is not null and (c ->> 'deposit_paid')::numeric = 42 and (c -> 'payments') = '[]'::jsonb, '0041: public view shows the deposit paid: ' || c::text;
+  begin
+    perform public.start_deposit_by_token('appointment', (select token from r_atok where k = 'dep1'));
+    raise exception 'expected already paid';
+  exception when sqlstate 'P0001' then null; end;
+end $$;
+select set_config('role', 'postgres', false);
+select set_config('request.jwt.claims', '', false);
+
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare a jsonb; n int;
+begin
+  a := public.appointment_detail((select v from r_ids where k = 'appt_dep'));
+  assert jsonb_array_length(a -> 'payments') = 1 and (a -> 'payments' -> 0 -> 'amount') = 'null'::jsonb and (a -> 'deposit_paid') = 'null'::jsonb and (a -> 'payments' -> 0 ->> 'status') = 'paid', '0041: manager sees the payment, not the amount: ' || (a -> 'payments')::text;
+  select count(*) into n from public.payments; assert n >= 1, '0041: manager lists payments';
+  begin
+    select count(*) into n from public.payments where amount > 0;
+    raise exception 'expected amount column hidden';
+  exception when sqlstate '42501' then null; end;
+  begin
+    perform public.retail_money_summary();
+    raise exception 'expected owner/admin only';
+  exception when sqlstate '42501' then null; end;
+  -- a deposit taken at the shop for Ana's staff booking books nothing new (already booked) but lands on the ledger
+  a := public.record_deposit_at_shop((select v from r_ids where k = 'appt_staff'), 'cash', 'till');
+  assert (a ->> 'deposit_paid_at') is not null and jsonb_array_length(a -> 'payments') = 1, '0041: deposit at the shop';
+  begin
+    perform public.record_deposit_at_shop((select v from r_ids where k = 'appt_staff'), 'clover_online', 'X');
+    raise exception 'expected owner only for a hand-matched online payment';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
+-- The owner: check in the deposit-paid booking, the balance at the counter, the receipt.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare a jsonb; ch jsonb; j public.jobs; r jsonb; m jsonb; s jsonb; v_pay uuid; v_job uuid; v_sig text;
+begin
+  a := public.set_appointment_status((select v from r_ids where k = 'appt_dep'), 'in_progress');
+  v_job := (a ->> 'job_id')::uuid;
+  assert v_job is not null, '0041: checked in';
+  ch := public.retail_charge(v_job);
+  assert (ch ->> 'total')::numeric = 210 and (ch ->> 'deposit_paid')::numeric = 42 and (ch ->> 'balance')::numeric = 168 and (ch ->> 'amount_cents')::int = 16800 and (ch ->> 'signature_required')::boolean, '0041: balance = total − deposit: ' || ch::text;
+  j := public.record_retail_payment(v_job, 168, 'clover', 'FLEX-1');
+  assert j.paid_at is not null and j.paid_amount = 210, '0041: the job is paid in full (deposit + balance): ' || j.paid_amount;
+  assert (select status from public.appointments where id = (select v from r_ids where k = 'appt_dep')) = 'done', '0041: paying the job finishes the appointment';
+  ch := public.retail_charge(v_job);
+  assert (ch ->> 'balance')::numeric = 0 and jsonb_array_length(ch -> 'payments') = 2, '0041: ledger shows both payments';
+  -- the receipt is signed under the job's folder only
+  begin
+    perform public.sign_receipt(v_job, 'elsewhere/sig.png', 'Jordan Lee');
+    raise exception 'expected bad path';
+  exception when sqlstate '22023' then null; end;
+  v_sig := '00000000-0000-4000-8000-000000000001/receipts/' || v_job::text || '/sig.png';
+  s := public.sign_receipt(v_job, v_sig, 'Jordan Lee');
+  r := public.job_receipt(v_job);
+  assert (r ->> 'signed_name') = 'Jordan Lee' and (r ->> 'has_signature')::boolean and (r ->> 'total')::numeric = 210 and (r ->> 'balance')::numeric = 0 and jsonb_array_length(r -> 'lines') = 1 and (r -> 'token') = 'null'::jsonb, '0041: receipt: ' || r::text;
+  assert length(public.receipt_link(v_job)) >= 30, '0041: receipt link';
+  insert into r_atok values ('rcpt', public.receipt_link(v_job));
+  insert into r_ids values ('job_dep', v_job);
+  -- refund part of the deposit
+  select id into v_pay from public.payments where appointment_id = (select v from r_ids where k = 'appt_dep') and kind = 'deposit' and status = 'paid';
+  r := public.refund_payment(v_pay, 10, 'goodwill');
+  assert (r ->> 'kind') = 'refund' and (r ->> 'amount')::numeric = 10, '0041: refund recorded';
+  begin
+    perform public.refund_payment(v_pay, 33);
+    raise exception 'expected refund capped';
+  exception when sqlstate '22023' then null; end;
+  m := public.retail_money_summary();
+  assert (m ->> 'deposits_week')::numeric >= 56 and (m -> 'deposits_outstanding' ->> 'count')::int >= 0, '0041: money summary: ' || m::text;
+  s := public.customer_timeline((select v from r_ids where k = 'cust_jordan'));
+  assert jsonb_array_length(s -> 'payments') >= 3, '0041: timeline lists payments';
+end $$;
+
+-- The customer opens the receipt by its token: first name only, the signature noted, no refs.
+select set_config('request.jwt.claims', '', false);
+select set_config('role', 'anon', false);
+do $$
+declare r jsonb := public.receipt_by_token((select token from r_atok where k = 'rcpt'));
+begin
+  assert (r -> 'customer' ->> 'display_name') = 'Jordan' and (r -> 'customer' -> 'phone') = 'null'::jsonb and (r ->> 'total')::numeric = 210 and (r ->> 'signed_name') = 'Jordan Lee' and (r -> 'payments' -> 0 -> 'provider_ref') = 'null'::jsonb, '0041: public receipt: ' || r::text;
+  begin
+    perform public.receipt_by_token('not-a-real-token-at-all');
+    raise exception 'expected bad token';
+  exception when sqlstate 'P0002' then null; end;
+end $$;
+select set_config('role', 'postgres', false);
+select set_config('request.jwt.claims', '', false);
+
+-- A deposit paid on the estimate books the appointment the moment the customer picks a time.
+do $$
+declare e public.estimates; v_pay uuid; d jsonb;
+begin
+  -- EST-000002 (Ana, accepted by phone in the 0039 block) has no appointment: pay its deposit
+  select * into e from public.estimates where display_number = 'EST-000002';
+  d := public._start_deposit(e.company_id, null, e.id);
+  v_pay := (d ->> 'payment_id')::uuid;
+  perform public.record_payment_system_retail(jsonb_build_object('payment_id', v_pay, 'status', 'paid', 'provider_ref', 'PAY2'));
+  insert into r_ids values ('est2', e.id);
+  insert into r_atok values ('est2tok', e.token);
+end $$;
+select set_config('request.jwt.claims', '', false);
+select set_config('role', 'anon', false);
+do $$
+declare v_mon date := (select mon from r_days); h jsonb; c jsonb;
+begin
+  h := public.create_hold(jsonb_build_object('estimate_token', (select token from r_atok where k = 'est2tok'), 'starts_at', (v_mon + 3 + time '09:00') at time zone 'America/Los_Angeles'));
+  assert (h ->> 'has_customer')::boolean, '0041: estimate hold knows the customer';
+  c := public.confirm_hold(h ->> 'token', '{}'::jsonb);
+  assert (c ->> 'status') = 'booked', '0041: deposit paid on the estimate → booked on confirm: ' || c::text;
+end $$;
+select set_config('role', 'postgres', false);
+select set_config('request.jwt.claims', '', false);
+select pg_temp.logout();

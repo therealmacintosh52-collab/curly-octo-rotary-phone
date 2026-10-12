@@ -3,10 +3,10 @@
 import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CalendarClockIcon, CheckIcon, CopyIcon, FileTextIcon, LogInIcon, UserXIcon, WrenchIcon, XIcon } from "lucide-react";
+import { ArrowLeftIcon, BanknoteIcon, CalendarClockIcon, CheckIcon, CopyIcon, FileTextIcon, LinkIcon, LogInIcon, UndoIcon, UserXIcon, WrenchIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { AppointmentStatus, AppointmentView, Slot } from "@/lib/db/types";
-import { findSlotsAction, rescheduleAppointmentAction, setAppointmentStatusAction } from "@/app/(app)/retail/appointments/actions";
+import type { AppointmentStatus, AppointmentView, RetailPaymentMethod, Slot } from "@/lib/db/types";
+import { depositLinkAction, findSlotsAction, recordDepositAtShopAction, refundPaymentAction, rescheduleAppointmentAction, setAppointmentStatusAction } from "@/app/(app)/retail/appointments/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -18,6 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AppointmentStatusBadge } from "./appointment-status-badge";
 import { ContactButtons } from "./text-customer-button";
@@ -32,9 +35,11 @@ const money = (n: number | null | undefined) => (n === null || n === undefined ?
  * confirm a lead, check the car in (that opens the job), finish, move it,
  * cancel, no-show. The manage link is what the customer got.
  */
-export function AppointmentDetail({ a, showMoney, publicUrl }: { a: AppointmentView; showMoney: boolean; publicUrl: string | null }) {
+export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = false }: { a: AppointmentView; showMoney: boolean; publicUrl: string | null; depositsOnline?: boolean }) {
   const router = useRouter();
-  const { isAdmin, demo } = useSession();
+  const { isAdmin, canMoney, demo } = useSession();
+  const [takingDeposit, setTakingDeposit] = useState(false);
+  const [refunding, setRefunding] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [moving, setMoving] = useState(false);
   const [cancelling, setCancelling] = useState<"cancelled" | "no_show" | null>(null);
@@ -158,9 +163,47 @@ export function AppointmentDetail({ a, showMoney, publicUrl }: { a: AppointmentV
                   <span className="text-base font-semibold tabular-nums">{money(a.total)}</span>
                 </div>
               )}
-              {a.pay_choice && <p className="mt-2 text-caption text-subtle">They chose to {a.pay_choice === "deposit" ? "pay the deposit online (the link comes with the next slice; take it at drop-off for now)" : "pay at the shop"}.</p>}
+              {a.pay_choice && <p className="mt-2 text-caption text-subtle">They chose to {a.pay_choice === "deposit" ? "pay the deposit online" : "pay at the shop"}.</p>}
             </CardContent>
           </Card>
+
+          {(a.deposit_required ?? 0) > 0 || a.deposit_paid_at || a.payments.length > 0 ? (
+            <Card data-testid="appointment-deposit">
+              <CardHeader className="flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><BanknoteIcon className="size-4 text-primary" /> Deposit</CardTitle>
+                {a.deposit_paid_at ? <Badge variant="success">Paid{showMoney && a.deposit_paid !== null ? ` · ${money(a.deposit_paid)}` : ""}</Badge> : live || a.status === "in_progress" ? <Badge variant="warning">Due{showMoney ? ` · ${money(a.deposit_required)}` : ""}</Badge> : null}
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {a.payments.length > 0 && (
+                  <ul className="divide-y divide-border text-sm" data-testid="appointment-payments">
+                    {a.payments.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between gap-3 py-2">
+                        <div className="min-w-0">
+                          <div className="font-medium">{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Balance"} · {{ clover_online: "card online", clover_flex: "card on the Flex", cash: "cash", check: "check", other: "other" }[p.method]}</div>
+                          <div className="text-caption text-subtle">{p.status === "pending" ? "Link sent · not paid yet" : p.status === "failed" ? "Failed" : p.status === "cancelled" ? "Link expired" : p.paid_at ? formatDateTime(p.paid_at) : ""}{p.provider_ref ? ` · ${p.provider_ref}` : ""}{p.note ? ` · ${p.note}` : ""}</div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {showMoney && p.amount !== null && <span className="tabular-nums">{money(p.amount)}</span>}
+                          {canMoney && p.kind !== "refund" && p.status === "paid" && (
+                            <Button size="sm" variant="ghost" onClick={() => setRefunding(p.id)} aria-label="Record a refund"><UndoIcon /></Button>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {isAdmin && !a.deposit_paid_at && (live || a.status === "hold") && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => setTakingDeposit(true)} data-testid="take-deposit"><BanknoteIcon /> Take the deposit</Button>
+                    {depositsOnline && a.customer && (
+                      <Button size="sm" variant="outline" onClick={() => start(async () => { if (demo) return void toast.success("Deposit link · guest preview"); const r = await depositLinkAction(a.id); if (!r.ok) return void toast.error(r.error); try { await navigator.clipboard.writeText(r.data.url); toast.success("Deposit link copied · text it to them"); } catch { toast(r.data.url); } })} loading={pending} data-testid="deposit-link"><LinkIcon /> Copy a pay link</Button>
+                    )}
+                  </div>
+                )}
+                {!a.deposit_paid_at && !depositsOnline && (live || a.status === "hold") && <p className="text-caption text-subtle">Online deposits are off; take it at drop-off (cash, check or on the Flex).</p>}
+              </CardContent>
+            </Card>
+          ) : null}
           {(a.customer_notes || a.notes || Object.keys(a.intake ?? {}).length > 0) && (
             <Card>
               <CardHeader>
@@ -234,6 +277,8 @@ export function AppointmentDetail({ a, showMoney, publicUrl }: { a: AppointmentV
       </div>
 
       <MoveDialog a={a} open={moving} onOpenChange={setMoving} />
+      {takingDeposit && <TakeDepositDialog a={a} onClose={() => setTakingDeposit(false)} />}
+      {refunding && <RefundDialog paymentId={refunding} appointmentId={a.id} onClose={() => setRefunding(null)} />}
       <Dialog open={!!cancelling} onOpenChange={(o) => !o && setCancelling(null)}>
         <DialogContent>
           <DialogHeader>
@@ -300,6 +345,95 @@ function MoveDialog({ a, open, onOpenChange }: { a: AppointmentView; open: boole
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Keep it</Button>
           <Button onClick={submit} disabled={!slot} loading={pending} data-testid="appointment-move-confirm">Move it</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** The deposit taken at drop-off (cash, check, on the Flex), or a Clover payment the owner matches by its id. */
+function TakeDepositDialog({ a, onClose }: { a: AppointmentView; onClose: () => void }) {
+  const router = useRouter();
+  const { demo, canMoney } = useSession();
+  const [pending, start] = useTransition();
+  const [method, setMethod] = useState<RetailPaymentMethod>("clover_flex");
+  const [reference, setReference] = useState("");
+  const [amount, setAmount] = useState(a.deposit_required !== null ? String(a.deposit_required) : "");
+  function submit() {
+    start(async () => {
+      if (demo) {
+        toast.success("Deposit recorded", { description: "Guest preview — nothing changed" });
+        onClose();
+        return;
+      }
+      const r = await recordDepositAtShopAction(a.id, method, reference, amount ? Number(amount) : null);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success(r.data.status === "booked" ? "Deposit recorded · booked" : "Deposit recorded");
+      onClose();
+      router.refresh();
+    });
+  }
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Take the deposit</DialogTitle>
+          <DialogDescription>Recorded on the ledger and applied to the bill at pickup. A lead becomes booked.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor="dp-method">How</Label>
+            <Select value={method} onValueChange={(v) => setMethod(v as RetailPaymentMethod)}>
+              <SelectTrigger id="dp-method"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="clover_flex">Card on the Flex</SelectItem>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="check">Check</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+                {canMoney && <SelectItem value="clover_online">Paid online (match by Clover payment id)</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
+          {a.deposit_required !== null && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="dp-amount">Amount</Label>
+              <Input id="dp-amount" type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            </div>
+          )}
+          <div className="grid gap-1.5">
+            <Label htmlFor="dp-ref">Reference (optional)</Label>
+            <Input id="dp-ref" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Check number, Clover payment id" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} loading={pending} data-testid="take-deposit-confirm">Record</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RefundDialog({ paymentId, appointmentId, onClose }: { paymentId: string; appointmentId: string; onClose: () => void }) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [pending, start] = useTransition();
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Record a refund</DialogTitle>
+          <DialogDescription>The money moves in Clover or the till; this writes it on the ledger.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-1.5"><Label htmlFor="rf-amount">Amount</Label><Input id="rf-amount" type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></div>
+          <div className="grid gap-1.5"><Label htmlFor="rf-note">Why</Label><Input id="rf-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="destructive" disabled={!(Number(amount) > 0)} loading={pending} onClick={() => start(async () => { if (demo) { toast.success("Refund recorded · guest preview"); onClose(); return; } const r = await refundPaymentAction(paymentId, Number(amount), note, appointmentId); if (!r.ok) return void toast.error(r.error); toast.success("Refund recorded"); onClose(); router.refresh(); })}>Record the refund</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

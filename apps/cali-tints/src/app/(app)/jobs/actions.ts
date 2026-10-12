@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { syncJobToQuickBooks } from "@/lib/quickbooks/live";
 import { errorMessage } from "@/lib/utils";
+import { appUrl } from "@/lib/retail/email";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
@@ -117,11 +118,28 @@ export async function deletePhotoAction(photoId: string, jobId: string): Promise
 // --- Retail (the shop): paid at the counter ------------------------------------
 
 /** What the Clover should charge for this retail job. Any member who can see the job (the Clover shows the amount anyway). */
-export async function retailChargeAction(jobId: string): Promise<ActionResult<{ amount_cents: number; tag: string }>> {
+export async function retailChargeAction(jobId: string): Promise<ActionResult<{ amount_cents: number; tag: string; balance: number; deposit_paid: number; total: number }>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("retail_charge", { p_job_id: jobId });
   if (error) return { ok: false, error: errorMessage(error) };
-  return { ok: true, data: { amount_cents: Number(data.amount_cents), tag: data.tag } };
+  return { ok: true, data: { amount_cents: Number(data.amount_cents), tag: data.tag, balance: Number(data.balance), deposit_paid: Number(data.deposit_paid), total: Number(data.total) } };
+}
+
+/** The customer signs the receipt at pickup; the PNG was uploaded under the job's folder first. */
+export async function signReceiptAction(jobId: string, signaturePath: string, name: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("sign_receipt", { p_job_id: jobId, p_signature_path: signaturePath, p_name: name.trim() });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidateJob(jobId);
+  return { ok: true, data: undefined };
+}
+
+/** The customer's receipt link, for texting (owner/admin/manager). */
+export async function receiptLinkAction(jobId: string): Promise<ActionResult<{ url: string }>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("receipt_link", { p_job_id: jobId });
+  if (error) return { ok: false, error: errorMessage(error) };
+  return { ok: true, data: { url: `${appUrl() ?? ""}/r/${data}` } };
 }
 
 /** Write the counter payment on the job: the Clover's result (anyone) or cash/check (owner, admin; the RPC checks). */

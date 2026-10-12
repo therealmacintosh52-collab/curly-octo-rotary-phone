@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDaysIcon, CarFrontIcon, ClockIcon, PlusIcon, UsersIcon, WalletIcon } from "lucide-react";
-import type { CalendarItem } from "@/lib/db/types";
+import type { CalendarItem, RetailMoneySummary } from "@/lib/db/types";
+import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { durationLabel, holdSecondsLeft, mmss, timeIn } from "@/lib/retail/slots";
 import { AppointmentStatusBadge } from "./appointment-status-badge";
@@ -31,6 +32,8 @@ export interface RetailTodayData {
   holds: CalendarItem[];
   /** Today's appointments, in order. */
   appointments: CalendarItem[];
+  /** Owner/admin only: deposits and what came in this week. */
+  money?: RetailMoneySummary | null;
 }
 
 /**
@@ -60,6 +63,14 @@ export function RetailToday({ data, shopName, tz }: { data: RetailTodayData; sho
           </>
         }
       />
+
+      {data.money && (
+        <div className="mt-6 grid gap-3 sm:grid-cols-3" data-testid="retail-money">
+          <MoneyTile label="Deposits still due" value={formatMoney(data.money.deposits_outstanding.amount)} hint={`${data.money.deposits_outstanding.count} ${data.money.deposits_outstanding.count === 1 ? "booking" : "bookings"}`} />
+          <MoneyTile label="Deposits this week" value={formatMoney(data.money.deposits_week)} hint={data.money.pending_links ? `${data.money.pending_links} pay ${data.money.pending_links === 1 ? "link" : "links"} out` : "all settled"} />
+          <MoneyTile label="Collected this week" value={formatMoney(data.money.collected_week)} hint="deposits and counter payments" />
+        </div>
+      )}
 
       {(data.leads.length > 0 || data.holds.length > 0) && (
         <Card className="mt-6 border-warning/50">
@@ -147,6 +158,16 @@ export function RetailToday({ data, shopName, tz }: { data: RetailTodayData; sho
         </Card>
       </div>
     </Page>
+  );
+}
+
+function MoneyTile({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-card px-4 py-3 surface-raised">
+      <div className="text-caption text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-lg font-semibold tabular-nums">{value}</div>
+      <div className="text-caption text-subtle">{hint}</div>
+    </div>
   );
 }
 

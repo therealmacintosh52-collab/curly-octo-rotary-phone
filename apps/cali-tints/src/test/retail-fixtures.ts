@@ -186,12 +186,20 @@ export function pickedCustomersFixture(): PickedCustomer[] {
   }));
 }
 
-export function retailTodayFixture(): RetailTodayData {
+export function retailTodayFixture(money = false): RetailTodayData {
   const r101 = JOBS[C1][0];
   const r102 = JOBS[C2][0];
   const car = (j: FixtureJob, customer: string) => ({ id: j.id, tag: j.tag, vehicle: j.vehicle, customer, performed_at: j.performed_at, paid_at: j.paid_at, services: j.services });
-  const items = calendarItemsFixture(true);
-  return { customers: customersFixture.length, today: [car(r102, "Marcus Reed"), car(r101, "Ana Lopez")], unpaid: [car(r102, "Marcus Reed")], leads: items.filter((a) => a.status === "lead"), holds: items.filter((a) => a.status === "hold"), appointments: items.filter((a) => a.status !== "lead" && a.status !== "hold" && a.status !== "cancelled").filter((a) => a.starts_at.slice(0, 10) === new Date().toISOString().slice(0, 10)) };
+  const items = calendarItemsFixture(money);
+  return {
+    customers: customersFixture.length,
+    today: [car(r102, "Marcus Reed"), car(r101, "Ana Lopez")],
+    unpaid: [car(r102, "Marcus Reed")],
+    leads: items.filter((a) => a.status === "lead"),
+    holds: items.filter((a) => a.status === "hold"),
+    appointments: items.filter((a) => a.status !== "lead" && a.status !== "hold" && a.status !== "cancelled").filter((a) => a.starts_at.slice(0, 10) === new Date().toISOString().slice(0, 10)),
+    money: money ? { deposits_outstanding: { count: 1, amount: 66 }, deposits_week: 143, collected_week: 383, pending_links: 1 } : null,
+  };
 }
 
 /** The customer behind each of the Jobs list's walk-in rows (R-101, R-102). */
@@ -446,7 +454,7 @@ export function customerEstimatesFixture(customerId: string, money: boolean): No
 // 0040: appointments. Today's three cars, an online lead to confirm, a live
 // hold, and next week's bookings. Times are built in the shop's timezone.
 // ---------------------------------------------------------------------------
-import type { AppointmentView, CalendarItem, CalendarRange, PublicCatalog } from "@/lib/db/types";
+import type { AppointmentView, CalendarItem, CalendarRange, PaymentView, PublicCatalog, ReceiptView, RetailCharge } from "@/lib/db/types";
 
 const A1 = "a0000000-0000-4000-8000-000000000001";
 const A2 = "a0000000-0000-4000-8000-000000000002";
@@ -466,14 +474,14 @@ function at(days: number, hour: number, minute = 0): string {
 }
 const plus = (iso: string, minutes: number) => new Date(new Date(iso).getTime() + minutes * 60000).toISOString();
 
-type ApptSeed = { id: string; n: number; status: CalendarItem["status"]; customer: Customer | null; vehicle: Vehicle | null; services: { svc: number; price: number; modifiers?: { code: string; label: string }[] }[]; starts: string; source: CalendarItem["source"]; pay?: "deposit" | "at_shop" | null; hold_expires?: string; resources: string[]; notes?: string | null; customer_notes?: string | null; job_id?: string | null; estimate?: { id: string; display_number: string } | null; intake?: Record<string, unknown> };
+type ApptSeed = { id: string; n: number; status: CalendarItem["status"]; customer: Customer | null; vehicle: Vehicle | null; services: { svc: number; price: number; modifiers?: { code: string; label: string }[] }[]; starts: string; source: CalendarItem["source"]; pay?: "deposit" | "at_shop" | null; hold_expires?: string; resources: string[]; notes?: string | null; customer_notes?: string | null; job_id?: string | null; estimate?: { id: string; display_number: string } | null; intake?: Record<string, unknown>; deposit?: { paid_at: string; method: PaymentView["method"]; ref?: string } | "pending" | null };
 function seeds(): ApptSeed[] {
   return [
-    { id: A1, n: 1, status: "in_progress", customer: cust(C1), vehicle: veh(V1), services: [{ svc: 0, price: 200 }], starts: at(0, 8), source: "staff", resources: ["bay1", "tech-u2"], notes: "Keys in the drop box", job_id: "40000000-0000-4000-8000-000000000998" },
+    { id: A1, n: 1, status: "in_progress", customer: cust(C1), vehicle: veh(V1), services: [{ svc: 0, price: 200 }], starts: at(0, 8), source: "staff", resources: ["bay1", "tech-u2"], notes: "Keys in the drop box", job_id: "40000000-0000-4000-8000-000000000998", deposit: { paid_at: ago(2), method: "clover_online", ref: "HC7Q2M" } },
     { id: A2, n: 2, status: "booked", customer: cust(C2), vehicle: veh(V2), services: [{ svc: 3, price: 70 }, { svc: 7, price: 15 }], starts: at(0, 13), source: "public", pay: "at_shop", resources: ["bay2", "tech-u3"], customer_notes: "Please call when it is ready" },
-    { id: A3, n: 3, status: "lead", customer: cust(C4), vehicle: veh(V5), services: [{ svc: 0, price: 290, modifiers: [{ code: "pet_hair", label: "Pet hair" }] }], starts: at(2, 9), source: "public", pay: "deposit", resources: ["bay3", "tech-u2"], customer_notes: "Pet hair in the back", intake: { pet_hair: true } },
+    { id: A3, n: 3, status: "lead", customer: cust(C4), vehicle: veh(V5), services: [{ svc: 0, price: 290, modifiers: [{ code: "pet_hair", label: "Pet hair" }] }], starts: at(2, 9), source: "public", pay: "deposit", resources: ["bay3", "tech-u2"], customer_notes: "Pet hair in the back", intake: { pet_hair: true }, deposit: "pending" },
     { id: A4, n: 4, status: "hold", customer: null, vehicle: null, services: [{ svc: 9, price: 60 }], starts: at(1, 10), source: "public", hold_expires: new Date(Date.now() + 17 * 60000).toISOString(), resources: ["bay4", "lift1", "tech-u3"] },
-    { id: A5, n: 5, status: "booked", customer: cust(C3), vehicle: veh(V3), services: [{ svc: 1, price: 475 }], starts: at(3, 8), source: "estimate", resources: ["bay1", "tech-u2"], estimate: { id: E2, display_number: "EST-000002" } },
+    { id: A5, n: 5, status: "booked", customer: cust(C3), vehicle: veh(V3), services: [{ svc: 1, price: 475 }], starts: at(3, 8), source: "estimate", resources: ["bay1", "tech-u2"], estimate: { id: E2, display_number: "EST-000002" }, deposit: { paid_at: ago(1, 5), method: "cash" } },
   ];
 }
 const SIZE_OF = (v: Vehicle | null): VehicleSize => v?.size_class ?? "suv_truck";
@@ -501,12 +509,21 @@ export function appointmentViewFixture(id: string, money: boolean, pub = false):
   if (!s) return null;
   const item = calendarItemsFixture(true).find((x) => x.id === id)!;
   const cat = retailCatalogFixture(true);
+  const dep = item.deposit_required ?? 0;
+  const payments: PaymentView[] = s.deposit === "pending"
+    ? [{ id: `${s.id}-p1`, kind: "deposit", status: "pending", method: "clover_online", provider: "clover", paid_at: null, provider_ref: null, note: null, amount: money ? dep : null, created_at: ago(0, 1) }]
+    : s.deposit
+      ? [{ id: `${s.id}-p1`, kind: "deposit", status: "paid", method: s.deposit.method, provider: s.deposit.method === "clover_online" ? "clover" : "none", paid_at: s.deposit.paid_at, provider_ref: s.deposit.ref ?? null, note: null, amount: money ? dep : null, created_at: s.deposit.paid_at }]
+      : [];
   return {
     id: s.id, display_number: item.display_number, status: s.status, starts_at: item.starts_at, ends_at: item.ends_at, duration_minutes: item.duration_minutes, hold_expires_at: item.hold_expires_at,
     source: s.source, size_class: item.size_class, pay_choice: s.pay ?? null, intake: s.intake ?? {}, notes: pub ? null : (s.notes ?? null), customer_notes: s.customer_notes ?? null,
     estimate_id: s.estimate?.id ?? null, job_id: s.job_id ?? null, confirmed_at: s.status === "lead" || s.status === "hold" ? null : item.starts_at, checked_in_at: s.status === "in_progress" ? at(0, 7, 55) : null, done_at: null, cancelled_at: null, cancel_reason: null,
     created_at: ago(1), updated_at: ago(0, 1), token: pub ? APPOINTMENT_TOKEN : null,
     subtotal: money || pub ? item.total : null, tax: money || pub ? 0 : null, total: money || pub ? item.total : null, deposit_required: money || pub ? item.deposit_required : null,
+    deposit_paid_at: s.deposit && s.deposit !== "pending" ? s.deposit.paid_at : null,
+    deposit_paid: (money || pub) && s.deposit && s.deposit !== "pending" ? dep : money || pub ? 0 : null,
+    payments: pub ? [] : payments,
     customer: s.customer ? { id: s.customer.id, display_name: pub ? s.customer.first_name : s.customer.display_name, first_name: s.customer.first_name, phone: pub ? null : s.customer.phone, email: pub ? null : s.customer.email } : null,
     vehicle: s.vehicle ? { id: s.vehicle.id, name: vehicleName(s.vehicle), color: s.vehicle.color, plate: pub ? null : s.vehicle.plate, size_class: s.vehicle.size_class } : null,
     services: s.services.map((x, i) => ({ id: `${s.id}-s${i}`, service_id: RETAIL_SERVICE_ID(x.svc), name: seedName(x.svc), qty: 1, duration_minutes: seedMinutes(x.svc), unit_price: money || pub ? x.price : null, line_total: money || pub ? x.price + (x.modifiers?.length ? 40 : 0) : null, modifiers: x.modifiers ?? [] })),
@@ -533,5 +550,41 @@ export function publicCatalogFixture(): PublicCatalog {
     settings: { slot_step_minutes: 30, lead_time_hours: 2, max_days_ahead: 60, hold_minutes: 30, cancel_hours: 24, deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, online_booking_enabled: true, policy_text: POLICY.policy_text },
     hours: cat.hours.map((h) => ({ dow: h.dow, opens: h.opens, closes: h.closes, closed: h.closed })),
     tax_rate: 0,
+  };
+}
+
+
+// ---------------------------------------------------------------------------
+// 0041: the counter and the receipt. R-101 (Ana, paid today) had a deposit
+// paid online on its appointment; R-102 (Marcus) is still to collect.
+// ---------------------------------------------------------------------------
+export const RECEIPT_TOKEN = "demo-receipt-token-ana-camry-000001";
+
+export function retailChargeFixture(jobId: string, money: boolean): RetailCharge | null {
+  const r101 = JOBS[C1][0];
+  const r102 = JOBS[C2][0];
+  if (jobId === r101.id) {
+    return { job_id: jobId, tag: "R-101", vehicle: "2019 Toyota Camry", subtotal: 240, tax: 0, total: 240, deposit_paid: 48, paid: 192, balance: 0, amount: 0, amount_cents: 0, paid_at: r101.paid_at, receipt_signed_at: r101.paid_at, receipt_signed_name: "Ana Lopez", has_signature: true, signature_required: true,
+      payments: [{ id: "pay-101-d", kind: "deposit", status: "paid", method: "clover_online", paid_at: ago(2), provider_ref: "HC7Q2M", note: null, amount: money ? 48 : null }, { id: "pay-101-b", kind: "balance", status: "paid", method: "clover_flex", paid_at: r101.paid_at, provider_ref: "K7Q2M3", note: null, amount: money ? 192 : null }] };
+  }
+  if (jobId === r102.id) {
+    return { job_id: jobId, tag: "R-102", vehicle: "2022 Tesla Model 3", subtotal: 200, tax: 0, total: 200, deposit_paid: 40, paid: 0, balance: 160, amount: 160, amount_cents: 16000, paid_at: null, receipt_signed_at: null, receipt_signed_name: null, has_signature: false, signature_required: true,
+      payments: [{ id: "pay-102-d", kind: "deposit", status: "paid", method: "cash", paid_at: ago(1), provider_ref: null, note: null, amount: money ? 40 : null }] };
+  }
+  return null;
+}
+
+export function receiptFixture(token: string, money: boolean): ReceiptView | null {
+  if (token !== RECEIPT_TOKEN) return null;
+  const r101 = JOBS[C1][0];
+  const c = cust(C1);
+  return {
+    id: r101.id, tag: "R-101", performed_at: r101.performed_at, paid_at: r101.paid_at, payment_method: "clover", vehicle: "2019 Toyota Camry", color: "Silver",
+    customer: { id: c.id, display_name: money ? c.display_name : c.first_name, first_name: c.first_name, email: money ? c.email : null, phone: money ? c.phone : null },
+    lines: [{ name: "Full detail", price: 200 }, { name: "Pet hair", price: 40 }],
+    subtotal: 240, tax: 0, total: 240, deposit_paid: 48, paid: 192, balance: 0, tax_rate: 0,
+    payments: [{ kind: "deposit", method: "clover_online", amount: 48, paid_at: ago(2), provider_ref: money ? "HC7Q2M" : null }, { kind: "balance", method: "clover_flex", amount: 192, paid_at: r101.paid_at, provider_ref: money ? "K7Q2M3" : null }],
+    signed_name: "Ana Lopez", signed_at: r101.paid_at, has_signature: true, token: money ? null : token,
+    company: { ...COMPANY, address_line2: null, logo_path: null },
   };
 }

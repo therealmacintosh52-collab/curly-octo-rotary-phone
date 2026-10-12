@@ -63,8 +63,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     supabase.from("job_photos").select("id, kind, storage_path, created_at").eq("job_id", id).order("created_at"),
     supabase.rpc("dealership_price_list", { p_dealership_id: job.dealership_id }),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [{ id: session.profile.id, full_name: session.profile.full_name }] }),
-    // A retail job: the one number the counter needs, while it is unpaid.
-    retail && open && !job.paid_at ? supabase.rpc("retail_charge", { p_job_id: id }) : Promise.resolve({ data: null }),
+    // A retail job: the balance the counter collects, the deposit, the ledger and the receipt state.
+    retail && !job.deleted_at ? supabase.rpc("retail_charge", { p_job_id: id }) : Promise.resolve({ data: null }),
     // Invoices are the owner's; everyone else still learns which invoice the car is on.
     job.invoice_id && !job.invoice ? supabase.rpc("job_invoice_number", { p_job_id: id }) : Promise.resolve({ data: null as string | null }),
   ]);
@@ -107,7 +107,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     detailers: detailers ?? [],
     isAdmin: session.isAdmin,
     canSetAmount: session.canPrices,
-    amountDue: charge ? Number((charge as { amount: number }).amount) : null,
+    charge: charge ?? null,
     canEdit: own && open && !job.paid_at,
     canDelete: session.isAdmin && open,
     canRestore: session.isAdmin && !!job.deleted_at,

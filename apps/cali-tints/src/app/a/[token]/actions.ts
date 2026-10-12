@@ -5,6 +5,8 @@ import { z } from "zod";
 import type { AppointmentView, Slot } from "@/lib/db/types";
 import { anonClient, isTokenShape } from "@/lib/estimates/public";
 import { throttle } from "@/lib/booking/public";
+import { createDepositLink } from "@/lib/clover/deposit";
+import { depositsOnline } from "@/lib/clover/env";
 import { errorMessage } from "@/lib/utils";
 
 export type PublicResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
@@ -39,4 +41,16 @@ export async function rescheduleByTokenAction(token: string, startsAt: string): 
   const { data, error } = await anonClient().rpc("reschedule_by_token", { p_token: token, p_starts_at: startsAt });
   if (error) return { ok: false, error: errorMessage(error) };
   return { ok: true, data };
+}
+
+/** The customer taps Pay the deposit: a Clover hosted checkout link for this appointment's deposit (when online deposits are on). */
+export async function startDepositAction(token: string): Promise<PublicResult<{ url: string }>> {
+  if (!isTokenShape(token)) return { ok: false, error: "That booking link is not valid" };
+  if (!depositsOnline()) return { ok: false, error: "Online deposits are not turned on; the shop takes the deposit at drop-off" };
+  if (!throttle(await clientIp(), 10)) return { ok: false, error: "Too many requests; try again in a minute" };
+  const { data, error } = await anonClient().rpc("start_deposit_by_token", { p_kind: "appointment", p_token: token });
+  if (error) return { ok: false, error: errorMessage(error) };
+  const link = await createDepositLink(data, `/a/${token}`);
+  if (!link.ok) return link;
+  return { ok: true, data: { url: link.url } };
 }

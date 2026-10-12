@@ -25,7 +25,7 @@ Mike already pays for QuickBooks Online and the Clover devices. Total run cost: 
 
 1. New project (US West), strong database password, save it.
 2. Project Settings → API: copy the project URL and the publishable key; Settings → API keys: create a secret (service role) key.
-3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0040` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
+3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0041` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
 4. Authentication → URL configuration: Site URL `https://app.calitints.com`, Redirect URLs `https://app.calitints.com/auth/callback` and `https://app.calitints.com/auth/reset`. Email templates: the defaults are fine; the invite goes through this.
 5. Storage: the buckets (`job-photos`, `logos`, `submission-confirmations`) are created by the migrations. Nothing to click.
 6. Backups: Pro includes daily backups; turn on Point-in-time recovery if Mike wants hour-level restores (+$100/mo, usually not needed).
@@ -67,6 +67,14 @@ Add and verify the sending domain (DNS records), create an API key, set `EMAIL_F
 4. After approval, add Mike's merchant id; Mike installs the app on every Flex from More Tools → App Market → Cali Tints. Employees sign in once per device.
 
 Until the Clover app is approved, the team can use the web app on their phones (Add to Home Screen) with the same logins; nothing changes later except the device.
+
+## 7b. Deposits online through Clover (you, 30 min; optional, no new fee)
+1. Leave `DEPOSITS_ONLINE` unset (or `none`) and everything works with deposits taken at drop-off. Do the rest only when you want customers to pay the deposit from the link.
+2. Clover merchant dashboard → **Ecommerce** (the web-payments section; Clover may call it "Ecommerce API tokens" or "Online payments") → create an integration of type **Hosted Checkout**. Copy the **private key** and your **merchant id** (the 13-character id in the dashboard URL). An "Iframe" or "API only" key is refused by Clover for hosted checkout.
+3. On the same screen set the webhook URL to `https://<your app>/api/clover/webhook?secret=<a long random string>` and put that same string in `CLOVER_WEBHOOK_SECRET`. Clover sends a verification code first; the app echoes it back.
+4. Vercel → Environment variables: `DEPOSITS_ONLINE=clover`, `CLOVER_ENV=production` (or `sandbox` with a sandbox merchant to try it first), `CLOVER_MERCHANT_ID`, `CLOVER_ECOM_PRIVATE_KEY`, `CLOVER_WEBHOOK_SECRET`. Redeploy.
+5. Try it: book a test appointment from `/book`, open its `/a/<token>` page, tap **Pay the deposit**, pay with a test card in the sandbox. The appointment page shows the deposit paid and the booking confirmed within a few seconds (the webhook). Refund the test payment in the Clover dashboard and record it on the ledger.
+6. Optional: a merchant REST API token with *Payments read* in `CLOVER_API_TOKEN` lets the daily job reconcile a payment whose webhook never arrived; without it the owner matches it by hand (Take the deposit → Paid online, with the Clover payment id).
 
 ## 8. Day-one checks (both, 30 min)
 

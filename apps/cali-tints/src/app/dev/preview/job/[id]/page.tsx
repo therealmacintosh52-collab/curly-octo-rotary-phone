@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { invoiceBundleFixture, jobListFixture, priceListFixture } from "@/test/fixtures";
 import type { Profile } from "@/lib/db/types";
+import { retailChargeFixture } from "@/test/retail-fixtures";
 
 /** Every row of the demo Jobs list opens as its own page (guest demo in production). */
 export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/job/[id]">) {
@@ -71,7 +72,7 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
             ]}
             isAdmin={isAdmin}
             canSetAmount={isAdmin}
-            amountDue={row.retail && !row.paid_at && open ? 200 : null}
+            charge={row.retail ? retailChargeFixture(row.id, isAdmin) : null}
             canEdit={open && (isAdmin || row.detailer_id === "u5")}
             canDelete={open && isAdmin}
             canRestore={row.deleted && isAdmin}

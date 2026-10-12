@@ -6,6 +6,8 @@ import { anonClient, isTokenShape, loadPublicEstimate } from "@/lib/estimates/pu
 import { appUrl, sendPlainRetailEmail } from "@/lib/retail/email";
 import { formatMoney } from "@/lib/money";
 import { errorMessage } from "@/lib/utils";
+import { createDepositLink } from "@/lib/clover/deposit";
+import { depositsOnline } from "@/lib/clover/env";
 
 export type PublicResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -60,4 +62,15 @@ export async function respondEstimateAction(token: string, input: RespondInput):
     }
   }
   return { ok: true, data: { status: data.status, total: data.total ?? null, deposit_required: data.deposit_required ?? null } };
+}
+
+/** After approving: pay the deposit on the estimate itself (the booking inherits it when they pick a time). */
+export async function startEstimateDepositAction(token: string): Promise<PublicResult<{ url: string }>> {
+  if (!isTokenShape(token)) return { ok: false, error: "This link is not valid" };
+  if (!depositsOnline()) return { ok: false, error: "Online deposits are not turned on; the shop takes the deposit at drop-off" };
+  const { data, error } = await anonClient().rpc("start_deposit_by_token", { p_kind: "estimate", p_token: token });
+  if (error) return { ok: false, error: errorMessage(error) };
+  const link = await createDepositLink(data, `/e/${token}/done`);
+  if (!link.ok) return link;
+  return { ok: true, data: { url: link.url } };
 }

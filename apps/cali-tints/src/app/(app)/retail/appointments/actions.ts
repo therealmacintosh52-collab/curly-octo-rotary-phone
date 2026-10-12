@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { AppointmentStatus, AppointmentView, BookPayload, Slot } from "@/lib/db/types";
+import type { AppointmentStatus, AppointmentView, BookPayload, RetailPaymentMethod, Slot } from "@/lib/db/types";
+import { createDepositLink } from "@/lib/clover/deposit";
+import { depositsOnline } from "@/lib/clover/env";
 import { appUrl, sendRetailEmail } from "@/lib/retail/email";
 import { whenIn } from "@/lib/retail/slots";
 import { formatAddress } from "@/lib/address";
@@ -111,4 +113,41 @@ async function notifyCancelled(a: AppointmentView, companyId: string, companyNam
     replyTo,
     refId: a.id,
   });
+}
+
+/** A deposit taken at drop-off (cash, check, on the Flex), or an online payment the owner matches by hand. */
+export async function recordDepositAtShopAction(id: string, method: RetailPaymentMethod, reference: string, amount?: number | null): Promise<ActionResult<AppointmentView>> {
+  const session = await getSession();
+  if (!session.isAdmin) return { ok: false, error: "Only the owner, an admin or a manager records a deposit" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("record_deposit_at_shop", { p_appointment: id, p_method: method, p_reference: reference.trim() || null, p_amount: amount && amount > 0 ? Math.round(amount * 100) / 100 : null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(id);
+  if (data.status === "booked") await notifyBooked(data, session.company.id, session.company.name, session.company.email);
+  return { ok: true, data };
+}
+
+/** Owner: record a refund on the ledger (the money moves in Clover or the till). */
+export async function refundPaymentAction(paymentId: string, amount: number, note: string, appointmentId?: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session.canMoney) return { ok: false, error: "Only the owner records a refund" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("refund_payment", { p_id: paymentId, p_amount: Math.round(amount * 100) / 100, p_note: note.trim() || null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(appointmentId);
+  return { ok: true, data: undefined };
+}
+
+/** Staff: a Clover deposit link to text the customer (when online deposits are on). */
+export async function depositLinkAction(id: string): Promise<ActionResult<{ url: string }>> {
+  const session = await getSession();
+  if (!session.isAdmin) return { ok: false, error: "Only the owner, an admin or a manager sends a deposit link" };
+  if (!depositsOnline()) return { ok: false, error: "Online deposits are not turned on (DEPOSITS_ONLINE)" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("start_deposit", { p_appointment: id });
+  if (error) return { ok: false, error: errorMessage(error) };
+  const { data: token } = await supabase.rpc("appointment_link", { p_id: id });
+  const link = await createDepositLink(data, `/a/${token ?? ""}`);
+  if (!link.ok) return link;
+  return { ok: true, data: { url: link.url } };
 }

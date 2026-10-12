@@ -390,6 +390,9 @@ export type AppointmentView = {
   tax: number | null;
   total: number | null;
   deposit_required: number | null;
+  deposit_paid_at: string | null;
+  deposit_paid: number | null;
+  payments: PaymentView[];
   customer: { id: string; display_name: string | null; first_name: string; phone: string | null; email: string | null } | null;
   vehicle: { id: string; name: string | null; color: string | null; plate: string | null; size_class: VehicleSize } | null;
   services: AppointmentServiceView[];
@@ -444,6 +447,84 @@ export type ConfirmResult = { token: string; status: AppointmentStatus; display_
 export type HoldPayload = { size_class?: VehicleSize; lines?: BookingLineInput[]; starts_at: string; intake?: Record<string, unknown>; estimate_token?: string; customer_notes?: string };
 export type ConfirmPayload = { contact?: { first_name: string; last_name?: string; phone: string; email?: string | null; sms_opt_in?: boolean; marketing_opt_in?: boolean }; vehicle?: { year?: number | null; make?: string | null; model?: string | null; color?: string | null; vin?: string | null }; pay_choice?: "deposit" | "at_shop"; customer_notes?: string };
 export type BookPayload = { customer_id?: string; vehicle_id?: string | null; estimate_id?: string; lines?: BookingLineInput[]; starts_at: string; notes?: string | null; customer_notes?: string | null; size_class?: VehicleSize };
+
+// ---------------------------------------------------------------------------
+// Retail payments (0041)
+// ---------------------------------------------------------------------------
+export type PaymentKind = "deposit" | "balance" | "refund";
+export type PaymentStatus = "pending" | "paid" | "refunded" | "failed" | "cancelled";
+export type RetailPaymentMethod = "clover_online" | "clover_flex" | "cash" | "check" | "other";
+export type PaymentRow = {
+  id: string;
+  company_id: string;
+  customer_id: string | null;
+  appointment_id: string | null;
+  estimate_id: string | null;
+  job_id: string | null;
+  kind: PaymentKind;
+  status: PaymentStatus;
+  amount: number;
+  method: RetailPaymentMethod;
+  provider: "clover" | "none";
+  checkout_session_id: string | null;
+  provider_ref: string | null;
+  paid_at: string | null;
+  note: string | null;
+  raw: Record<string, unknown> | null;
+  refunds_payment_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** A payment as the appointment / receipt views carry it (amount null unless owner/admin). */
+export type PaymentView = { id: string; kind: PaymentKind; status: PaymentStatus; method: RetailPaymentMethod; provider?: "clover" | "none"; paid_at: string | null; provider_ref?: string | null; note?: string | null; amount: number | null; created_at?: string };
+export type DepositStart = { payment_id: string; amount: number; amount_cents: number; display_number: string; vehicle: string | null; customer: { first_name: string; last_name: string; email: string | null; phone: string | null } };
+/** retail_charge(): what the counter collects on a retail job. */
+export type RetailCharge = {
+  job_id: string;
+  tag: string;
+  vehicle: string | null;
+  subtotal: number;
+  tax: number;
+  total: number;
+  deposit_paid: number;
+  paid: number;
+  balance: number;
+  amount: number;
+  amount_cents: number;
+  paid_at: string | null;
+  receipt_signed_at: string | null;
+  receipt_signed_name: string | null;
+  has_signature: boolean;
+  signature_required: boolean;
+  payments: PaymentView[];
+};
+/** job_receipt() / receipt_by_token(): the paid job's receipt. */
+export type ReceiptView = {
+  id: string;
+  tag: string;
+  performed_at: string;
+  paid_at: string | null;
+  payment_method: "clover" | "cash" | "check" | "other" | null;
+  vehicle: string | null;
+  color: string | null;
+  customer: { id: string; display_name: string | null; first_name: string; email: string | null; phone: string | null } | null;
+  lines: { name: string; price: number }[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  deposit_paid: number;
+  paid: number;
+  balance: number;
+  tax_rate: number;
+  payments: { kind: PaymentKind; method: RetailPaymentMethod; amount: number; paid_at: string | null; provider_ref: string | null }[];
+  signed_name: string | null;
+  signed_at: string | null;
+  has_signature: boolean;
+  token: string | null;
+  company: { name: string; phone: string | null; email: string | null; address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; postal_code: string | null; logo_path: string | null; timezone: string };
+};
+export type RetailMoneySummary = { deposits_outstanding: { count: number; amount: number }; deposits_week: number; collected_week: number; pending_links: number };
 
 /** quote_total(): a retail quote priced by size. */
 export type QuoteResult = {
@@ -1012,6 +1093,7 @@ export type CustomerTimeline = {
   }[];
   estimates?: { id: string; display_number: string; status: EstimateStatus; created_at: string; expires_at: string | null; vehicle: string | null; total: number | null; job_id: string | null }[];
   appointments?: { id: string; display_number: string; status: AppointmentStatus; starts_at: string; ends_at: string; vehicle: string | null; services: string[]; job_id: string | null }[];
+  payments?: { id: string; kind: PaymentKind; status: PaymentStatus; method: RetailPaymentMethod; paid_at: string | null; amount: number | null; appointment_id: string | null; job_id: string | null; estimate_id: string | null }[];
   stats: { visits: number; last_visit: string | null; lifetime_spend: number | null };
 };
 
@@ -1043,6 +1125,7 @@ export type Database = {
       time_off: Table<TimeOff>;
       estimates: Table<EstimateRow>;
       appointments: Table<AppointmentRow>;
+      payments: Table<PaymentRow>;
       jobs: Table<Job>;
       job_services: Table<JobService>;
       job_photos: Table<JobPhoto>;
@@ -1065,7 +1148,20 @@ export type Database = {
       is_admin: { Args: Record<string, never>; Returns: boolean };
       is_owner: { Args: Record<string, never>; Returns: boolean };
       job_invoice_number: { Args: { p_job_id: string }; Returns: string | null };
-      retail_charge: { Args: { p_job_id: string }; Returns: { job_id: string; tag: string; vehicle: string | null; amount: number; amount_cents: number } };
+      retail_charge: { Args: { p_job_id: string }; Returns: RetailCharge };
+      start_deposit_by_token: { Args: { p_kind: "appointment" | "estimate"; p_token: string }; Returns: DepositStart };
+      start_deposit: { Args: { p_appointment: string }; Returns: DepositStart };
+      record_payment_system_retail: { Args: { p: { payment_id?: string; checkout_session_id?: string; status?: "paid" | "failed"; provider_ref?: string | null; amount?: number; raw?: unknown; note?: string } }; Returns: { ok: boolean; payment_id?: string; status?: PaymentStatus; appointment_id?: string | null; already?: boolean; reason?: string } };
+      attach_checkout_session: { Args: { p_payment: string; p_session_id: string; p_raw?: unknown }; Returns: undefined };
+      record_deposit_at_shop: { Args: { p_appointment: string; p_method: RetailPaymentMethod; p_reference?: string | null; p_amount?: number | null }; Returns: AppointmentView };
+      refund_payment: { Args: { p_id: string; p_amount: number; p_note?: string | null }; Returns: PaymentRow };
+      expire_pending_payments: { Args: Record<string, never>; Returns: number };
+      sign_receipt: { Args: { p_job_id: string; p_signature_path: string; p_name: string }; Returns: { job_id: string; signed_at: string } };
+      job_receipt: { Args: { p_job_id: string }; Returns: ReceiptView };
+      receipt_by_token: { Args: { p_token: string }; Returns: ReceiptView };
+      receipt_link: { Args: { p_job_id: string }; Returns: string };
+      receipt_signature_path: { Args: { p_job_id: string }; Returns: string | null };
+      retail_money_summary: { Args: Record<string, never>; Returns: RetailMoneySummary };
       record_retail_payment: { Args: { p_job_id: string; p_amount: number; p_method: string; p_reference?: string | null }; Returns: Job };
       jobs_needing_price: { Args: Record<string, never>; Returns: number };
       save_customer: { Args: { p: CustomerPayload }; Returns: Customer };

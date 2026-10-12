@@ -74,6 +74,8 @@ export function demoRewriteTarget(pathname: string): string | null {
   if (hold) return `/dev/preview/retail/book-hold/${hold[1]}`;
   const manage = pathname.match(/^\/a\/([^/]+)$/);
   if (manage) return `/dev/preview/retail/appointment-public/${manage[1]}`;
+  const receipt = pathname.match(/^\/r\/([^/]+)$/);
+  if (receipt) return `/dev/preview/retail/receipt/${receipt[1]}`;
   // The customer's public page: the guest demo opens the fixture twin without a database.
   const pub = pathname.match(/^\/e\/([^/]+)(\/done)?$/);
   if (pub) return `/dev/preview/retail/estimate-public/${pub[1]}${pub[2] ?? ""}`;

@@ -7,5 +7,5 @@ export default async function DevManagePreview(props: PageProps<"/dev/preview/re
   const [{ token }, sp] = await Promise.all([props.params, props.searchParams]);
   const a = appointmentPublicFixture(token, "manage");
   if (!a) notFound();
-  return <ManageAppointment a={a} token={token} isNew={sp.new === "1"} demo />;
+  return <ManageAppointment a={a} token={token} isNew={sp.new === "1"} demo depositsOnline justPaid={sp.paid === "1"} failed={sp.failed === "1"} />;
 }

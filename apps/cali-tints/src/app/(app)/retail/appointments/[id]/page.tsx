@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { appUrl } from "@/lib/retail/email";
 import { AppointmentDetail } from "@/components/retail/appointment-detail";
+import { depositsOnline } from "@/lib/clover/env";
 
 export const metadata: Metadata = { title: "Appointment" };
 
@@ -18,5 +19,5 @@ export default async function AppointmentPage(props: PageProps<"/retail/appointm
     const { data: token } = await supabase.rpc("appointment_link", { p_id: id });
     if (token) publicUrl = `${appUrl() ?? ""}/a/${token}`;
   }
-  return <AppointmentDetail a={a} showMoney={session.canPrices} publicUrl={publicUrl} />;
+  return <AppointmentDetail a={a} showMoney={session.canPrices} publicUrl={publicUrl} depositsOnline={depositsOnline()} />;
 }

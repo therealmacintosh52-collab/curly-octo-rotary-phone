@@ -26,17 +26,18 @@ export default async function RetailTodayPage() {
   const shopIds = (shops ?? []).map((s) => s.id);
   const today = todayIn(session.company.timezone);
   const sel = "id, tag_number, year, make, model, performed_at, paid_at, customer:customers(display_name), job_services(label, service:services(name))";
-  const [{ data: todayRows }, { data: unpaidRows }, { data: customers }, { data: appts }] = await Promise.all([
+  const [{ data: todayRows }, { data: unpaidRows }, { data: customers }, { data: appts }, { data: money }] = await Promise.all([
     shopIds.length ? supabase.from("jobs").select(sel).in("dealership_id", shopIds).is("deleted_at", null).gte("performed_at", `${today}T00:00:00`).order("performed_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
     shopIds.length ? supabase.from("jobs").select(sel).in("dealership_id", shopIds).is("deleted_at", null).is("paid_at", null).order("performed_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
     supabase.rpc("customers_filtered", { p_limit: 1 }),
     supabase.rpc("retail_today_appointments"),
+    session.canPrices ? supabase.rpc("retail_money_summary") : Promise.resolve({ data: null }),
   ]);
   return (
     <RetailToday
       shopName={shops?.map((s) => s.name).join(" · ") || "Retail"}
       tz={session.company.timezone}
-      data={{ customers: customers?.count ?? 0, today: ((todayRows ?? []) as unknown as Row[]).map(toCar), unpaid: ((unpaidRows ?? []) as unknown as Row[]).map(toCar), leads: appts?.leads ?? [], holds: appts?.holds ?? [], appointments: appts?.today ?? [] }}
+      data={{ customers: customers?.count ?? 0, today: ((todayRows ?? []) as unknown as Row[]).map(toCar), unpaid: ((unpaidRows ?? []) as unknown as Row[]).map(toCar), leads: appts?.leads ?? [], holds: appts?.holds ?? [], appointments: appts?.today ?? [], money: money ?? null }}
     />
   );
 }

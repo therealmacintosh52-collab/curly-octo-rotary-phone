@@ -9,7 +9,7 @@ import { previewSession } from "@/test/preview-session";
 /** Fixture preview of Retail → Today (guest demo in production). */
 export default async function DevRetailPreview(props: PageProps<"/dev/preview/retail">) {
   const sp = await props.searchParams;
-  const { session } = previewSession(sp);
+  const { session, canPrices } = previewSession(sp);
   return (
     <SessionProvider value={session}>
       <SyncProvider>
@@ -17,7 +17,7 @@ export default async function DevRetailPreview(props: PageProps<"/dev/preview/re
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
             <RetailNav />
           </div>
-          <RetailToday data={retailTodayFixture()} shopName="Cali Tint · Fulton Ave" tz="America/Los_Angeles" />
+          <RetailToday data={retailTodayFixture(canPrices)} shopName="Cali Tint · Fulton Ave" tz="America/Los_Angeles" />
         </AppShell>
       </SyncProvider>
     </SessionProvider>
