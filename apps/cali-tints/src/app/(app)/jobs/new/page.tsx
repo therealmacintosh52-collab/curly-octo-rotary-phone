@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { PriceListRow } from "@/lib/db/types";
 import { withoutPrices } from "@/lib/jobs/price-list";
+import { toPickedCustomer, type CustomerPick } from "@/components/retail/customer-picker";
 import { JobForm } from "@/components/jobs/job-form";
 import type { RecentJob } from "@/lib/offline/db";
 import { isoDaysAgo } from "@/lib/dates";
@@ -14,7 +15,8 @@ export const metadata: Metadata = { title: "New job" };
  * instantly; the client caches it in IndexedDB so the form also works from
  * the service-worker cache with no signal.
  */
-export default async function NewJobPage() {
+export default async function NewJobPage(props: PageProps<"/jobs/new">) {
+  const sp = await props.searchParams;
   const session = await getSession();
   const supabase = await createClient();
 
@@ -51,5 +53,21 @@ export default async function NewJobPage() {
     model: j.model,
   }));
 
-  return <JobForm dealerships={dealerships ?? []} priceLists={priceLists} detailers={detailers ?? []} recentJobs={recentJobs} />;
+  // Retail: recent customers with their cars for the picker, and a customer/vehicle handed over from their page.
+  const { data: recentCustomers } = await supabase.from("customers").select("id, display_name, phone, email, vehicles(id, year, make, model, color, vin, plate, archived_at)").is("archived_at", null).is("merged_into_id", null).order("updated_at", { ascending: false }).limit(20);
+  type RC = { id: string; display_name: string | null; phone: string | null; email: string | null; vehicles: { id: string; year: number | null; make: string | null; model: string | null; color: string | null; vin: string | null; plate: string | null; archived_at: string | null }[] };
+  const retailCustomers = ((recentCustomers ?? []) as unknown as RC[]).map((c) => toPickedCustomer(c, c.vehicles.filter((v) => !v.archived_at)));
+  const wantCustomer = typeof sp.customer === "string" ? sp.customer : null;
+  let initialPick: CustomerPick | null = null;
+  if (wantCustomer) {
+    const found = retailCustomers.find((c) => c.id === wantCustomer);
+    const { data: one } = found ? { data: null } : await supabase.from("customers").select("id, display_name, phone, email, vehicles(id, year, make, model, color, vin, plate, archived_at)").eq("id", wantCustomer).maybeSingle();
+    const picked = found ?? (one ? toPickedCustomer(one as unknown as RC, ((one as unknown as RC).vehicles ?? []).filter((v) => !v.archived_at)) : null);
+    if (picked) {
+      const wantVehicle = typeof sp.vehicle === "string" ? sp.vehicle : null;
+      initialPick = { customer: picked, vehicleId: wantVehicle && picked.vehicles.some((v) => v.id === wantVehicle) ? wantVehicle : picked.vehicles.length === 1 ? picked.vehicles[0].id : null };
+    }
+  }
+
+  return <JobForm dealerships={dealerships ?? []} priceLists={priceLists} detailers={detailers ?? []} recentJobs={recentJobs} retailCustomers={retailCustomers} initialPick={initialPick} />;
 }

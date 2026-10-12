@@ -298,10 +298,16 @@ export function jobListFixture(): JobListRow[] {
   }
   // The shop: two walk-in customers today, one paid on the Clover, one still to collect.
   const nowIso = new Date().toISOString();
-  for (const [tag, vehicle, paid] of [["R-101", "2019 Toyota Camry", true], ["R-102", "2022 Tesla Model 3", false]] as const) {
+  for (const [tag, vehicle, paid, customer_id, customer, vehicle_id] of [
+    ["R-101", "2019 Toyota Camry", true, "60000000-0000-4000-8000-000000000001", "Ana Lopez", "70000000-0000-4000-8000-000000000001"],
+    ["R-102", "2022 Tesla Model 3", false, "60000000-0000-4000-8000-000000000002", "Marcus Reed", "70000000-0000-4000-8000-000000000002"],
+  ] as const) {
     n += 1;
     rows.push({
-      id: `40000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
+      id: `40000000-0000-4000-8000-${paid ? "000000000998" : "000000000999"}`,
+      customer_id,
+      customer,
+      vehicle_id,
       performed_at: new Date(Date.now() - (paid ? 150 : 40) * 60000).toISOString(),
       day: ymdOf(new Date()),
       tag,

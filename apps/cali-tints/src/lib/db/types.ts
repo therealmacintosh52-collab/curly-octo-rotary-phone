@@ -144,6 +144,9 @@ export type Job = {
   quickbooks_invoice_id: string | null;
   quickbooks_doc_number: string | null;
   quickbooks_synced_at: string | null;
+  /** Retail jobs: the walk-in customer and the car they brought (0037); null on dealership jobs. */
+  customer_id?: string | null;
+  vehicle_id?: string | null;
   /** Retail jobs: the counter payment. */
   paid_at: string | null;
   paid_amount: number | null;
@@ -504,6 +507,10 @@ export type JobListRow = {
   /** The shop's own walk-in job (paid at the counter) and when it was paid. */
   retail?: boolean;
   paid_at?: string | null;
+  /** Retail rows: the customer the car belongs to (0037). */
+  customer_id?: string | null;
+  customer?: string | null;
+  vehicle_id?: string | null;
   photo_count: number;
   deleted: boolean;
 };
@@ -538,8 +545,125 @@ export type JobPayload = {
   performed_at?: string;
   ro_po_number?: string | null;
   notes?: string | null;
+  /** Retail jobs only (the dealership row flagged retail): the customer, their vehicle and today's mileage. */
+  customer_id?: string | null;
+  vehicle_id?: string | null;
+  odometer?: number | null;
   services: { service_id: string; price?: number; override_reason?: string | null; label?: string | null }[];
 }
+
+// ---------------------------------------------------------------------------
+// Retail (0037+): everyday customers and their cars
+// ---------------------------------------------------------------------------
+export type VehicleSize = "compact" | "sedan" | "suv_truck" | "xl";
+export type CustomerSource = "walk_in" | "online_booking" | "referral" | "phone" | "social" | "other";
+
+export type Customer = {
+  id: string;
+  company_id: string;
+  first_name: string;
+  last_name: string;
+  display_name: string | null;
+  phone: string | null;
+  phone_digits: string | null;
+  email: string | null;
+  email_lc: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  source: CustomerSource;
+  tags: string[];
+  marketing_opt_in: boolean;
+  marketing_opt_in_at: string | null;
+  sms_opt_in: boolean;
+  sms_opt_in_at: string | null;
+  consent_source: string | null;
+  notes: string | null;
+  archived_at: string | null;
+  merged_into_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Vehicle = {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  vin: string | null;
+  year: number | null;
+  make: string | null;
+  model: string | null;
+  trim: string | null;
+  body_class: string | null;
+  size_class: VehicleSize;
+  size_class_source: "nhtsa" | "manual";
+  color: string | null;
+  plate: string | null;
+  notes: string | null;
+  archived_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OdometerReading = {
+  id: string;
+  company_id: string;
+  vehicle_id: string;
+  reading: number;
+  read_at: string;
+  job_id: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+/** Payload for save_customer(). `id` updates; otherwise creates. */
+export type CustomerPayload = Partial<Pick<Customer, "first_name" | "last_name" | "phone" | "email" | "address_line1" | "address_line2" | "city" | "state" | "postal_code" | "source" | "tags" | "marketing_opt_in" | "sms_opt_in" | "consent_source" | "notes">> & { id?: string };
+
+/** Payload for save_vehicle(). `id` updates; otherwise creates (customer_id required). */
+export type VehiclePayload = Partial<Pick<Vehicle, "vin" | "year" | "make" | "model" | "trim" | "body_class" | "size_class" | "color" | "plate" | "notes">> & { id?: string; customer_id?: string; odometer?: number | null; archived?: boolean };
+
+/** One row of customers_filtered(). Money (lifetime_spend) is null unless owner/admin. */
+export type CustomerListRow = {
+  id: string;
+  display_name: string | null;
+  phone: string | null;
+  email: string | null;
+  tags: string[];
+  archived_at: string | null;
+  vehicles: string[];
+  visits: number;
+  last_visit: string | null;
+  lifetime_spend: number | null;
+};
+export type CustomerListResult = { count: number; rows: CustomerListRow[] };
+
+/** customer_timeline(): the customer, their vehicles and every visit. */
+export type CustomerTimeline = {
+  customer: Customer;
+  merged_into: { id: string; display_name: string | null } | null;
+  vehicles: (Pick<Vehicle, "id" | "vin" | "year" | "make" | "model" | "trim" | "body_class" | "size_class" | "size_class_source" | "color" | "plate" | "notes" | "archived_at"> & {
+    odometer: { reading: number; read_at: string } | null;
+    visits: number;
+    last_visit: string | null;
+  })[];
+  jobs: {
+    id: string;
+    performed_at: string;
+    tag: string;
+    vehicle: string | null;
+    vehicle_id: string | null;
+    services: string[];
+    paid_at: string | null;
+    payment_method: "clover" | "cash" | "check" | "other" | null;
+    paid_amount: number | null;
+    deleted_at: string | null;
+  }[];
+  stats: { visits: number; last_visit: string | null; lifetime_spend: number | null };
+};
 
 type Table<Row> = {
   Row: Row;
@@ -557,6 +681,9 @@ export type Database = {
       dealerships: Table<Dealership>;
       services: Table<Service>;
       dealership_service_prices: Table<DealershipServicePrice>;
+      customers: Table<Customer>;
+      vehicles: Table<Vehicle>;
+      odometer_readings: Table<OdometerReading>;
       jobs: Table<Job>;
       job_services: Table<JobService>;
       job_photos: Table<JobPhoto>;
@@ -582,6 +709,14 @@ export type Database = {
       retail_charge: { Args: { p_job_id: string }; Returns: { job_id: string; tag: string; vehicle: string | null; amount: number; amount_cents: number } };
       record_retail_payment: { Args: { p_job_id: string; p_amount: number; p_method: string; p_reference?: string | null }; Returns: Job };
       jobs_needing_price: { Args: Record<string, never>; Returns: number };
+      save_customer: { Args: { p: CustomerPayload }; Returns: Customer };
+      find_duplicate_customers: { Args: { p_phone?: string | null; p_email?: string | null; p_exclude?: string | null }; Returns: Customer[] };
+      archive_customer: { Args: { p_id: string; p_on?: boolean }; Returns: undefined };
+      merge_customers: { Args: { p_keep: string; p_merge: string }; Returns: Customer };
+      customers_filtered: { Args: { p_q?: string | null; p_archived?: boolean; p_limit?: number; p_offset?: number }; Returns: CustomerListResult };
+      customer_timeline: { Args: { p_id: string }; Returns: CustomerTimeline };
+      save_vehicle: { Args: { p: VehiclePayload }; Returns: Vehicle };
+      add_odometer: { Args: { p_vehicle: string; p_reading: number; p_read_at?: string | null; p_job?: string | null }; Returns: OdometerReading };
       is_member: { Args: Record<string, never>; Returns: boolean };
       resolve_service_price: { Args: { p_dealership_id: string; p_service_id: string }; Returns: number | null };
       dealership_price_list: { Args: { p_dealership_id: string }; Returns: PriceListRow[] };
@@ -667,6 +802,7 @@ export type Database = {
       submission_status: SubmissionStatus;
       photo_kind: PhotoKind;
       payment_method: PaymentMethod;
+      vehicle_size: VehicleSize;
     };
     CompositeTypes: Record<string, never>;
   };

@@ -127,7 +127,7 @@ export function JobList({ rows, page, count, params, filtered, today, flagged }:
                     </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-2 text-caption text-subtle">
-                    <span className="truncate">{r.dealership}</span>
+                    <span className="truncate">{r.customer ? `${r.customer} · ${r.dealership}` : r.dealership}</span>
                     <span className="shrink-0">{formatDate(r.performed_at, "h:mm a")}</span>
                   </div>
                 </div>
@@ -176,7 +176,7 @@ export function JobList({ rows, page, count, params, filtered, today, flagged }:
                     </TableCell>
                     <TableCell className="whitespace-nowrap">{r.vehicle || "—"}</TableCell>
                     <TableCell className="max-w-64 truncate">{r.services.join(", ")}</TableCell>
-                    <TableCell className="text-muted-foreground">{r.dealership}</TableCell>
+                    <TableCell className="text-muted-foreground">{r.customer ? `${r.customer} · ${r.dealership}` : r.dealership}</TableCell>
                     <TableCell className="text-muted-foreground">{r.photo_count > 0 ? r.photo_count : "—"}</TableCell>
                     <TableCell>
                       {r.invoice_id ? (

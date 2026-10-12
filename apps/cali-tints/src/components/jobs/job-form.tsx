@@ -29,6 +29,7 @@ import { PhotoPicker, type PendingPhoto } from "./photo-picker";
 const VinScanner = dynamic(() => import("./vin-scanner").then((mod) => mod.VinScanner), { ssr: false });
 import { ModelCombobox } from "./model-combobox";
 import { DuplicateDialog, type DuplicateHit } from "./duplicate-dialog";
+import { CustomerPicker, type CustomerPick, type PickedCustomer } from "@/components/retail/customer-picker";
 
 const LAST_DEALERSHIP_KEY = "cali-tints:last-dealership";
 
@@ -37,6 +38,10 @@ interface Props {
   priceLists: Record<string, PriceListRow[]>;
   detailers: { id: string; full_name: string }[];
   recentJobs: RecentJob[];
+  /** Retail: recent customers (with their cars) for the picker; fixtures in the demo. */
+  retailCustomers?: PickedCustomer[];
+  /** Retail: a customer/vehicle chosen before opening the form (from their page). */
+  initialPick?: CustomerPick | null;
 }
 
 /** The car just saved, shown in the success card while the form is ready for the next one. */
@@ -59,7 +64,7 @@ interface SavedCar {
  * card turns green. The month's jobs become one invoice per dealership on
  * the 1st.
  */
-export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Props) {
+export function JobForm({ dealerships, priceLists, detailers, recentJobs, retailCustomers = [], initialPick = null }: Props) {
   const { company, demo, canPrices } = useSession();
   // No prices on a job: every service is billed at the price list in Settings. Owner and admin may still type the amount of an "Other" line.
   const canSetAmount = !!canPrices;
@@ -67,7 +72,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const tagRef = useRef<HTMLInputElement>(null);
 
   // --- form state ------------------------------------------------------------
-  const [dealershipId, setDealershipId] = useState<string>(() => dealerships[0]?.id ?? "");
+  const [dealershipId, setDealershipId] = useState<string>(() => (initialPick?.customer ? (dealerships.find((d) => d.retail)?.id ?? dealerships[0]?.id ?? "") : (dealerships[0]?.id ?? "")));
   const [tag, setTag] = useState("");
   const [vin, setVin] = useState("");
   const [decoding, setDecoding] = useState(false);
@@ -81,6 +86,9 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const [photos, setPhotos] = useState<PendingPhoto[]>([]);
   const [performedAt, setPerformedAt] = useState(() => toDateInput(new Date()));
   const [notes, setNotes] = useState("");
+  // Retail (the shop): whose car, and which of theirs.
+  const [pick, setPick] = useState<CustomerPick>(initialPick ?? { customer: null, vehicleId: null });
+  const [odometer, setOdometer] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerMounted, setScannerMounted] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateHit[] | null>(null);
@@ -99,7 +107,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     const t = setTimeout(() => {
       try {
         const last = localStorage.getItem(LAST_DEALERSHIP_KEY);
-        if (last && dealerships.some((d) => d.id === last)) setDealershipId(last);
+        if (!initialPick?.customer && last && dealerships.some((d) => d.id === last)) setDealershipId(last);
       } catch {
         /* ignore */
       }
@@ -107,7 +115,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       void saveRecentJobs(recentJobs).catch(() => {});
     }, 0);
     return () => clearTimeout(t);
-  }, [dealerships, priceLists, detailers, recentJobs]);
+  }, [dealerships, priceLists, detailers, recentJobs, initialPick?.customer]);
 
   // Follow the car we just queued: when it syncs, the invoice number lands in the card.
   const followId = lastSaved?.status === "syncing" || lastSaved?.status === "queued" ? lastSaved.clientId : null;
@@ -191,6 +199,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   // --- validation --------------------------------------------------------------
   function validate(): string | null {
     if (!dealershipId) return "Pick a dealership";
+    if (dealership?.retail && !pick.customer) return "Pick the customer, or add them";
     if (!tag.trim()) return "Stock number is required";
     if (vin && vinState === "invalid") return "VIN must be 17 characters (no I, O or Q)";
     if (!year) return "Year is required";
@@ -253,6 +262,9 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       performed_at: dateInputToIso(performedAt),
       ro_po_number: null,
       notes: notes.trim() || null,
+      customer_id: dealership?.retail ? (pick.customer?.id ?? null) : null,
+      vehicle_id: dealership?.retail ? pick.vehicleId : null,
+      odometer: dealership?.retail && odometer ? Number(odometer) : null,
       services: services.map((s) => ({
         service_id: s.service_id,
         price: s.price,
@@ -327,6 +339,8 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     setPhotos([]);
     setPerformedAt(toDateInput(new Date()));
     setNotes("");
+    setPick({ customer: null, vehicleId: null });
+    setOdometer("");
     setDuplicates(null);
     requestAnimationFrame(() => {
       tagRef.current?.focus();
@@ -423,6 +437,37 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
           {dealership?.retail && <p className="text-caption text-subtle">Retail customer: paid at the counter on the Clover after the job. Not on a dealership invoice.</p>}
         </div>
       </section>
+
+      {/* Retail: whose car */}
+      {dealership?.retail && (
+        <section className="flex flex-col gap-3" data-testid="retail-customer-section">
+          <CustomerPicker
+            value={pick}
+            onChange={setPick}
+            recent={retailCustomers}
+            carDraft={{ vin, year, make: make === "Other" ? customMake : make, model, color }}
+            onVehiclePicked={(v) => {
+              if (v.vin && !vin) setVin(v.vin);
+              if (v.year && !year) setYear(String(v.year));
+              if (v.make && (!make || make === DEFAULT_MAKE)) {
+                if ((MAKES as readonly string[]).includes(v.make)) setMake(v.make);
+                else {
+                  setMake("Other");
+                  setCustomMake(v.make);
+                }
+              }
+              if (v.model && !model) setModel(v.model);
+              if (v.color && !color) setColor(v.color);
+            }}
+          />
+          {pick.vehicleId && (
+            <div className="grid gap-1.5 sm:max-w-xs">
+              <Label htmlFor="odometer">Mileage today (optional)</Label>
+              <Input id="odometer" inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 84200" autoComplete="off" />
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Vehicle */}
       <section className="flex flex-col gap-4">

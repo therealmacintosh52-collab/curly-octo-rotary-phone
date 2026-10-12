@@ -14,6 +14,9 @@ import { cn } from "@/lib/utils";
 export interface JobDetailProps {
   job: EditableCar & {
     dealership_name: string;
+    /** Retail jobs: the customer and the vehicle on file (0037). */
+    customer?: { id: string; name: string } | null;
+    vehicle?: { id: string; name: string } | null;
     invoice: { id: string; display_number: string; status: string } | null;
     /** The QuickBooks invoice number this job sits on (live, kept by the app). */
     quickbooks_doc_number?: string | null;
@@ -156,7 +159,14 @@ export function JobDetail(p: JobDetailProps) {
                 <Fact label="Vehicle" value={vehicle(job) || "—"} />
                 <Fact label="Color" value={job.color ?? "—"} />
                 <Fact label="VIN" value={job.vin ? <span className="font-mono">{job.vin}</span> : "—"} />
-                <Fact label="Dealership" value={job.dealership_name} />
+                <Fact label={retail ? "Location" : "Dealership"} value={job.dealership_name} />
+                {retail && (
+                  <Fact
+                    label="Customer"
+                    value={job.customer ? <Link href={`/retail/customers/${job.customer.id}`} className="font-medium hover:text-primary" data-testid="job-customer">{job.customer.name}</Link> : <span className="text-muted-foreground">Not on file</span>}
+                  />
+                )}
+                {retail && job.vehicle && <Fact label="On file as" value={<Link href={`/retail/vehicles/${job.vehicle.id}`} className="hover:text-primary">{job.vehicle.name}</Link>} />}
                 {job.ro_po_number && <Fact label="RO / PO" value={job.ro_po_number} />}
                 {job.notes && <Fact label="Notes" value={<span className="whitespace-pre-wrap">{job.notes}</span>} />}
               </dl>

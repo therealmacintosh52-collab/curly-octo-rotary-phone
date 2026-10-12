@@ -37,6 +37,9 @@ const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
   ["/jobs/outbox", "/dev/preview/jobs"],
   ["/jobs", "/dev/preview/jobs", true],
   ["/jobs", "/dev/preview/job"],
+  ["/retail/customers/new", "/dev/preview/retail/customer-new"],
+  ["/retail/customers", "/dev/preview/retail/customers", true],
+  ["/retail", "/dev/preview/retail", true],
   ["/invoices/new", "/dev/preview/invoices"],
   ["/invoices", "/dev/preview/invoices", true],
   ["/invoices", "/dev/preview/invoice"],
@@ -53,6 +56,10 @@ export function demoRewriteTarget(pathname: string): string | null {
   if (inv && inv[1] !== "new") return `/dev/preview/invoice/${inv[1]}`;
   const job = pathname.match(/^\/jobs\/([^/]+)$/);
   if (job && job[1] !== "new" && job[1] !== "outbox") return `/dev/preview/job/${job[1]}`;
+  const cust = pathname.match(/^\/retail\/customers\/([^/]+)$/);
+  if (cust && cust[1] !== "new") return `/dev/preview/retail/customer/${cust[1]}`;
+  const veh = pathname.match(/^\/retail\/vehicles\/([^/]+)$/);
+  if (veh) return `/dev/preview/retail/vehicle/${veh[1]}`;
   for (const [prefix, target, exact] of DEMO_REWRITES) {
     if (pathname === prefix) return target;
     if (!exact && prefix !== "/" && pathname.startsWith(prefix + "/")) return target;

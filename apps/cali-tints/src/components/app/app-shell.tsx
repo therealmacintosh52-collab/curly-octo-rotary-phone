@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CarFrontIcon, CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon } from "lucide-react";
+import { CarFrontIcon, CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, StoreIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
@@ -27,11 +27,12 @@ interface NavItem {
   prefix?: boolean;
 }
 
-/** Jobs by the day, invoices by the month (owner only). Detailers see Dashboard (their own jobs) + New + Jobs (their own). */
+/** Jobs by the day, the shop's retail side, invoices by the month (owner only). Detailers see Dashboard (their own jobs) + New + Jobs (their own) + Retail. */
 const NAV: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
+  { href: "/", label: "Dashboard", short: "Home", icon: LayoutDashboardIcon },
   { href: "/jobs/new", label: "New job", short: "New", icon: PlusCircleIcon },
   { href: "/jobs", label: "Jobs", icon: CarFrontIcon, prefix: true },
+  { href: "/retail", label: "Retail", icon: StoreIcon, prefix: true },
   { href: "/invoices", label: "Invoices", icon: FileTextIcon, ownerOnly: true, prefix: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, ownerAdminOnly: true, prefix: true },
 ];
