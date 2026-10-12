@@ -1,8 +1,9 @@
 # Google Business Profile pack, $99 (I-003, +I-010 add-on) · EXP-A2 · 2026-10-13
 Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is sent by agents.
+Updated 2026-10-14 (T-012, per red-team T-009 D-024): the $29 review-card add-on line now rides INSIDE the opening text (EXP-A5 merged into A2/A4). Read the new opening text before you reply "A-007 yes": it is the wording you approve.
 
 ## COMPLIANCE — fill/confirm before the first send
-- [ ] A-007 logged in `ops/DECISIONS.md` (proposed wording is in the T-007 handoff). No ID = do not send.
+- [ ] A-007 logged in `ops/DECISIONS.md` (proposed wording is in the T-007 handoff; the add-on sentence is in the opening text below). No ID = do not send.
 - [ ] A-004 Q2 (payment app), Q3 (sender), Q4 (license) answered. License held, or A-010 logged, before you accept the first payment (C2).
 - [ ] Fill: [YOUR NAME] real name · [THEIR BUSINESS] exact name from its Maps card · [ONE TRUE THING] something you actually saw on its Google profile (e.g. "no description", "no hours", "2 photos"). Do not guess.
 - [ ] Recipient: a business, number taken from its own Google Maps card. Not a beauty studio (those are EXP-A4). Not in any other test (C3). 5 businesses max.
@@ -10,16 +11,15 @@ Re-verify before reuse after 2026-11-12. Drafted by growth. Nothing is sent by a
 - [ ] Reply "no", "stop" or silence: never text that business again. The follow-up below is sent only if THEY reply.
 - [ ] No claims beyond what the pack is. Do not promise rankings, calls, or reviews.
 - [ ] Packs are drafted with AI help and you read each one before delivery. Say so if asked.
+- [ ] Card add-on (C4, C13): the kit is QA-confirmed after T-010b (T-011b PASS). Before the first card goes out you scan `card.png` with your phone camera (real-phone scan is still UNVERIFIED). Never promise the card as a PNG preview; send the PDFs. For long Google links use the sign or a g.page short link.
 
-## Opening text (one text, under 300 characters before your fill-ins)
-```
-Hi, I'm [YOUR NAME] in Elk Grove. Your Google profile for [THEIR BUSINESS] has [ONE TRUE THING]. I prepare copy-paste profile packs (description, services, 4 post drafts) for $99. Interested? One text only; reply STOP to opt out.
-```
-Keep your fill-ins under 60 characters total so it stays under 300.
-
-### Version B, with the review-card add-on (EXP-A5). Same rules; longer, so it may send as 2-3 segments.
+## Opening text (use this one; it carries the $29 add-on). About 330 characters before your fill-ins; with fill-ins it sends as 2-3 segments [segment count UNVERIFIED]. Keep fill-ins under 60 characters total.
 ```
 Hi, I'm [YOUR NAME] in Elk Grove. Your Google profile for [THEIR BUSINESS] has [ONE TRUE THING]. I prepare copy-paste profile packs (description, services, 4 post drafts) for $99. Optional $29 add-on: a printable QR card that asks every customer for an honest Google review. Interested? One text only; reply STOP to opt out.
+```
+Short version without the add-on (earlier "Version A"; do NOT use while EXP-A5 is live, because the A5 test counts all 8 A2/A4 recipients):
+```
+Hi, I'm [YOUR NAME] in Elk Grove. Your Google profile for [THEIR BUSINESS] has [ONE TRUE THING]. I prepare copy-paste profile packs (description, services, 4 post drafts) for $99. Interested? One text only; reply STOP to opt out.
 ```
 
 ## Follow-up (send ONLY if they replied with interest or a question; never on silence)
@@ -45,11 +45,11 @@ Personal-to-personal mode may break the app's terms for service payments [UNVERI
 - [ ] 10-minute paste guide for a phone (Google Maps app > your business profile > Edit profile). Menu names UNVERIFIED; the guide says "look for Edit profile".
 - NOT in the pack: Q&A entries (feature status unverified), ranking or review promises, account access, review management, anything needing their login shared.
 
-## Optional add-on line (EXP-A5 / I-010, $29)
+## Add-on line (EXP-A5 / I-010, $29): already inside the opening text above; reply-only version after a yes
 ```
 Add-on, $29: a printable card with a QR code to your Google review page. It asks every customer, with no reward and no picking who gets asked.
 ```
-Details and card text: `library/outreach/review-card-kit-2026-10-13.md`.
+After a yes: `$29 for the card kit (PDF + QR + 3 wording options). Pay here: [PAYMENT LINK]. PDF within 24 h of payment. [REFUND TERM]. Reply STOP anytime.` Details and card text: `library/outreach/review-card-kit-2026-10-13.md`. Hypothesis unchanged: >=1 of the 8 A2/A4 recipients buys by H72; kill at 0.
 
 ## Log line (reply to growth in this chat after each touch)
-`A2 sent=<n> replied=<n> yes=<n> paid=$<amt> via <app> stop=<n>`
+`A2 sent=<n> replied=<n> yes=<n> paid=$<amt> via <app> stop=<n> card_yes=<n> card_paid=$<amt>`
