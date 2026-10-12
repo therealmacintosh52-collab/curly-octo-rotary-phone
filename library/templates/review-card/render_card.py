@@ -43,6 +43,8 @@ from check_deliverable import FAIL_PATTERNS  # noqa: E402  (shared wording lint)
 
 DPI_SCALE = 3.125            # 96 CSS px/in x 3.125 = 300 dpi
 PX = 96 * DPI_SCALE           # image px per inch
+LONG_LINK = 55                # link text longer than this is set at 5 pt on the card (card.html .long)
+MAX_URL = 120                 # cap on review_url; the layout-fit check still has the last word
 QUIET = 4                     # quiet-zone modules around the QR
 # Hosts Google review links are known to use. The exact link format Google's
 # "ask for reviews" share option gives is UNVERIFIED (growth kit); extend this
@@ -120,8 +122,10 @@ def load_config(path):
             "send qa the screenshot to extend GOOGLE_HOSTS.", 2)
     elif "SAMPLE" in biz.upper():
         die("a real client config must not contain SAMPLE", 2)
-    if len(url) > 120:
-        die("review_url over 120 characters will not fit the card", 2)
+    if len(url) > MAX_URL:
+        die(f"review_url is {len(url)} characters; the card layout fits at most {MAX_URL} "
+            "(link under the QR is set at 5 pt above 55 characters). Ask the client for the "
+            "short share link (g.page/...) instead.", 2)
     for pat, why in FAIL_PATTERNS:
         if re.search(pat, biz):
             die(f"business name fails the wording lint ({why})", 2)
@@ -166,6 +170,7 @@ def fill(template, cfg, svg, sample_html):
     ask = VARIANTS[cfg["variant"]].format(biz=biz, link=html.escape(cfg["link"]))
     out = (template.replace("{{BUSINESS}}", biz).replace("{{ASK}}", ask)
            .replace("{{QR_SVG}}", svg).replace("{{LINK_TEXT}}", html.escape(cfg["link"]))
+           .replace("{{LINK_CLASS}}", " long" if len(cfg["link"]) > LONG_LINK else "")
            .replace("{{ACCENT}}", cfg["accent"]).replace("{{SAMPLE_MARK}}", sample_html))
     left = re.findall(r"\{\{[A-Z_]+\}\}", out)
     if left:

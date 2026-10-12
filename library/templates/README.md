@@ -18,7 +18,15 @@ sent or published by agents.
   PDF/PNG, owner phone steps.
 - `check_deliverable.py` shared lint. Run it
   on every filled deliverable before the
-  owner reads it.
+  owner reads it. The wording checks are
+  PATTERN-BASED, line by line: they catch
+  known phrasings and common paraphrases, not
+  every paraphrase. A clean run is not a
+  compliance proof; the owner's read of every
+  client file stays mandatory. The 750-char
+  check fails if the DESC markers are missing
+  (`--no-desc` only for the AI-search report,
+  which has no description).
 
 ## Conventions
 - Placeholders: `[[FILL: what goes here]]`

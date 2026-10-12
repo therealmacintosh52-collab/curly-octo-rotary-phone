@@ -67,8 +67,21 @@ failed; do not send anything.
 - Variant A only if the link is 40 chars or
   less (it is printed inside the sentence).
 - Business name passes the wording lint
-  (`../check_deliverable.py` patterns).
+  (`../check_deliverable.py` patterns; they
+  are pattern-based, not a full review. Check
+  the name by eye too).
+- review_url is at most 120 characters
+  (exit 2 otherwise). Link text over 55
+  characters is set at 5 pt under the QR so
+  up to 120 fits; the fit check still fails
+  closed (exit 4) if a link does not. Prefer
+  the short `g.page/...` link when Google
+  offers it: 5 pt is small to type by hand.
 - Text fits each card and the sign.
+- `card-sheet.png` and `sign.png` hold the
+  whole letter page: their ink bounds must
+  match the PDF raster (and a fixed floor
+  when pdftoppm is missing), else exit 4.
 - Every QR module on all 10 cards and the
   sign, in the PNG and the 300 dpi raster of
   the PDF, matches the encoder (0 misses).

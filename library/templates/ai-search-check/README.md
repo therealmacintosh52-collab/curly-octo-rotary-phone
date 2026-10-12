@@ -20,7 +20,7 @@ Offer wording and the pre-pitch screenshot list:
 3. Agents score and fill a copy of
    `report-template.md` (~15 min).
 4. Lint (agents run it):
-   `python3 library/templates/check_deliverable.py FILLED.md --out CLIENT.md`
+   `python3 library/templates/check_deliverable.py FILLED.md --out CLIENT.md --no-desc`
 5. Owner reads CLIENT.md (5 min), forwards
    within 24 h of payment.
 
