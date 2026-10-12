@@ -1,0 +1,8 @@
+{
+  "_note": "SAMPLE ONLY. Fictional business. .example is a reserved name no real site can use. Copy this file per client (outside the repo or in out/), set sample to false.",
+  "business": "SAMPLE Corner Bakery (fictional)",
+  "review_url": "https://sample-business.example/review",
+  "variant": "A",
+  "accent": "#1f2a44",
+  "sample": true
+}
