@@ -85,6 +85,8 @@ export type Dealership = {
   active: boolean;
   /** The QuickBooks customer this dealership is billed as. */
   quickbooks_customer_id: string | null;
+  /** The company's own shop: walk-in customers, paid at the counter, never invoiced monthly. */
+  retail: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -142,6 +144,12 @@ export type Job = {
   quickbooks_invoice_id: string | null;
   quickbooks_doc_number: string | null;
   quickbooks_synced_at: string | null;
+  /** Retail jobs: the counter payment. */
+  paid_at: string | null;
+  paid_amount: number | null;
+  payment_method: "clover" | "cash" | "check" | "other" | null;
+  payment_ref: string | null;
+  paid_by: string | null;
   dup_reviewed_at: string | null;
   dup_reviewed_by: string | null;
   dup_review_note: string | null;
@@ -491,6 +499,9 @@ export type JobListRow = {
   invoice_status: InvoiceStatus | null;
   /** The QuickBooks invoice number the job sits on (live), if the company is connected. */
   quickbooks_doc_number?: string | null;
+  /** The shop's own walk-in job (paid at the counter) and when it was paid. */
+  retail?: boolean;
+  paid_at?: string | null;
   photo_count: number;
   deleted: boolean;
 };
@@ -566,6 +577,8 @@ export type Database = {
       is_admin: { Args: Record<string, never>; Returns: boolean };
       is_owner: { Args: Record<string, never>; Returns: boolean };
       job_invoice_number: { Args: { p_job_id: string }; Returns: string | null };
+      retail_charge: { Args: { p_job_id: string }; Returns: { job_id: string; tag: string; vehicle: string | null; amount: number; amount_cents: number } };
+      record_retail_payment: { Args: { p_job_id: string; p_amount: number; p_method: string; p_reference?: string | null }; Returns: Job };
       jobs_needing_price: { Args: Record<string, never>; Returns: number };
       is_member: { Args: Record<string, never>; Returns: boolean };
       resolve_service_price: { Args: { p_dealership_id: string; p_service_id: string }; Returns: number | null };

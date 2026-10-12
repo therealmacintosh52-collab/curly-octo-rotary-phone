@@ -59,6 +59,7 @@ function PageLinks({ page, count, params }: { page: number; count: number; param
 /** "On INV-000061" / "Waiting for the month's invoice" / "Deleted". The owner also sees "Needs price". */
 function JobState({ r, short, flagged }: { r: JobListRow; short?: boolean; flagged?: boolean }) {
   if (r.deleted) return <Badge variant="destructive" title="Deleted · kept in the archive">Deleted</Badge>;
+  if (r.retail) return r.paid_at ? <Badge variant="success" title="Retail customer · paid at the counter">Paid</Badge> : <Badge variant="warning" title="Retail customer · collect at the counter on the Clover">Collect</Badge>;
   if (flagged && !r.invoice_id) return <Badge variant="warning" title="Logged as Other without a price · set it with Edit job">Needs price</Badge>;
   if (r.invoice_id) return <Badge variant="info" title={`On invoice ${r.quickbooks_doc_number ?? r.display_number ?? ""}`}>{short ? "Invoiced" : (r.quickbooks_doc_number ? `QB ${r.quickbooks_doc_number}` : (r.display_number ?? "Invoiced"))}</Badge>;
   if (r.quickbooks_doc_number) return <Badge variant="muted" title={`On this month's QuickBooks invoice ${r.quickbooks_doc_number}, still open`}>{short ? `QB ${r.quickbooks_doc_number}` : `In QuickBooks · ${r.quickbooks_doc_number}`}</Badge>;

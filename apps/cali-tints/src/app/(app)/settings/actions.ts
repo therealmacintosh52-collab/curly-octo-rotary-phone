@@ -92,6 +92,7 @@ const dealershipSchema = z.object({
   invoice_mode: z.enum(["batch", "per_job"]),
   tax_rate: z.number().min(0).max(0.5).nullable(),
   active: z.boolean(),
+  retail: z.boolean().default(false),
 });
 export type DealershipInput = z.input<typeof dealershipSchema>;
 

@@ -136,8 +136,9 @@ export async function syncJobMonth(db: Db, companyId: string, dealershipId: stri
   const result: LiveSyncResult = { dealershipId, monthStart, jobs: 0, qboInvoiceId: null, docNumber: null };
   const { data: company } = await db.from("companies").select("id, timezone, payment_terms, quickbooks_realm_id, quickbooks_item_id, quickbooks_item_name").eq("id", companyId).maybeSingle();
   if (!company?.quickbooks_realm_id) return { ...result, error: "QuickBooks is not connected" };
-  const { data: dealership } = await db.from("dealerships").select("id, name, quickbooks_customer_id, ap_emails, address_line1, address_line2, city, state, postal_code, payment_terms").eq("id", dealershipId).maybeSingle();
+  const { data: dealership } = await db.from("dealerships").select("id, name, retail, quickbooks_customer_id, ap_emails, address_line1, address_line2, city, state, postal_code, payment_terms").eq("id", dealershipId).maybeSingle();
   if (!dealership) return { ...result, error: "Dealership not found" };
+  if (dealership.retail) return result; // the shop: paid at the counter, never a monthly invoice
 
   const monthEnd = monthOf(`${monthStart}T12:00:00Z`, "UTC").end;
   // Open jobs of the month in the company's timezone: a day-wide window, then filtered precisely.
@@ -242,9 +243,10 @@ export async function syncJobToQuickBooks(db: Db, jobId: string, previous?: { de
 export async function syncOpenMonths(db: Db, companyId: string, report: SyncReport): Promise<void> {
   const { data: company } = await db.from("companies").select("timezone, quickbooks_realm_id").eq("id", companyId).maybeSingle();
   if (!company?.quickbooks_realm_id) return;
-  const { data: open } = await db.from("jobs").select("dealership_id, performed_at").eq("company_id", companyId).is("deleted_at", null).is("invoice_id", null);
+  const { data: open } = await db.from("jobs").select("dealership_id, performed_at, dealership:dealerships(retail)").eq("company_id", companyId).is("deleted_at", null).is("invoice_id", null);
   const targets = new Map<string, { dealershipId: string; monthStart: string }>();
   for (const j of open ?? []) {
+    if ((j.dealership as unknown as { retail: boolean } | null)?.retail) continue;
     const m = monthOf(j.performed_at, company.timezone).start;
     targets.set(`${j.dealership_id}:${m}`, { dealershipId: j.dealership_id, monthStart: m });
   }

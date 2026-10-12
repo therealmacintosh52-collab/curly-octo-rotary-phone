@@ -25,6 +25,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.clover.sdk.v1.Intents
+import com.clover.sdk.v3.payments.Payment
 
 /**
  * The whole app is the web app in a WebView, plus:
@@ -40,6 +42,21 @@ class MainActivity : AppCompatActivity() {
     private val appUrl: Uri = Uri.parse(BuildConfig.APP_URL)
     private var pendingCamera: PermissionRequest? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
+    private var bridge: CaliCloverBridge? = null
+    private var payRequestId: String? = null
+
+    // Clover's own payment screen (ACTION_SECURE_PAY): the result comes back here and goes to the page.
+    private val payLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val requestId = payRequestId ?: return@registerForActivityResult
+        payRequestId = null
+        val payment: Payment? = if (result.resultCode == RESULT_OK) result.data?.getParcelableExtra(Intents.EXTRA_PAYMENT) else null
+        val json = when {
+            payment != null -> BridgeJson.payOk(payment.id ?: "", payment.amount ?: 0L, payment.tender?.label, payment.cardTransaction?.last4)
+            result.resultCode == RESULT_CANCELED -> BridgeJson.payError("Payment cancelled", "cancelled")
+            else -> BridgeJson.payError(result.data?.getStringExtra(Intents.EXTRA_FAILURE_MESSAGE) ?: "The payment did not go through", "error")
+        }
+        bridge?.reply(requestId, json)
+    }
 
     private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val req = pendingCamera
@@ -83,7 +100,7 @@ class MainActivity : AppCompatActivity() {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(web, false)
         }
-        web.addJavascriptInterface(CaliCloverBridge(this, web, scanner), "CaliClover")
+        bridge = CaliCloverBridge(this, web, scanner).also { web.addJavascriptInterface(it, "CaliClover") }
 
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -156,6 +173,31 @@ class MainActivity : AppCompatActivity() {
     private fun showOffline() {
         val html = assets.open("offline.html").bufferedReader().use { it.readText() }.replace("__APP_URL__", BuildConfig.APP_URL)
         web.loadDataWithBaseURL(BuildConfig.APP_URL, html, "text/html", "utf-8", BuildConfig.APP_URL)
+    }
+
+    /** Open Clover's payment screen for a retail job. Needs the "Payments" permission on the app in the Clover dashboard. */
+    fun startPayment(requestId: String, amountCents: Long, externalId: String, note: String) {
+        if (payRequestId != null) {
+            bridge?.reply(requestId, BridgeJson.payError("A payment is already in progress", "error"))
+            return
+        }
+        if (!scanner.isClover) {
+            bridge?.reply(requestId, BridgeJson.payError("Card payments run on a Clover device only", "unavailable"))
+            return
+        }
+        payRequestId = requestId
+        try {
+            val intent = Intent(Intents.ACTION_SECURE_PAY).apply {
+                putExtra(Intents.EXTRA_AMOUNT, amountCents)
+                putExtra(Intents.EXTRA_EXTERNAL_PAYMENT_ID, externalId.take(32))
+                putExtra(Intents.EXTRA_NOTE, note.take(120))
+                putExtra(Intents.EXTRA_DISABLE_RESTART_TRANSACTION_WHEN_FAILED, true)
+            }
+            payLauncher.launch(intent)
+        } catch (e: Exception) {
+            payRequestId = null
+            bridge?.reply(requestId, BridgeJson.payError(e.message ?: "Could not open the Clover payment screen", "error"))
+        }
     }
 
     /** Grant the page's camera request once Android has given us the permission (asking the first time). */

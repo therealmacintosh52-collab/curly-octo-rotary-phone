@@ -57,6 +57,7 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
       tax_rate: null,
       active: true,
       quickbooks_customer_id: "58",
+      retail: false,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
@@ -141,6 +142,7 @@ export function invoiceBundleFixture(overrides: Partial<InvoiceBundle> = {}): In
 
 const EDH = { dealership_id: "d1", dealership: "Mercedes-Benz of El Dorado Hills" };
 const SAC = { dealership_id: "d2", dealership: "Mercedes-Benz of Sacramento" };
+const FUL = { dealership_id: "d3", dealership: "Cali Tint · Fulton Ave" };
 const PRICE: Record<string, number> = { Used: 200, PDI: 60, Sold: 20, "Service Loaner Detail": 125, "Touch Up Detail": 30, "Paint Correction (1-step)": 50 };
 const MODELS = ["GLE 450", "GLC 300", "E 350", "GLB 250", "C 300", "GLA 250", "EQE 350", "S 580", "GLE 350", "A 220", "CLA 250", "EQB 300"];
 const VINS = ["W1KZF8DB3NA123456", "W1N0G8DB5PV220114", "W1KZF8DB1RA331902", "W1N4M4HB0PW412221", "4JGFB4JB5SA901221", "W1K6G7GB3NA000111", "4JGFB4KB1MA228870", "W1KAF4HB3SR118204"];
@@ -293,6 +295,32 @@ export function jobListFixture(): JobListRow[] {
       const cars = fixtureCars(day, dealer, day.getDate() + (dealer === SAC ? 50 : 0)).filter((c, i) => dealer === EDH || i % 2 === 0);
       for (const c of cars) if (new Date(c.performed_at) <= now) push(c, null);
     }
+  }
+  // The shop: two walk-in customers today, one paid on the Clover, one still to collect.
+  const nowIso = new Date().toISOString();
+  for (const [tag, vehicle, paid] of [["R-101", "2019 Toyota Camry", true], ["R-102", "2022 Tesla Model 3", false]] as const) {
+    n += 1;
+    rows.push({
+      id: `40000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
+      performed_at: new Date(Date.now() - (paid ? 150 : 40) * 60000).toISOString(),
+      day: ymdOf(new Date()),
+      tag,
+      vin: null,
+      vehicle,
+      color: paid ? "Silver" : "Red",
+      ...FUL,
+      detailer_id: "u2",
+      detailer: "Victor",
+      services: ["Used"],
+      invoice_id: null,
+      display_number: null,
+      invoice_status: null,
+      quickbooks_doc_number: null,
+      retail: true,
+      paid_at: paid ? nowIso : null,
+      photo_count: 0,
+      deleted: false,
+    });
   }
   // One deleted one from yesterday, for the archive.
   const yd = fixtureCars(daysAgo(1), EDH, 99)[0];

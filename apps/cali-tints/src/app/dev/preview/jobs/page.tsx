@@ -25,6 +25,7 @@ const SERVICES = [
 const DEALERSHIPS = [
   { id: "d1", name: "Mercedes-Benz of El Dorado Hills" },
   { id: "d2", name: "Mercedes-Benz of Sacramento" },
+  { id: "d3", name: "Cali Tint · Fulton Ave" },
 ];
 const DETAILERS = [
   { id: "u2", full_name: "Victor" },

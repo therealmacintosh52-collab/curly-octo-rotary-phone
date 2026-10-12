@@ -140,7 +140,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
 
         <Section id="new" title="New job" intro="One car, one job. Every job goes straight onto the dealership's QuickBooks invoice for the month; nobody types anything into QuickBooks by hand.">
           <Inputs>
-            <Row what="Dealership" does="Who gets billed. Remembers your last pick." />
+            <Row what="Dealership" does="Who gets billed. Remembers your last pick. Pick the shop (Cali Tint · Fulton Ave) for a walk-in customer: that car is paid at the counter, not put on a dealership invoice." />
             <Row what="Stock number" does="The dealership's stock number for the car. Required. Type it or tap Scan barcode and point the camera at the window sticker or the stock tag." />
             <Row what="VIN" does="Optional. Type the 17 characters or scan the barcode; the year, make and model fill in on their own." />
             <Row what="Year · Make · Model · Color" does="Required. Year, make and model are filled by the VIN when you scan; otherwise pick them. Make lists the common ones; pick Other to type a make that is not there." />
@@ -170,6 +170,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             <Row what="Filters" does={wide ? "Dealership, detailer, service and a date range. Chips above the list show what is on; tap one to clear it." : "Dealership, service and a date range. Chips above the list show what is on; tap one to clear it."} />
             <Row what="Day headers" does="Today, Yesterday, then each weekday, with the count for that day." />
             <Row what="A row" does="Opens that job: the car, the services, the photos, where it stands." />
+            <Row what="Collect at the counter" does="A shop (retail) job shows Collect until it is paid. On the Clover, Collect on this Clover opens the Clover's own payment screen for the car's total and marks the job Paid when the card goes through. The owner or an admin can record cash or a check instead." />
             <Row what="Edit job · Add photos" does="Fix a typo or add a service while the job is Not invoiced yet; Add photos puts more before/after shots on it, and tapping a photo opens it full size with Remove. Once the job is on an invoice it is locked." />
             {wide && <Row what="Delete job" does="Moves it to the Archive with the reason you type. Nothing is ever erased; Restore brings it back." />}
           </Inputs>

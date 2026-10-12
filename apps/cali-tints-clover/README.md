@@ -5,12 +5,12 @@ The Cali Tints web app, installed on the company's Clover devices (Flex in the h
 - **The Clover barcode scanner** for *Scan barcode* (VIN sticker, stock tag), through `window.CaliClover.scan()`.
 - **The camera** for before/after photos: the page's `getUserMedia` is granted once Android has the CAMERA permission, and the in-app shutter (`camera-capture.tsx`) is used because the Flex has no photo gallery for a file input.
 
-It takes **no payments** and touches no Clover orders, inventory or customers. Everything else (sign-in, jobs, offline queue, who sees money) is the web app at `APP_URL`.
+For dealership work it takes **no payments**. For the shop's own walk-in customers (the retail location) a job page inside the app has **Collect on this Clover**: it opens Clover's own payment screen (`Intents.ACTION_SECURE_PAY`) for the job's total and writes the result (payment id, amount, tender, last 4) back to the job through `window.CaliClover.pay()`. The app never touches card data; Clover's payment app does the sale. It reads no Clover orders, inventory or customers. Everything else (sign-in, jobs, offline queue, who sees money) is the web app at `APP_URL`.
 
 ```
 app/src/main/kotlin/com/calitints/clover/
   MainActivity.kt        WebView, camera permission, file chooser, downloads, offline page, cookies
-  CaliCloverBridge.kt    window.CaliClover: info() · scan(requestId) · stopScan() · requestCamera()
+  CaliCloverBridge.kt    window.CaliClover: info() · scan(requestId) · stopScan() · requestCamera() · pay(requestId, cents, externalId, note)
   CloverScanner.kt       Clover SDK BarcodeScanner + BarcodeResult broadcast, 60 s timeout
   BridgeJson.kt          the JSON that crosses the bridge (unit-tested)
 app/src/main/assets/offline.html   "No connection · Try again"
@@ -47,7 +47,7 @@ keytool -genkeypair -v -keystore cali-tints-clover.keystore -alias calitints -ke
 ## Clover App Market (private app)
 
 1. **Developer account**: [clover.com/developers](https://www.clover.com/developers) → create a developer account (sandbox first, then request production access). The merchant (Mike) does not need this; the developer does.
-2. **Create the app**: Developer Dashboard → *Create new app* → Android. Package name `com.calitints.clover`. Permissions: none of the Clover data permissions (no Orders, Payments, Customers, Inventory, Merchant). Fill in the listing: name *Cali Tints*, tagline, description (see `SUBMISSION.md`), icon (`app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`, upload the 512 px one from `apps/cali-tints/public/icons/icon-512.png`), screenshots (phone screenshots of New job, Jobs, a job page), **Privacy policy URL** `https://<your-app>/privacy`, **Terms URL** `https://<your-app>/terms`, support email.
+2. **Create the app**: Developer Dashboard → *Create new app* → Android. Package name `com.calitints.clover`. Permissions: **Payments (write)** only, so *Collect on this Clover* may open the payment screen; no Orders, Customers, Inventory or Merchant permissions. Fill in the listing: name *Cali Tints*, tagline, description (see `SUBMISSION.md`), icon (`app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`, upload the 512 px one from `apps/cali-tints/public/icons/icon-512.png`), screenshots (phone screenshots of New job, Jobs, a job page), **Privacy policy URL** `https://<your-app>/privacy`, **Terms URL** `https://<your-app>/terms`, support email.
 3. **Distribution**: choose **Private** (only merchants you approve can install it) so it never appears publicly. Add the merchant's Clover merchant id when the app is approved.
 4. **Upload the APK**: *Android app* tab → upload the release APK built with `-PappUrl=<production URL>`. The version code must go up with every upload.
 5. **Test on a Dev Kit**: order a Clover Dev Kit (a Flex or Mini in developer mode) from the dashboard, or use a sandbox merchant on a Dev Kit, install the app and run through `SUBMISSION.md`'s checklist. Clover will not approve an app that has not been tested on hardware.

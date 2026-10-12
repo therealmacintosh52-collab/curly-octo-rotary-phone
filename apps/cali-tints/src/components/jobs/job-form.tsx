@@ -423,6 +423,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
               ))}
             </SelectContent>
           </Select>
+          {dealership?.retail && <p className="text-caption text-subtle">Retail customer: paid at the counter on the Clover after the job. Not on a dealership invoice.</p>}
         </div>
       </section>
 

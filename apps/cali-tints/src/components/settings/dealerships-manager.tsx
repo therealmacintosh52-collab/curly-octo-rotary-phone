@@ -32,6 +32,7 @@ type Draft = {
   invoice_mode: InvoiceMode;
   tax_percent: string;
   active: boolean;
+  retail: boolean;
 };
 
 const empty: Draft = {
@@ -49,6 +50,7 @@ const empty: Draft = {
   invoice_mode: "batch",
   tax_percent: "",
   active: true,
+  retail: false,
 };
 
 function toDraft(d: Dealership): Draft {
@@ -68,6 +70,7 @@ function toDraft(d: Dealership): Draft {
     invoice_mode: d.invoice_mode,
     tax_percent: d.tax_rate === null ? "" : String(Number(d.tax_rate) * 100),
     active: d.active,
+    retail: d.retail,
   };
 }
 
@@ -140,6 +143,7 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
         invoice_mode: f.invoice_mode,
         tax_rate: f.tax_percent.trim() === "" ? null : Number(f.tax_percent) / 100,
         active: f.active,
+        retail: f.retail,
       });
       if (r.ok) {
         toast.success("Dealership saved");
@@ -212,6 +216,13 @@ function DealershipSheet({ draft, onClose }: { draft: Draft; onClose: () => void
             <div className="grid gap-1.5">
               <Label htmlFor="d-tax">Tax rate (%)</Label>
               <Input id="d-tax" type="number" step="0.001" min="0" value={f.tax_percent} onChange={set("tax_percent")} placeholder="Company default" />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+              <div>
+                <div className="text-sm font-medium">Retail location (the shop)</div>
+                <div className="text-xs text-muted-foreground">Walk-in customers paid at the counter on the Clover. Jobs here are never put on a monthly invoice or into QuickBooks by the app.</div>
+              </div>
+              <Switch checked={f.retail} onCheckedChange={(v) => setF((s) => ({ ...s, retail: v }))} data-testid="dealership-retail" />
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
               <div>

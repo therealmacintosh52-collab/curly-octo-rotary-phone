@@ -46,7 +46,7 @@ Add and verify the sending domain (DNS records), create an API key, set `EMAIL_F
 1. Supabase → Authentication → Users → *Add user* with Mike's email and a temporary password. The first user becomes the owner automatically (`handle_new_user`).
 2. Mike signs in at `https://app.calitints.com`, changes the password (Forgot password → reset email), reads the guide that opens on first sign-in.
 3. Settings → Company: name, address, EIN, billing email, logo, timezone. Monthly invoicing: *Email each month's invoice automatically* on. Tax rate 0 unless a dealership requires tax.
-4. Settings → Dealerships: each dealership's AP contact and email(s).
+4. Settings → Dealerships: each dealership's AP contact and email(s). The shop (*Cali Tint · Fulton Ave*) is seeded as the **Retail** location: walk-in jobs logged there are paid at the counter on the Clover and never invoiced. Fix its street number.
 5. Settings → Services & prices: check the menu and prices; per-dealership prices in the grid.
 6. Settings → Users: add every employee. Roles: Detailer for the team, Manager for a lead who should see every job, Admin for someone who runs Settings without money. Only Mike is Owner.
 
@@ -63,7 +63,7 @@ Add and verify the sending domain (DNS records), create an API key, set `EMAIL_F
 
 1. Clover developer account; request production access; order a **Flex Dev Kit**.
 2. Build the release APK: GitHub → Actions → *Cali Tints Clover app* → Run workflow with `app_url = https://app.calitints.com`, version `1.0.0`, code `1` (set the signing secrets first; see `apps/cali-tints-clover/README.md`).
-3. Create the private Android app in the Developer Dashboard (package `com.calitints.clover`, no Clover permissions, privacy/terms URLs, screenshots), upload the APK, test on the Dev Kit with `apps/cali-tints-clover/SUBMISSION.md`'s checklist, record the demo video, submit.
+3. Create the private Android app in the Developer Dashboard (package `com.calitints.clover`, the **Payments** permission only, for *Collect on this Clover* on retail jobs; privacy/terms URLs, screenshots), upload the APK, test on the Dev Kit with `apps/cali-tints-clover/SUBMISSION.md`'s checklist, record the demo video, submit.
 4. After approval, add Mike's merchant id; Mike installs the app on every Flex from More Tools → App Market → Cali Tints. Employees sign in once per device.
 
 Until the Clover app is approved, the team can use the web app on their phones (Add to Home Screen) with the same logins; nothing changes later except the device.

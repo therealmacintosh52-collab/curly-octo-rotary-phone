@@ -43,6 +43,9 @@ object BridgeJson {
     /** Messages the web app understands (see src/lib/native/clover.ts). */
     fun scanOk(text: String): String = obj("ok" to true, "text" to text)
     fun scanError(error: String, code: String = "error"): String = obj("ok" to false, "error" to error, "code" to code)
+    fun payOk(paymentId: String, amountCents: Long, tender: String?, last4: String?): String =
+        obj("ok" to true, "paymentId" to paymentId, "amountCents" to amountCents, "tender" to tender, "last4" to last4)
+    fun payError(error: String, code: String = "error"): String = obj("ok" to false, "error" to error, "code" to code)
     fun info(version: String, device: String, clover: Boolean, cameraGranted: Boolean): String =
         obj("app" to "cali-tints-clover", "version" to version, "device" to device, "clover" to clover, "camera" to cameraGranted)
 }

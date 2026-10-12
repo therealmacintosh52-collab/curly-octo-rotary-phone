@@ -35,7 +35,7 @@ export default async function NewInvoicePage(props: PageProps<"/invoices/new">) 
   const session = await requireOwner();
   const supabase = await createClient();
 
-  const { data: dealerships } = await supabase.from("dealerships").select("*").eq("active", true).order("name");
+  const { data: dealerships } = await supabase.from("dealerships").select("*").eq("active", true).eq("retail", false).order("name");
   const list = dealerships ?? [];
   const dealershipId = typeof sp.dealership === "string" && list.some((d) => d.id === sp.dealership) ? sp.dealership : (list[0]?.id ?? null);
   const dealership = list.find((d) => d.id === dealershipId) ?? null;

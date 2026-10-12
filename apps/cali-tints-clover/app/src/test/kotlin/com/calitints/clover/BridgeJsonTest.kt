@@ -22,5 +22,7 @@ class BridgeJsonTest {
             BridgeJson.info("1.0.0", "C403", clover = true, cameraGranted = false),
         )
         assertEquals("{\"n\":3,\"x\":null}", BridgeJson.obj("n" to 3, "x" to null))
+        assertEquals("{\"ok\":true,\"paymentId\":\"P1\",\"amountCents\":20000,\"tender\":\"Credit Card\",\"last4\":\"4242\"}", BridgeJson.payOk("P1", 20000L, "Credit Card", "4242"))
+        assertEquals("{\"ok\":false,\"error\":\"Payment cancelled\",\"code\":\"cancelled\"}", BridgeJson.payError("Payment cancelled", "cancelled"))
     }
 }

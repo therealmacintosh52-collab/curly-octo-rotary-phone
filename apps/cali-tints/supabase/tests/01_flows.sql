@@ -922,3 +922,46 @@ begin
   assert (select count(*) from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where price is not null) = 0, '0033: price list still blank for a manager';
 end $$;
 select pg_temp.logout();
+
+-- 0034: the shop. Retail jobs are never invoiced; they are paid at the counter.
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare j public.jobs; c jsonb;
+begin
+  assert (select retail from public.dealerships where id = '00000000-0000-4000-8000-000000000103'), '0034: the shop is a retail location';
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000103', 'tag_number', 'RET1', 'color', 'Red',
+        'performed_at', date_trunc('month', now()) - interval '5 days',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201'))));
+  c := public.retail_charge(j.id);
+  assert (c ->> 'amount_cents')::bigint = 20500, '0034: the counter charge is the list price in cents: ' || (c ->> 'amount_cents');
+  insert into t_ids values ('ret_job', j.id);
+  begin
+    perform public.record_retail_payment(j.id, 205, 'cash', null);
+    raise exception 'expected cash to be owner/admin only';
+  exception when sqlstate '42501' then null; end;
+  perform public.record_retail_payment(j.id, 205, 'clover', 'PAY123');
+  assert (select paid_at from public.jobs where id = j.id) is not null and (select payment_ref from public.jobs where id = j.id) = 'PAY123', '0034: the Clover payment is on the job';
+  begin
+    perform public.retail_charge(j.id);
+    raise exception 'expected already paid';
+  exception when sqlstate 'P0001' then null; end;
+  assert (public.jobs_filtered(p_q => 'RET1') -> 'rows' -> 0 ->> 'retail')::boolean and (public.jobs_filtered(p_q => 'RET1') -> 'rows' -> 0 ->> 'paid_at') is not null, '0034: the list knows retail and paid';
+end $$;
+select pg_temp.logout();
+select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.close_month('00000000-0000-4000-8000-000000000001', current_date);
+  assert (select invoice_id from public.jobs where id = (select v from t_ids where k = 'ret_job')) is null, '0034: the month close leaves retail jobs alone';
+end $$;
+select set_config('request.jwt.claims', '', false);
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+begin
+  begin
+    perform public.invoice_now('00000000-0000-4000-8000-000000000103');
+    raise exception 'expected invoice_now to refuse the shop';
+  exception when sqlstate 'P0001' then null; end;
+end $$;
+select pg_temp.logout();

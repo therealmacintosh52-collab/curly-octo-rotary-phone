@@ -18,7 +18,7 @@ export default function DevSettingsPreview() {
     id, company_id: company.id, name, description: null, category, default_price: price, price_min: range?.[0] ?? null, price_max: range?.[1] ?? null, active, sort_order: sort, created_at: "", updated_at: "",
   });
   const services = [svc("s1", "PDI", "new", 60, 10), svc("s2", "Sold", "new", 20, 20), svc("s3", "Used", "used", 200, 30), svc("s4", "Service Loaner Detail", "service", 125, 40), svc("s5", "Touch Up Detail", "addon", 30, 50, [20, 40]), svc("s6", "Tint Removal", "addon", 40, 60), svc("s7", "Paint Correction (1-step)", "addon", 50, 70, [40, 60]), svc("s8", "Other", "addon", 0, 80, [0, 100000])];
-  const dealerships = [dealership, { ...dealership, id: "d2", name: "Mercedes-Benz of Sacramento", invoice_mode: "per_job" as const, submission_method: "portal" as const, ap_emails: [] }];
+  const dealerships = [dealership, { ...dealership, id: "d2", name: "Mercedes-Benz of Sacramento", invoice_mode: "per_job" as const, submission_method: "portal" as const, ap_emails: [] }, { ...dealership, id: "d3", name: "Cali Tint · Fulton Ave", address_line1: "Fulton Ave", city: "Sacramento", postal_code: "95825", ap_emails: [], submission_method: "paper" as const, retail: true }];
   const users: Profile[] = [
     profile,
     { ...profile, id: "u4", role: "admin", full_name: "Manny", email: "manny@example.com" },

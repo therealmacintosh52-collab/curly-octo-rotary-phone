@@ -28,6 +28,12 @@ values
    'portal', 'per_job', null)
 on conflict (id) do nothing;
 
+-- The shop itself: walk-in retail customers, paid at the counter on the Clover (never invoiced monthly).
+insert into public.dealerships (id, company_id, name, address_line1, city, state, postal_code, ap_emails, submission_method, invoice_mode, retail)
+values ('00000000-0000-4000-8000-000000000103', '00000000-0000-4000-8000-000000000001',
+        'Cali Tint · Fulton Ave', 'Fulton Ave', 'Sacramento', 'CA', '95825', array[]::text[], 'paper', 'batch', true)
+on conflict (id) do nothing;
+
 -- The dealer menu, grouped the way the dealership buys the work:
 --   new     – PDI on arrival, delivery clean when sold
 --   used    – used-car reconditioning

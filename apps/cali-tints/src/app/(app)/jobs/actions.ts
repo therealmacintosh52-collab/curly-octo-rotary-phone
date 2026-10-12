@@ -113,3 +113,23 @@ export async function deletePhotoAction(photoId: string, jobId: string): Promise
   revalidateJob(jobId);
   return { ok: true, data: undefined };
 }
+
+// --- Retail (the shop): paid at the counter ------------------------------------
+
+/** What the Clover should charge for this retail job. Any member who can see the job (the Clover shows the amount anyway). */
+export async function retailChargeAction(jobId: string): Promise<ActionResult<{ amount_cents: number; tag: string }>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("retail_charge", { p_job_id: jobId });
+  if (error) return { ok: false, error: errorMessage(error) };
+  return { ok: true, data: { amount_cents: Number(data.amount_cents), tag: data.tag } };
+}
+
+/** Write the counter payment on the job: the Clover's result (anyone) or cash/check (owner, admin; the RPC checks). */
+export async function recordRetailPaymentAction(jobId: string, input: { amount: number; method: "clover" | "cash" | "check" | "other"; reference?: string | null }): Promise<ActionResult> {
+  if (!(input.amount > 0)) return { ok: false, error: "Amount must be positive" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_retail_payment", { p_job_id: jobId, p_amount: Math.round(input.amount * 100) / 100, p_method: input.method, p_reference: input.reference ?? null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidateJob(jobId);
+  return { ok: true, data: undefined };
+}

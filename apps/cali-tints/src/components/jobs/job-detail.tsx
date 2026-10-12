@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { JobActions } from "./job-actions";
 import { JobPhotos } from "./job-photos";
+import { RetailPayment, type RetailPaymentInfo } from "./retail-payment";
 import type { EditableCar } from "./edit-car-sheet";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,9 @@ export interface JobDetailProps {
     invoice: { id: string; display_number: string; status: string } | null;
     /** The QuickBooks invoice number this job sits on (live, kept by the app). */
     quickbooks_doc_number?: string | null;
+    /** The shop's own walk-in job: paid at the counter, never invoiced. */
+    retail?: boolean;
+    payment?: RetailPaymentInfo;
     deleted_at: string | null;
     deleted_reason: string | null;
     created_at: string;
@@ -47,7 +51,19 @@ export function JobDetail(p: JobDetailProps) {
   const inv = job.invoice;
   const paid = inv?.status === "paid";
 
-  const steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[] = [
+  const retail = !!job.retail;
+  const paidAtCounter = !!job.payment?.paid_at;
+  const steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[] = retail
+    ? [
+        { label: "Logged", detail: `${formatDate(job.performed_at)}${job.detailer_name ? ` · ${job.detailer_name}` : ""} · ${job.dealership_name}`, state: "done" },
+        deleted
+          ? { label: "Deleted", detail: `${formatDate(job.deleted_at)}${job.deleted_reason ? ` · ${job.deleted_reason}` : ""} · in the archive`, state: "off" }
+          : paidAtCounter
+            ? { label: "Paid at the counter", detail: `${job.payment?.payment_method === "clover" ? "Card on the Clover" : job.payment?.payment_method === "cash" ? "Cash" : job.payment?.payment_method === "check" ? "Check" : "Paid"} · ${formatDate(job.payment!.paid_at!)}`, state: "done" }
+            : { label: "Collect at the counter", detail: "Retail customer: card on the Clover, or cash / check", state: "now" },
+        { label: "Done", detail: paidAtCounter ? "Nothing else to do" : "—", state: deleted ? "off" : paidAtCounter ? "done" : "todo" },
+      ]
+    : [
     { label: "Logged", detail: `${formatDate(job.performed_at)}${job.detailer_name ? ` · ${job.detailer_name}` : ""} · ${job.dealership_name}`, state: "done" },
     deleted
       ? { label: "Deleted", detail: `${formatDate(job.deleted_at)}${job.deleted_reason ? ` · ${job.deleted_reason}` : ""} · in the archive`, state: "off" }
@@ -76,7 +92,8 @@ export function JobDetail(p: JobDetailProps) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-title tracking-wide">{title}</h1>
-            {deleted ? <Badge variant="destructive">Deleted</Badge> : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
+            {deleted ? <Badge variant="destructive">Deleted</Badge> : retail ? (paidAtCounter ? <Badge variant="success">Paid</Badge> : <Badge variant="warning">Collect</Badge>) : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
+            {retail && <Badge variant="muted">Retail</Badge>}
             {canSeeMoney && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
           </div>
         </div>
@@ -184,6 +201,7 @@ export function JobDetail(p: JobDetailProps) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
+          {retail && job.payment && <RetailPayment jobId={job.id} payment={job.payment} canRecordByHand={isAdmin && canSeeMoney} showMoney={canSeeMoney} open={!deleted} />}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

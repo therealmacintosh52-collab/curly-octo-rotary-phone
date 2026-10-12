@@ -40,7 +40,19 @@ class CaliCloverBridge(private val activity: MainActivity, private val web: WebV
         activity.runOnUiThread { activity.ensureCameraPermission(null) }
     }
 
-    private fun reply(requestId: String, json: String) {
+    /** Take a card payment on this Clover (a retail job at the counter): opens Clover's own payment screen. */
+    @JavascriptInterface
+    fun pay(requestId: String, amountCents: String, externalId: String, note: String) {
+        val cents = amountCents.toLongOrNull()
+        if (cents == null || cents <= 0L) {
+            reply(requestId, BridgeJson.payError("Amount must be positive", "error"))
+            return
+        }
+        activity.runOnUiThread { activity.startPayment(requestId, cents, externalId, note) }
+    }
+
+    /** Also used by the activity for payment results. */
+    fun reply(requestId: String, json: String) {
         web.post {
             web.evaluateJavascript("window.__caliCloverReply && window.__caliCloverReply(${BridgeJson.str(requestId)}, $json);", null)
         }
