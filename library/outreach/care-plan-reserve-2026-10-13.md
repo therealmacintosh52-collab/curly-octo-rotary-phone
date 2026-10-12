@@ -15,7 +15,7 @@ Includes (owner confirms each is deliverable): hosting for the site, text edits 
 
 ## Message (one text or DM to each past client)
 ```
-Hi [CLIENT NAME], it's [YOUR NAME]. Thanks again for working with me. I offer a monthly care plan: hosting, text edits up to 30 min, and a monthly site check, $59/month, cancel any time by text. Want details? Reply STOP and I won't message about this again.
+Hi [CLIENT NAME], it's [YOUR NAME]. Thanks again for working with me. I offer a monthly care plan: hosting, text edits up to 30 min, and a monthly site check, $59/month, cancel any time by text. Want details? Reply YES. To opt out, reply STOP.
 ```
 
 ## If they say yes (reply-only)

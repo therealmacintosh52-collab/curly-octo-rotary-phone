@@ -32,7 +32,7 @@ If A-004 Q1 confirms a client paid and agreed to be shown, swap "sample builds, 
 Other option: $590 once covers the site build plus a year of hosting and small text edits [OWNER CONFIRMS SCOPE]. It does not renew by itself; I text you 14 days before it ends and you choose. Terms below. Reply STOP anytime.
 ```
 
-## Terms line (must appear in the message or a linked page BEFORE payment, C7)
+## Terms line (must appear in the two text messages BEFORE payment, C7)
 ```
 Terms: Site price $450 total: $150 deposit now, $300 after you approve the preview. Nothing is published until you approve it. [OWNER DECIDES: refund rule, e.g. "Cancel before the preview and I refund the deposit in full; after the preview the deposit covers the work done."] Annual option: $590 for one year, no automatic renewal; cancel any time by texting me at [YOUR NUMBER] [OWNER DECIDES: pro-rata refund?]. Domain name, if you need one, is extra and billed at cost [OWNER CONFIRMS]. You own your content.
 ```

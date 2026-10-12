@@ -63,3 +63,20 @@ Applied all eleven replacements as written, rewriting each file in full (no edit
 
 ## QUALITY SCORE: 4
 All eleven items applied verbatim with measured counts. Not 5: follow-ups still run over 320 after fills (flagged, not changed), and the review-card line numbers in the qa report were wrong.
+
+## Post-PASS advisory fixes (attempt 2)
+Source: qa PASS in `ops/handoffs/T-008-qa-to-orchestrator-a2.md` (advisory items at its l.48 and l.54). Orchestrator instruction. Two one-line edits only. Nothing sent, no Gmail drafts, no other lines touched.
+
+| File:line | Old text | New text | Count |
+|---|---|---|---|
+| `library/outreach/founding-site-offer-2026-10-13.md:35` | "must appear in the message or a linked page BEFORE payment, C7" | "must appear in the two text messages BEFORE payment, C7" (D-022: terms as two messages, no hosted page) | heading line, not a send text |
+| `library/outreach/care-plan-reserve-2026-10-13.md:18` | "Want details? Reply STOP and I won't message about this again." | "Want details? Reply YES. To opt out, reply STOP." | whole message **243 characters** with placeholders as typed (was 257, so −14); under 320 even if both name fills are 25 characters (about 269) |
+
+Count method: hand count by segment, cross-checked as 257 − 14 = 243. No script tool was available in this run, so the count is manual; qa may re-run it.
+
+Open after this fix (not changed here, outside the two named lines):
+- `founding-site-offer-2026-10-13.md:37` terms block is still one block of about 511 characters (qa: 511 raw / ~510 filled). It is over 320 and not yet split into two messages. The split point needs an Orchestrator or owner decision.
+- Other follow-ups over 320 (gbp l.27, ai-search l.29, founding l.26) are unchanged, per qa's advisory.
+
+Self-check: [x] nothing sent · [x] only the two named lines changed · [x] count stated · [x] owned paths only
+Cost: ~40k in / ~5k out tokens est. (estimate), model haiku-5-5
