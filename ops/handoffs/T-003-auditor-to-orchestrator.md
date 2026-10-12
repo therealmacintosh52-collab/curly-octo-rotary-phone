@@ -75,6 +75,4 @@ Auditor does not write `ops/STATE.md`. This line is for the scribe.
 Every row is sourced to a live tool field and quoted, totals are recomputed, and BLEED is raised with an APPROVALS line. Not a 5 because: (a) the orders performance result was read via Grep on a saved file, not as a single clean response; (b) VERIFIED is extended to tool reads and two status values are off-enum; both need orchestrator decisions.
 
 ## Receiver validation (filled by the receiving agent)
-- Input contract met: YES / NO — <orchestrator to fill>
-- Independent score: <1–5> — <orchestrator to fill>
-- Action: ACCEPTED / REJECTED (fixes: …) — <orchestrator to fill>
+Input contract met: YES. Independent score: 4 — live tool reads quoted, totals recomputed, BLEED flagged; two protocol questions raised and ratified as D-011. Action: ACCEPTED

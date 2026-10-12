@@ -16,6 +16,7 @@ Two tables. Approvals carry IDs `A-###`; an agent may act on a hard-gate item on
 | 2026-10-12 | D-009 | Adopt the owner's Revenue Sprint Module; it replaces the Focus Rule. Lanes A/B/C concurrent, experiment cards, daily TODAY.md, profit allocation, scoreboard, never-stop rule (`ops/PROTOCOL.md` §7) | Owner directive 2026-10-12 | Active |
 | 2026-10-12 | D-010 | New records: `ops/IDEAS.md` (scout), `ops/EXPERIMENTS.md` (scribe, from red-team cards), `ops/TODAY.md` (growth). Agent definitions updated accordingly | Required by D-009 | Active |
 | 2026-10-12 | D-011 | VERIFIED extended to live MCP tool reads (tool+field+value+date). Ledger status enum fixed: CONFIRMED / UNCONFIRMED / PENDING / VOID; auditor's `UNVERIFIED-LIVE` renamed UNCONFIRMED | Raised by auditor in T-003 | Active |
+| 2026-10-12 | D-012 | T-001 accepted at score 3 with criterion 3 (25 prospects) waived: WebSearch cannot prove a business lacks a website, so the criterion was unachievable as written (process defect, mine). Replacement rule: prospects list what the snippet shows; has-website is UNKNOWN until the owner checks the Google Maps card. T-002 (red-team lane review) folded into T-006 (idea filter) to save one opus call; the website-service lane is reviewed there as an idea | Scout's honest shortfall report; sprint makes a standalone lane ranking less central | Active |
 
 ## Owner approvals (`A-###`)
 | ID | Asked | Item | Owner answer | Date answered | Scope / expiry |
