@@ -1,11 +1,12 @@
 # Trendlift — Store Status
 
 Per-store status for **Trendlift** (supersedes the earlier "Spacelift"
-concept — see changelog). Updated from live Shopify data whenever the
-store changes; changelog is append-only. Business-wide rules:
+concept — see changelog). Updated from live data whenever the store
+changes; changelog is append-only. Business-wide rules:
 [`../../DROPSHIP-OS-MASTER.md`](../../DROPSHIP-OS-MASTER.md).
 
-**Last verified against live store:** 2026-06-11
+**Last verified against live data:** 2026-10-12 (Zendrop live; Shopify
+Admin API refused — store frozen, see below)
 
 ## Identity
 
@@ -13,92 +14,96 @@ store changes; changelog is append-only. Business-wide rules:
 |---|---|
 | Brand name | Trendlift |
 | Strategy | Trend-driven seasonal commerce (master doc §3 calendar) |
-| Shopify store | My Store 4 (`ft6xi1-n1.myshopify.com`) — branded replacement pending (preview generation `f4a41235-3dc8-4695-8dc3-a2522708a624`) |
-| Plan / Currency / TZ | Shopify / USD / PDT |
+| Shopify store | My Store 4 (`ft6xi1-n1.myshopify.com`) — **FROZEN** (Admin API: "shop unavailable for API access … billing issue") |
+| Zendrop store id | `3281860` (platform shopify, connection_status 1) |
+| Zendrop plan | Usage-based, ≤20 products, $29/month, billed via Shopify; trial used (ended 2026-06-13) |
+| Plan / Currency / TZ | Shopify / USD / PDT (as of June; plan state unknown while frozen) |
 | Contact email | [contact email — kept out of this public repo] |
 
 ## Lifecycle stage
 
-**Pre-launch, campaign-first.** Active campaign: Father's Day 2026
-(June 21). Zero orders, zero customers.
+**Dormant / frozen.** No campaign ever launched. Lifetime orders 0,
+customers 0, revenue $0. Father's Day 2026 closed without going live
+(activation gates were never cleared).
 
-## Active campaign — Father's Day 2026
+## Live state — 2026-10-12
 
-- Smart collection: **Father's Day Gift Shop**
-  (`gid://shopify/Collection/469897969913`), rule `tag = fathers-day-2026`
-- Order-by cutoff for standard shipping: ~June 12–13; late-gift angle after
+**Shopify.** Every Admin call returns `operation_not_allowed: This shop is
+unavailable for API access. The merchant may need to resolve a billing
+issue or upgrade their plan`. Per Shopify's API docs this is the frozen
+state (HTTP 402: "The shop is frozen. The shop owner will need to pay the
+outstanding balance to unfreeze the shop"). Per Shopify Help, a store
+frozen more than 30 days also has to pick a plan and pay the next cycle
+on reactivation. Zendrop's Shopify-billed charges were **canceled on
+2026-08-10 and 2026-09-09**, which is consistent with the store having
+been frozen since early August (≥ 60 days). Nothing in the store can be
+read or changed until the owner reactivates it.
 
-| Product | SKU | Est. price | Status | Gate to activate |
-|---|---|---|---|---|
-| Whiskey Stones Gift Set | FD26-WSK-01 | $24.95 | Draft | supplier cost + images |
-| Wireless Meat Thermometer | FD26-THM-02 | $39.95 | Draft | supplier cost + images |
-| 14-in-1 Pocket Multitool | FD26-MLT-03 | $22.95 | Draft | supplier cost + images |
-| Magnetic Tool Wristband | FD26-MAG-04 | $16.95 | Draft | supplier cost + images |
-| Mini Massage Gun | FD26-MSG-05 | $49.95 | Draft | supplier cost + images |
+**Zendrop** (live). Full quote sheet with landed costs:
+`dropship-os/suppliers/zendrop-quotes-2026-10-12.md`.
 
-All five carry `price-estimate` — prices are 3× *estimated* landed cost
-and must be confirmed against real supplier quotes before activation.
+| Item | Value |
+|---|---|
+| Products pushed into store by Zendrop (`in_store`) | 9 — 1 wireless thermometer (Amazon relist, $71.36 cost), 1 instant-read thermometer (**no longer in catalog**), 1 massage gun (BeNat, $26.60 landed, 1-day), 1 hammer-hatchet multitool ($28.58 landed, 6-day), 5 licensed NFL/NCAA BBQ sets ($30–66 landed) |
+| Store products with no supplier (`unlinked`) | 11 — the 5 FD26 drafts, Galaxy Star Projector, Desk Drawer Organizer, Bamboo Laptop Riser, 3-Tier Rolling Cart, 2× Bamboo Lazy Susan |
+| Products clearing the 3× floor at a sellable price | **0 of 9** |
+| Orders / revenue / units (lifetime) | 0 / $0 / 0 |
+| Subscription charges | Jun $29 billed · Jul $29 billed · Aug canceled · Sep canceled · Oct 9 $29 pending |
 
-## Launch blockers (store-wide)
+**Gmail** connector returned Forbidden on search this session — support
+inbox not checked. **Upwork** not needed.
 
-- [ ] Claim new branded store from previews (or rebrand current store) —
-      owner decision
-- [ ] Supplier quotes for the 5 FD products (US-stock/fast-ship only)
-- [ ] Product images for all 5 (min 5 each)
-- [x] Legacy product handled: Bamboo Lazy Susan set to DRAFT (2026-06-11,
-      after owner reconnected Shopify) — no more $0.00 active product
-- [x] Shopify re-authorization — owner reconnected 2026-06-11; still
-      store "My Store 4". **Decision: run Father's Day on the current
-      store; new-store/rebrand revisited after the campaign**
-- [ ] Supplier quotes — shopping list ready:
-      `dropship-os/suppliers/fd26-sourcing-list.md` (max landed costs +
-      per-quote checklist; owner needs platform accounts to pull quotes)
-- [x] Policies pages: About, Shipping Policy, Refunds & Returns created;
-      Contact rewritten (2026-06-11). Note: official Settings→Policies
-      slots couldn't be set via API (missing `write_legal_policies`
-      scope) — owner should paste the page text there or link the pages
-      in footer navigation
-- [x] First-order discount: **DAD10** — 10%, all customers, active
-      (gid://shopify/DiscountCodeNode/1525905064185)
-- [x] Navigation wired via menu API (2026-06-11): main menu now Home /
-      Father's Day Gift Shop / All Products / About / Contact; footer
-      now includes Shipping Policy + Refunds & Returns
-- [x] Ad creative pack written: `dropship-os/marketing/fd26-ad-creative.md`
-      (3 hooks per product, deadline lines, email popup copy, organic
-      posting plan)
-- [ ] Shopify Payments confirmed live
-- [ ] **Owner verdict: live product images look fake — replace with real
-      photos.** Fastest route: re-push full original galleries from the
-      Zendrop/CJ apps (owner, ~10 min). Full plan incl. reverse-image
-      tools and sample-photo upgrade:
-      `dropship-os/suppliers/fd26-real-photos-playbook.md`
-- [ ] **HARD BLOCKER — products can't activate without real supplier
-      costs + photos.** All autonomous routes exhausted (Zendrop UI not
-      reachable by agent; Zendrop API blocked by environment network
-      allowlist; AliExpress/CJ/Doba public pages bot-blocked, HTTP 403).
-      Remaining routes are owner-only: (a) 5 clicks per product in
-      Zendrop (search → US filter → ≤max cost → Import → Push), or
-      (b) grant network access to a supplier API in a future session.
-- [x] Printable Father's Day gift-note for the late-gift angle —
-      `dropship-os/assets/fathers-day-gift-note.html` (letter landscape,
-      fold-in-half card)
+## What the docs said vs. what is true
+
+The June docs recorded "no suppliers on file" and "Zendrop unreachable".
+In reality nine Zendrop products were pushed into the store around June
+11–13 (store ids `10089467…`–`10089494…`, between the FD drafts and the
+Spacelift leftovers), never recorded here, and none are economically
+viable under §5. Three Spacelift products were also created *after* the
+pivot (mid-June). The Zendrop MCP connector now exists, so supplier cost
+and shipping data is readable without the owner's clicks.
+
+## Blockers (in order)
+
+- [ ] **Owner: reactivate the Shopify store** — log in as account owner,
+      pay every outstanding invoice (Shopify prompts per invoice; app
+      fees from the frozen period count too), and if frozen >30 days
+      choose a plan and pay the upcoming cycle. Nothing else can start
+      before this. Reference: https://help.shopify.com/en/manual/your-account/frozen-store
+- [ ] **Owner: kill-or-commit decision** (see master doc §2). Zendrop
+      bills $29/month with zero revenue; if the store stays frozen,
+      cancel the Zendrop subscription instead of letting it retry.
+- [ ] **Owner: pricing-floor decision** for US-stock Zendrop items
+      (3× impossible on Amazon relists) — China-direct, relaxed floor,
+      or another supplier network. Details in the quote sheet.
+- [ ] Once unfrozen: archive/delete the 9 Zendrop pushes and the
+      Spacelift leftovers (destructive — list first, confirm, then do),
+      de-duplicate the Lazy Susan, re-verify policies pages, payments,
+      DAD10 discount, navigation.
+- [ ] Then: BFCM/Christmas candidate sourcing per master doc §2.
+- [x] Policies pages, DAD10 discount, navigation, FD gift note, ad
+      creative pack — built 2026-06-11 (unverifiable while frozen).
 
 ## Suppliers
 
-None on file yet. Candidate platforms for US-stock fast shipping
-(researched 2026-06-11, quotes require accounts): Doba (US warehouses,
-no MOQ — has whiskey-stone suppliers incl. ROCKS brand), CJ Dropshipping
-US warehouse, AliExpress US-warehouse filter. Real landed costs must be
-quoted before any FD product activates.
+**Zendrop** is the only supplier with real quotes on file (9 products,
+all failing the floor) — `dropship-os/suppliers/zendrop-quotes-2026-10-12.md`.
+Non-Amazon US suppliers seen in the Zendrop catalog: BeNat, The Boss
+Store, NexoraUSA, Lush Bath, ChromaGroup, Tropical Seas Clothing,
+ExactFit Solutions. "Zendrop Fulfillment" (CN) carries the trending
+low-cost items. Doba / CJ US warehouse / Spocket remain owner-account
+gated (June research).
 
 ## KPIs
 
-| KPI | Target | Current |
+| KPI | Target | Current (2026-10-12) |
 |---|---|---|
 | Orders (lifetime) | — | 0 |
-| Gross margin | ≥60% | n/a |
-| Conversion rate | ≥1.5% | n/a |
+| Revenue (lifetime) | — | $0 |
+| Gross margin | ≥60% | n/a — no viable product |
+| Conversion rate | ≥1.5% | n/a — store frozen, no traffic |
 | AOV | ≥$35 | n/a |
+| Fixed cost burn | — | $29/mo Zendrop (2 billed, 2 canceled, 1 pending) + Shopify plan arrears |
 
 ## Changelog
 
@@ -109,3 +114,7 @@ quoted before any FD product activates.
 | 2026-06-11 | Owner put Claude in charge; strategy pivoted to trend-driven seasonal commerce as **Trendlift**. Spacelift concept superseded; directory renamed. |
 | 2026-06-11 | Father's Day 2026 campaign built: smart collection + 5 draft products (est. prices, `price-estimate` tagged). Second preview set generated for the gifts/trends storefront. |
 | 2026-06-11 | Owner picked the **middle preview** as the new storefront. Pending: owner signs up through its link → reconnect via `switch-shop` → rebuild FD campaign assets in the new store. |
+| 2026-06-11–13 (recorded 2026-10-12) | Nine Zendrop catalog products were pushed into the store (5 licensed BBQ sets, 2 thermometers, hammer hatchet, massage gun) and three Spacelift products re-created. Not logged at the time. |
+| 2026-06-21 | Father's Day passed. Campaign never activated: no supplier costs, no real photos, store never went live. **Closed, no launch.** |
+| ~2026-08 | Store frozen by Shopify (inferred: Zendrop's Shopify-billed charges canceled 08-10 and 09-09; Admin API refuses as of 10-12). |
+| 2026-10-12 | Full live audit via Zendrop MCP + Shopify MCP (refused). First real landed costs recorded; 0/9 products viable at 3×. Docs refreshed; lifecycle set to dormant/frozen; owner decisions queued (reactivate, kill-or-commit, pricing floor). |

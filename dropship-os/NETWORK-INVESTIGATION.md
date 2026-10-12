@@ -1,5 +1,12 @@
 # Network & Sourcing-Access Investigation
 
+> **Superseded 2026-10-12.** A **Zendrop MCP server** is now connected to
+> the session (option 2 below came true). Catalog costs, US shipping
+> estimates, store products, orders and billing are readable without
+> owner clicks. The egress-allowlist findings below still hold for raw
+> HTTP, but sourcing is no longer blocked. First real quotes:
+> `suppliers/zendrop-quotes-2026-10-12.md`.
+
 **Date:** 2026-06-11 · **Question:** can the agent reach a supplier
 (Zendrop / CJ / AliExpress / Doba) to pull product costs and photos
 autonomously, bypassing the manual app workflow?

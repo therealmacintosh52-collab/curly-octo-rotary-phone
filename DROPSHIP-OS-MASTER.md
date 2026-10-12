@@ -4,7 +4,7 @@ The single source of truth for running this dropshipping business. Every
 session, decision, and runbook starts here. Update this file whenever the
 business state changes — it is the operating system, not a one-time plan.
 
-**Last updated:** 2026-06-11
+**Last updated:** 2026-10-12 (live audit: Zendrop read, Shopify frozen)
 
 ---
 
@@ -16,43 +16,77 @@ Live per-store detail lives in `stores/trendlift/STATUS.md`.
 |---|---|
 | Brand name | Trendlift |
 | Strategy | Trend-driven seasonal commerce — ride every gift/trend wave |
-| Current Shopify store | My Store 4 (`ft6xi1-n1.myshopify.com`) — new branded store pending (previews generated) |
+| Current Shopify store | My Store 4 (`ft6xi1-n1.myshopify.com`) — **FROZEN by Shopify** (billing); Admin API refuses every call |
+| Supplier | Zendrop (store id `3281860`), usage-based plan $29/mo, 9 products pushed, **0 viable at 3×** |
 | Plan / Currency / Country / TZ | Shopify / USD / United States / PDT |
 | Contact email | [contact email — kept out of this public repo] |
-| Active campaign | **Father's Day 2026 (June 21)** — 5 draft products + smart collection live |
-| Orders to date | 0 |
+| Active campaign | **None.** Father's Day 2026 closed without launching. Next realistic window: BFCM/Christmas 2026, gated on reactivation by ~Oct 24 |
+| Orders / revenue to date | 0 / $0 (verified via Zendrop 2026-10-12) |
 
 **Model:** instead of one fixed niche, the store runs a rolling calendar
 of seasonal campaigns plus a weekly trend radar. Winners from each wave
 graduate into the evergreen catalog.
 
+**Honest read (2026-10-12):** four months in, the business has generated
+$0, paid or been billed ~$58 to Zendrop (two more charges canceled, one
+pending), and the storefront is frozen for non-payment. The first
+decision in §2 is kill-or-commit, not a product decision.
+
 ---
 
-## 2. ACTIVE CAMPAIGN — Father's Day 2026
+## 2. CAMPAIGN STATE — Father's Day closed; Q4 gated on three owner decisions
 
-Father's Day is **Sunday, June 21, 2026**. Today is June 11: **10 days**.
+### Father's Day 2026 — post-mortem (closed 2026-06-21, no launch)
 
-**The shipping math is the campaign.** Typical dropship delivery is 8–12
-business days, so orders placed after ~June 12–13 will not arrive by the
-21st unless the supplier ships from US stock. The plan works around that:
+- Built: smart collection, 5 drafts, policies, DAD10, nav, gift note,
+  ad creative. Never cleared the gates: no real supplier costs, no real
+  photos, store never live. Zero traffic, zero orders.
+- Root cause: sourcing depended on owner clicks in Zendrop that never
+  happened, and the agent had no supplier read access. (Fixed since:
+  the Zendrop MCP connector is live — see `dropship-os/CLAUDE.md`.)
+- Side effect never recorded in June: nine Zendrop products (licensed
+  NFL/NCAA BBQ sets, two thermometers, a hammer hatchet, a massage gun)
+  were pushed into the store and sit there with Amazon-retail costs.
+  Landed costs: `dropship-os/suppliers/zendrop-quotes-2026-10-12.md`.
+
+### Owner decisions required before anything else (in order)
+
+1. **Reactivate or close the Shopify store.** Frozen = pay every
+   outstanding invoice as account owner; frozen >30 days = also pick a
+   plan and pay the next cycle (Shopify Help: frozen-store page). If the
+   answer is close, also cancel the Zendrop subscription so the $29/mo
+   stops retrying.
+2. **Kill or commit.** Commit means: reactivate by **Oct 24**, accept a
+   real test budget (§4: $10–20/day per product × 3–5 products), and
+   run BFCM → Christmas as one campaign. Anything later than Oct 24
+   misses BFCM prep (T-30 = Oct 28) and the next honest window is
+   Valentine's (prep Jan 15, 2027).
+3. **Pricing floor for US-stock.** Zendrop's US-stock catalog is mostly
+   "Amazon Products" relistings at Amazon retail; 3× is impossible
+   there. Options: (a) China-direct "Zendrop Fulfillment" items (costs
+   $0.50–$13, 2–3 week transit — fine for BFCM-to-Christmas, not for
+   late-December promises); (b) relax the floor to ~2× for US-stock
+   only (violates §5 as written — explicit approval needed); (c) another
+   US-stock network (Doba/CJ US/Spocket, owner-account gated).
+
+### If "commit": BFCM → Christmas 2026 plan
+
+Today is Oct 12. Halloween (Oct 31) is skipped — 19 days out, store
+frozen, no viable product.
 
 | Window | Play |
 |---|---|
-| Jun 11–12 | Get supplier quotes (US warehouse / fast shipping ONLY), finalize prices at ≥3× landed, add images, activate the 5 products |
-| Jun 12–14 | Launch ads + organic with explicit "order by" deadline messaging |
-| Jun 15–18 | Shift creative to the late-gift angle: "it ships after Father's Day — print this gift note so there's something to unwrap" (free printable card with every order) |
-| Jun 19–21 | Last-call: digital gift cards only |
-| Jun 22+ | Post-mortem in the decision log; graduate winners to evergreen; retire the rest |
+| Oct 12–24 | Owner reactivates store. Agent: archive the 9 Zendrop pushes + Spacelift leftovers (confirm list first), re-verify policies/payments/nav, shortlist 5 China-direct candidates from Zendrop trending with ≥3× at a sellable price, pull landed cost + US transit for each |
+| Oct 24–Nov 8 | Push the 5 shortlisted via Zendrop (real photos come with them), write 3 hooks each, build "Holiday Gift Shop" smart collection (tag `holiday-2026`), set gift-deadline copy from each item's real transit |
+| Nov 9–12 | Soft launch: $10–20/day per product, organic short-form, judge cost-per-checkout-initiated |
+| Nov 13–26 | Kill at ~$50 spend with no ATCs; scale winners +20–30%/2–3 days; BFCM offer capped at 20% (§5) |
+| Nov 27–30 | BFCM. Order-by date for Christmas arrival = Dec 25 minus the supplier's quoted transit minus 3 days buffer — stated on every product page |
+| Dec 1–cutoff | Christmas push; switch to "arrives after Christmas — printable gift note" angle once cutoff passes (reuse `dropship-os/assets/` pattern), then digital gift cards |
+| Jan 2027 | Post-mortem in the decision log; graduate winners; Valentine's prep Jan 15 |
 
-**Campaign assets in Shopify (created 2026-06-11):**
-- Smart collection **"Father's Day Gift Shop"** (`gid://shopify/Collection/469897969913`) — auto-includes any product tagged `fathers-day-2026`
-- 5 draft products (vendor Trendlift, tagged `fathers-day-2026`,
-  `stage:research`, `price-estimate`): Whiskey Stones Gift Set $24.95 ·
-  Wireless Meat Thermometer $39.95 · 14-in-1 Multitool $22.95 · Magnetic
-  Tool Wristband $16.95 · Mini Massage Gun $49.95
-
-**Blocking before activation:** real supplier landed costs (replace the
-`price-estimate` tag), product images, store payments/policies live.
+**Hard gates (unchanged):** no activation with `price-estimate`; no
+$0.00 active product; US-stock or stated transit on every page; two
+suppliers per winner before scaling.
 
 ## 3. TREND RADAR — catching every wave
 
@@ -62,12 +96,12 @@ The permanent system behind "first Father's Day, then all the trends."
 
 | Campaign | Date | Prep starts (T-30) | Ads start (T-14) |
 |---|---|---|---|
-| Father's Day | Jun 21, 2026 | (compressed — active now) | now |
-| 4th of July | Jul 4, 2026 | overlaps FD — start Jun 15 | Jun 20 |
-| Back to School | mid-Aug | Jul 15 | Aug 1 |
-| Halloween | Oct 31 | Oct 1 | Oct 17 |
-| BFCM | Nov 27–30 | Oct 28 | Nov 13 |
-| Christmas | Dec 25 | Nov 10 (ship cutoffs!) | Dec 1 |
+| Father's Day | Jun 21, 2026 | — | — (closed, never launched) |
+| 4th of July | Jul 4, 2026 | skipped (store frozen) | — |
+| Back to School | mid-Aug | skipped (store frozen) | — |
+| Halloween | Oct 31 | **skipped** — 19 days out on Oct 12, store frozen | — |
+| BFCM | Nov 27–30 | **Oct 28** — needs store live by Oct 24 | Nov 13 |
+| Christmas | Dec 25 | Nov 10 (ship cutoffs! CN-direct ~Dec 5, US-stock ~Dec 17) | Dec 1 |
 | Valentine's Day | Feb 14, 2027 | Jan 15 | Jan 31 |
 | Mother's Day | May 9, 2027 | Apr 9 | Apr 25 |
 
@@ -115,6 +149,11 @@ Stages tracked as Shopify product tags: `stage:research`,
 
 ## 6. Fulfillment & suppliers
 
+- **Zendrop is the connected supplier** (MCP: `mcp__zendrop__*`). Read
+  cost + US shipping + transit before any price is set; record every
+  quote in `dropship-os/suppliers/`. US-stock "Amazon Products" relists
+  cannot meet §5 — see the 2026-10-12 quote sheet.
+
 - Two suppliers per winning product (primary + backup), cost/time/contact
   recorded.
 - Max delivery promise 12 business days — for seasonal campaigns the real
@@ -158,8 +197,8 @@ Review weekly (Mondays), together with the trend scan.
 
 | KPI | Target | Current |
 |---|---|---|
-| Gross margin | ≥60% | n/a (estimates pending supplier quotes) |
-| Conversion rate | ≥1.5% | n/a (no traffic) |
+| Gross margin | ≥60% | n/a — 0 of 9 sourced products viable at 3× (2026-10-12) |
+| Conversion rate | ≥1.5% | n/a — store frozen, no traffic |
 | Average order value | ≥$35 | n/a |
 | Refund rate | <5% | n/a |
 | Chargeback rate | <0.5% | n/a |
@@ -175,6 +214,10 @@ Review weekly (Mondays), together with the trend scan.
 | 2026-06-11 | Built FD campaign: smart collection + 5 draft gift products at estimated 3× prices | Capture the window; activation gated on real supplier costs + images |
 | 2026-06-11 | Generated second preview set (Father's Day gifts / trending products, bold masculine style) | Match the storefront to the new strategy |
 | 2026-06-11 | Owner chose the MIDDLE preview as the new storefront | "I love the middle website" — owner to claim it via its signup link; store gets rebuilt there once it exists |
+| 2026-10-12 | **Father's Day 2026 closed as a no-launch**; 4th of July, Back to School, Halloween skipped | Gates never cleared; store frozen by Shopify since ~Aug (Admin API refuses; Zendrop's Shopify-billed charges canceled Aug/Sep) |
+| 2026-10-12 | Recorded the 9 Zendrop products pushed in June and their real landed costs; **all 9 fail the 3× floor** | First real quotes on file; US-stock Zendrop = Amazon relists at retail parity |
+| 2026-10-12 | Queued three owner decisions ahead of any product work: reactivate-or-close, kill-or-commit (commit = live by Oct 24 for BFCM), pricing floor for US-stock | $0 revenue in 4 months with fixed costs still accruing; a product decision before these is theatre |
+| 2026-10-12 | Zendrop MCP connector adopted as the sourcing channel; June "no autonomous route" finding superseded | Costs, shipping and transit now readable without owner clicks |
 
 ## 11. Operating cadence
 

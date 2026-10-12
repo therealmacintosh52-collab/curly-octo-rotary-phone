@@ -8,61 +8,77 @@ plus live state. Source docs remain authoritative for their areas:
 | `DROPSHIP-OS-MASTER.md` | Business playbook, campaigns, trend radar, decision log |
 | `dropship-os/CLAUDE.md` | Agent instructions & MCP tool map |
 | `stores/trendlift/STATUS.md` | Live store status & changelog |
+| `dropship-os/suppliers/zendrop-quotes-2026-10-12.md` | Real landed costs from Zendrop (first on file) |
 | `HANDOFF-TO-CLAUDE-AI.md` | Portable context for claude.ai chats |
 
-**Compiled:** 2026-06-11 (recompiled after the Trendlift pivot). When
+**Compiled:** 2026-10-12 (recompiled after the live audit: store frozen,
+Father's Day closed as no-launch, first real supplier costs). When
 source docs change, recompile this file.
 
 ---
 
-# PART 1 — Where things stand right now
+# PART 1 — Where things stand right now (2026-10-12)
 
 **Claude runs this project** (owner delegated, 2026-06-11). Strategy:
-**Trendlift** — trend-driven seasonal commerce. First campaign:
-**Father's Day 2026 (Sunday, June 21 — 10 days out)**, then a rolling
-calendar of seasonal/trend waves.
+**Trendlift** — trend-driven seasonal commerce on a rolling calendar.
 
-**Storefront:** owner reviewed the generated previews and chose **the
-middle one** of the Father's Day/trends generation
-(`f4a41235-3dc8-4695-8dc3-a2522708a624`). Waiting on the owner to claim
-it through its signup link (that creates the real store). Until then,
-campaign assets are staged in the connected store "My Store 4"
-(`ft6xi1-n1.myshopify.com`). Once claimed: `switch-shop` → verify →
-rebuild campaign assets there → repoint all docs.
+**Reality check.** Four months in: $0 revenue, 0 orders, 0 customers.
+The Shopify store **"My Store 4" (`ft6xi1-n1.myshopify.com`) is frozen**
+— every Admin API call returns "shop unavailable for API access …
+billing issue" (Shopify's 402/frozen state; the account owner must pay
+all outstanding invoices, and after 30+ days frozen also pick a plan and
+pay the next cycle). Frozen since ~early August by inference: Zendrop's
+Shopify-billed $29 charges were canceled on Aug 10 and Sep 9.
 
-**Built in Shopify on 2026-06-11:**
-- Smart collection **Father's Day Gift Shop**
-  (`gid://shopify/Collection/469897969913`), rule: tag `fathers-day-2026`
-- 5 DRAFT products, vendor Trendlift, tags `fathers-day-2026` +
-  `stage:research` + `price-estimate`:
-  Whiskey Stones Gift Set (FD26-WSK-01, $24.95) · Wireless Meat
-  Thermometer (FD26-THM-02, $39.95) · 14-in-1 Multitool (FD26-MLT-03,
-  $22.95) · Magnetic Tool Wristband (FD26-MAG-04, $16.95) · Mini
-  Massage Gun (FD26-MSG-05, $49.95)
+**Father's Day 2026 closed without launching** (no supplier costs, no
+real photos, store never live). 4th of July, Back to School and
+Halloween were skipped.
 
-**Gates before going live:** real supplier landed costs (replace
-`price-estimate`), product images, policies pages, payments live, and
-the legacy Bamboo Lazy Susan (still ACTIVE at $0.00) drafted/archived.
+**Zendrop** (connected, store id `3281860`, usage-based $29/mo, trial
+used): nine catalog products were pushed into the store in June and
+never recorded — 5 licensed NFL/NCAA BBQ sets, 2 thermometers (one has
+since vanished from the catalog), a hammer-hatchet multitool, a massage
+gun. Real landed costs $26.60–$71.36; **0 of 9 clear the 3× floor** at
+a sellable price; 8 of 9 are "Amazon Products" relists at Amazon retail.
+Eleven more store products have no supplier link (the 5 FD drafts, a
+star projector, Spacelift leftovers incl. two duplicate Lazy Susans).
+Details: `dropship-os/suppliers/zendrop-quotes-2026-10-12.md`.
 
-# PART 2 — Father's Day 2026 campaign plan
+**Gmail** connector returned Forbidden this session; inbox unchecked.
 
-The shipping math is the campaign: dropship delivery runs 8–12 business
-days, so standard orders placed after ~June 12–13 miss the 21st.
+# PART 2 — Campaign state and the three owner decisions
+
+No active campaign. Before any product work, the owner decides:
+
+1. **Reactivate or close the Shopify store.** If closing, cancel the
+   Zendrop subscription so $29/mo stops retrying.
+2. **Kill or commit.** Commit = store live by **Oct 24** (BFCM prep T-30
+   is Oct 28) with a real test budget ($10–20/day × 3–5 products).
+   Miss that and the next honest window is Valentine's 2027 (prep Jan 15).
+3. **Pricing floor for US-stock.** 3× is arithmetically impossible on
+   Amazon relists. Options: China-direct "Zendrop Fulfillment" (costs
+   $0.50–$13, 2–3 week transit, fine for BFCM-to-Christmas), relax to
+   ~2× for US-stock only (violates §5 as written), or another US-stock
+   network (Doba / CJ US / Spocket — owner accounts).
+
+If "commit" — BFCM → Christmas 2026:
 
 | Window | Play |
 |---|---|
-| Jun 11–12 | Supplier quotes (US-stock/fast-ship only), confirm prices ≥3× landed, images, activate products |
-| Jun 12–14 | Launch ads + organic with explicit "order by" deadline |
-| Jun 15–18 | Late-gift angle: "ships after Father's Day — print this free gift note so there's something to unwrap" |
-| Jun 19–21 | Last call: digital gift cards only |
-| Jun 22+ | Post-mortem; graduate winners to evergreen; retire the rest |
+| Oct 12–24 | Owner reactivates. Agent archives the 9 Zendrop pushes + Spacelift leftovers (confirm first), re-verifies policies/payments/nav, shortlists 5 China-direct candidates with real landed cost + transit |
+| Oct 24–Nov 8 | Push the 5 via Zendrop (real photos), 3 hooks each, "Holiday Gift Shop" smart collection (tag `holiday-2026`), gift-deadline copy from real transit |
+| Nov 9–12 | Soft launch, $10–20/day per product, judge cost per checkout-initiated |
+| Nov 13–26 | Kill at ~$50 with no ATCs; scale winners +20–30%/2–3 days; BFCM offer ≤20% |
+| Nov 27–30 | BFCM; Christmas order-by date = Dec 25 − quoted transit − 3 days, on every page |
+| Dec 1–cutoff | Christmas push → printable gift-note angle after cutoff → digital gift cards |
+| Jan 2027 | Post-mortem; Valentine's prep Jan 15 |
 
 # PART 3 — Trend radar (the permanent system)
 
 ## Seasonal calendar (US) — prep at T-30, ads at T-14
 
-4th of July (Jul 4, prep Jun 15) → Back to School (Aug, prep Jul 15) →
-Halloween (Oct 31, prep Oct 1) → BFCM (Nov 27–30, prep Oct 28) →
+4th of July, Back to School, Halloween — skipped 2026 (store frozen) →
+**BFCM (Nov 27–30, prep Oct 28 — needs store live by Oct 24)** →
 Christmas (Dec 25, prep Nov 10, watch ship cutoffs) → Valentine's
 (Feb 14, prep Jan 15) → Mother's Day (May 9 '27, prep Apr 9) →
 Father's Day (Jun '27).
@@ -113,7 +129,7 @@ KPI + trend scan + decision log; monthly supplier/calendar review.
 
 # PART 5 — Agent instructions (tooling)
 
-Work from live data only. **Shopify:** `search_products`/`get-product`,
+Work from live data only. **Zendrop (supplier):** `get_stores` → store id; `get_my_products` (in_store / unlinked); `get_catalog_products` (`ships_from: US`) / `get_catalog_trending_products`; `get_catalog_product` + `get_catalog_shipping_estimate` (us) = landed cost, record in `dropship-os/suppliers/`; billing via `get_billing_plan` / `get_billing_subscription_invoices`; `import_my_product` only after the price check and owner confirmation. Supplier "Amazon Products" cannot meet the 3× floor. **Shopify:** if a call returns `operation_not_allowed` / "unavailable for API access" the store is frozen — stop and report. `search_products`/`get-product`,
 `create-product`/`update-product` (drafts until complete),
 `list-orders`/`get-order`, `set-inventory`, `run-analytics-query` for
 KPIs, `create-discount`, `graphql_query`/`graphql_mutation` for anything
@@ -126,7 +142,8 @@ for deliberate store moves. **Gmail:** `search_threads`/`get_thread`,
 
 **Guardrails:** no $0.00 active products; no sub-floor prices without
 owner approval; no discounts >20%; confirm destructive ops (archive,
-cancel, refund, bulk) before running; never commit spend.
+cancel, refund, bulk, cancelling the Zendrop subscription) before
+running; never commit spend.
 
 **Docs discipline:** master doc = business truth;
 `stores/trendlift/STATUS.md` = live store state (append-only changelog);
