@@ -18,8 +18,7 @@
     "shots": "node scripts/shots.mjs",
     "overflow": "node scripts/overflow.mjs",
     "hero-check": "node scripts/hero-check.mjs",
-    "compare": "node scripts/compare-images.mjs",
-    "masks": "node scripts/mask-preview.mjs",
+    "splits": "node scripts/split-images.mjs",
     "scroll-check": "node scripts/scroll-check.mjs"
   },
   "dependencies": {

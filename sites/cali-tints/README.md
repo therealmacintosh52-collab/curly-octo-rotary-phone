@@ -16,9 +16,8 @@ node scripts/audit.mjs # gate: exits non-zero on any failure
 node scripts/lh.mjs    # Lighthouse mobile (prints the table)
 npm run contrast       # hero copy vs what is behind it, frame by frame
 node scripts/shots.mjs      # QA screenshots -> qa/
-npm run scroll-check   # sliders wipe + drag, count-up; screenshots + qa/scroll.mp4
-npm run compare        # before/after pairs from the hero frame -> public/assets/img/compare/
-npm run masks          # overlay the traced polygons on the poster to check them
+npm run scroll-check   # reveals, count-up, before/after images load; screenshots + qa/scroll.mp4
+npm run splits         # before/after images from the owner's collage -> public/assets/img/splits/
 npm run video -- clip.mov   # encode a new hero clip to spec + recut posters
 npm run posters        # hero poster set only (jpg/webp/avif)
 node scripts/preview-relative.mjs   # -> dist-preview/ (sub-path safe)
@@ -28,36 +27,38 @@ node scripts/indexnow.mjs --send    # push the sitemap to Bing
 Every business fact lives in `src/data/site.json`. Adding a service or a guide is
 a data change plus `npm run build && npm run og`.
 
-## Before/after sliders and scroll motion
+## Before/after images and scroll motion
 
-**Before/after sliders.** `CompareSlider.astro` stacks two images and clips the
-"before" to the left of `--pos`; a full-size `<input type="range">` is the handle,
-so it works by drag, touch and keyboard. The block starts fully on "before"; as
-it climbs from 85% of the viewport to the middle the scroll wipes it to "after"
-(100% → 0%), a "Scroll ↓ · drag ↔" cue fades once the wipe finishes or the
-visitor touches the handle, and the first touch hands control to the visitor.
-Each service page has one, plus a two-column text difference
-(`Difference.astro`, from `services[].difference`). Three compact sliders sit on
-the home page.
+**Before/after images.** The owner supplied an AI-generated collage of thirteen
+before | after tiles (`src/assets/source/before-after-collage.jpg`, 1792×1008).
+`npm run splits` (`scripts/split-images.mjs`) cuts tiles 1–11 into one image per
+service: the largest 2:1 rectangle below the baked-in BEFORE/AFTER words and above
+the label strip, centred on the tile's own divider, upscaled to 1280×640 and
+written to `public/assets/img/splits/<slug>.{jpg,webp}`. The van in the
+commercial-wraps tile carried another company's mark; the script paints over it
+with the Cali Tints badge, name and phone number. Tiles 12 (dent repair, not a
+service any more) and 13 (headlight restoration, not a service) are skipped.
+`SplitImage.astro` shows the image with our own Before/After pills and a centre
+line; `services[].image` in `site.json` holds the path, alt text and caption.
+Every caption says "AI-generated illustration, not a customer vehicle." The earlier
+drag slider was retired: a slider needs the same framing twice, and each tile's
+halves show different halves of the car. Each service page also has a two-column
+text difference (`Difference.astro`, from `services[].difference`). Three compact
+images sit on the home page.
 
 **Everything else that moves.** Section heads, page heads, split columns, panels,
 the glance card, reviews and FAQs fade up as they enter; checklists and card
 grids stagger; the stat band's 4.9 / 48 / 11 count up once. All of it is GSAP,
 loaded after `load`, skipped under `prefers-reduced-motion`, and nothing is
 hidden until the motion chunk has loaded, so CLS stays 0.
-`npm run scroll-check` verifies each of these and records `qa/scroll.mp4`.
+`npm run scroll-check` verifies the count-up and reveals, checks the before/after
+images load, and records `qa/scroll.mp4`.
 
-**The images are illustrations, and every caption says so.** No photos of
-customer cars exist yet and every stock host is unreachable from the build
-environment, so `scripts/compare-images.mjs` derives all nine pairs from the
-hero frame with the masks: glass darkened to 5%, purple bubbled film, satin
-black over the body, lettering on the fender, chips on the front end, dulled
-paint, grime on the sills, swirl marks, smoked headlights. Upholstery and
-inspections have no slider, only the text difference. **To replace a pair with
-real photos**, drop `public/assets/img/compare/<slug>-before.jpg` and
-`-after.jpg` (plus `.webp`, 1280×720, same angle) and remove that slug's block
-from the script so `npm run compare` stops overwriting it; change the caption in
-`site.json` from "Illustration on the same car…" to the real wording.
+**To replace a tile with real photos**: drop `public/assets/img/splits/<slug>.jpg`
+and `.webp` (1280×640, before on the left, after on the right) and remove that slug
+from `SLUGS` in `scripts/split-images.mjs` so `npm run splits` stops overwriting it;
+change that service's `image.caption` in `site.json` from the illustration wording to
+the real one.
 
 ## Preview on GitHub Pages
 
@@ -85,8 +86,8 @@ src/data/site.json      all business facts: 11 services, 5 guides, 3 reviews,
                         6 FAQs, 10 areas, the three home pillars, profile URLs
 src/lib/seo.ts          schema builders. @type = LocalBusiness + knowsAbout
 src/layouts/Base.astro  head, preloads, JSON-LD, chrome
-src/components/         VideoHero, CompareSlider, Difference, QuoteForm, …
-src/data/masks.json     glass/body/headlight polygons traced on the hero frame
+src/components/         VideoHero, SplitImage, Difference, QuoteForm, …
+src/assets/source/      before-after-collage.jpg, the owner's collage that npm run splits cuts up
 src/scripts/site.ts     nav, tracking, forms, hero autoplay, GSAP/Lenis
 src/styles/legacy.css   tokens + components (green/black, contrast-verified)
 src/styles/global.css   @font-face, video hero, motion, At a glance, Short answer
@@ -94,7 +95,7 @@ public/fonts/           self-hosted woff2 — never a runtime CDN
 public/assets/video/    shop.mp4 + shop.webm (the hero clip)
 public/assets/img/      logo.png (256), logo-800.png, apple-touch-icon.png,
                         favicon.svg, hero-poster.{jpg,webp,avif}
-public/assets/img/compare/  <slug>-{before,after}.{jpg,webp}, generated by npm run compare
+public/assets/img/splits/   <slug>.{jpg,webp}, generated by npm run splits
 scripts/                build, audit, perf and asset tooling
 qa/                     screenshots (gitignored; regenerate with shots.mjs)
 ```
@@ -136,7 +137,7 @@ owner, outside this public repository (`marketing/`, `seo/` and `perf/` are giti
 | 11 | Ten towns served | Neighbouring cities, nearest first | Confirm the shop wants all ten |
 | 12 | Film brands, warranty terms | Not published | Add to the tint and PPF pages once named — strong content |
 | 13 | "Cali Tints Revolutions" | Owner's draft copy | Left out. If it is a real product line, name the film and what it rejects |
-| 14 | Photos | None supplied | Storefront, the bay, finished cars — and real before/after pairs to replace the illustrated sliders |
+| 14 | Photos | None supplied | Storefront, the bay, finished cars — and real before/after pairs to replace the AI illustrations |
 | 15 | California tint law figures | CA Vehicle Code §26708: 70% VLT front sides, AS-1 strip, any shade rear, dual mirrors, medical exemption | Stable, but re-check yearly; the guide says it is not legal advice |
 
 ## Decisions that differ from the blueprint

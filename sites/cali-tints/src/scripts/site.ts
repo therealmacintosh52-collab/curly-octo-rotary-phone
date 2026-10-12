@@ -215,18 +215,6 @@ function requestIdleCallbackShim(fn: () => void) {
   else setTimeout(fn, 320);
 }
 
-/* ---------------------------------------------------------- before/after
-   The range input is the handle. Any touch marks the figure as taken over by
-   the visitor, so the scroll-linked wipe (below) stops fighting their hand. */
-document.querySelectorAll<HTMLElement>('[data-compare]').forEach((fig) => {
-  const range = fig.querySelector<HTMLInputElement>('[data-compare-range]');
-  if (!range) return;
-  const set = (v: number) => fig.style.setProperty('--pos', `${v}%`);
-  range.addEventListener('input', () => { fig.dataset.touched = '1'; set(Number(range.value)); });
-  ['pointerdown', 'touchstart', 'keydown'].forEach((evt) =>
-    range.addEventListener(evt, () => { fig.dataset.touched = '1'; }, { passive: true }));
-});
-
 /* ---------------------------------------------------------------- motion
    Loaded dynamically and only where it earns its weight: never for a reader
    who asked for reduced motion, and Lenis only on a fine pointer. */
@@ -234,7 +222,7 @@ if (!prefersReduced) {
   const reveals = document.querySelectorAll<HTMLElement>('.js-reveal');
   const fine = window.matchMedia('(pointer: fine)').matches;
 
-  if (reveals.length || fine || document.querySelector('[data-compare], .sec-head')) {
+  if (reveals.length || fine || document.querySelector('.sec-head')) {
     const boot = async () => {
       try {
         const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([
@@ -281,25 +269,6 @@ if (!prefersReduced) {
             v: target, duration: 1.4, ease: 'power2.out',
             onUpdate: () => { el.textContent = o.v.toFixed(decimals); },
             scrollTrigger: { trigger: el, start: 'top 92%', once: true },
-          });
-        });
-
-        // Before/after sliders: wipe "before" away as the block climbs the
-        // viewport, finishing when it reaches the middle. The visitor's hand
-        // wins: once the handle is touched the scroll leaves it alone.
-        document.querySelectorAll<HTMLElement>('[data-compare]').forEach((fig) => {
-          const range = fig.querySelector<HTMLInputElement>('[data-compare-range]');
-          // Start fully on "before" so the wipe has the whole width to travel.
-          if (!fig.dataset.touched) { fig.style.setProperty('--pos', '100%'); if (range) range.value = '100'; }
-          ScrollTrigger.create({
-            trigger: fig, start: 'top 85%', end: 'center 45%', scrub: 0.3,
-            onUpdate: (st) => {
-              if (fig.dataset.touched) return;
-              const pos = 100 - st.progress * 100;         // 100 → 0
-              fig.style.setProperty('--pos', `${pos}%`);
-              if (range) range.value = String(pos);
-              if (st.progress >= 0.999) fig.dataset.done = '1';
-            },
           });
         });
 

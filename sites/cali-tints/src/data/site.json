@@ -203,14 +203,10 @@
           "Privacy behind the driver, a cooler car in ten minutes"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/window-tinting-before",
-        "after": "/assets/img/compare/window-tinting-after",
-        "label_before": "Factory glass",
-        "label_after": "5% ceramic, every window",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Factory glass: the model car before window tinting",
-        "alt_after": "5% ceramic, every window: the model car after window tinting"
+      "image": {
+        "src": "/assets/img/splits/window-tinting",
+        "alt": "Rear door window of a dark sedan: bare, reflective glass on the left, deep ceramic film on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -277,14 +273,10 @@
           "Ready for new ceramic or carbon film the same day"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/tint-removal-repair-before",
-        "after": "/assets/img/compare/tint-removal-repair-after",
-        "label_before": "Purple, bubbled film",
-        "label_after": "Clean factory glass",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Purple, bubbled film: the model car before tint removal & repair",
-        "alt_after": "Clean factory glass: the model car after tint removal & repair"
+      "image": {
+        "src": "/assets/img/splits/tint-removal-repair",
+        "alt": "Rear window with blistered, peeling purple film on the left and clean glass on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -355,14 +347,10 @@
           "Peels off clean for resale or the next look"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/vinyl-wraps-before",
-        "after": "/assets/img/compare/vinyl-wraps-after",
-        "label_before": "Gloss black paint",
-        "label_after": "Satin black wrap",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Gloss black paint: the model car before vinyl wraps",
-        "alt_after": "Satin black wrap: the model car after vinyl wraps"
+      "image": {
+        "src": "/assets/img/splits/vinyl-wraps",
+        "alt": "Sedan door panel: dull grey factory paint on the left, gloss blue vinyl wrap on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -428,14 +416,10 @@
           "Matched across every vehicle in the fleet"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/commercial-wraps-before",
-        "after": "/assets/img/compare/commercial-wraps-after",
-        "label_before": "Plain panels",
-        "label_after": "Lettered and branded",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Plain panels: the model car before commercial & fleet wraps",
-        "alt_after": "Lettered and branded: the model car after commercial & fleet wraps"
+      "image": {
+        "src": "/assets/img/splits/commercial-wraps",
+        "alt": "Work van: dirty, unmarked white panels on the left, lettered with the Cali Tints name and phone number on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -501,14 +485,10 @@
           "The front looks new for years, not months"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/paint-protection-film-before",
-        "after": "/assets/img/compare/paint-protection-film-after",
-        "label_before": "Chipped front end",
-        "label_after": "Protected under clear film",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Chipped front end: the model car before paint protection film (ppf)",
-        "alt_after": "Protected under clear film: the model car after paint protection film (ppf)"
+      "image": {
+        "src": "/assets/img/splits/paint-protection-film",
+        "alt": "Hood close-up: chipped paint beading water on the left, smooth clear film on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -574,14 +554,10 @@
           "A ten-minute wash and gloss that lasts years"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/ceramic-coating-before",
-        "after": "/assets/img/compare/ceramic-coating-after",
-        "label_before": "Dull, hazed paint",
-        "label_after": "Coated, deep gloss",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Dull, hazed paint: the model car before ceramic coating",
-        "alt_after": "Coated, deep gloss: the model car after ceramic coating"
+      "image": {
+        "src": "/assets/img/splits/ceramic-coating",
+        "alt": "Black sedan: flat, hazy paint on the left, deep wet-look gloss on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -647,14 +623,10 @@
           "The car you bought, not the car you have been driving"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/detailing-before",
-        "after": "/assets/img/compare/detailing-after",
-        "label_before": "Road grime",
-        "label_after": "Detailed and protected",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Road grime: the model car before auto detailing",
-        "alt_after": "Detailed and protected: the model car after auto detailing"
+      "image": {
+        "src": "/assets/img/splits/detailing",
+        "alt": "Grey SUV side view: road grime on the left, clean and detailed on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -720,14 +692,10 @@
           "Sealed or coated so it does not come back"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/paint-correction-before",
-        "after": "/assets/img/compare/paint-correction-after",
-        "label_before": "Swirled clear coat",
-        "label_after": "Corrected and sealed",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Swirled clear coat: the model car before paint correction",
-        "alt_after": "Corrected and sealed: the model car after paint correction"
+      "image": {
+        "src": "/assets/img/splits/paint-correction",
+        "alt": "Dark fender close-up: swirl marks and fine scratches on the left, corrected mirror finish on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -794,14 +762,10 @@
           "Electronics hard-wired and hidden behind the trim"
         ]
       },
-      "compare": {
-        "before": "/assets/img/compare/customization-before",
-        "after": "/assets/img/compare/customization-after",
-        "label_before": "Factory headlights",
-        "label_after": "Smoked headlights",
-        "caption": "Illustration on the same car, not a customer vehicle. Drag the handle or scroll.",
-        "alt_before": "Factory headlights: the model car before customization & electronics",
-        "alt_after": "Smoked headlights: the model car after customization & electronics"
+      "image": {
+        "src": "/assets/img/splits/customization",
+        "alt": "Rear quarter of a dark sedan: factory tail light on the left, smoked lens on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
       }
     },
     {
@@ -868,7 +832,11 @@
           "Wheel re-wrapped; full custom interiors by quote"
         ]
       },
-      "compare": null
+      "image": {
+        "src": "/assets/img/splits/upholstery",
+        "alt": "Driver seat: cracked, worn leather on the left, re-trimmed black upholstery on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
+      }
     },
     {
       "slug": "inspections-mechanic",
@@ -933,7 +901,11 @@
           "A straight answer on anything we do not take on, and who does"
         ]
       },
-      "compare": null
+      "image": {
+        "src": "/assets/img/splits/inspections-mechanic",
+        "alt": "Underside of a car on a lift: rusted, leaking components on the left, cleaned and serviced on the right",
+        "caption": "AI-generated illustration, not a customer vehicle."
+      }
     }
   ],
   "guides": [

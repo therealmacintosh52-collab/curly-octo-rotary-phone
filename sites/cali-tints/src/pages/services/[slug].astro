@@ -3,7 +3,7 @@ import data from '../../data/site.json';
 import Base from '../../layouts/Base.astro';
 import PageHead from '../../components/PageHead.astro';
 import Glance from '../../components/Glance.astro';
-import CompareSlider from '../../components/CompareSlider.astro';
+import SplitImage from '../../components/SplitImage.astro';
 import Difference from '../../components/Difference.astro';
 import QuoteForm from '../../components/QuoteForm.astro';
 import Faq from '../../components/Faq.astro';
@@ -56,13 +56,7 @@ const sat = S.hours_rows.find(([d]) => d === 'Saturday')?.[1];
                "who does X in Sacramento" without reading further. -->
           <Glance glance={s.glance} />
 
-          {s.compare && (
-            <CompareSlider id={`cmp-${s.slug}`}
-              before={s.compare.before} after={s.compare.after}
-              labelBefore={s.compare.label_before} labelAfter={s.compare.label_after}
-              altBefore={s.compare.alt_before} altAfter={s.compare.alt_after}
-              caption={s.compare.caption} />
-          )}
+          <SplitImage src={s.image.src} alt={s.image.alt} caption={s.image.caption} />
           <Difference before={s.difference.before} after={s.difference.after}
             heading={`The difference ${s.nav.toLowerCase()} makes`} />
 
