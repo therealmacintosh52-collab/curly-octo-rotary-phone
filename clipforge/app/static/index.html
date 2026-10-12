@@ -34,6 +34,7 @@
   button.danger{background:transparent;color:var(--bad);border:1px solid #5a2b2b}
   button:disabled{opacity:.5;cursor:not-allowed}
   a.btn{display:inline-block;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12px;text-decoration:none}
+  a.btn.primary{background:var(--accent);color:#06281c;border-color:var(--accent);font-weight:600}
   .jobs{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:50vh;overflow:auto}
   .job{display:grid;grid-template-columns:1fr auto;gap:4px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer}
   .job.active{border-color:var(--accent2)}
@@ -217,9 +218,9 @@ function clipCard(j, c){
   return `<div class="card clip" data-clip="${c.id}">
     <div class="player">${media}
       <div class="row" style="margin-top:8px">
-        ${c.video_path ? `<a class="btn" href="${files(c.video_path)}" download>MP4</a>`:''}
-        ${c.cover_path ? `<a class="btn" href="${files(c.cover_path)}" download>Cover</a>`:''}
-        ${c.captions_path ? `<a class="btn" href="${files(c.captions_path)}" download>SRT</a>`:''}
+        ${c.video_path ? `<a class="btn primary" href="${files(c.video_path)}" download="clip_${String(c.idx+1).padStart(2,'0')}.mp4">⬇ Download MP4</a>`:''}
+        ${c.cover_path ? `<a class="btn" href="${files(c.cover_path)}" download="clip_${String(c.idx+1).padStart(2,'0')}_cover.jpg">Cover</a>`:''}
+        ${c.captions_path ? `<a class="btn" href="${files(c.captions_path)}" download="clip_${String(c.idx+1).padStart(2,'0')}.srt">SRT</a>`:''}
       </div>
       <div class="row" style="margin-top:8px">
         <select class="small" data-reframe style="width:auto;padding:5px 8px;font-size:12px">
