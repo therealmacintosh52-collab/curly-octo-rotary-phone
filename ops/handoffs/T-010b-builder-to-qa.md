@@ -44,7 +44,7 @@
 - QR decode with a real phone and Google wording remain owner-side (T-011 UNVERIFIED item).
 
 ## Rollback
-Revert to `86cabac` (HEAD before this commit): `git revert <T-010b commit>`.
+Revert to `6faadec` (state before any T-010b change). `86cabac` is an auto-checkpoint holding half of the render_card.py edits; do not roll back to it. Command: `git revert 3b024c6 86cabac`.
 
 ## Self-check
 - [x] Gates run and pasted · [x] no invented facts · [x] branch-only (claude/affectionate-brown-h3wfam) · [x] rollback named · [x] nothing published · [x] under 80 lines · [x] no test or threshold edited (only lint patterns extended per qa)
