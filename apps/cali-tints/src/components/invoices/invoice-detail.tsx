@@ -13,6 +13,7 @@ import { CarActions } from "./car-actions";
 import { RestoreInvoiceButton } from "./restore-invoice-button";
 import { PaymentsCard } from "./payments-card";
 import { SubmissionsCard } from "./submissions-card";
+import { InvoiceQuickBooksCard } from "./quickbooks-card";
 import type { EditableCar } from "@/components/jobs/edit-car-sheet";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,8 @@ export interface InvoiceDetailProps {
   /** Deleted with "Delete invoice": in the archive, restorable. */
   archived: boolean;
   reminderDays: number;
+  /** QuickBooks state for the owner: whether the company is connected and where its QuickBooks lives (for the Open link). */
+  quickbooks?: { connected: boolean; appUrl: string | null };
 }
 
 const vehicle = (v: { year: number | null; make: string | null; model: string | null }) => [v.year, v.make, v.model].filter(Boolean).join(" ");
@@ -273,6 +276,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
         {isAdmin && (
           <div className="flex min-w-0 flex-col gap-4">
             <PaymentsCard invoiceId={invoice.id} invoiceNumber={invoice.display_number} payments={payments} balance={balance} status={invoice.status} />
+            {p.quickbooks && <InvoiceQuickBooksCard invoice={invoice} connected={p.quickbooks.connected} appUrl={p.quickbooks.appUrl} />}
             <SubmissionsCard submissions={submissions} submittedAt={invoice.submitted_at} />
             <p className="px-1 text-caption text-subtle">
               Invoice created {formatDateTime(invoice.created_at)}

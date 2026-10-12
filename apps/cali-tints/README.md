@@ -19,6 +19,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 5. [First sign-in and demo data](#first-sign-in-and-demo-data)
 6. [Guest preview](#guest-preview-share-a-link-no-login)
 7. [Email (Resend)](#email-resend)
+7. [QuickBooks Online](#quickbooks-online)
 7. [Deploy to Vercel](#deploy-to-vercel)
 8. [PWA & offline](#pwa--offline)
 9. [Data model & security](#data-model--security)
@@ -39,7 +40,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 | Monthly invoices `/invoices` | Owner only. On the 1st the daily job (`/api/cron/daily`, `close_month()`) turns every dealership's jobs from the month into one invoice: numbered, lines snapshotted, jobs locked. With **Email each month's invoice automatically** on (Settings, default on) it is emailed to the dealership's AP contact right away; otherwise it waits as Not sent. **This month so far** shows each dealership's running count and total with **Invoice now** to close one early. Search by number, dealership, a stock number on it or a month; **All · Unpaid (Not sent / Sent / Partial) · Overdue · Paid · Void · Archive**; **Send invoices** emails any unsent ones (see the email first). `/invoices/new` re-invoices jobs left behind by a voided invoice, with the VIN/tag double-billing check |
 | Invoice page | One dealership, one month: every car and service line, subtotal/tax/total, where it stands (logged → sent → paid). **Add payment** records the check, ACH, card or cash that arrived. Branded and print-ready PDF, CSV, Excel; submit by email (Resend) with full send history; manual mark-as-submitted with confirmation upload; partial payments; void (jobs go back to Not invoiced) |
 | Dashboard `/` | **Owner**: cars detailed today by service (a normal day is about 3 Used, 2 PDI, 4 Sold), this week and month, **Unpaid** (still to collect, this month so far, not sent yet, sent and unpaid), collected, overdue reminders (configurable), and **Income** for any date range; **Breakdown** shows one month at a time by service and by week. **Admin / manager**: the whole team's day, counts only (today by service, this week, this month, cars per detailer, today's cars, the last 30 days). Every number opens the Jobs list filtered to the cars behind it |
-| Settings `/settings` | Company profile + logo, monthly invoicing (email automatically, **Run month close** now), dealerships (AP contacts, submission method, tax overrides), services grouped by category (seeded with the real menu: PDI $60, Sold $20, Used $200, Service Loaner Detail $125, Touch Up Detail $20–40, Tint Removal $40, Paint Correction about $50 ($40–60); a service can carry a quoted range inside which no override reason is needed) + per-dealership price grid, users (password or email invite, roles, reset), full CSV export |
+| Settings `/settings` | Company profile + logo, monthly invoicing (email automatically, **Run month close** now), **QuickBooks Online** (owner: Connect, Sync now, auto-send, service item), dealerships (AP contacts, submission method, tax overrides), services grouped by category (seeded with the real menu: PDI $60, Sold $20, Used $200, Service Loaner Detail $125, Touch Up Detail $20–40, Tint Removal $40, Paint Correction about $50 ($40–60); a service can carry a quoted range inside which no override reason is needed) + per-dealership price grid, users (password or email invite, roles, reset), full CSV export |
 | Roles | **Owner**: everything, and the only one who sees money. **Admin**: settings, users, every job, no money. **Manager**: every job, no money, no settings. **Detailer**: log cars, see and fix their own. Enforced by Postgres RLS and column privileges (migration `0029`): invoices, payments and the price list are owner-only at the database, `services.default_price` and `job_services.price` are unreadable by app users (the owner reads them through `service_prices_v` / `job_service_prices_v`), the money RPCs refuse everyone else, and a non-owner's price is ignored on save (list price used). "Other" logged by a non-owner is flagged **Needs a price** for the owner |
 
 ## Project layout
@@ -47,7 +48,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 ```
 apps/cali-tints
 ├── supabase/
-│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice · 0016 search by service · 0017–0026 today by service, paint correction, week, "Other" label, archive, detailer dashboard, manager role, guide · 0027 removes the Terminal and Clover · 0028 jobs by the day, one invoice a month · 0029 only the owner sees money · 0030 photos (client_id, detailer file removal)
+│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice · 0016 search by service · 0017–0026 today by service, paint correction, week, "Other" label, archive, detailer dashboard, manager role, guide · 0027 removes the Terminal and Clover · 0028 jobs by the day, one invoice a month · 0029 only the owner sees money · 0030 photos (client_id, detailer file removal) · 0031 QuickBooks Online
 │   ├── seed.sql         company, 2 dealerships, 8 services, price overrides
 │   └── tests/           SQL test suite runnable on plain Postgres (run.sh)
 ├── scripts/seed-demo.mjs   demo users + 60 days of jobs + invoices (uses the real RPCs)
@@ -128,6 +129,19 @@ Safest setup: a separate Vercel project for the demo with only `DEMO_ACCESS_KEY`
 3. On an invoice, **Submit by email** sends the branded PDF + CSV to the dealership's AP emails (Settings → Dealerships), CCs the company billing email, records recipients + message id, and marks the invoice *Submitted*. **Resend** repeats it; every attempt (including failures) is in the submission history.
 
 Without a key the action fails with a clear message; **Mark as submitted** (portal/paper) still works.
+
+## QuickBooks Online
+
+Every month's invoice is created in QuickBooks Online as an Invoice (DocNumber = our number, TxnDate = the last day of the month, one `SalesItemLineDetail` line per car × service, BillEmail = the dealership's first AP email, no tax line). Payments recorded in QuickBooks come back as payments here. Owner only.
+
+1. At [developer.intuit.com](https://developer.intuit.com) create an app (QuickBooks Online Accounting scope). Under *Keys & credentials* add the redirect URI `https://<your-app>/api/quickbooks/callback` (and `http://localhost:3000/api/quickbooks/callback` for local sandbox tests).
+2. Set `QUICKBOOKS_CLIENT_ID`, `QUICKBOOKS_CLIENT_SECRET` and `QUICKBOOKS_ENV` (`sandbox` with the Development keys and a sandbox company; `production` with the Production keys). Tokens are stored encrypted (`src/lib/crypto.ts`, key derived from the client secret) in `quickbooks_connections`, readable by the service role only.
+3. The owner opens **Settings → QuickBooks Online → Connect QuickBooks**, signs in at Intuit and picks the company. Open invoices are sent over right away.
+4. In QuickBooks turn on **Custom transaction numbers** (Settings → Sales → Sales form content) so invoices keep their `INV-000123` numbers; otherwise QuickBooks assigns its own.
+5. Each dealership becomes a QuickBooks Customer (found by name or created; remembered on `dealerships.quickbooks_customer_id`). Every line posts to one Service item, **Auto detailing** by default (found by name or created on the first Income account; `companies.quickbooks_item_id/_name`, changeable in Settings).
+6. The daily job (`/api/cron/daily`) sends anything not yet in QuickBooks when **Send every invoice automatically** is on, then pulls balances: when QuickBooks shows a lower balance than we do, the difference is recorded here as a payment (method *other*, reference *QuickBooks*; `record_payment_system()`, service role only). **Sync now** in Settings and **Send to QuickBooks** / **Resend** on an invoice do the same on demand. Failures show on the invoice (red `QB` badge, message) and in Settings.
+
+Access tokens last an hour and refresh themselves; the refresh token lasts about 100 days of inactivity, after which the owner sees *Reconnect QuickBooks*. Tax: the detailing is labor and the rate is expected to be 0; a non-zero tax amount is noted in the QuickBooks private note rather than mapped to a tax code. **QuickBooks Desktop** is not supported directly; use Settings → Export (CSV) or an invoice's Excel download and import it there.
 
 ## Deploy to Vercel
 

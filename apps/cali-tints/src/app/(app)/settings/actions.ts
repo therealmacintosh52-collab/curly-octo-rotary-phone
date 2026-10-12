@@ -8,6 +8,8 @@ import { requireOwner, requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { closeMonth, type MonthCloseReport } from "@/lib/invoices/submit";
+import { syncQuickBooks, type SyncReport } from "@/lib/quickbooks/sync";
+import { disconnect as disconnectQuickBooks } from "@/lib/quickbooks/connection";
 
 const optionalText = (max: number) => z.string().trim().max(max).transform((s) => s || null);
 
@@ -246,6 +248,46 @@ export async function resetUserPasswordAction(userId: string, password: string):
   return { ok: true, data: undefined };
 }
 
+// --- QuickBooks Online --------------------------------------------------------
+
+export async function updateQuickBooksSettingsAction(input: { quickbooks_item_name: string; quickbooks_auto_push: boolean }): Promise<ActionResult> {
+  const session = await requireOwner();
+  const parsed = z.object({ quickbooks_item_name: z.string().trim().min(1).max(100), quickbooks_auto_push: z.boolean() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  // A new item name means a new (or other) QuickBooks item: forget the old id so the next sync looks it up.
+  const patch = session.company.quickbooks_item_name === parsed.data.quickbooks_item_name ? parsed.data : { ...parsed.data, quickbooks_item_id: null };
+  const { error } = await supabase.from("companies").update(patch).eq("id", session.company.id);
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/settings");
+  return { ok: true, data: undefined };
+}
+
+/** Push what is missing, pull payments: the daily sync, now. */
+export async function syncQuickBooksAction(): Promise<ActionResult<SyncReport>> {
+  const session = await requireOwner();
+  try {
+    const report = await syncQuickBooks(createAdminClient(), session.company.id);
+    if (report.notConnected) return { ok: false, error: "QuickBooks is not connected" };
+    revalidatePath("/settings");
+    revalidatePath("/invoices");
+    return { ok: true, data: report };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+export async function disconnectQuickBooksAction(): Promise<ActionResult> {
+  const session = await requireOwner();
+  try {
+    await disconnectQuickBooks(createAdminClient(), session.company.id);
+    revalidatePath("/settings");
+    return { ok: true, data: undefined };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
 // --- Month close --------------------------------------------------------------
 
 /** Run the month close now instead of waiting for the daily job (every finished month, every dealership). */
@@ -254,6 +296,8 @@ export async function runMonthCloseAction(): Promise<ActionResult<MonthCloseRepo
   try {
     const db = createAdminClient();
     const report = await closeMonth(db, session.company.id);
+    // New invoices go to QuickBooks right away when the books are connected.
+    await syncQuickBooks(db, session.company.id).catch(() => null);
     revalidatePath("/invoices");
     revalidatePath("/jobs");
     revalidatePath("/");

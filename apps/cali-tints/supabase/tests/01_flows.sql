@@ -810,3 +810,42 @@ begin
   get diagnostics n = row_count; assert n = 1, '0030: the owner removes any file';
 end $$;
 select pg_temp.logout();
+
+-- 0031: QuickBooks. Tokens are off limits to app users; the list says what is in QuickBooks; only the daily job records payments it saw.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare f jsonb; v_inv uuid; n int;
+begin
+  begin
+    perform count(*) from public.quickbooks_connections;
+    raise exception 'expected quickbooks_connections to be unreadable';
+  exception when sqlstate '42501' then null; end;
+  f := public.invoices_filtered(p_limit => 1);
+  assert (f -> 'rows' -> 0) ? 'quickbooks_invoice_id' and (f -> 'rows' -> 0) ? 'quickbooks_error', '0031: list rows carry the QuickBooks state';
+  select id into v_inv from public.invoices where status in ('draft', 'submitted', 'partial') order by number limit 1;
+  update public.invoices set quickbooks_invoice_id = '1042', quickbooks_doc_number = 'INV-000001' where id = v_inv;
+  f := public.invoices_filtered(p_q => (select display_number from public.invoices where id = v_inv));
+  assert (f -> 'rows' -> 0 ->> 'quickbooks_invoice_id') = '1042', '0031: QuickBooks id in the list';
+  begin
+    perform public.record_payment_system('00000000-0000-4000-8000-000000000001', v_inv, 10);
+    raise exception 'expected service-role-only';
+  exception when sqlstate '42501' then null; end;
+  insert into t_ids values ('qbo_inv', v_inv);
+  select count(*) into n from public.invoice_payments where invoice_id = v_inv; insert into t_ids values ('qbo_pay_n', ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid);
+end $$;
+select pg_temp.logout();
+select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
+do $$
+declare v_inv uuid := (select v from t_ids where k = 'qbo_inv'); inv public.invoices; v_before numeric;
+begin
+  select * into inv from public.invoices where id = v_inv; v_before := inv.amount_paid;
+  perform public.record_payment_system('00000000-0000-4000-8000-000000000001', v_inv, 5.25, current_date, 'other', 'QuickBooks', 'Recorded in QuickBooks');
+  select * into inv from public.invoices where id = v_inv;
+  assert inv.amount_paid = v_before + 5.25, '0031: payment seen in QuickBooks recorded here: ' || inv.amount_paid;
+  assert (select reference from public.invoice_payments where invoice_id = v_inv order by created_at desc limit 1) = 'QuickBooks', '0031: payment carries the QuickBooks reference';
+  begin
+    perform public.record_payment_system('00000000-0000-4000-8000-000000000001', v_inv, 0);
+    raise exception 'expected positive amount';
+  exception when sqlstate '22023' then null; end;
+end $$;
+select set_config('request.jwt.claims', '', false);

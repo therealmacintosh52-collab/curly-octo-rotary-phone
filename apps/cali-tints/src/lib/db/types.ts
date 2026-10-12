@@ -38,6 +38,16 @@ export type Company = {
   auto_invoice: boolean;
   /** Email each month's invoice to the dealership the moment it is made. */
   auto_send_monthly: boolean;
+  /** QuickBooks Online: set when the owner connected the books (no secrets here). */
+  quickbooks_realm_id: string | null;
+  quickbooks_company_name: string | null;
+  quickbooks_env: string;
+  quickbooks_connected_at: string | null;
+  quickbooks_item_id: string | null;
+  quickbooks_item_name: string;
+  quickbooks_auto_push: boolean;
+  quickbooks_last_sync_at: string | null;
+  quickbooks_last_error: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +83,8 @@ export type Dealership = {
   payment_terms: string | null;
   tax_rate: number | null;
   active: boolean;
+  /** The QuickBooks customer this dealership is billed as. */
+  quickbooks_customer_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -185,6 +197,24 @@ export type JobPhoto = {
   created_at: string;
 }
 
+/** The company's QuickBooks sign-in: tokens encrypted, service role only. */
+export type QuickBooksConnection = {
+  company_id: string;
+  realm_id: string;
+  env: string;
+  access_token_enc: string;
+  refresh_token_enc: string;
+  access_expires_at: string | null;
+  refresh_expires_at: string | null;
+  company_name: string | null;
+  status: "ok" | "needs_reconnect";
+  last_error: string | null;
+  last_ok_at: string | null;
+  connected_by: string | null;
+  connected_at: string;
+  updated_at: string;
+}
+
 export type Invoice = {
   id: string;
   company_id: string;
@@ -207,6 +237,14 @@ export type Invoice = {
   voided_at: string | null;
   void_reason: string | null;
   created_by: string | null;
+  /** QuickBooks Online copy of this invoice (null until sent). */
+  quickbooks_invoice_id: string | null;
+  quickbooks_doc_number: string | null;
+  quickbooks_sync_token: string | null;
+  quickbooks_synced_at: string | null;
+  quickbooks_error: string | null;
+  quickbooks_balance: number | null;
+  quickbooks_balance_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -401,6 +439,9 @@ export type InvoiceListRow = {
   car_count: number;
   cars: { tag: string; vin: string | null; vehicle: string | null; detailer: string | null }[];
   services: string[];
+  /** In QuickBooks (0031). Older rows may lack the keys. */
+  quickbooks_invoice_id?: string | null;
+  quickbooks_error?: string | null;
 };
 
 export type InvoiceListResult = { count: number; total: number; balance: number; rows: InvoiceListRow[] };
@@ -484,6 +525,7 @@ export type Database = {
       invoice_payments: Table<InvoicePayment>;
       invoice_submissions: Table<InvoiceSubmission>;
       vin_cache: Table<VinCache>;
+      quickbooks_connections: Table<QuickBooksConnection>;
       audit_log: Table<AuditLog>;
     };
     Views: {
@@ -533,6 +575,10 @@ export type Database = {
           p_offset?: number;
         };
         Returns: InvoiceListResult;
+      };
+      record_payment_system: {
+        Args: { p_company_id: string; p_invoice_id: string; p_amount: number; p_paid_at?: string; p_method?: PaymentMethod; p_reference?: string | null; p_note?: string | null };
+        Returns: string;
       };
       record_payment: {
         Args: {

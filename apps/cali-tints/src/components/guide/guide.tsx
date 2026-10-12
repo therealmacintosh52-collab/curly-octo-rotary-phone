@@ -183,7 +183,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
               <Row what="A row" does="Opens that month's invoice." />
               <Row what="Send invoices" does="Emails every Not sent invoice to its dealership. Tick which ones, tap the eye to see the email first, then Send. Each goes as its own email with the PDF and a CSV attached. With Settings → Email automatically on, the 1st does this on its own." />
             </Inputs>
-            <Outputs items={["Sent invoices change from Not sent to Sent to dealer and get a timestamp.", "A connected QuickBooks gets a copy of every invoice."]} />
+            <Outputs items={["Sent invoices change from Not sent to Sent to dealer and get a timestamp.", "With QuickBooks connected (Settings), every invoice is created there the moment it is made; a QB mark on the row says it is in. Payments recorded in QuickBooks show up here the next morning."]} />
           </Section>
         )}
 
@@ -195,6 +195,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
               <Row what="Add payment" does="Record a check, ACH or card payment that arrived: amount, date, method, reference. The balance updates." />
               <Row what="Mark as submitted" does="For invoices uploaded to the dealer portal or handed over on paper. Attach the confirmation if you have one." />
               <Row what="Download" does="Branded PDF, print-ready PDF, CSV or Excel of the lines." />
+              <Row what="QuickBooks" does="Where this invoice stands in your books: its QuickBooks number, the balance there and the last sync. Send to QuickBooks / Resend pushes it now; the daily sync does it on its own." />
               <Row what="Void" does="Cancels the invoice (only if nothing is paid). The number is kept; its jobs go back to Not invoiced and the next month close picks them up, or Invoice older jobs does it now." />
             </Inputs>
             <Outputs items={["Every action is written to History with who did it and when.", "A payment marks the invoice Partly paid or Paid, and it leaves Unpaid everywhere."]} />
@@ -205,6 +206,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
           <Section id="settings" title="Settings" only="Owner and admin" intro="Set once, change any time.">
             <Inputs>
               <Row what="Company" does="Name, address, phone, billing email and EIN as they print on invoices. Monthly invoicing: email each month's invoice automatically, Run month close. Tax rate, invoice number prefix, overdue reminder days, timezone, logo." />
+              {money && <Row what="QuickBooks Online" does="Connect QuickBooks once with the Intuit login that owns the books. From then on every month's invoice is created there automatically and payments recorded in QuickBooks come back here. Sync now runs it by hand; Disconnect stops it. Owner only." />}
               <Row what="Dealerships" does="Each dealership's AP contact and emails (where invoices go), how they want invoices (email, portal, paper) and a tax override." />
               {money && <Row what="Services & prices" does="The menu and its prices, plus a per-dealership price grid. A service can have a normal range; prices outside it ask for a reason. Owner only." />}
               <Row what="Users" does="Add people with a password or an email invite. Roles: Detailer (own cars), Manager (every job, no money, no Settings), Admin (everything but money), Owner (the only one who sees money). Deactivate to block sign-in without losing history." />

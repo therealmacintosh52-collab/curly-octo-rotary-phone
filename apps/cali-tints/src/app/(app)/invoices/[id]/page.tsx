@@ -5,6 +5,7 @@ import { loadInvoiceBundle } from "@/lib/invoices/load";
 import type { PriceListRow } from "@/lib/db/types";
 import { InvoiceDetail } from "@/components/invoices/invoice-detail";
 import { createClient } from "@/lib/supabase/server";
+import { QBO_HOSTS } from "@/lib/quickbooks/env";
 
 export const metadata: Metadata = { title: "Invoice" };
 
@@ -112,6 +113,7 @@ export default async function InvoiceDetailPage(props: PageProps<"/invoices/[id]
       lockedReason={lockedReason}
       archived={archived}
       reminderDays={session.company.reminder_days}
+      quickbooks={{ connected: !!session.company.quickbooks_realm_id, appUrl: QBO_HOSTS[session.company.quickbooks_env === "sandbox" ? "sandbox" : "production"].app }}
     />
   );
 }

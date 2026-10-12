@@ -18,7 +18,7 @@ export default async function DevInvoiceByIdPreview(props: PageProps<"/dev/previ
     <SessionProvider value={{ userId: profile.id, email: null, profile, company: base.company, isAdmin: true, canSettings: true, canMoney: true, demo: true }}>
       <SyncProvider>
         <AppShell>
-          <InvoiceDetail {...p} />
+          <InvoiceDetail {...p} quickbooks={{ connected: true, appUrl: "https://app.qbo.intuit.com" }} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

@@ -10,6 +10,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StaggerItem } from "@/components/motion/primitives";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
+import { Badge } from "@/components/ui/badge";
+
+/** "QB" when the invoice is in QuickBooks, a red one when the last push failed; nothing otherwise. */
+function QuickBooksMark({ r }: { r: InvoiceListRow }) {
+  if (r.quickbooks_error) return <Badge variant="destructive" title={`QuickBooks: ${r.quickbooks_error}`}>QB</Badge>;
+  if (r.quickbooks_invoice_id) return <Badge variant="muted" title={`In QuickBooks as ${r.display_number}`}>QB</Badge>;
+  return null;
+}
 import { RestoreInvoiceButton } from "./restore-invoice-button";
 import { cn } from "@/lib/utils";
 
@@ -132,7 +140,8 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="font-semibold tabular-nums">{formatMoney(r.total)}</div>
-                    <div className="mt-1">
+                    <div className="mt-1 flex items-center justify-end gap-1">
+                      <QuickBooksMark r={r} />
                       <InvoiceStatusBadge status={r.status} overdue={r.overdue} deleted={r.deleted} short />
                     </div>
                   </div>
@@ -203,7 +212,10 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <InvoiceStatusBadge status={r.status} overdue={r.overdue} deleted={r.deleted} short />
+                    <span className="inline-flex items-center gap-1">
+                      <InvoiceStatusBadge status={r.status} overdue={r.overdue} deleted={r.deleted} short />
+                      <QuickBooksMark r={r} />
+                    </span>
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatMoney(r.total)}

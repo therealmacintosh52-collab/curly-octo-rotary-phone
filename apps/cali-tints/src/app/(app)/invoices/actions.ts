@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { pushInvoice } from "@/lib/quickbooks/sync";
 import { errorMessage } from "@/lib/utils";
 import { loadInvoiceBundle } from "@/lib/invoices/load";
 import { invoiceEmailEnvelope, invoiceEmailHtml } from "@/lib/invoices/email";
@@ -271,4 +273,17 @@ export async function updateInvoiceNotesAction(id: string, notes: string): Promi
   if (error) return { ok: false, error: errorMessage(error) };
   revalidatePath(`/invoices/${id}`);
   return { ok: true, data: undefined };
+}
+
+// --- QuickBooks ---------------------------------------------------------------
+
+/** Create or update this invoice in QuickBooks now (the daily sync does it on its own when connected). */
+export async function pushInvoiceToQuickBooksAction(invoiceId: string): Promise<ActionResult<{ docNumber: string | null }>> {
+  const session = await requireOwner();
+  if (!z.uuid().safeParse(invoiceId).success) return { ok: false, error: "Invalid invoice" };
+  const r = await pushInvoice(createAdminClient(), session.company.id, invoiceId);
+  if (!r.ok) return { ok: false, error: r.error };
+  revalidatePath(`/invoices/${invoiceId}`);
+  revalidatePath("/invoices");
+  return { ok: true, data: { docNumber: r.docNumber } };
 }
