@@ -14,13 +14,14 @@ A. Google Business Profile completeness (Maps card)
 - [ ] Hours look current (holiday/special hours if relevant).
 Why it matters: Google says local results rest mainly on "relevance, distance, and prominence" and that accurate, complete info helps a business show up more often.
  VERIFIED(https://support.google.com/business/answer/7091, 2026-10-12, search-result summary: "local rankings rest mainly on relevance, distance, and prominence"; "accurate, complete, and engaging").
- Google gives no weights per factor; third-party weightings are opinion. HYPOTHESIS that "complete" profiles convert better; test with client numbers.
+ Google gives no weights per factor; third-party weightings are opinion. [UNVERIFIED: absence claim; no 2026-10-12 search summary showed per-factor weights, pages not opened]. HYPOTHESIS that "complete" profiles convert better; test with client numbers.
 B. Reviews
 - [ ] Count and average (read from the card). [ ] Date of the newest review. [ ] Owner replies: how many of the last 10 have a reply?
-Why: Google lists review count and score under prominence, and says replying shows you value feedback.
+Why: Google's own wording is that review count and review score factor into local search ranking, and that replying shows you value feedback.
+ VERIFIED(https://onelocal.com/google-reviews-local-rankings, 2026-10-12, search summary quoting Google: "Google review count and review score factor into local search ranking"; Google text quoted by a third party, page not opened).
  VERIFIED(https://support.google.com/business/answer/7091, 2026-10-12, summary: review count and score feed prominence; "replying to reviews shows that you value feedback").
  VERIFIED(https://support.google.com/business/answer/9075681, 2026-10-12, summary: "The person who wrote the review is notified when you reply").
- Google lists review count and score under prominence (VERIFIED above) but publishes no weights; do not quote "N reviews = rank N" or any third-party weighting (UNVERIFIED). Pitch reviews as trust + visibility.
+ Google does not publish weights for reviews versus other factors (UNVERIFIED absence claim); do not quote "N reviews = rank N" or any third-party weighting (UNVERIFIED). Pitch reviews as trust + visibility.
 C. Photos
 - [ ] Owner-uploaded photos present (storefront, work, team). [ ] Newest photo date. [ ] Logo/cover present.
  VERIFIED(https://support.google.com/business/answer/7091, 2026-10-12, summary: Google suggests photos and videos "to show customers what you offer"). Any "X photos = Y% more clicks" stat found online is UNVERIFIED; do not quote it.
@@ -63,11 +64,11 @@ Rules: no number you did not see. "none" or "—" if not found. No revenue estim
 0:30 "Green: [best thing]. Honestly good." 
 0:45 "Red: [worst item]. Right now when someone searches [trade] in [city], [competitor] shows [n] reviews to your [n]."
 1:15 "Top 3 fixes: [1], [2], [3]. You can do all three yourself; each takes under an hour."
-1:45 Pitch: "If you'd rather not spend the time, I do a Starter package: the full audit, a 90-day plan, 30 days of ready-to-post content, and message scripts for follow-up and review requests. It's $[197–497, see Pricing note] one time. No contract, and I only get Manager access to your Google profile, never your passwords. I can't promise rankings or a number of calls; I can promise you'll have the plan in [X] days."
-2:30 Ask: "Want me to text you the one-page terms so you can say yes or no?" (If yes, send the text in the service agreement file, §Text version.)
+1:45 Pitch: "If you'd rather not spend the time, I do a Starter package: the full audit, a 90-day plan, 30 days of ready-to-post content, and message scripts for follow-up and review requests. It's $297 one time, paid before I start, and delivered in 7 days or you get a full refund. No long-term contract: one page, one-time or month-to-month. I only get Manager access to your Google profile, never your passwords. I can't promise rankings or a number of calls; I can promise you'll have the plan in 7 days."
+2:30 Ask: "Want me to text you the one-page terms so you can say yes or no?" (If yes, send the Starter text in the service agreement file, section "Text-message versions".)
 2:50 Close: "Either way the audit is yours to keep. Thanks for the time." Never push twice. "No" or silence = never contact again.
 DM/text version (under 320 chars): "Hi [name], [Owner] here, local marketing helper. I did a free public-info check of [Business]'s Google listing: [n] green, [n] red, 3 quick fixes. Want it? Reply YES. Reply STOP and I won't message again."
-Pricing note: Starter $197–$497 is the MOS starting hypothesis, HYPOTHESIS until red-team gates it against local competitor pricing (adapter §6 item 3). Fill the number only after that gate.
+Pricing note: Starter $297 one-time, paid in full before work starts (D-027; red-team T-011 ruling 2). Do not quote any monthly or retainer price in the pitch this week; Core is unlocked only after one Starter is delivered. Never pitch the $99 EXP-A2 pack to the same business. Raise to $397 only after 3 closes in the first 5 pitches.
 
 ## 5. Log (owner replies one line to the handoff or TODAY.md)
 `audit: [Business] · sent Y/N · delivered Y/N · call held Y/N · Starter offered Y/N · answer yes/no/silent · deposit $[amount, as shown in the payment app] · minutes prep/checklist/fill/deliver [n/n/n/n]`
