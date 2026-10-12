@@ -1,54 +1,93 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2Icon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CameraIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import { deletePhotoAction } from "@/app/(app)/jobs/actions";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { addPhotosAction, deletePhotoAction } from "@/app/(app)/jobs/actions";
+import { useSession } from "@/components/app/session-provider";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { PhotoPicker, type PendingPhoto } from "./photo-picker";
 
-interface Photo {
+export interface JobPhoto {
   id: string;
   kind: "before" | "after";
   url: string | null;
   created_at: string;
 }
 
-export function JobPhotos({ photos, jobId, canEdit }: { photos: Photo[]; jobId: string; canEdit: boolean }) {
-  const [open, setOpen] = useState<Photo | null>(null);
-  const [pending, start] = useTransition();
+/** The job's before/after photos: a grid, a lightbox, Add photos and Remove while the job is open. */
+export function JobPhotos({ photos, jobId, canEdit }: { photos: JobPhoto[]; jobId: string; canEdit: boolean }) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [open, setOpen] = useState<JobPhoto | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [pending, setPending] = useState<PendingPhoto[]>([]);
+  const [busy, start] = useTransition();
 
-  if (photos.length === 0) return <p className="text-sm text-muted-foreground">No photos.</p>;
+  function save() {
+    start(async () => {
+      if (demo) {
+        toast.success(`${pending.length} ${pending.length === 1 ? "photo" : "photos"} added`, { description: "Guest preview — nothing changed" });
+        setAdding(false);
+        setPending([]);
+        return;
+      }
+      const form = new FormData();
+      for (const p of pending) form.append(p.kind, new File([p.blob], p.name || `${p.kind}.jpg`, { type: "image/jpeg" }));
+      const r = await addPhotosAction(jobId, form);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success(`${r.data} ${r.data === 1 ? "photo" : "photos"} added`);
+      setAdding(false);
+      setPending([]);
+      router.refresh();
+    });
+  }
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-        {photos.map((p) => (
-          <button key={p.id} type="button" onClick={() => setOpen(p)} className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {p.url && <img src={p.url} alt={`${p.kind} photo`} className="size-full object-cover transition-transform group-hover:scale-105" loading="lazy" />}
-            <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white">{p.kind}</span>
-          </button>
-        ))}
-      </div>
+      {photos.length === 0 ? <p className="text-sm text-muted-foreground">No photos yet.</p> : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" data-testid="job-photo-grid">
+          {photos.map((p) => (
+            <button key={p.id} type="button" onClick={() => setOpen(p)} aria-label={`Open ${p.kind} photo`} className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {p.url && <img src={p.url} alt={`${p.kind} photo`} className="size-full object-cover transition-transform group-hover:scale-105" loading="lazy" />}
+              <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white">{p.kind}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {canEdit && (
+        <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setAdding(true)} data-testid="add-photos">
+          <CameraIcon /> Add photos
+        </Button>
+      )}
+
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
         <DialogContent className="max-w-3xl p-2">
           <DialogTitle className="sr-only">Photo</DialogTitle>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {open?.url && <img src={open.url} alt="" className="max-h-[80vh] w-full rounded-lg object-contain" />}
+          {open?.url && <img src={open.url} alt="" className="max-h-[80vh] w-full rounded-lg object-contain" data-testid="lightbox-photo" />}
           {canEdit && open && (
             <Button
               variant="destructive"
               size="sm"
-              disabled={pending}
+              disabled={busy}
               className="absolute bottom-4 left-4"
               onClick={() =>
                 start(async () => {
+                  if (demo) {
+                    toast.success("Photo removed", { description: "Guest preview — nothing changed" });
+                    setOpen(null);
+                    return;
+                  }
                   const r = await deletePhotoAction(open.id, jobId);
                   if (!r.ok) toast.error(r.error);
                   else {
                     toast.success("Photo removed");
                     setOpen(null);
+                    router.refresh();
                   }
                 })
               }
@@ -56,6 +95,24 @@ export function JobPhotos({ photos, jobId, canEdit }: { photos: Photo[]; jobId: 
               <Trash2Icon /> Remove
             </Button>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={adding} onOpenChange={(o) => { if (!o) { setAdding(false); setPending([]); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add photos</DialogTitle>
+            <DialogDescription>Before and after, from the camera. Up to four of each.</DialogDescription>
+          </DialogHeader>
+          <PhotoPicker photos={pending} onChange={setPending} disabled={busy} />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setAdding(false); setPending([]); }}>
+              Cancel
+            </Button>
+            <Button disabled={busy || pending.length === 0} onClick={save}>
+              {busy ? "Saving…" : `Save ${pending.length || ""} ${pending.length === 1 ? "photo" : "photos"}`.replace("  ", " ")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

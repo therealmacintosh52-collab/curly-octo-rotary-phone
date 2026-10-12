@@ -126,15 +126,21 @@ export async function createJobDirect(item: OutboxItem): Promise<SavedCar> {
   return { id: job.id, invoice_id: job.invoice_id, invoice_number: await invoiceNumberFor(job.invoice_id, job.id) };
 }
 
-/** Upload compressed photos to storage and register them on the job. */
+/**
+ * Upload compressed photos to storage and register them on the job. The
+ * storage path and the row's client_id come from the photo's own id, so a
+ * retry after a half-finished attempt overwrites the file and skips the row
+ * it already made (unique on job_id + client_id).
+ */
 async function uploadPhotos(item: OutboxItem, jobId: string) {
   if (!item.photos.length) return;
   const supabase = createClient();
   for (const photo of item.photos) {
-    const path = `${item.company_id}/${jobId}/${crypto.randomUUID()}.jpg`;
+    const clientId = photo.id ?? crypto.randomUUID();
+    const path = `${item.company_id}/${jobId}/${clientId}.jpg`;
     const { error: upErr } = await supabase.storage.from("job-photos").upload(path, photo.blob, {
       contentType: photo.blob.type || "image/jpeg",
-      upsert: false,
+      upsert: true,
     });
     if (upErr) throw upErr;
     const { error: rowErr } = await supabase.from("job_photos").insert({
@@ -143,7 +149,8 @@ async function uploadPhotos(item: OutboxItem, jobId: string) {
       kind: photo.kind,
       storage_path: path,
       size_bytes: photo.blob.size,
+      client_id: clientId,
     });
-    if (rowErr) throw rowErr;
+    if (rowErr && rowErr.code !== "23505") throw rowErr; // 23505: this photo was registered by an earlier attempt
   }
 }

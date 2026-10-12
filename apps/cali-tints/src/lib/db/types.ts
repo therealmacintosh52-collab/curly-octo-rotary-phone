@@ -180,6 +180,8 @@ export type JobPhoto = {
   height: number | null;
   size_bytes: number | null;
   created_by: string | null;
+  /** The id the device gave the photo; unique per job, so retried uploads never duplicate. */
+  client_id: string | null;
   created_at: string;
 }
 

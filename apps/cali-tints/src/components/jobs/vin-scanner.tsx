@@ -5,6 +5,7 @@ import { FlashlightIcon, ScanLineIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { extractVin } from "@/lib/vin";
+import { CAMERA_CONSTRAINTS, cameraErrorMessage, setTorch, torchSupported as torchOk } from "@/lib/camera";
 
 /**
  * Camera VIN scanner (ZXing). Reads the Code 39 / Code 128 barcodes on door
@@ -67,7 +68,7 @@ function CameraView({ onDetected }: { onDetected: (vin: string) => void }) {
         if (cancelled || !videoRef.current) return;
 
         const controls = await reader.decodeFromConstraints(
-          { video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
+          CAMERA_CONSTRAINTS,
           videoRef.current,
           (result) => {
             if (!result) return;
@@ -89,17 +90,9 @@ function CameraView({ onDetected }: { onDetected: (vin: string) => void }) {
         const stream = videoRef.current.srcObject as MediaStream | null;
         const track = stream?.getVideoTracks()[0] ?? null;
         trackRef.current = track;
-        const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { torch?: boolean }) | undefined;
-        if (caps?.torch) setTorchSupported(true);
+        if (torchOk(track)) setTorchSupported(true);
       } catch (err) {
-        const name = err instanceof Error ? err.name : "";
-        setError(
-          name === "NotAllowedError"
-            ? "Camera access was blocked. Allow the camera for this site and try again."
-            : name === "NotFoundError"
-              ? "No camera found on this device."
-              : "Could not start the camera.",
-        );
+        setError(cameraErrorMessage(err));
       }
     })();
 
@@ -114,7 +107,7 @@ function CameraView({ onDetected }: { onDetected: (vin: string) => void }) {
     const track = trackRef.current;
     if (!track) return;
     try {
-      await track.applyConstraints({ advanced: [{ torch: !torchOn } as MediaTrackConstraintSet] });
+      await setTorch(track, !torchOn);
       setTorchOn((t) => !t);
     } catch {
       setTorchSupported(false);

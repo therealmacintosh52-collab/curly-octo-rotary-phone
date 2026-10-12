@@ -770,3 +770,43 @@ begin
   assert (select label from public.job_services where job_id = v_job) = 'Odor treatment', '0029: label kept through the edit';
 end $$;
 select pg_temp.logout();
+
+-- 0030: photos. A detailer adds photos to their own open job and can remove the file too; not on an invoiced or deleted job.
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare v_job uuid := (select v from t_ids where k = 'np_job'); v_inv_job uuid := (select v from t_ids where k = 'det_job'); n int;
+begin
+  insert into public.job_photos (company_id, job_id, kind, storage_path, client_id)
+  values ('00000000-0000-4000-8000-000000000001', v_job, 'before', '00000000-0000-4000-8000-000000000001/' || v_job || '/p1.jpg', '50000000-0000-4000-8000-000000000001');
+  begin
+    insert into public.job_photos (company_id, job_id, kind, storage_path, client_id)
+    values ('00000000-0000-4000-8000-000000000001', v_job, 'before', '00000000-0000-4000-8000-000000000001/' || v_job || '/p1.jpg', '50000000-0000-4000-8000-000000000001');
+    raise exception 'expected duplicate client_id rejection';
+  exception when sqlstate '23505' then null; end;
+  select count(*) into n from public.job_photos where job_id = v_job; assert n = 1, '0030: one photo, retried upload not duplicated';
+  begin
+    insert into public.job_photos (company_id, job_id, kind, storage_path)
+    values ('00000000-0000-4000-8000-000000000001', v_inv_job, 'after', '00000000-0000-4000-8000-000000000001/' || v_inv_job || '/p2.jpg');
+    raise exception 'expected rls block on another detailer''s job';
+  exception when sqlstate '42501' then null; end;
+  insert into storage.objects (bucket_id, name) values ('job-photos', '00000000-0000-4000-8000-000000000001/' || v_job || '/p1.jpg');
+  delete from storage.objects where name = '00000000-0000-4000-8000-000000000001/' || v_job || '/p1.jpg';
+  get diagnostics n = row_count; assert n = 1, '0030: detailer removes the file of their own open job';
+  delete from storage.objects where name = '00000000-0000-4000-8000-000000000001/x/y.jpg';
+  get diagnostics n = row_count; assert n = 0, '0030: but not other files';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_job uuid := (select v from t_ids where k = 'np_job'); n int;
+begin
+  perform public.soft_delete_job(v_job, 'photo test');
+  begin
+    insert into public.job_photos (company_id, job_id, kind, storage_path)
+    values ('00000000-0000-4000-8000-000000000001', v_job, 'after', '00000000-0000-4000-8000-000000000001/' || v_job || '/p3.jpg');
+    raise exception 'expected no photos on a deleted job';
+  exception when sqlstate '42501' then null; end;
+  perform public.restore_job(v_job);
+  delete from storage.objects where name = '00000000-0000-4000-8000-000000000001/x/y.jpg';
+  get diagnostics n = row_count; assert n = 1, '0030: the owner removes any file';
+end $$;
+select pg_temp.logout();

@@ -24,6 +24,7 @@ import { Hint, Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ServicePicker, type SelectedService } from "./service-picker";
+import { PhotoPicker, type PendingPhoto } from "./photo-picker";
 import { CountUp } from "@/components/motion/primitives";
 // The barcode engine (ZXing) is ~200 KB; it only loads the first time the scanner opens.
 const VinScanner = dynamic(() => import("./vin-scanner").then((mod) => mod.VinScanner), { ssr: false });
@@ -46,6 +47,7 @@ interface SavedCar {
   model: string | null;
   dealership: string;
   total: number;
+  photos: number;
   /** syncing: on its way to the server · queued: offline · ready: saved on the server · failed: server said no */
   status: "syncing" | "queued" | "ready" | "failed";
   jobId: string | null;
@@ -76,6 +78,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const [model, setModel] = useState("");
   const [color, setColor] = useState("");
   const [services, setServices] = useState<SelectedService[]>([]);
+  const [photos, setPhotos] = useState<PendingPhoto[]>([]);
   const [performedAt, setPerformedAt] = useState(() => toDateInput(new Date()));
   const [notes, setNotes] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -258,7 +261,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       client_id: clientId,
       company_id: company.id,
       payload,
-      photos: [],
+      photos: photos.map((p) => ({ id: p.id, kind: p.kind, blob: p.blob, name: p.name })),
       summary: { tag_number: payload.tag_number, model: payload.model ?? null, dealership_name: dealership?.name ?? "", total },
       status: "pending",
       attempts: 0,
@@ -268,7 +271,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       job_id: null,
     };
 
-    const saved: SavedCar = { clientId, tag: payload.tag_number, model: payload.model ?? null, dealership: dealership?.name ?? "", total, status: online ? "syncing" : "queued", jobId: null };
+    const saved: SavedCar = { clientId, tag: payload.tag_number, model: payload.model ?? null, dealership: dealership?.name ?? "", total, photos: photos.length, status: online ? "syncing" : "queued", jobId: null };
     const celebrate = () => {
       setSavedCount((c) => c + 1);
       setSavedTotal((t) => t + total);
@@ -319,6 +322,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     setModel("");
     setColor("");
     setServices([]);
+    setPhotos([]);
     setPerformedAt(toDateInput(new Date()));
     setNotes("");
     setDuplicates(null);
@@ -365,6 +369,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
                   {lastSaved.status === "ready" && (
                     <>
                       <span className="font-medium text-foreground">Saved</span> · {lastSaved.dealership}
+                      {lastSaved.photos > 0 ? ` · ${lastSaved.photos} ${lastSaved.photos === 1 ? "photo" : "photos"}` : ""}
                     </>
                   )}
                   {lastSaved.status === "syncing" && "Saving…"}
@@ -553,6 +558,15 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
           </AnimatePresence>
         </div>
         <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={showMoney} />
+      </section>
+
+      {/* Photos */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-label text-subtle">Photos</h2>
+          <span className="text-caption text-subtle">{photos.length === 0 ? "Before and after · optional" : `${photos.length} ${photos.length === 1 ? "photo" : "photos"}`}</span>
+        </div>
+        <PhotoPicker photos={photos} onChange={setPhotos} disabled={saving} />
       </section>
 
       {/* Notes */}

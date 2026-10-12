@@ -147,7 +147,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             {wide && <Row what="Detailer" does="Who did the car. Defaults to you." />}
             <Row what="RO / PO number" does="Optional. The dealership's repair or purchase order, printed on the invoice." />
             <Row what="Notes" does="Optional. Anything the office should know. Printed on the invoice." />
-            <Row what="Photos" does="Before and after photos from the camera. Optional, but the dealership loves them." />
+            <Row what="Photos" does="Before and After: tap one to open the camera, up to four each. On a Clover Flex the camera opens inside the app. Optional, but the dealership loves them, and a photo settles any damage question." />
             <Row what="Save & next" does="Saves the job. The form clears for the next car." />
           </Inputs>
           <Outputs
@@ -168,7 +168,7 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
             <Row what="Filters" does={wide ? "Dealership, detailer, service and a date range. Chips above the list show what is on; tap one to clear it." : "Dealership, service and a date range. Chips above the list show what is on; tap one to clear it."} />
             <Row what="Day headers" does="Today, Yesterday, then each weekday, with the count for that day." />
             <Row what="A row" does="Opens that job: the car, the services, the photos, where it stands." />
-            <Row what="Edit job" does="Fix a typo, add a service or a photo, while the job is Not invoiced yet. Once it is on an invoice it is locked." />
+            <Row what="Edit job · Add photos" does="Fix a typo or add a service while the job is Not invoiced yet; Add photos puts more before/after shots on it, and tapping a photo opens it full size with Remove. Once the job is on an invoice it is locked." />
             {wide && <Row what="Delete job" does="Moves it to the Archive with the reason you type. Nothing is ever erased; Restore brings it back." />}
           </Inputs>
           <Outputs items={["Nothing changes by searching or filtering.", "On the 1st, every Not invoiced job from the month moves to Invoiced on its own."]} />

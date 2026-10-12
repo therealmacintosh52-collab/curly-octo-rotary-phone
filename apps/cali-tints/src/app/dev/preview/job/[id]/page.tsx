@@ -51,7 +51,14 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
               deleted_reason: row.deleted ? "Logged twice" : null,
               created_at: row.performed_at,
             }}
-            photos={[]}
+            photos={
+              row.photo_count > 0
+                ? [
+                    { id: `${row.id}-b`, kind: "before" as const, url: "/demo/before.svg", created_at: row.performed_at },
+                    ...(row.photo_count > 1 ? [{ id: `${row.id}-a`, kind: "after" as const, url: "/demo/after.svg", created_at: row.performed_at }] : []),
+                  ]
+                : []
+            }
             priceList={priceListFixture(canMoney)}
             detailers={[
               { id: "u2", full_name: "Victor" },

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2f2f"/><stop offset="1" stop-color="#0b0d0f"/></linearGradient></defs>
+  <rect width="800" height="600" fill="url(#g)"/>
+  <rect x="0" y="430" width="800" height="170" fill="#15181c"/>
+  <path d="M120 420 L190 300 Q220 250 290 245 L480 245 Q560 250 610 300 L700 420 Z" fill="#6b7280" opacity="0.95"/>
+  <path d="M215 300 Q240 262 300 262 L470 262 Q530 262 575 300 Z" fill="#1c2430"/>
+  <rect x="100" y="400" width="620" height="50" rx="14" fill="#6b7280"/>
+  <circle cx="230" cy="445" r="52" fill="#0b0d0f"/><circle cx="230" cy="445" r="28" fill="#5b616b"/>
+  <circle cx="590" cy="445" r="52" fill="#0b0d0f"/><circle cx="590" cy="445" r="28" fill="#5b616b"/>
+  <text x="40" y="60" font-family="system-ui, sans-serif" font-size="34" font-weight="700" fill="#e9eef5">Before</text>
+  <text x="40" y="96" font-family="system-ui, sans-serif" font-size="20" fill="#aab3bf">Dust, swirl marks, water spots</text>
+  <text x="760" y="570" text-anchor="end" font-family="system-ui, sans-serif" font-size="16" fill="#6b7280">Sample photo · guest preview</text>
+</svg>
