@@ -19,10 +19,13 @@
     "overflow": "node scripts/overflow.mjs",
     "hero-check": "node scripts/hero-check.mjs",
     "splits": "node scripts/split-images.mjs",
-    "scroll-check": "node scripts/scroll-check.mjs"
+    "scroll-check": "node scripts/scroll-check.mjs",
+    "booking-check": "node scripts/booking-check.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@astrojs/sitemap": "^3.7.4",
+    "@netlify/blobs": "^11.1.4",
     "astro": "^5.0.0",
     "gsap": "^3.12.5",
     "lenis": "^1.1.18"

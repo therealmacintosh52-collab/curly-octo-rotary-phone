@@ -10,3 +10,11 @@
 
 # _headers and _redirects in public/ are copied into dist/ and picked up
 # automatically; they are the source of truth rather than this file.
+
+# Serverless functions: the site assistant (/.netlify/functions/chat) and the
+# Instagram / Messenger webhook (/.netlify/functions/meta-webhook). They only
+# answer with Claude when ANTHROPIC_API_KEY is set in the Netlify UI; without
+# it the site falls back to the built-in guided assistant.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

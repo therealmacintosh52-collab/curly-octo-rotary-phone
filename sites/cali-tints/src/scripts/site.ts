@@ -5,6 +5,7 @@
  * form posts normally, the hero shows its poster, and every reveal is visible.
  */
 import data from '../data/site.json';
+import { openState } from '../lib/hours';
 
 const PHONE = data.site.phone_display;
 const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -32,6 +33,22 @@ if (toggle && nav) {
     }
   });
 }
+
+/* -------------------------------------------------------------- open now
+   Every [data-open-now] gets the live state in the shop's own time zone,
+   refreshed each minute so a pill left open flips at closing time. */
+function paintOpen() {
+  const st = openState();
+  document.querySelectorAll<HTMLElement>('[data-open-now]').forEach((el) => {
+    el.classList.toggle('is-open', st.open);
+    el.classList.toggle('is-closed', !st.open);
+    const label = el.querySelector<HTMLElement>('[data-open-label]');
+    if (label) label.textContent = st.label;
+    el.title = st.label;
+  });
+}
+paintOpen();
+setInterval(paintOpen, 60_000);
 
 /* ----------------------------------------------------------- footer year */
 document.querySelectorAll('[data-year]').forEach((el) => {

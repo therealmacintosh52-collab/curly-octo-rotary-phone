@@ -1,0 +1,101 @@
+---
+/**
+ * Online booking. Two modes, chosen by src/data/site.json → booking:
+ *   provider_url set   → that provider's booking page is embedded (Google
+ *                        Calendar appointment schedule, Square, Calendly…);
+ *                        bookings land in the owner's own calendar app.
+ *   provider_url empty → the built-in request flow below: pick a service, a
+ *                        day and a start time inside business hours, send the
+ *                        request. The shop confirms by text or call. The
+ *                        customer also gets "add to calendar", "text the shop"
+ *                        and, when the shop is open, "call now".
+ * src/scripts/booking.ts drives the calendar; ?service=&note=&date=&time=
+ * prefill it (the assistant and the service widgets link in that way).
+ */
+import data from '../data/site.json';
+import { EMAIL_IS_PLACEHOLDER } from '../lib/seo';
+import Icon from './Icon.astro';
+import OpenNow from './OpenNow.astro';
+const S = data.site;
+const B = data.booking;
+const host = S.base_url.replace(/^https?:\/\//, '');
+const config = {
+  tz: S.tz, hours: S.hours_open, slot: B.slot_minutes, lead: B.lead_hours, weeks: B.weeks_ahead,
+  phone: S.phone_display, phoneLink: S.phone_link, name: S.name, address: `${S.street}, ${S.city}, ${S.region} ${S.zip}`,
+  services: data.services.map((s) => ({ slug: s.slug, name: s.nav, minutes: s.duration_minutes })),
+  placeholder: EMAIL_IS_PLACEHOLDER,
+};
+---
+{B.provider_url ? (
+  <div class="book-embed">
+    <iframe src={B.provider_url} title={`Book an appointment with ${S.name}`} loading="lazy"></iframe>
+    <p class="form-note">Prefer to talk? <a href={`tel:${S.phone_link}`} data-loc="book-embed">Call {S.phone_display}</a> during business hours.</p>
+  </div>
+) : (
+  <div class="book" data-booking data-config={JSON.stringify(config)}>
+    <div class="book__steps">
+      <section class="book__step" data-step="service">
+        <h2><span>1</span> What are we doing?</h2>
+        <div class="book__services" role="radiogroup" aria-label="Service">
+          {data.services.map((s) => (
+            <label class="book__svc">
+              <input type="radio" name="svc" value={s.slug} />
+              <span class="book__svc-ico"><Icon name={s.icon} /></span>
+              <span><b>{s.nav}</b><small>{s.duration_minutes >= 360 ? 'Drop-off, same day or next' : `About ${Math.round(s.duration_minutes / 60)} hour${s.duration_minutes >= 120 ? 's' : ''}`}</small></span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section class="book__step" data-step="day">
+        <h2><span>2</span> Pick a day</h2>
+        <div class="cal" data-cal>
+          <div class="cal__head">
+            <button type="button" class="cal__nav" data-cal-prev aria-label="Previous month"><Icon name="arrow" /></button>
+            <b data-cal-title>Loading…</b>
+            <button type="button" class="cal__nav" data-cal-next aria-label="Next month"><Icon name="arrow" /></button>
+          </div>
+          <div class="cal__dow" aria-hidden="true">{['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => <span>{d}</span>)}</div>
+          <div class="cal__grid" data-cal-grid role="grid" aria-label="Choose a day"></div>
+          <p class="cal__hint">Open {S.hours_short}. Closed Sunday.</p>
+        </div>
+      </section>
+
+      <section class="book__step" data-step="time">
+        <h2><span>3</span> Pick a start time</h2>
+        <p class="book__daylabel" data-day-label>Choose a day first.</p>
+        <div class="slots" data-slots role="radiogroup" aria-label="Start time"></div>
+      </section>
+    </div>
+
+    <aside class="book__side">
+      <form class="quote-card book__form" id="booking" data-quote-form method="post" action={data.form_endpoint} data-mailto={S.email}>
+        <h2>Your booking request</h2>
+        <p class="book__summary" data-summary>Pick a service, a day and a time on the left.</p>
+        <input type="hidden" name="service" data-f-service />
+        <input type="hidden" name="date" data-f-date />
+        <input type="hidden" name="time" data-f-time />
+        <input type="hidden" name="duration" data-f-duration />
+        <input type="hidden" name="add_to_calendar" data-f-gcal />
+        <div class="field"><label for="bk-name">Your name</label><input id="bk-name" name="name" type="text" autocomplete="name" required /></div>
+        <div class="field"><label for="bk-phone">Mobile number (we confirm by text)</label><input id="bk-phone" name="phone" type="tel" autocomplete="tel" required /></div>
+        <div class="field"><label for="bk-vehicle">Vehicle (year, make, model)</label><input id="bk-vehicle" name="vehicle" type="text" placeholder="2021 Toyota Camry" required /></div>
+        <div class="field"><label for="bk-note">Anything we should know?</label><textarea id="bk-note" name="message" data-f-note placeholder="Shade, colour, which windows or panels, existing film or wrap on the car."></textarea></div>
+        <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <input type="hidden" name="_subject" value={`Booking request from ${host}`} data-f-subject />
+        <input type="hidden" name="_template" value="table" />
+        <input type="hidden" name="_captcha" value="false" />
+        <input type="hidden" name="_next" value={`${S.base_url}/thank-you/`} />
+        <button class="btn btn-accent" type="submit" style="width:100%" data-submit disabled>Choose a time to continue</button>
+        <p class="form-status" role="status" aria-live="polite"></p>
+        <div class="book__alt" data-alt hidden>
+          <a class="btn btn-outline btn-sm" data-sms href="#"><Icon name="chat" /><span>Text this to the shop</span></a>
+          <a class="btn btn-outline btn-sm" data-ics href="#" download="cali-tints-booking.ics"><Icon name="clock" /><span>Add to my calendar</span></a>
+        </div>
+        <p class="form-note">{B.note}</p>
+      </form>
+      <OpenNow variant="card" loc="book-card" />
+    </aside>
+  </div>
+)}

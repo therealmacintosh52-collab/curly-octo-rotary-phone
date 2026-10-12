@@ -4,6 +4,7 @@ import Base from '../../layouts/Base.astro';
 import PageHead from '../../components/PageHead.astro';
 import Glance from '../../components/Glance.astro';
 import SplitImage from '../../components/SplitImage.astro';
+import Interactive from '../../components/Interactive.astro';
 import Difference from '../../components/Difference.astro';
 import QuoteForm from '../../components/QuoteForm.astro';
 import Faq from '../../components/Faq.astro';
@@ -44,7 +45,7 @@ const sat = S.hours_rows.find(([d]) => d === 'Saturday')?.[1];
       <a class="btn btn-accent" href={`tel:${S.phone_link}`} data-loc="service-head">
         <Icon name="phone" /><span>Call {S.phone_display}</span>
       </a>
-      <a class="btn btn-ghost" href="#quote">Get a quote</a>
+      <a class="btn btn-ghost" href={`/book/?service=${s.slug}`}>Book online</a>
     </div>
   </PageHead>
 
@@ -55,6 +56,8 @@ const sat = S.hours_rows.find(([d]) => d === 'Saturday')?.[1];
           <!-- Answer-first: everything an assistant needs to answer
                "who does X in Sacramento" without reading further. -->
           <Glance glance={s.glance} />
+
+          <Interactive slug={s.slug} nav={s.nav} cfg={s.interactive} />
 
           <SplitImage src={s.image.src} alt={s.image.alt} caption={s.image.caption} />
           <Difference before={s.difference.before} after={s.difference.after}
@@ -121,3 +124,6 @@ const sat = S.hours_rows.find(([d]) => d === 'Saturday')?.[1];
     heading={`Need ${s.nav.toLowerCase()} in Sacramento?`}
     text="Call the shop and talk it through with someone who does this work every day." />
 </Base>
+<script>
+  import '../../scripts/widgets';
+</script>

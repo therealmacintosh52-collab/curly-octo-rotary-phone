@@ -1,0 +1,59 @@
+---
+import data from '../data/site.json';
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import BookingCalendar from '../components/BookingCalendar.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import OpenNow from '../components/OpenNow.astro';
+import { localBusiness, breadcrumbs } from '../lib/seo';
+const S = data.site;
+const trail: [string, string][] = [['Home', '/'], ['Book', '/book/']];
+---
+<Base
+  title="Book Online | Cali Tints Sacramento"
+  description={`Book window tint, wraps, PPF, ceramic coating or detailing online at Cali Tints, Sacramento. Pick a day and time; we confirm by text. Or call ${S.phone_display}.`}
+  path="/book/"
+  active="/book/"
+  schemas={[localBusiness(), breadcrumbs(trail)]}
+>
+  <PageHead trail={trail} h1="Book a time at the shop" lede="Pick the service, a day and a start time. We confirm by text, usually within the hour during business hours. Nothing is charged online.">
+    <div class="btn-row">
+      <OpenNow variant="pill" loc="book-head" />
+    </div>
+  </PageHead>
+
+  <section>
+    <div class="wrap">
+      <BookingCalendar />
+    </div>
+  </section>
+
+  <section class="bg-alt">
+    <div class="wrap">
+      <div class="grid g3">
+        <div class="panel">
+          <span class="eyebrow">What happens next</span>
+          <h3>We text you back</h3>
+          <p>A person at the shop checks the bay schedule and confirms your time, or offers the nearest one. Reply to that text with questions.</p>
+        </div>
+        <div class="panel">
+          <span class="eyebrow">Drop-off jobs</span>
+          <h3>Wraps, PPF, coating, upholstery</h3>
+          <p>These take the day or longer, so the booking is a morning drop-off. We tell you when it is ready; some wraps are two to three days.</p>
+        </div>
+        <div class="panel">
+          <span class="eyebrow">Rather talk?</span>
+          <h3>Call during business hours</h3>
+          <p>{S.hours_human}.</p>
+          <a class="btn btn-dark btn-sm" href={`tel:${S.phone_link}`} data-loc="book-panel"><Icon name="phone" /><span>Call {S.phone_display}</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand heading="Not sure which service you need?" text="Ask the assistant in the corner of the page, or call and describe the car." />
+</Base>
+<script>
+  import '../scripts/booking';
+</script>

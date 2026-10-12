@@ -181,7 +181,7 @@ for (const p of pages) {
   // internal links + anchors
   for (const href of info.links) {
     if (/^(https?:|tel:|mailto:|data:|#$)/.test(href)) continue;
-    const [pathPart, frag] = href.split('#');
+    const [pathPart, frag] = href.replace(/\?[^#]*/, '').split('#');   // query strings do not change the target file
     if (!pathPart) {
       if (frag && !info.ids.includes(frag)) errors.push(`${p}: anchor #${frag} has no target`);
       continue;

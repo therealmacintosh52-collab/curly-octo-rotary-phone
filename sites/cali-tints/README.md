@@ -17,6 +17,7 @@ node scripts/lh.mjs    # Lighthouse mobile (prints the table)
 npm run contrast       # hero copy vs what is behind it, frame by frame
 node scripts/shots.mjs      # QA screenshots -> qa/
 npm run scroll-check   # reveals, count-up, before/after images load; screenshots + qa/scroll.mp4
+npm run booking-check  # open/closed pill, calendar + slots, service widgets, assistant flow; screenshots
 npm run splits         # before/after images from the owner's collage -> public/assets/img/splits/
 npm run video -- clip.mov   # encode a new hero clip to spec + recut posters
 npm run posters        # hero poster set only (jpg/webp/avif)
@@ -64,6 +65,101 @@ left, after on the right, divider in the middle, at least 1280×640) in
 change that service's `image.caption` in `site.json` from the illustration wording to
 the real one.
 
+## Booking, the assistant and the social bots
+
+Three things were added for "book first, call always": an online booking page,
+an assistant that sells the services and books, and the same assistant wired for
+Instagram and Messenger. Every one of them keeps a call button in view, and the
+button knows whether the shop is open right now (`src/lib/hours.ts`, from
+`site.hours_open`, in the shop's time zone, refreshed every minute).
+
+### Booking (`/book/`)
+
+`src/data/site.json → booking` decides the mode.
+
+**Mode A, recommended: the owner's own calendar app.** Set `booking.provider_url`
+to a shareable booking page and `/book/` embeds it; every booking then lands in
+the app the owner already carries:
+
+| Provider | Cost | Where bookings show up | How to get the link |
+|---|---|---|---|
+| Google Calendar appointment schedule | free with a Google account | Google Calendar app, with automatic confirmation and reminder emails | calendar.google.com → Create → Appointment schedule → hours and durations → Share → copy link |
+| Square Appointments | free tier | Square Appointments app; also gives Instagram and Facebook a native "Book" button | squareup.com/appointments → online booking → copy link |
+| Calendly | free tier | Calendly app | calendly.com → event type → copy link |
+
+**Mode B, shipped today: the built-in request flow.** With `provider_url` empty,
+`BookingCalendar.astro` + `src/scripts/booking.ts` draw a calendar for the next
+`weeks_ahead` weeks, enable open days, list start times inside business hours
+(long jobs such as wraps and coating are morning drop-offs), and send the
+request through the same FormSubmit endpoint as the quote form. The email to the
+shop carries a one-tap "add to Google Calendar" link with the service, date,
+time, vehicle and note already filled in, so the owner can put it on their
+phone's calendar without typing. The customer also gets "text this to the shop"
+(an SMS link with the request written out), "add to my calendar" (.ics) and,
+during business hours, a "call now" button. Until `site.email` is real and the
+FormSubmit address is activated, the form says it is not connected and the
+customer is pointed at the text and call options; nothing is silently lost.
+Anything on the site can prefill it: `/book/?service=<slug>&note=<text>`.
+
+### The assistant (bottom-right corner, every page)
+
+`Assistant.astro` + `src/scripts/assistant.ts`. Two brains:
+
+- **Guided flow, no server.** Keyword intents (service, price, hours, legal,
+  book, call), a short question path (service → vehicle → goal), answers taken
+  from `site.json`, and every reply ends in "Book" and, when the shop is open,
+  "Call". This is what runs on GitHub Pages and whenever Claude is not configured.
+- **Claude.** `netlify/functions/chat.mjs` → `netlify/lib/engine.mjs` runs a
+  turn on Claude Opus 5.5 (override with `ASSISTANT_MODEL`) with the system
+  prompt and tools in `netlify/lib/knowledge.mjs`: `check_open_now`,
+  `booking_link`, `service_details`. The widget probes the endpoint once; if it
+  answers `{llm:true}` messages go to Claude and the reply's buttons are
+  rendered. The function sets server-side refusal fallbacks on by default and
+  caches the system prompt. Rough cost: a few cents per conversation.
+
+To turn Claude on: host on Netlify (connect the repo; `netlify.toml` already
+points at the functions folder), then Site settings → Environment variables →
+`ANTHROPIC_API_KEY` from console.anthropic.com. Redeploy. Nothing else changes.
+
+### Instagram and Messenger bot
+
+`netlify/functions/meta-webhook.mjs` answers DMs with the same engine, keeping
+the last twenty turns per sender in Netlify Blobs. Setup, all on the owner's
+accounts:
+
+1. The Instagram account must be a professional account linked to a Facebook
+   Page. On the Page, Settings → Messaging → allow access via API.
+2. developers.facebook.com → My Apps → Create app (Business) → add the
+   **Messenger** and **Instagram** products.
+3. Messenger settings → connect the Page → generate a Page access token with
+   `pages_messaging`, `pages_manage_metadata`, `instagram_basic` and
+   `instagram_manage_messages`.
+4. Webhooks → Callback URL `https://<site>/.netlify/functions/meta-webhook`,
+   Verify token: any password you make up; subscribe to `messages` for both
+   the Page and the Instagram account.
+5. Netlify environment variables: `META_VERIFY_TOKEN` (the password from step
+   4), `META_APP_SECRET` (App settings → Basic), `META_PAGE_TOKEN` (step 3),
+   `ANTHROPIC_API_KEY`. Redeploy; Meta's verification call then succeeds.
+6. Until the app passes App Review, only the app's admins and testers can DM
+   the bot. Submit for `instagram_manage_messages` and `pages_messaging` with a
+   screen recording of a booking conversation.
+
+Quicker win that works today: Instagram profile → Edit → Action buttons →
+**Book now** → paste `https://<site>/book/`; Facebook Page → Add action button →
+Book now → same link. With Square as the booking provider the Book button is
+native. Without an API key the webhook still replies with hours, the phone
+number and the booking link.
+
+### Interactive service pages
+
+`Interactive.astro` + `src/scripts/widgets.ts`, configured per service by
+`services[].interactive` in `site.json`: shade slider (tint), colour and finish
+picker (wraps), name-on-the-van (fleet), tap-the-panels (PPF), years-of-ownership
+comparison (ceramic), stage picker (correction), checklists (detailing,
+customization, upholstery) and symptom chips (removal, inspections). Each one
+writes a one-line "Your pick" and carries it into the Book button as the note.
+`npm run booking-check` exercises all of it.
+
 ## Preview on GitHub Pages
 
 `.github/workflows/deploy-phils-site.yml` builds this site on every push to the
@@ -89,8 +185,11 @@ is Netlify (base directory `sites/cali-tints`, build `npm run build`, publish `d
 src/data/site.json      all business facts: 11 services, 5 guides, 3 reviews,
                         6 FAQs, 10 areas, the three home pillars, profile URLs
 src/lib/seo.ts          schema builders. @type = LocalBusiness + knowsAbout
+src/lib/hours.ts        open/closed maths in the shop's time zone (pill, calendar, assistant)
+netlify/functions/      chat.mjs (site assistant), meta-webhook.mjs (Instagram + Messenger)
+netlify/lib/            knowledge.mjs (prompt + tools from site.json), engine.mjs (Claude turn)
 src/layouts/Base.astro  head, preloads, JSON-LD, chrome
-src/components/         VideoHero, SplitImage, Difference, QuoteForm, …
+src/components/         VideoHero, SplitImage, Interactive, BookingCalendar, Assistant, OpenNow, …
 src/assets/source/      before-after-collage.jpg, the owner's collage that npm run splits cuts up
 src/scripts/site.ts     nav, tracking, forms, hero autoplay, GSAP/Lenis
 src/styles/legacy.css   tokens + components (green/black, contrast-verified)

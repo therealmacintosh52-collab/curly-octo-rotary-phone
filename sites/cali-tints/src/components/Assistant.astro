@@ -1,0 +1,40 @@
+---
+/**
+ * The sales/booking assistant, on every page. A launcher button opens a
+ * panel. src/scripts/assistant.ts runs a guided flow in the browser (works on
+ * any static host) and upgrades itself to Claude when
+ * /.netlify/functions/chat reports an API key is configured.
+ */
+import data from '../data/site.json';
+import Icon from './Icon.astro';
+import OpenNow from './OpenNow.astro';
+const S = data.site;
+const A = data.assistant;
+const cfg = {
+  name: A.name, opener: A.opener, quick: A.quick,
+  phone: S.phone_display, phoneLink: S.phone_link, hours: S.hours_human,
+  services: data.services.map((s) => ({ slug: s.slug, name: s.nav, blurb: s.blurb, pricing: s.glance.pricing, includes: s.includes.slice(0, 3), keywords: [s.nav, ...s.slug.split('-')] })),
+};
+---
+<div class="asst" id="ask" data-assistant data-config={JSON.stringify(cfg)}>
+  <button type="button" class="asst__launch" data-asst-open aria-controls="asst-panel" aria-expanded="false" aria-label={`Ask ${A.name}, the booking assistant`}>
+    <img src={S.logo} alt="" width="40" height="40" />
+    <span>Ask {A.name}</span>
+  </button>
+  <section class="asst__panel" id="asst-panel" aria-label={`${A.name}, ${A.tagline}`} hidden>
+    <header class="asst__head">
+      <img src={S.logo} alt="" width="36" height="36" />
+      <div><b>{A.name}</b><OpenNow variant="inline" /></div>
+      <a class="asst__call" href={`tel:${S.phone_link}`} data-loc="assistant" aria-label={`Call ${S.phone_display}`}><Icon name="phone" /></a>
+      <button type="button" class="asst__close" data-asst-close aria-label="Close">×</button>
+    </header>
+    <div class="asst__log" data-asst-log role="log" aria-live="polite"></div>
+    <div class="asst__quick" data-asst-quick></div>
+    <form class="asst__form" data-asst-form>
+      <label class="sr-only" for="asst-input">Your message</label>
+      <input id="asst-input" type="text" autocomplete="off" placeholder="Type here…" maxlength="500" />
+      <button type="submit" class="btn btn-accent btn-sm" aria-label="Send"><Icon name="arrow" /></button>
+    </form>
+    <p class="asst__foot">Prices are quoted on your car. <a href="/book/">Book online</a> or call during business hours.</p>
+  </section>
+</div>

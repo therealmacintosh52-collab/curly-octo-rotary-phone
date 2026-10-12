@@ -106,7 +106,37 @@
         "text": "Paint correction takes the swirls out; a ceramic coating locks the result in against UV, bird droppings, tree sap and Sacramento dust.",
         "href": "/services/ceramic-coating/"
       }
-    ]
+    ],
+    "tz": "America/Los_Angeles",
+    "hours_open": [
+      null,
+      [
+        10,
+        18
+      ],
+      [
+        10,
+        18
+      ],
+      [
+        10,
+        18
+      ],
+      [
+        10,
+        18
+      ],
+      [
+        10,
+        18
+      ],
+      [
+        10,
+        16
+      ]
+    ],
+    "instagram": "",
+    "facebook": ""
   },
   "nav": [
     [
@@ -132,6 +162,10 @@
     [
       "Contact",
       "/contact/"
+    ],
+    [
+      "Book",
+      "/book/"
     ]
   ],
   "services": [
@@ -207,6 +241,12 @@
         "src": "/assets/img/splits/window-tinting",
         "alt": "Rear door window of a dark sedan: bare, reflective glass on the left, deep ceramic film on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 180,
+      "interactive": {
+        "type": "shade",
+        "heading": "Pick your shade",
+        "text": "Slide to see how dark each window goes. California allows 70% or lighter on the front side windows; behind that, your call."
       }
     },
     {
@@ -277,6 +317,34 @@
         "src": "/assets/img/splits/tint-removal-repair",
         "alt": "Rear window with blistered, peeling purple film on the left and clean glass on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 120,
+      "interactive": {
+        "type": "symptoms",
+        "heading": "What is the film doing?",
+        "text": "Tap what you see and we will tell you what it means and what fixes it.",
+        "items": [
+          [
+            "Purple or faded",
+            "Dyed film that has baked out in the sun. It cannot be repaired; we strip it and re-tint with ceramic or carbon that will not turn."
+          ],
+          [
+            "Bubbles or blisters",
+            "The adhesive has let go. Small spots sometimes mean a bad install; a window full of them means the film is done. Removal plus new film."
+          ],
+          [
+            "Peeling at the edges",
+            "Film lifting at the top edge from window travel. Usually a full pane replacement; we re-tint the one window to match the rest."
+          ],
+          [
+            "Scratched or cloudy",
+            "Surface damage to the film, not the glass. Replace the affected pane; the glass underneath is fine."
+          ],
+          [
+            "Failed inspection or a ticket",
+            "The front windows are darker than 70%. We remove the fronts and re-film them to the legal limit, with a certificate for the fix-it ticket."
+          ]
+        ]
       }
     },
     {
@@ -351,6 +419,12 @@
         "src": "/assets/img/splits/vinyl-wraps",
         "alt": "Sedan door panel: dull grey factory paint on the left, gloss blue vinyl wrap on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 480,
+      "interactive": {
+        "type": "colour",
+        "heading": "Try a colour",
+        "text": "Pick a colour and finish, then how much of the car it covers."
       }
     },
     {
@@ -420,6 +494,12 @@
         "src": "/assets/img/splits/commercial-wraps",
         "alt": "Work van: dirty, unmarked white panels on the left, lettered with the Cali Tints name and phone number on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 480,
+      "interactive": {
+        "type": "lettering",
+        "heading": "Put your name on the van",
+        "text": "Type your business name and phone number to see it on a panel."
       }
     },
     {
@@ -489,6 +569,12 @@
         "src": "/assets/img/splits/paint-protection-film",
         "alt": "Hood close-up: chipped paint beading water on the left, smooth clear film on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 360,
+      "interactive": {
+        "type": "zones",
+        "heading": "Choose what to protect",
+        "text": "Tap the panels. The front end takes almost all the rock chips; the rest is for people who keep the car a long time."
       }
     },
     {
@@ -558,6 +644,12 @@
         "src": "/assets/img/splits/ceramic-coating",
         "alt": "Black sedan: flat, hazy paint on the left, deep wet-look gloss on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 480,
+      "interactive": {
+        "type": "timeline",
+        "heading": "How long does protection last?",
+        "text": "Drag across the years to compare wax, a sealant and a ceramic coating."
       }
     },
     {
@@ -627,6 +719,24 @@
         "src": "/assets/img/splits/detailing",
         "alt": "Front cabin of a sedan: mud and leaves over the steering wheel, dash and seats on the left, the same interior clean on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 180,
+      "interactive": {
+        "type": "builder",
+        "heading": "Build your detail",
+        "text": "Tick what the car needs. We quote the package on your vehicle.",
+        "items": [
+          "Exterior wash and decontamination",
+          "Interior vacuum, wipe-down and glass",
+          "Shampoo seats and carpets",
+          "Leather clean and condition",
+          "Engine bay",
+          "Headliner",
+          "Odour treatment",
+          "Pet hair removal",
+          "Wheels, tyres and wheel wells",
+          "Machine polish (light)"
+        ]
       }
     },
     {
@@ -696,6 +806,12 @@
         "src": "/assets/img/splits/paint-correction",
         "alt": "Dark fender close-up: swirl marks and fine scratches on the left, corrected mirror finish on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 480,
+      "interactive": {
+        "type": "stages",
+        "heading": "How much correction?",
+        "text": "Pick a stage to see what it removes."
       }
     },
     {
@@ -766,6 +882,26 @@
         "src": "/assets/img/splits/customization",
         "alt": "Rear quarter of a dark sedan: factory tail light on the left, smoked lens on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 120,
+      "interactive": {
+        "type": "builder",
+        "heading": "Build your list",
+        "text": "Tick what you want done and we will price it as one job.",
+        "items": [
+          "Smoked tail lights (legal)",
+          "Smoked headlights (legal)",
+          "Chrome delete",
+          "Roof wrap",
+          "Blacked-out badges",
+          "Dash cam install",
+          "Backup camera",
+          "Head unit / Apple CarPlay",
+          "Speaker and sub install",
+          "LED interior lighting",
+          "Remote start",
+          "Window visors and accessories"
+        ]
       }
     },
     {
@@ -836,6 +972,26 @@
         "src": "/assets/img/splits/upholstery",
         "alt": "Driver seat: cracked, worn leather on the left, re-trimmed black upholstery on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 480,
+      "interactive": {
+        "type": "builder",
+        "heading": "What needs attention?",
+        "text": "Tick the seats and surfaces. Material choice comes after we see the car.",
+        "items": [
+          "Driver seat",
+          "Passenger seat",
+          "Rear bench",
+          "Headrests",
+          "Door cards",
+          "Centre console / armrest",
+          "Steering wheel",
+          "Headliner",
+          "Carpet",
+          "Leather repair (cracks, tears)",
+          "Full re-trim in leather",
+          "Full re-trim in cloth"
+        ]
       }
     },
     {
@@ -905,6 +1061,38 @@
         "src": "/assets/img/splits/inspections-mechanic",
         "alt": "Underside of a car on a lift: rusted, leaking components on the left, cleaned and serviced on the right",
         "caption": "AI-generated illustration, not a customer vehicle."
+      },
+      "duration_minutes": 90,
+      "interactive": {
+        "type": "symptoms",
+        "heading": "What is the car doing?",
+        "text": "Tap what you notice and we will tell you what we check first.",
+        "items": [
+          [
+            "Warning light on the dash",
+            "We read the codes and check the sensor or system behind them before anything is replaced."
+          ],
+          [
+            "Noise over bumps",
+            "Suspension: bushings, links, shocks and mounts, checked on the lift."
+          ],
+          [
+            "Brakes squeal or pulse",
+            "Pads, rotors and calipers measured and inspected, fluid checked."
+          ],
+          [
+            "Runs rough or stalls",
+            "Ignition, fuel delivery and air side, starting with the cheapest causes."
+          ],
+          [
+            "Buying a used car",
+            "Pre-purchase inspection: body, frame, fluids, leaks, tyres, brakes, codes, a road test, and a written list of what it needs."
+          ],
+          [
+            "Due for service",
+            "Oil, filters, fluids, belts and a look over everything underneath."
+          ]
+        ]
       }
     }
   ],
@@ -1258,5 +1446,25 @@
     "family": "<circle cx=\"9\" cy=\"7\" r=\"3\"/><circle cx=\"17\" cy=\"9\" r=\"2.2\"/><path d=\"M3 20a6 6 0 0 1 12 0\"/><path d=\"M15 20a4.5 4.5 0 0 1 6 -3.5\"/>",
     "badge": "<circle cx=\"12\" cy=\"9\" r=\"6\"/><path d=\"M9 14.5 8 22l4-2 4 2-1-7.5\"/><path d=\"M10 9l1.5 1.5L14.5 7\"/>",
     "palm": "<path d=\"M12 21V10\"/><path d=\"M12 10c-3-4-7-4-9-2 3 0 6 1 9 2z\"/><path d=\"M12 10c3-4 7-4 9-2-3 0-6 1-9 2z\"/><path d=\"M12 10C10 6 10 3 12 2c2 1 2 4 0 8z\"/><path d=\"M5 21h14\"/>"
+  },
+  "booking": {
+    "provider": "",
+    "provider_url": "",
+    "slot_minutes": 60,
+    "lead_hours": 2,
+    "weeks_ahead": 6,
+    "note": "Pick a day and time and send the request. The shop confirms by text or a call; nothing is charged online."
+  },
+  "assistant": {
+    "name": "Cali",
+    "tagline": "Cali Tints assistant",
+    "opener": "Hi, I'm Cali. Tell me the car and what you want to fix — heat, looks, protection — and I'll point you at the right service and get you booked.",
+    "quick": [
+      "Tint prices",
+      "Wrap my car",
+      "Protect new paint",
+      "Book a time",
+      "Call the shop"
+    ]
   }
 }

@@ -1,6 +1,7 @@
 ---
 import data from '../data/site.json';
 import Icon from './Icon.astro';
+import OpenNow from './OpenNow.astro';
 const S = data.site;
 const FULL = `${S.street}, ${S.city}, ${S.region} ${S.zip}`;
 export interface Props { active?: string; over?: boolean }
@@ -36,10 +37,11 @@ const { active, over = false } = Astro.props;
     </nav>
 
     <div class="header-cta">
+      <OpenNow variant="pill" loc="header" />
       <a class="header-phone" href={`tel:${S.phone_link}`} data-loc="header">
         <span>Call the shop</span><strong>{S.phone_display}</strong>
       </a>
-      <a class="btn btn-accent btn-sm" href="/contact/#quote">Get a Quote</a>
+      <a class="btn btn-accent btn-sm" href="/book/">Book online</a>
     </div>
 
     <button class="nav-toggle" type="button" aria-expanded="false"

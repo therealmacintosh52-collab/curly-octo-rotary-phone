@@ -1,0 +1,173 @@
+---
+/**
+ * One interactive block per service, configured by services[].interactive in
+ * site.json. Every type ends the same way: a one-line summary of what the
+ * visitor picked and a "Book this" button that carries it to /book/ as the
+ * note. src/scripts/widgets.ts does the behaviour.
+ */
+import Icon from './Icon.astro';
+export interface Props { slug: string; nav: string; cfg: any }
+const { slug, nav, cfg } = Astro.props;
+const t = cfg.type as string;
+// A simple coupe, side view, used by shade / colour / stages. Window shapes are
+// separate paths so they can be darkened on their own.
+const CAR = {
+  body: 'M18 108c0-10 8-16 22-19l28-6 34-30c8-7 18-10 32-10h66c16 0 28 5 40 15l28 24c14 5 24 10 26 20l2 8c0 6-4 10-10 10h-6a22 22 0 0 1-44 0H108a22 22 0 0 1-44 0H28c-6 0-10-4-10-10z',
+  windshield: 'M104 55l32-27c6-5 13-8 22-8h-8l-2 35z',
+  front: 'M128 55l26-30h58l-2 30z',
+  rear: 'M214 25h26c10 0 18 3 26 9l24 21h-78z',
+};
+const VAN = {
+  body: 'M14 102V58c0-6 4-10 10-10h40l26-28c3-3 6-4 10-4h186c6 0 10 4 10 10v76a6 6 0 0 1-6 6h-20a20 20 0 0 1-40 0H110a20 20 0 0 1-40 0H20a6 6 0 0 1-6-6z',
+  cab: 'M62 56l24-26h34v26z',
+};
+const SWATCHES = [['Gloss black', '#0b0b0b'], ['Satin black', '#2a2a2a'], ['Nardo grey', '#8a8d90'], ['Gloss white', '#f2f2f0'], ['Midnight blue', '#17305e'], ['Racing red', '#c1121f'], ['British green', '#1f4d2e'], ['Burnt orange', '#d9641e'], ['Satin purple', '#4b2a73'], ['Carbon', '#1c1f22']];
+const ZONES = [['hood', 'Hood', 'M60 40h80v60H60z'], ['bumper', 'Front bumper', 'M20 36h34v68H20z'], ['fenders', 'Front fenders', 'M60 20h80v16H60zM60 104h80v16H60z'], ['mirrors', 'Mirrors', 'M146 14h14v10h-14zM146 116h14v10h-14z'], ['doors', 'Doors', 'M146 40h100v60H146z'], ['rear', 'Rear quarters & bumper', 'M252 36h50v68h-50z'], ['roof', 'Roof & pillars', 'M146 24h100v12H146zM146 104h100v12H146z']];
+const STAGES = [['1', 'One-stage polish', 'Removes light swirls and haze; gloss comes up a lot. Most daily drivers.', 0.35], ['2', 'Two-stage: compound + polish', 'Takes out deeper swirls, water spots and most scratches you cannot feel with a nail. Then refines.', 0.1], ['3', 'Three-stage: wet sand + compound + polish', 'For heavy marring, buffer trails and orange peel. Concours finish.', 0.0]];
+---
+<div class="iw" data-widget={t} data-slug={slug} data-service={nav}>
+  <div class="iw__head">
+    <span class="eyebrow">Try it</span>
+    <h2>{cfg.heading}</h2>
+    <p>{cfg.text}</p>
+  </div>
+
+  {t === 'shade' && (
+    <div class="iw__body iw__shade">
+      <svg class="iw__car" viewBox="0 0 330 140" aria-hidden="true">
+        <path class="iw__paint" d={CAR.body} fill="#121414" />
+        <path class="iw__glass" d={CAR.windshield} fill="#a9c7dd" data-pane="windshield" />
+        <path class="iw__glass" d={CAR.front} fill="#a9c7dd" data-pane="front" />
+        <path class="iw__glass" d={CAR.rear} fill="#a9c7dd" data-pane="rear" />
+        <circle cx="86" cy="118" r="18" fill="#222" /><circle cx="86" cy="118" r="8" fill="#555" />
+        <circle cx="242" cy="118" r="18" fill="#222" /><circle cx="242" cy="118" r="8" fill="#555" />
+        <text x="176" y="80" class="iw__label" text-anchor="middle" data-vlt-text>35% VLT</text>
+      </svg>
+      <div class="iw__controls">
+        <label class="iw__range"><span>Rear and back glass</span><input type="range" min="5" max="70" step="5" value="35" data-vlt /><b data-vlt-out>35%</b></label>
+        <div class="iw__legal" data-legal>
+          <span class="iw__ok">Front windows stay at 70% (legal)</span>
+          <span data-legal-rear>Rear at 35%: legal</span>
+        </div>
+        <div class="iw__pick" role="radiogroup" aria-label="Film">
+          <label><input type="radio" name="film" value="Ceramic" checked /><span><b>Ceramic</b><small>Most heat rejection, no signal interference</small></span></label>
+          <label><input type="radio" name="film" value="Carbon" /><span><b>Carbon</b><small>Good heat cut, matte look, lower price</small></span></label>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {t === 'colour' && (
+    <div class="iw__body iw__colour">
+      <svg class="iw__car" viewBox="0 0 330 140" aria-hidden="true">
+        <defs><linearGradient id={`gl-${slug}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".45" /><stop offset=".5" stop-color="#fff" stop-opacity="0" /></linearGradient></defs>
+        <path class="iw__paint" d={CAR.body} fill="#0b0b0b" data-paint />
+        <path d={CAR.body} fill={`url(#gl-${slug})`} data-gloss />
+        <path d={CAR.windshield} fill="#1c2a33" /><path d={CAR.front} fill="#1c2a33" /><path d={CAR.rear} fill="#1c2a33" />
+        <circle cx="86" cy="118" r="18" fill="#222" /><circle cx="86" cy="118" r="8" fill="#555" />
+        <circle cx="242" cy="118" r="18" fill="#222" /><circle cx="242" cy="118" r="8" fill="#555" />
+      </svg>
+      <div class="iw__controls">
+        <div class="iw__swatches" role="radiogroup" aria-label="Colour">
+          {SWATCHES.map(([name, hex], i) => (
+            <label class="iw__swatch" style={`--c:${hex}`}><input type="radio" name="col" value={name} data-hex={hex} checked={i === 4} /><span></span><small>{name}</small></label>
+          ))}
+        </div>
+        <div class="iw__pick iw__pick--row" role="radiogroup" aria-label="Finish">
+          {['Gloss', 'Satin', 'Matte'].map((f, i) => <label><input type="radio" name="finish" value={f} checked={i === 0} /><span><b>{f}</b></span></label>)}
+        </div>
+        <div class="iw__pick iw__pick--row" role="radiogroup" aria-label="Coverage">
+          {['Full wrap', 'Roof only', 'Hood only', 'Chrome delete'].map((c, i) => <label><input type="radio" name="cover" value={c} checked={i === 0} /><span><b>{c}</b></span></label>)}
+        </div>
+      </div>
+    </div>
+  )}
+
+  {t === 'lettering' && (
+    <div class="iw__body iw__lettering">
+      <svg class="iw__van" viewBox="0 0 320 140" aria-hidden="true">
+        <path d={VAN.body} fill="#f4f4f2" stroke="#cfd2d0" />
+        <path d={VAN.cab} fill="#2b3a44" />
+        <rect x="128" y="44" width="150" height="52" rx="4" fill="#fff" stroke="#e2e4e2" />
+        <circle cx="90" cy="108" r="18" fill="#222" /><circle cx="90" cy="108" r="7" fill="#666" />
+        <circle cx="260" cy="108" r="18" fill="#222" /><circle cx="260" cy="108" r="7" fill="#666" />
+        <text x="203" y="66" text-anchor="middle" class="iw__van-name" data-van-name>YOUR BUSINESS</text>
+        <text x="203" y="84" text-anchor="middle" class="iw__van-tag" data-van-tag>(916) 000-0000</text>
+      </svg>
+      <div class="iw__controls">
+        <label class="field"><span>Business name</span><input type="text" maxlength="24" placeholder="Sunrise Plumbing" data-van-in-name /></label>
+        <label class="field"><span>Phone or website</span><input type="text" maxlength="28" placeholder="(916) 555-0100" data-van-in-tag /></label>
+        <label class="field"><span>How many vehicles?</span><input type="number" min="1" max="50" value="1" data-van-count /></label>
+      </div>
+    </div>
+  )}
+
+  {t === 'zones' && (
+    <div class="iw__body iw__zones">
+      <svg class="iw__top" viewBox="0 0 320 140" aria-hidden="true">
+        <rect x="18" y="14" width="286" height="112" rx="34" fill="#1a1d1f" />
+        {ZONES.map(([id, name, d]) => <path d={d} class="iw__zone" data-zone={id} data-zone-name={name} fill="#2d3134" stroke="#0f1112" />)}
+        <rect x="146" y="40" width="100" height="60" fill="#0d1a24" pointer-events="none" />
+      </svg>
+      <div class="iw__controls">
+        <div class="iw__zonelist">
+          {ZONES.map(([id, name]) => <label class="iw__check"><input type="checkbox" value={name} data-zone-box={id} checked={['hood', 'bumper', 'fenders', 'mirrors'].includes(id as string)} /><span>{name}</span></label>)}
+        </div>
+        <p class="iw__hint" data-zone-hint>Front package: hood, bumper, fenders and mirrors. That is where the chips land.</p>
+      </div>
+    </div>
+  )}
+
+  {t === 'timeline' && (
+    <div class="iw__body iw__timeline">
+      <label class="iw__range"><span>Years of ownership</span><input type="range" min="1" max="5" step="1" value="3" data-years /><b data-years-out>3 years</b></label>
+      <div class="iw__bars">
+        {[['Wax', 'wax', 'Re-apply every 2 months'], ['Paint sealant', 'sealant', 'Re-apply every 5 months'], ['Ceramic coating', 'ceramic', 'One application, maintained with washes']].map(([name, key, note]) => (
+          <div class="iw__bar" data-bar={key}><div class="iw__bar-head"><b>{name}</b><span data-bar-count></span></div><div class="iw__bar-track"><i></i></div><small>{note}</small></div>
+        ))}
+      </div>
+      <p class="iw__hint">Rough rule-of-thumb intervals for a car parked outside in Sacramento. A coating costs more once; the others cost time every few weeks.</p>
+    </div>
+  )}
+
+  {t === 'stages' && (
+    <div class="iw__body iw__stages">
+      <svg class="iw__panel" viewBox="0 0 330 120" aria-hidden="true">
+        <defs><pattern id={`sw-${slug}`} width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="13" cy="13" r="9" fill="none" stroke="#fff" stroke-width=".8" stroke-dasharray="3 5" /><circle cx="13" cy="13" r="4" fill="none" stroke="#fff" stroke-width=".6" stroke-dasharray="2 4" /></pattern></defs>
+        <rect x="10" y="10" width="310" height="100" rx="14" fill="#0e1012" />
+        <rect x="10" y="10" width="310" height="100" rx="14" fill={`url(#sw-${slug})`} data-swirls opacity=".35" />
+        <rect x="10" y="10" width="310" height="40" rx="14" fill="#fff" opacity=".08" data-shine />
+      </svg>
+      <div class="iw__pick" role="radiogroup" aria-label="Stage">
+        {STAGES.map(([n, name, note, sw], i) => <label><input type="radio" name="stage" value={name} data-swirl={sw} checked={i === 0} /><span><b>{n}. {name}</b><small>{note}</small></span></label>)}
+      </div>
+    </div>
+  )}
+
+  {(t === 'builder') && (
+    <div class="iw__body iw__builder">
+      <div class="iw__checks">
+        {cfg.items.map((it: string) => <label class="iw__check"><input type="checkbox" value={it} data-item /><span>{it}</span></label>)}
+      </div>
+    </div>
+  )}
+
+  {t === 'symptoms' && (
+    <div class="iw__body iw__symptoms">
+      <div class="iw__chips" role="group" aria-label="Symptoms">
+        {cfg.items.map(([s]: [string, string], i: number) => <button type="button" class="iw__chipbtn" data-symptom={i} aria-pressed="false">{s}</button>)}
+      </div>
+      <div class="iw__answers">
+        {cfg.items.map(([s, a]: [string, string], i: number) => <div class="iw__answer" data-answer={i} hidden><b>{s}</b><p>{a}</p></div>)}
+      </div>
+    </div>
+  )}
+
+  <div class="iw__foot">
+    <p class="iw__summary"><span class="eyebrow">Your pick</span><b data-summary>—</b></p>
+    <div class="btn-row">
+      <a class="btn btn-accent" href={`/book/?service=${slug}`} data-book><Icon name="clock" /><span>Book this</span></a>
+      <a class="btn btn-outline" href="#ask">Ask a question</a>
+    </div>
+  </div>
+</div>

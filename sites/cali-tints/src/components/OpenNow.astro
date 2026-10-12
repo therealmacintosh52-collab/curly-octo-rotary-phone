@@ -1,0 +1,29 @@
+---
+/**
+ * Live open/closed pill with the call button. Renders a neutral "Call" state
+ * (no JS needed); src/scripts/site.ts fills in "Open until 6:00 PM" or
+ * "Closed · opens Monday 10:00 AM" from the shop's own time zone.
+ */
+import data from '../data/site.json';
+import Icon from './Icon.astro';
+const S = data.site;
+export interface Props { variant?: 'pill' | 'card' | 'inline'; loc?: string }
+const { variant = 'pill', loc = 'open-now' } = Astro.props;
+---
+{variant === 'card' ? (
+  <div class="opennow opennow--card" data-open-now>
+    <span class="opennow__dot" aria-hidden="true"></span>
+    <div>
+      <b data-open-label>Call during business hours</b>
+      <span>{S.hours_short}</span>
+    </div>
+    <a class="btn btn-accent btn-sm" href={`tel:${S.phone_link}`} data-loc={loc}><Icon name="phone" /><span>Call {S.phone_display}</span></a>
+  </div>
+) : variant === 'inline' ? (
+  <span class="opennow opennow--inline" data-open-now><span class="opennow__dot" aria-hidden="true"></span><span data-open-label>Business hours</span></span>
+) : (
+  <a class="opennow opennow--pill" href={`tel:${S.phone_link}`} data-open-now data-loc={loc}>
+    <span class="opennow__dot" aria-hidden="true"></span>
+    <span class="opennow__text"><b data-open-label>Call the shop</b><span>{S.phone_display}</span></span>
+  </a>
+)}

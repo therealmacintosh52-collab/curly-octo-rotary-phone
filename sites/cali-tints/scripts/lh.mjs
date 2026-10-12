@@ -64,6 +64,12 @@ for (const [label, p] of PAGES) {
     onlyCategories: ['performance','accessibility','best-practices','seo'],
   });
   const c = r.lhr.categories, a = r.lhr.audits;
+  if (process.env.LH_A11Y_DETAIL) {
+    for (const ref of c.accessibility.auditRefs) {
+      const au = a[ref.id];
+      if (au.score !== null && au.score < 1) console.log(`  a11y ✗ ${p} ${au.id}: ${(au.details?.items ?? []).slice(0, 3).map((i) => i.node?.selector ?? '').join(' | ')}`);
+    }
+  }
   rows.push({
     label, p,
     perf: Math.round(c.performance.score*100), a11y: Math.round(c.accessibility.score*100),
