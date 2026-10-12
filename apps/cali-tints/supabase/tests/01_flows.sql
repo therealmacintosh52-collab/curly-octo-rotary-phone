@@ -177,24 +177,20 @@ begin
   select count(*) into n from public.jobs; assert n = 3, 'admin sees all jobs';
   select count(*) into n from public.audit_log where table_name = 'jobs'; assert n >= 3, 'audit rows written';
 
-  -- 0029: the owner's price overrides follow the policy (reason outside the range, none inside)
+  -- 0036: no prices on jobs. Whatever the owner sends with a list service, the price list is used and no reason is kept; nothing errors.
   begin
-    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OV1',
-      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 10))));
-    raise exception 'expected override rejection';
-  exception when sqlstate '22023' then null; end;
-  begin
-    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OV2',
-      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 55))));
-    raise exception 'expected out-of-range rejection';
-  exception when sqlstate '22023' then null; end;
-  begin
+    v_job := (public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OV1',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 10))))).id;
+    assert pg_temp.js_price(v_job) = 200.00, '0036: owner''s low price ignored, list price used';
+    v_job := (public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OV2',
+      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 55))))).id;
+    assert pg_temp.js_price(v_job) = 30.00, '0036: owner''s out-of-range price ignored, no error';
     v_job := (public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'OV3',
       'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000210', 'price', 35),
                                     jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 150, 'override_reason', 'Repeat customer'))))).id;
-    assert (select price from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000210') = 35.00, '0029: owner in-range price kept';
-    assert (select price from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000201') = 150.00
-       and (select override_reason from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000201') = 'Repeat customer', '0029: owner override with reason kept';
+    assert (select price from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000210') = 30.00, '0036: owner in-range price ignored too';
+    assert (select price from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000201') = 200.00
+       and (select override_reason from public.job_service_prices_v where job_id = v_job and service_id = '00000000-0000-4000-8000-000000000201') is null, '0036: no overrides on jobs, no reason kept';
     assert (select price_max from public.dealership_price_list('00000000-0000-4000-8000-000000000101') where name = 'Touch Up Detail') = 40.00, 'price list range (owner)';
     assert (select default_price from public.service_prices_v where service_id = '00000000-0000-4000-8000-000000000201') = 200.00, '0029: owner reads prices through the view';
     raise exception 'rollback fixture' using errcode = 'P0999';
@@ -890,7 +886,7 @@ begin
 end $$;
 select pg_temp.logout();
 
--- 0033: an admin sees and sets prices on jobs; invoices, payments and income stay the owner's.
+-- 0033/0036: an admin may price an "Other" line (and reads the job price view); no other price is theirs to set; invoices, payments and income stay the owner's.
 insert into auth.users (id, email, raw_user_meta_data) values
   ('10000000-0000-4000-8000-000000000005', 'admin@test', '{"role":"admin","full_name":"Manny"}');
 select pg_temp.login('10000000-0000-4000-8000-000000000005');
@@ -902,12 +898,13 @@ begin
   select count(*) into n from public.job_service_prices_v; assert n > 0, '0033: admin reads job line prices';
   j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ADM1', 'color', 'Polar White',
         'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 150, 'override_reason', 'Repeat customer'))));
-  assert (select price from public.job_service_prices_v where job_id = j.id) = 150.00, '0033: admin override kept';
-  begin
-    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ADM2',
-      'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000201', 'price', 10))));
-    raise exception 'expected a reason to be required for an admin too';
-  exception when sqlstate '22023' then null; end;
+  assert (select price from public.job_service_prices_v where job_id = j.id) = 205.00 and (select override_reason from public.job_service_prices_v where job_id = j.id) is null, '0036: admin''s price on a list service ignored';
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ADM2', 'color', 'Polar White',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000212', 'price', 75, 'label', 'Wheel repair'))));
+  assert (select price from public.job_service_prices_v where job_id = j.id) = 75.00 and (select needs_price from public.job_services where job_id = j.id) = false, '0036: admin''s amount on Other kept, no flag';
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'ADM3', 'color', 'Polar White',
+        'services', jsonb_build_array(jsonb_build_object('service_id', '00000000-0000-4000-8000-000000000212', 'label', 'Wheel repair'))));
+  assert (select needs_price from public.job_services where job_id = j.id) = true, '0036: Other without an amount still waits for one';
   select count(*) into n from public.invoices; assert n = 0, '0033: admin sees no invoices';
   select count(*) into n from public.invoice_payments; assert n = 0, '0033: admin sees no payments';
   select count(*) into n from public.service_prices_v; assert n = 0, '0033: the price-list view stays the owner''s';

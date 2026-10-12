@@ -29,9 +29,10 @@ const METHOD_LABEL = { clover: "Card on the Clover", cash: "Cash", check: "Check
  * A retail (walk-in) job is paid at the counter. Inside the Clover app one
  * tap opens the device's payment screen for the job's total; the result is
  * written back to the job. The owner or an admin can also record cash or a
- * check by hand. Nobody but owner/admin sees the amount in the app itself.
+ * check by hand. The card shows the one number the counter needs (the total
+ * to collect); per-service prices never appear on a job.
  */
-export function RetailPayment({ jobId, payment, canRecordByHand, showMoney, open }: { jobId: string; payment: RetailPaymentInfo; canRecordByHand: boolean; showMoney: boolean; open: boolean }) {
+export function RetailPayment({ jobId, payment, amountDue, canRecordByHand, open }: { jobId: string; payment: RetailPaymentInfo; /** What the counter collects, from retail_charge; null when unknown. */ amountDue: number | null; canRecordByHand: boolean; open: boolean }) {
   const router = useRouter();
   const { demo } = useSession();
   const inClover = useCloverBridge();
@@ -69,7 +70,7 @@ export function RetailPayment({ jobId, payment, canRecordByHand, showMoney, open
           </CardTitle>
           <CardDescription>
             {METHOD_LABEL[payment.payment_method ?? "other"]} · {formatDateTime(payment.paid_at)}
-            {showMoney && payment.paid_amount !== null ? ` · ${formatMoney(payment.paid_amount)}` : ""}
+            {payment.paid_amount !== null ? ` · ${formatMoney(payment.paid_amount)}` : ""}
             {payment.payment_ref ? ` · ref ${payment.payment_ref}` : ""}
           </CardDescription>
         </CardHeader>
@@ -85,9 +86,15 @@ export function RetailPayment({ jobId, payment, canRecordByHand, showMoney, open
         <CardTitle className="flex items-center gap-2">
           <CreditCardIcon className="size-4 text-primary" /> Collect at the counter
         </CardTitle>
-        <CardDescription>{inClover ? "Opens this Clover's payment screen for the job's total." : "Open this job on the Clover Flex to take the card; the owner can record cash or a check here."}</CardDescription>
+        <CardDescription>{inClover ? "Opens this Clover's payment screen for the total." : "Open this job on the Clover Flex to take the card; the owner or an admin can record cash or a check here."}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-wrap gap-2">
+      <CardContent className="flex flex-wrap items-center gap-2">
+        {amountDue !== null && (
+          <div className="mr-auto" data-testid="amount-due">
+            <div className="text-caption text-muted-foreground">Total to collect</div>
+            <div className="text-lg font-semibold tabular-nums">{formatMoney(amountDue)}</div>
+          </div>
+        )}
         {inClover && (
           <Button onClick={collectOnClover} loading={pending} data-testid="collect-on-clover">
             <CreditCardIcon /> Collect on this Clover

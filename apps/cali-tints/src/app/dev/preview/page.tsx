@@ -95,7 +95,7 @@ export default async function DevPreviewPage(props: PageProps<"/dev/preview">) {
       updated_at: "",
     },
   ];
-  const list = priceListFixture(!asDetailer);
+  const list = priceListFixture(false); // no prices on a job, whoever is logging it
 
   return (
     <SessionProvider value={{ userId: profile.id, email: profile.email, profile, company, isAdmin: !asDetailer, canSettings: !asDetailer, canMoney: !asDetailer, canPrices: !asDetailer, demo: true }}>

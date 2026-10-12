@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArchiveIcon, ArrowLeftIcon, CameraIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
 import type { PriceListRow } from "@/lib/db/types";
-import { formatMoney } from "@/lib/money";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { Page } from "@/components/app/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,8 +28,10 @@ export interface JobDetailProps {
   priceList: PriceListRow[];
   detailers: { id: string; full_name: string }[];
   isAdmin: boolean;
-  /** Owner only: prices next to each service and a total. */
-  canSeeMoney: boolean;
+  /** Owner, admin: sees the Needs-a-price flag and may type the amount of an "Other" line. No other price appears on a job. */
+  canSetAmount: boolean;
+  /** Retail jobs: what the counter collects (from retail_charge), while unpaid. */
+  amountDue?: number | null;
   canEdit: boolean;
   canDelete: boolean;
   canRestore: boolean;
@@ -43,10 +44,9 @@ const vehicle = (v: { year: number | null; make: string | null; model: string | 
  * month's invoice → paid), services, photos, notes.
  */
 export function JobDetail(p: JobDetailProps) {
-  const { job, photos, isAdmin, canSeeMoney } = p;
+  const { job, photos, isAdmin, canSetAmount } = p;
   const deleted = !!job.deleted_at;
   const title = `${job.tag_number}${vehicle(job) ? ` · ${vehicle(job)}` : ""}`;
-  const total = job.services.reduce((s, x) => s + x.price, 0);
   const inv = job.invoice;
   const paid = inv?.status === "paid";
 
@@ -93,15 +93,9 @@ export function JobDetail(p: JobDetailProps) {
             <h1 className="text-title tracking-wide">{title}</h1>
             {deleted ? <Badge variant="destructive">Deleted</Badge> : retail ? (paidAtCounter ? <Badge variant="success">Paid</Badge> : <Badge variant="warning">Collect</Badge>) : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
             {retail && <Badge variant="muted">Retail</Badge>}
-            {canSeeMoney && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
+            {canSetAmount && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
           </div>
         </div>
-        {canSeeMoney && (
-          <div className="shrink-0 rounded-xl border border-border bg-card px-4 py-3 surface-raised lg:text-right">
-            <div className="text-caption text-muted-foreground">Total</div>
-            <div className="mt-0.5 text-lg font-semibold tabular-nums">{formatMoney(total)}</div>
-          </div>
-        )}
       </div>
 
       {deleted && (
@@ -115,7 +109,7 @@ export function JobDetail(p: JobDetailProps) {
       )}
 
       <div className="mt-5">
-        <JobActions job={job} priceList={p.priceList} detailers={p.detailers} isAdmin={isAdmin} showMoney={canSeeMoney} canEdit={p.canEdit} canDelete={p.canDelete} canRestore={p.canRestore} lockedReason={!p.canEdit && !deleted && inv ? "On an invoice, so the job is locked" : null} />
+        <JobActions job={job} priceList={p.priceList} detailers={p.detailers} isAdmin={isAdmin} canSetAmount={canSetAmount} canEdit={p.canEdit} canDelete={p.canDelete} canRestore={p.canRestore} lockedReason={!p.canEdit && !deleted && inv ? "On an invoice, so the job is locked" : null} />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_360px]">
@@ -181,25 +175,17 @@ export function JobDetail(p: JobDetailProps) {
                   <li key={i} className="flex items-baseline justify-between gap-4 py-2">
                     <div className="min-w-0">
                       <div>{s.label || s.name}</div>
-                      {canSeeMoney && s.override_reason && <div className="text-caption text-warning">Price changed: {s.override_reason}</div>}
-                      {canSeeMoney && s.needs_price && <div className="text-caption text-warning">Needs a price: tap Edit job and set the amount</div>}
+                      {canSetAmount && s.needs_price && <div className="text-caption text-warning">Needs a price: tap Edit job and set the amount</div>}
                     </div>
-                    {canSeeMoney && <span className={cn("shrink-0 tabular-nums", s.needs_price && "text-warning")}>{s.needs_price ? "Set price" : formatMoney(s.price)}</span>}
                   </li>
                 ))}
               </ul>
-              {canSeeMoney && (
-                <div className="mt-2 flex justify-between border-t border-border pt-3 text-base font-semibold">
-                  <span>Total</span>
-                  <span className="tabular-nums">{formatMoney(total)}</span>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          {retail && job.payment && <RetailPayment jobId={job.id} payment={job.payment} canRecordByHand={isAdmin && canSeeMoney} showMoney={canSeeMoney} open={!deleted} />}
+          {retail && job.payment && <RetailPayment jobId={job.id} payment={job.payment} amountDue={p.amountDue ?? null} canRecordByHand={isAdmin && canSetAmount} open={!deleted} />}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

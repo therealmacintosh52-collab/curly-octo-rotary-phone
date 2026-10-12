@@ -25,7 +25,7 @@ Mike already pays for QuickBooks Online and the Clover devices. Total run cost: 
 
 1. New project (US West), strong database password, save it.
 2. Project Settings → API: copy the project URL and the publishable key; Settings → API keys: create a secret (service role) key.
-3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0035` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
+3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0036` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
 4. Authentication → URL configuration: Site URL `https://app.calitints.com`, Redirect URLs `https://app.calitints.com/auth/callback` and `https://app.calitints.com/auth/reset`. Email templates: the defaults are fine; the invite goes through this.
 5. Storage: the buckets (`job-photos`, `logos`, `submission-confirmations`) are created by the migrations. Nothing to click.
 6. Backups: Pro includes daily backups; turn on Point-in-time recovery if Mike wants hour-level restores (+$100/mo, usually not needed).
@@ -71,7 +71,7 @@ Until the Clover app is approved, the team can use the web app on their phones (
 ## 8. Day-one checks (both, 30 min)
 
 - A detailer logs a car on a Flex with a photo; it appears on Mike's Jobs list within seconds; the detailer sees no prices anywhere.
-- Mike opens the job: prices, total, *Needs a price* when "Other" was used; Edit job sets it.
+- Mike opens the job: no prices anywhere on it (the amounts are on the month's invoice); *Needs a price* when "Other" was used, and Edit job sets that amount.
 - Settings → Company → **Run month close**: nothing to close yet (or the previous month's invoices if there is history). Invoices → *This month so far* shows the running totals.
 - An invoice: Submit by email reaches the dealership's AP address (send one to yourself first), the QuickBooks card says Sent, the PDF downloads.
 - Export → every CSV downloads (Mike only).

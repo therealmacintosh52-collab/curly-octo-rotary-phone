@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { PriceListRow } from "@/lib/db/types";
+import { withoutPrices } from "@/lib/jobs/price-list";
 import { JobForm } from "@/components/jobs/job-form";
 import type { RecentJob } from "@/lib/offline/db";
 import { isoDaysAgo } from "@/lib/dates";
@@ -36,7 +37,8 @@ export default async function NewJobPage() {
   await Promise.all(
     (dealerships ?? []).map(async (d) => {
       const { data } = await supabase.rpc("dealership_price_list", { p_dealership_id: d.id });
-      priceLists[d.id] = data ?? [];
+      // No prices on a job: the menu goes to the browser without them (every line is billed at the price list on the invoice).
+      priceLists[d.id] = withoutPrices(data ?? []);
     }),
   );
 

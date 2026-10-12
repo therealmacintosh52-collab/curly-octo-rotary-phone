@@ -16,7 +16,7 @@ import { decodeVin } from "@/lib/vin-client";
 import { normalizeVin, vinStatus } from "@/lib/vin";
 import { COLORS, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
 import { dateInputToIso, nowMs, toDateInput } from "@/lib/dates";
-import { formatMoney, sumPrices } from "@/lib/money";
+import { sumPrices } from "@/lib/money";
 import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ServicePicker, type SelectedService } from "./service-picker";
 import { PhotoPicker, type PendingPhoto } from "./photo-picker";
-import { CountUp } from "@/components/motion/primitives";
 // The barcode engine (ZXing) is ~200 KB; it only loads the first time the scanner opens.
 const VinScanner = dynamic(() => import("./vin-scanner").then((mod) => mod.VinScanner), { ssr: false });
 import { ModelCombobox } from "./model-combobox";
@@ -61,8 +60,9 @@ interface SavedCar {
  * the 1st.
  */
 export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Props) {
-  const { company, demo, canMoney, canPrices } = useSession();
-  const showMoney = !!(canPrices ?? canMoney);
+  const { company, demo, canPrices } = useSession();
+  // No prices on a job: every service is billed at the price list in Settings. Owner and admin may still type the amount of an "Other" line.
+  const canSetAmount = !!canPrices;
   const { online } = useSync();
   const tagRef = useRef<HTMLInputElement>(null);
 
@@ -86,7 +86,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   const [duplicates, setDuplicates] = useState<DuplicateHit[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
-  const [savedTotal, setSavedTotal] = useState(0);
   const [savedByService, setSavedByService] = useState<Record<string, number>>({});
   const [lastSaved, setLastSaved] = useState<SavedCar | null>(null);
 
@@ -278,7 +277,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     const saved: SavedCar = { clientId, tag: payload.tag_number, model: payload.model ?? null, dealership: dealership?.name ?? "", total, photos: photos.length, status: online ? "syncing" : "queued", jobId: null };
     const celebrate = () => {
       setSavedCount((c) => c + 1);
-      setSavedTotal((t) => t + total);
       setSavedByService((m) => {
         const next = { ...m };
         for (const s of services) next[s.name] = (next[s.name] ?? 0) + 1;
@@ -350,7 +348,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
         <AnimatePresence>
           {savedCount > 0 && (
             <m.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="shrink-0 rounded-full bg-accent-soft px-3 py-1 text-caption font-medium tabular-nums text-primary" data-testid="today-pill">
-              {savedCount} {savedCount === 1 ? "car" : "cars"}{showMoney ? ` · ${formatMoney(savedTotal)}` : ""} today
+              {savedCount} {savedCount === 1 ? "car" : "cars"} today
               {Object.keys(savedByService).length > 0 && ` · ${priceList.filter((s) => savedByService[s.name]).map((s) => `${s.name} ${savedByService[s.name]}`).join(" · ")}`}
             </m.span>
           )}
@@ -367,7 +365,6 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
                 <div className="flex flex-wrap items-baseline gap-x-2">
                   <span className="text-lg font-semibold tracking-wide">{lastSaved.tag}</span>
                   {lastSaved.model && <span className="truncate text-sm text-muted-foreground">{lastSaved.model}</span>}
-                  {showMoney && <span className="ml-auto font-semibold tabular-nums">{formatMoney(lastSaved.total)}</span>}
                 </div>
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {lastSaved.status === "ready" && (
@@ -562,7 +559,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
             )}
           </AnimatePresence>
         </div>
-        <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={showMoney} />
+        <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={false} canSetAmount={canSetAmount} />
       </section>
 
       {/* Photos */}
@@ -585,13 +582,9 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
         <div className="mx-auto flex max-w-2xl items-center gap-3 sm:px-2">
           <div className="min-w-0 flex-1">
             <div className="text-caption text-muted-foreground">{services.length === 0 ? "No services selected" : `${services.length} service${services.length > 1 ? "s" : ""}`}</div>
-            {showMoney ? (
-              <CountUp value={total} format={formatMoney} className="text-stat block" />
-            ) : (
-              <div className="truncate text-sm font-medium" data-testid="selected-services">
-                {services.length === 0 ? (tag ? tag : "Pick the services done") : services.map((s) => s.label || s.name).join(" · ")}
-              </div>
-            )}
+            <div className="truncate text-sm font-medium" data-testid="selected-services">
+              {services.length === 0 ? (tag ? tag : "Pick the services done") : services.map((s) => s.label || s.name).join(" · ")}
+            </div>
           </div>
           <Button type="submit" size="lg" loading={saving} className="min-w-32 shrink-0 glow-primary sm:min-w-40">
             Save &amp; next

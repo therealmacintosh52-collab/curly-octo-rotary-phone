@@ -51,10 +51,16 @@ export function priceLabel(price: number, min: number | null, max: number | null
 
 /**
  * Multi-select service chips grouped by category (New / Used / Service lane /
- * Add-ons) with per-line price override. Tapping a chip toggles it; the
- * pencil opens the override dialog. With `showMoney` off (everyone but the
- * owner) the chips carry no prices and only "Other" opens a dialog, asking
- * what was done; the owner sets its price later.
+ * Add-ons). Tapping a chip toggles it; the pencil opens a dialog.
+ *
+ * On a job (`showMoney` off, the only mode jobs use) the chips carry no
+ * prices: every service is billed at the price list in Settings, and only
+ * "Other" opens a dialog asking what was done. With `canSetAmount` (owner,
+ * admin) that dialog also takes the amount; otherwise the owner sets it later
+ * (the line is flagged Needs a price).
+ *
+ * `showMoney` on (the owner editing a car already on an invoice) shows every
+ * price and allows an override with a reason.
  */
 export function ServicePicker({
   priceList,
@@ -62,12 +68,15 @@ export function ServicePicker({
   onChange,
   disabled,
   showMoney = true,
+  canSetAmount = showMoney,
 }: {
   priceList: PriceListRow[];
   value: SelectedService[];
   onChange: (next: SelectedService[]) => void;
   disabled?: boolean;
   showMoney?: boolean;
+  /** May type the amount of an open-amount ("Other") line even when prices are hidden. */
+  canSetAmount?: boolean;
 }) {
   const [editing, setEditing] = useState<SelectedService | null>(null);
 
@@ -95,7 +104,7 @@ export function ServicePicker({
 
   function closeDialog() {
     // Cancelling on an open-amount service deselects it rather than leaving a blank line.
-    if (editing && isOpenAmount(editing) && (showMoney ? editing.price === 0 : !editing.label)) onChange(value.filter((s) => s.service_id !== editing.service_id));
+    if (editing && isOpenAmount(editing) && (canSetAmount ? editing.price === 0 : !editing.label)) onChange(value.filter((s) => s.service_id !== editing.service_id));
     setEditing(null);
   }
 
@@ -176,7 +185,7 @@ export function ServicePicker({
         ))}
       </div>
 
-      <OverrideDialog service={editing} onClose={closeDialog} onApply={applyOverride} showMoney={showMoney} />
+      <OverrideDialog service={editing} onClose={closeDialog} onApply={applyOverride} showMoney={showMoney} canSetAmount={canSetAmount} />
     </>
   );
 }
@@ -186,11 +195,13 @@ function OverrideDialog({
   onClose,
   onApply,
   showMoney,
+  canSetAmount,
 }: {
   service: SelectedService | null;
   onClose: () => void;
   onApply: (s: SelectedService) => void;
   showMoney: boolean;
+  canSetAmount: boolean;
 }) {
   const [price, setPrice] = useState("");
   const [reason, setReason] = useState("");
@@ -212,10 +223,45 @@ function OverrideDialog({
   const open = !!service && isOpenAmount(service);
   const valid = showMoney
     ? Number.isFinite(parsed) && (open ? parsed > 0 && label.trim().length > 0 : parsed >= 0) && (!needsReason || reason.trim().length > 0)
-    : label.trim().length > 0;
+    : canSetAmount
+      ? label.trim().length > 0 && Number.isFinite(parsed) && parsed > 0
+      : label.trim().length > 0;
   const ranged = !!service && service.price_min !== null && service.price_max !== null && !open;
 
-  // No money: only "what was done" is asked; the owner prices it later.
+  // On a job, "Other" asks what was done and (owner, admin) what it costs. Nothing else on a job has a price dialog.
+  if (!showMoney && canSetAmount) {
+    return (
+      <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>What was it?</DialogTitle>
+            <DialogDescription>{service?.name} · type what was done and the amount; that is what the invoice will say.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="override-label">
+                What was done <span className="text-destructive">*</span>
+              </Label>
+              <Input id="override-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Headlight restoration" maxLength={120} autoFocus />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="override-price">
+                Amount <span className="text-destructive">*</span>
+              </Label>
+              <Input id="override-price" inputMode="decimal" type="number" step="0.01" min="0" value={price === "0" ? "" : price} onChange={(e) => setPrice(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button disabled={!valid} onClick={() => service && onApply({ ...service, price: Math.round(parsed * 100) / 100, override_reason: null, label: label.trim() })}>
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // No amount either: only "what was done" is asked; the owner or an admin prices it later.
   if (!showMoney) {
     return (
       <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>

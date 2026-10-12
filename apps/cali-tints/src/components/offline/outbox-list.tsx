@@ -5,18 +5,14 @@ import { CheckCircle2Icon, CloudUploadIcon, RefreshCwIcon, Trash2Icon, TriangleA
 import { toast } from "sonner";
 import type { OutboxItem } from "@/lib/offline/db";
 import { listOutbox, OUTBOX_EVENT, removeOutboxItem, updateOutboxItem } from "@/lib/offline/outbox";
-import { formatMoney } from "@/lib/money";
 import { formatDateTime } from "@/lib/dates";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSync } from "./sync-provider";
-import { useSession } from "@/components/app/session-provider";
 
 export function OutboxList() {
   const [items, setItems] = useState<OutboxItem[] | null>(null);
   const { online, syncing, syncNow } = useSync();
-  const { canMoney, canPrices } = useSession();
-  const showMoney = !!(canPrices ?? canMoney);
 
   useEffect(() => {
     let alive = true;
@@ -58,7 +54,7 @@ export function OutboxList() {
                   <StatusBadge status={item.status} />
                 </div>
                 <div className="mt-0.5 truncate text-sm text-muted-foreground">
-                  {[item.summary.model, item.summary.dealership_name, showMoney ? formatMoney(item.summary.total) : null].filter(Boolean).join(" · ")}
+                  {[item.summary.model, item.summary.dealership_name].filter(Boolean).join(" · ")}
                 </div>
                 <div className="text-xs text-muted-foreground">{formatDateTime(new Date(item.created_at))}</div>
                 {item.status === "error" && item.last_error && (

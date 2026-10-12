@@ -22,7 +22,7 @@ export function JobActions({
   priceList,
   detailers,
   isAdmin,
-  showMoney = true,
+  canSetAmount,
   canEdit,
   canDelete,
   canRestore,
@@ -32,8 +32,8 @@ export function JobActions({
   priceList: PriceListRow[];
   detailers: { id: string; full_name: string }[];
   isAdmin: boolean;
-  /** Owner only: prices in the edit sheet. */
-  showMoney?: boolean;
+  /** Owner, admin: may type the amount of an "Other" line in the edit sheet. No other price appears on a job. */
+  canSetAmount: boolean;
   canEdit: boolean;
   canDelete: boolean;
   canRestore: boolean;
@@ -92,7 +92,8 @@ export function JobActions({
           priceList={priceList}
           detailers={detailers}
           isAdmin={isAdmin}
-          showMoney={showMoney}
+          showMoney={false}
+          canSetAmount={canSetAmount}
           title={`Edit job · ${job.tag_number}`}
           description="Fix the stock number, VIN, car, date, services or notes. The change shows on the month's invoice."
           save={async (input) => {

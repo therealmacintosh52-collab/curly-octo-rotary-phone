@@ -55,6 +55,7 @@ export function EditCarSheet({
   onClose,
   onSaved,
   showMoney = true,
+  canSetAmount = showMoney,
 }: {
   car: EditableCar;
   priceList: PriceListRow[];
@@ -65,8 +66,10 @@ export function EditCarSheet({
   save: (input: UpdateJobInput) => Promise<ActionResult>;
   onClose: () => void;
   onSaved?: () => void;
-  /** Owner only: prices on the chips and the override dialog. */
+  /** Prices on the chips and the override dialog (the owner editing a car on an invoice). Off on jobs. */
   showMoney?: boolean;
+  /** With prices hidden: may still type the amount of an "Other" line (owner, admin). */
+  canSetAmount?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -241,7 +244,7 @@ export function EditCarSheet({
           </div>
           <div className="grid gap-2">
             <Label>Services</Label>
-            <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={showMoney} />
+            <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={showMoney} canSetAmount={canSetAmount} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="e-notes">Notes</Label>
