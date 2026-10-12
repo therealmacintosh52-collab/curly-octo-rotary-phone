@@ -145,3 +145,19 @@ def make_test_video(dst: str | Path, duration: float = 20.0, width: int = 1280, 
     cmd += [str(dst)]
     run(cmd)
     return dst
+
+
+def make_scene_test_video(dst: str | Path, segment_seconds: float = 4.0, colors: Sequence[str] = ("red", "green", "blue"),
+                          width: int = 640, height: int = 360, fps: int = 25) -> Path:
+    """Synthetic clip with hard cuts between flat colours (plus a tone) for scene-detection tests."""
+    dst = Path(dst)
+    cmd = ["ffmpeg", "-y", "-v", "error"]
+    for c in colors:
+        cmd += ["-f", "lavfi", "-i", f"color=c={c}:s={width}x{height}:r={fps}:d={segment_seconds}"]
+    cmd += ["-f", "lavfi", "-i", f"sine=frequency=440:sample_rate=16000:d={segment_seconds * len(colors)}"]
+    n = len(colors)
+    concat = "".join(f"[{i}:v]" for i in range(n)) + f"concat=n={n}:v=1:a=0[v]"
+    cmd += ["-filter_complex", concat, "-map", "[v]", "-map", f"{n}:a",
+            "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(dst)]
+    run(cmd)
+    return dst

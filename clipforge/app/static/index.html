@@ -49,6 +49,14 @@
   pre.err{white-space:pre-wrap;color:var(--bad);background:#1a1212;border:1px solid #4a2626;border-radius:8px;padding:10px;font-size:12px}
   .clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}
   .muted{color:var(--muted)}
+  .clip .score{font-size:26px;font-weight:700;color:var(--accent);margin:4px 0}
+  .clip .score small{font-size:12px;color:var(--muted);font-weight:500}
+  .clip .hook{color:var(--accent2);font-style:italic;margin-bottom:4px}
+  .clip .tx{font-size:12.5px;line-height:1.4;margin:6px 0}
+  .clip details{margin-top:6px;font-size:12px}
+  .fbar{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;margin:3px 0;font-size:11px;color:var(--muted)}
+  .fbar i{display:block;height:6px;background:#0b0d12;border-radius:3px;overflow:hidden}
+  .fbar b{display:block;height:100%;background:var(--accent2)}
   .toast{position:fixed;bottom:16px;right:16px;background:var(--panel2);border:1px solid var(--line);padding:10px 14px;border-radius:8px;max-width:420px;display:none}
   .toast.bad{border-color:#6b2f2f;color:var(--bad)}
   .section{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
@@ -176,11 +184,31 @@ async function loadDetail(id){
     </div>`;
   if(j.error) html += `<pre class="err">${esc(j.error)}</pre>`;
   if(src?.files?.video) html += `<video controls preload="metadata" src="/api/jobs/${j.id}/files/${src.files.video}"></video>`;
+  const tr = j.meta?.transcript, an = j.meta?.analysis, sc = j.meta?.scoring;
+  if(tr || an || sc){
+    html += `<div class="section"><h3>Analysis</h3><div class="kv">
+      ${tr ? `<b>Transcript</b><span>${tr.available ? `${tr.n_words} words · ${esc(tr.language||'?')} · whisper ${esc(tr.model||'')}` : `<span style="color:var(--warn)">unavailable: ${esc(tr.error||'')}</span>`}</span>`:''}
+      ${an ? `<b>Segments</b><span>${an.n_scenes} shots · ${an.n_sentences} sentences · ${an.n_candidates} candidates (${an.mode})</span>`:''}
+      ${sc ? `<b>Scoring</b><span>${sc.llm_used ? 'heuristics + LLM' : 'heuristics only'} · ${sc.n_selected} of ${sc.n_candidates} selected${sc.keywords?.length ? ' · keywords: '+esc(sc.keywords.join(', ')):''}</span>`:''}
+    </div></div>`;
+  }
   html += `<div class="section"><h3>Clips</h3>`;
   if(!j.clips?.length){
-    html += `<div class="muted">${j.status==='done' ? 'No clips yet — analysis and rendering stages arrive in the next phases.' : 'Clips appear here once the pipeline reaches the render stage.'}</div>`;
+    html += `<div class="muted">${j.status==='done' ? 'No clips were selected (source may be too short for the configured clip length).' : 'Clips appear here once the pipeline reaches the score stage.'}</div>`;
   } else {
-    html += `<div class="clips">` + j.clips.map(c => `<div class="card"><b>#${c.idx+1}</b> ${fmtTime(c.start_s)}–${fmtTime(c.end_s)} · score ${(c.score*100).toFixed(0)}<br><span class="muted">${esc((c.transcript||'').slice(0,140))}</span></div>`).join('') + `</div>`;
+    html += `<div class="clips">` + j.clips.map(c => {
+      const f = c.score_breakdown?.features || {};
+      const bars = Object.entries(f).filter(([k])=>k!=='filler_penalty').map(([k,v]) =>
+        `<div class="fbar" title="${k}: ${(v*100).toFixed(0)}"><span>${k.replace(/_/g,' ')}</span><i><b style="width:${Math.round(v*100)}%"></b></i></div>`).join('');
+      const llm = c.score_breakdown?.llm != null ? ` · LLM ${(c.score_breakdown.llm*100).toFixed(0)}` : '';
+      return `<div class="card clip">
+        <div class="row" style="justify-content:space-between"><b>#${c.idx+1}</b><span class="status ${c.status}">${c.status}</span></div>
+        <div class="muted">${fmtTime(c.start_s)} – ${fmtTime(c.end_s)} · ${c.duration.toFixed(1)}s</div>
+        <div class="score">${(c.score*100).toFixed(0)}<small> / 100${llm}</small></div>
+        ${c.score_breakdown?.llm_hook ? `<div class="hook">“${esc(c.score_breakdown.llm_hook)}”</div>`:''}
+        <div class="tx">${esc((c.transcript||'(no speech)').slice(0,220))}${(c.transcript||'').length>220?'…':''}</div>
+        <details><summary class="muted">feature breakdown</summary>${bars}</details>
+      </div>`; }).join('') + `</div>`;
   }
   html += `</div>`;
   const box = $('#detail'); box.innerHTML = html;

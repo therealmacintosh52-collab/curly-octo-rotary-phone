@@ -26,12 +26,32 @@ def isolated_env(tmp_path, monkeypatch):
     yield jobs
 
 
+@pytest.fixture(autouse=True)
+def no_real_whisper(monkeypatch):
+    """Tests must never download/load a real whisper model; override per-test with a fake."""
+    from app.pipeline import transcribe
+    def _blocked(*a, **k):
+        raise RuntimeError("real whisper model blocked in tests")
+    monkeypatch.setattr(transcribe, "get_model", _blocked)
+    yield
+
+
 @pytest.fixture(scope="session")
 def sample_video(tmp_path_factory) -> Path:
     """20 s synthetic 720p video with alternating loud/quiet tone. Built once per session."""
     p = tmp_path_factory.mktemp("media") / "sample.mp4"
     ff.make_test_video(p, duration=20, width=1280, height=720)
     return p
+
+
+@pytest.fixture(autouse=True)
+def no_real_whisper(monkeypatch):
+    """Tests must never download/load a real whisper model; override per-test with a fake."""
+    from app.pipeline import transcribe
+    def _blocked(*a, **k):
+        raise RuntimeError("real whisper model blocked in tests")
+    monkeypatch.setattr(transcribe, "get_model", _blocked)
+    yield
 
 
 @pytest.fixture(scope="session")

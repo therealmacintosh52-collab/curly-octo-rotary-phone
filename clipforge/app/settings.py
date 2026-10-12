@@ -32,7 +32,7 @@ WHISPER_DEVICE: str = _env("CLIPFORGE_WHISPER_DEVICE", "auto")
 WHISPER_COMPUTE: str = _env("CLIPFORGE_WHISPER_COMPUTE", "int8")
 
 ANTHROPIC_API_KEY: str = _env("ANTHROPIC_API_KEY", "")
-LLM_MODEL: str = _env("CLIPFORGE_LLM_MODEL", "claude-sonnet-5-5")
+LLM_MODEL: str = _env("CLIPFORGE_LLM_MODEL", "claude-opus-5-5")
 
 HOST: str = _env("CLIPFORGE_HOST", "127.0.0.1")
 PORT: int = int(_env("CLIPFORGE_PORT", "8000"))

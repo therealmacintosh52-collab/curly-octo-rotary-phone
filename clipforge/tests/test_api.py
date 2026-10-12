@@ -47,7 +47,10 @@ def test_upload_job_runs_ingest_end_to_end(client, sample_video):
     assert done["status"] == "done", done.get("error")
     assert done["title"] == "talk" and done["progress"] == 1.0
     assert done["meta"]["source"]["media"]["width"] == 1280
-    assert done["clips"] == []
+    # No speech model in tests → transcript unavailable → fallback windows still yield a clip.
+    assert done["meta"]["transcript"]["available"] is False
+    assert done["meta"]["analysis"]["mode"] == "fallback"
+    assert len(done["clips"]) >= 1 and done["clips"][0]["transcript"] in (None, "")
 
     # Files are served from the job dir, path traversal is blocked.
     v = client.get(f"/api/jobs/{job['id']}/files/source.mp4")
@@ -97,3 +100,31 @@ def test_cleanup_endpoint(client):
     assert r["removed_jobs"] == [old["id"]] and r["count"] == 1
     assert not (settings.JOBS_DIR / old["id"]).exists() and (settings.JOBS_DIR / fresh["id"]).exists()
     assert db.get_job(old["id"]) is None and db.get_job(fresh["id"]) is not None
+
+
+def test_full_pipeline_phase2_creates_clips(client, sample_video, monkeypatch):
+    """Upload → ingest → (fake) transcribe → analyze → score; clips land in the DB."""
+    from app.pipeline import transcribe
+    from tests.fakes import FakeWhisperModel, fake_words
+    words = fake_words(
+        "Here's the thing about this test video. Nobody tells you how boring colour bars are. "
+        "The biggest mistake is watching all twenty seconds. So let me show you the trick. "
+        "You skip to the end and write this down. That's the secret. Thanks for watching.", wps=3.0)
+    monkeypatch.setattr(transcribe, "get_model", lambda *a, **k: FakeWhisperModel(words, duration=20.0))
+
+    with sample_video.open("rb") as fh:
+        r = client.post("/api/jobs", data={"options": '{"max_clips": 2}'}, files={"file": ("talk.mp4", fh, "video/mp4")})
+    job = _wait_done(client, r.json()["id"], timeout=120)
+    assert job["status"] == "done", job.get("error")
+    assert job["meta"]["transcript"]["available"] and job["meta"]["transcript"]["n_words"] == len(words)
+    assert job["meta"]["analysis"]["mode"] == "transcript"
+    assert job["meta"]["scoring"]["llm_used"] is False
+    assert 1 <= len(job["clips"]) <= 2
+    c = job["clips"][0]
+    assert c["status"] == "pending" and c["end_s"] - c["start_s"] >= 10
+    assert "features" in c["score_breakdown"] and 0 < c["score"] <= 1
+    assert c["transcript"]
+    for name in ("transcript.json", "analysis.json", "candidates.json", "scores.json"):
+        assert client.get(f"/api/jobs/{job['id']}/files/{name}").status_code == 200
+    h = client.get("/api/health").json()
+    assert h["stages"] == ["ingest", "transcribe", "analyze", "score"]
