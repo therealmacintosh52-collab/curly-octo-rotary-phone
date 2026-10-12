@@ -83,3 +83,27 @@ Audit (library/templates/free-growth-audit-2026-10-12.md):
 - Cuts to hit the budget (my additions, tagged): E (l.31) per competitor 5 data points to 3 (review count, average, newest review; dropped photo count and has-site, neither used in the one-pager); F (l.33) "Google ... and one chat assistant" to "or", one query, one tool; l.43 caps for fill: phrases at most 5 words, fixes at most 40 chars, about 375 chars typed.
 - Audit time arithmetic (estimates, UNVERIFIED until stopwatch): prep 1 + A-D 5 (qa) + E 3 data points 2.4 (qa 4.0 x 3/5) + F one query 2 + fill 375 / 125 = 3.0 = 13.4 min, inside the stated 1 + 10 + 3 = 14 to ready-to-send, under 15. With delivery 3: 17 min end to end; the 15-minute figure covers ready-to-send only, delivery is separate.
 Advisories not applied (not in R/A list): audit l.17 untagged "no weights", 8%/68% figures, UI-path UNVERIFIED mark, status lines. Re-gate: qa re-runs the original criteria unchanged.
+
+## Repair (attempt 3)
+Source: ops/handoffs/T-011-red-team-to-orchestrator.md §3 (M1–M9), U6, U8, U9, ruling 2 and D-027. Files edited under the Orchestrator's repair grant (library/templates/, builder-owned). Wording is red-team's, verbatim. Nothing sent, no draft made. DRAFT/attorney header kept (agreement l.1); red-team's "attorney still needed" list is now agreement l.3–9. Line numbers are in the files as they now stand.
+Agreement (library/templates/service-agreement-one-page-2026-10-12.md):
+- M7 l.14 Parties: "[Owner full legal name], sole proprietor ("Agency", [city], CA, [email/phone])"; l.11 now says no trade name until A-013 / FBN decision.
+- M8 l.16 clause 1, appended: "Starter is delivered within 7 days of payment; if not, Client may cancel for a full refund." (the audit pitch uses the same 7).
+- M2 l.17 clause 2: price-change sentence replaced with "Starter is paid in full before work starts; monthly is paid in advance. A new monthly price applies only after 30 days' notice and Client's reply "I agree"; otherwise service ends at the end of the paid month."
+- M1 l.18 clause 3 "Term." replaced with the full red-team text (Starter one-time; Monthly auto-renews at $[X] on the [day]; cancel by texting CANCEL or emailing; Agency confirms within 1 business day; "I agree" kept 3 years).
+- M4 l.20 clause 5: added "Client keeps the Owner role; Agency asks only for Manager."
+- M5 l.23 clause 8: "No fake, bought, filtered, or incentivized reviews" replaced with "No fake or bought reviews. Agency never asks only happy customers, never discourages negative reviews, and never offers anything for a review."
+- M3 l.26 clause 11: added "Both parties agree to make, sign and receive this agreement and all notices electronically by text or email."
+- M6 l.27 new clause 12: red-team text verbatim.
+- M9 l.31–41: two separate texts. Starter l.36: "one-time $297, paid before work, delivered in 7 days or full refund" inside the full text. Monthly l.40: "$[X]/mo, renews monthly until you cancel by text/email". Both start "From [Owner full legal name]." and end "STOP = no more texts." Send note (l.42) adds red-team C3: only if the business asked for the terms on the call.
+- M9 notes: old 2018 Mintz note (was l.32) deleted; l.47 now E1 (btlaw.com, "same channel used to initiate the subscription", AB 2863, effective 2025-07-01) and l.48 E2 (california.public.law, "personal, family, or household purposes"; no case law). Added E6, E7, E8, E4/E5 notes, each tagged with URL, date and quote from red-team's table (red-team's search summaries; I did not re-open pages).
+Character counts (regex count on saved text in the scratchpad, `^.{N}$`; sender name set to 25 chars, monthly price to 5 chars "$1500"):
+- Starter text: 270 characters (budget 320; 50 spare).
+- Monthly text: 247 characters (budget 320; 73 spare). With "$[X]" in place of "$1500" it is 1 shorter in the file.
+Audit (library/templates/free-growth-audit-2026-10-12.md):
+- M9 l.67 pitch: "No contract" replaced with "No long-term contract: one page, one-time or month-to-month."
+- D-027 l.67 and l.71: pitch now "It's $297 one time, paid before I start, and delivered in 7 days or you get a full refund"; no retainer quote anywhere in the pitch. l.71 Pricing note replaced: Starter $297 prepaid; no monthly price quoted this week; no $99 pack to the same business; $397 only after 3 closes in 5 pitches. Old "$197–$497" range and "[X] days" removed.
+- U6 l.17: "Google gives no weights per factor..." now tagged [UNVERIFIED: absence claim; no 2026-10-12 search summary showed per-factor weights, pages not opened].
+- U8 l.20–24: l.20 reworded to Google's own wording ("review count and review score factor into local search ranking"); l.21 new VERIFIED(onelocal.com/google-reviews-local-rankings, 2026-10-12, quoted; Google text quoted by a third party, page not opened); l.24 "publishes no weights" now "does not publish weights ... (UNVERIFIED absence claim)".
+- l.68 pointer updated to the Starter text in "Text-message versions" (FP-10 consistency).
+Open items for qa (not changed by me): audit l.64 "(If they say they are busy: ... I'll text it over once)" and the DM/text line l.70 may conflict with red-team C3 (no cold text/DM; text only on request). The busy-text wording is qa's own A5 text, so I left it; qa or red-team to rule. Evidence row #6 and #10 above are superseded by the E1/E2 notes and D-027 price. Re-gate: red-team checks the listed lines; qa runs C6 (price/term word diff, scripts vs agreement).
