@@ -61,3 +61,4 @@ on conflict (dealership_id, service_id) do nothing;
 
 -- Retail defaults (0038): settings, hours, bays/lifts, the shop menu with placeholder prices. Idempotent.
 select public.seed_retail_defaults('00000000-0000-4000-8000-000000000001');
+select public.seed_automation_defaults('00000000-0000-4000-8000-000000000001');

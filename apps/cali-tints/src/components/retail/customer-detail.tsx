@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, CarFrontIcon, FileTextIcon, MailIcon, MergeIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, CarFrontIcon, FileTextIcon, MailIcon, MergeIcon, PencilIcon, PlusIcon, StarIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomerListRow, CustomerTimeline, Vehicle } from "@/lib/db/types";
-import { archiveCustomerAction, mergeCustomersAction, searchCustomersAction } from "@/app/(app)/retail/actions";
+import { archiveCustomerAction, markReviewedAction, mergeCustomersAction, searchCustomersAction } from "@/app/(app)/retail/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -42,6 +42,15 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
   const [pending, start] = useTransition();
   const archived = !!c.archived_at;
   const name = c.display_name ?? formatPhone(c.phone) ?? c.email ?? "Customer";
+
+  function toggleReviewed() {
+    start(async () => {
+      if (demo) return void toast.success(c.reviewed_at ? "Review cleared" : "Marked reviewed", { description: "Guest preview — nothing changed" });
+      const r = await markReviewedAction(c.id, !c.reviewed_at);
+      if (!r.ok) return void toast.error(r.error);
+      router.refresh();
+    });
+  }
 
   function toggleArchive() {
     start(async () => {
@@ -89,6 +98,9 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
             <ContactButtons phone={c.phone} name={c.first_name} />
             <Badge variant={c.sms_opt_in ? "success" : "muted"}>{c.sms_opt_in ? "Texts OK" : "No texts"}</Badge>
             <Badge variant={c.marketing_opt_in ? "success" : "muted"}>{c.marketing_opt_in ? "Marketing OK" : "No marketing"}</Badge>
+            <button type="button" onClick={toggleReviewed} className="inline-flex" aria-label={c.reviewed_at ? "Clear reviewed" : "Mark reviewed"} data-testid="mark-reviewed">
+              <Badge variant={c.reviewed_at ? "success" : c.review_requested_at ? "info" : "outline"}><StarIcon /> {c.reviewed_at ? `Reviewed ${formatDate(c.reviewed_at)}` : c.review_requested_at ? `Review asked ${formatDate(c.review_requested_at)}` : "Mark reviewed"}</Badge>
+            </button>
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">

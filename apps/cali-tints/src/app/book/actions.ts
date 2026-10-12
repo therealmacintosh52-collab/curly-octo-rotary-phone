@@ -4,11 +4,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import type { BookingLineInput, ConfirmResult, HoldResult, Slot, VehicleSize } from "@/lib/db/types";
 import { anonClient, isTokenShape } from "@/lib/estimates/public";
-import { loadPublicAppointment, throttle } from "@/lib/booking/public";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { appUrl, sendRetailEmail } from "@/lib/retail/email";
-import { whenIn } from "@/lib/retail/slots";
-import { formatAddress } from "@/lib/address";
+import { throttle } from "@/lib/booking/public";
 import { errorMessage } from "@/lib/utils";
 
 export type PublicResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
@@ -106,33 +102,6 @@ export async function confirmHoldAction(token: string, input: ConfirmInput): Pro
   const p = { ...parsed.data, contact: parsed.data.contact ? { ...parsed.data.contact, email } : undefined };
   const { data, error } = await anonClient().rpc("confirm_hold", { p_token: token, p });
   if (error) return { ok: false, error: errorMessage(error) };
-  await notifyLead(token);
+  // "We got your booking request" and the owner's heads-up go out through the automation rules.
   return { ok: true, data };
-}
-
-/** "Holding your spot" is replaced by the booked note once the shop confirms; at lead time the customer gets the hold note with the manage link. */
-async function notifyLead(token: string) {
-  try {
-    const a = await loadPublicAppointment(token);
-    if (!a || !a.customer) return;
-    const admin = createAdminClient();
-    const { data: row } = await admin.from("appointments").select("company_id, customer_id").eq("token", token).maybeSingle();
-    if (!row?.customer_id) return;
-    const [{ data: settings }, { data: customer }] = await Promise.all([
-      admin.from("retail_settings").select("email_templates").eq("company_id", row.company_id).maybeSingle(),
-      admin.from("customers").select("email, first_name").eq("id", row.customer_id).maybeSingle(),
-    ]);
-    const base = appUrl() ?? "";
-    await sendRetailEmail({
-      to: customer?.email,
-      key: "hold_created",
-      templates: settings?.email_templates ?? null,
-      vars: { first_name: customer?.first_name || "there", vehicle: a.vehicle?.name ?? "your car", starts_at: whenIn(a.starts_at, a.company.timezone), hold_minutes: a.policy?.hold_minutes ?? 30, booking_url: `${base}/a/${token}`, address: formatAddress(a.company).join(", "), company: a.company.name },
-      companyName: a.company.name,
-      replyTo: a.company.email,
-      refId: a.id,
-    });
-  } catch {
-    // email is best effort
-  }
 }

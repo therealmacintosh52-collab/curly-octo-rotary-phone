@@ -882,3 +882,123 @@ end $$;
 select set_config('role', 'postgres', false);
 select set_config('request.jwt.claims', '', false);
 select pg_temp.logout();
+
+-- ===========================================================================
+-- 0042: events, rules, runs, the text queue, quiet hours, the review rule.
+-- ===========================================================================
+-- Events were recorded by the writes above (holds, leads, bookings, payments, estimates).
+do $$
+declare n int; k text;
+begin
+  select count(*) into n from public.events where kind = 'hold.created'; assert n >= 3, '0042: holds recorded: ' || n;
+  select count(*) into n from public.events where kind = 'booking.lead'; assert n >= 2, '0042: leads recorded: ' || n;
+  select count(*) into n from public.events where kind = 'booking.booked' and payload ->> 'by' = 'deposit'; assert n >= 1, '0042: a deposit booked a lead';
+  select count(*) into n from public.events where kind = 'booking.booked' and payload ->> 'by' = 'staff'; assert n >= 1, '0042: staff confirmed a lead';
+  select count(*) into n from public.events where kind = 'booking.checked_in'; assert n >= 2, '0042: check-ins recorded';
+  select count(*) into n from public.events where kind = 'booking.rescheduled'; assert n >= 1, '0042: moves recorded';
+  select count(*) into n from public.events where kind = 'hold.expired'; assert n >= 1, '0042: expired holds recorded';
+  select count(*) into n from public.events where kind = 'payment.paid'; assert n >= 3, '0042: payments recorded: ' || n;
+  select count(*) into n from public.events where kind = 'job.paid'; assert n >= 1, '0042: paid jobs recorded';
+  select count(*) into n from public.events where kind = 'estimate.sent'; assert n >= 1, '0042: estimate sent recorded';
+  select count(*) into n from public.events where kind = 'estimate.viewed'; assert n = 1, '0042: first view only: ' || n;
+  select count(*) into n from public.events where kind = 'estimate.accepted'; assert n >= 2, '0042: approvals (online + staff) recorded: ' || n;
+  select count(*) into n from public.automation_rules where company_id = '00000000-0000-4000-8000-000000000001' and system; assert n = 11, '0042: eleven shipped rules: ' || n;
+  perform public.seed_automation_defaults('00000000-0000-4000-8000-000000000001');
+  select count(*) into n from public.automation_rules where company_id = '00000000-0000-4000-8000-000000000001'; assert n = 11, '0042: seeding twice adds nothing';
+end $$;
+
+-- The runner (service role): enqueue, claim, complete; quiet hours; the review skip rules; the text queue.
+do $$
+declare r jsonb; runs jsonb; n int; v_job uuid := (select v from r_ids where k = 'job_dep'); v_cust uuid := (select v from r_ids where k = 'cust_jordan'); one jsonb; v_run uuid; v_q uuid;
+begin
+  -- outside quiet hours for the test
+  update public.retail_settings set quiet_from = '00:00', quiet_to = '00:00', review_url = 'https://g.page/r/example/review' where company_id = '00000000-0000-4000-8000-000000000001';
+  r := public.enqueue_due_runs();
+  assert (r ->> 'events')::int > 0 and (r ->> 'runs')::int > 0, '0042: enqueued: ' || r::text;
+  select count(*) into n from public.events where processed_at is null; assert n = 0, '0042: every event processed';
+  -- the review request waits review_delay_minutes; everything due now is claimable
+  select count(*) into n from public.automation_runs ar join public.automation_rules rl on rl.id = ar.rule_id where rl.key = 'job_review' and ar.status = 'queued' and ar.due_at > now(); assert n >= 1, '0042: review request scheduled for later';
+  runs := public.claim_runs(100);
+  assert jsonb_array_length(runs) > 0, '0042: runs claimed: ' || jsonb_array_length(runs);
+  -- a claimed run carries what the sender needs
+  select x into one from jsonb_array_elements(runs) x where x ->> 'rule_key' = 'booking_booked' limit 1;
+  assert one is not null and (one -> 'subject' ->> 'token') is not null and (one -> 'settings' -> 'email_templates') ? 'booking_confirmed' and (one -> 'company' ->> 'timezone') = 'America/Los_Angeles', '0042: run payload: ' || coalesce(one::text, 'none');
+  v_run := (one ->> 'run_id')::uuid;
+  perform public.complete_run(v_run, 'sent', 'msg_123');
+  assert (select status from public.automation_runs where id = v_run) = 'sent', '0042: run completed';
+  -- runs for customers without an email are skipped with the reason
+  select count(*) into n from public.automation_runs where status = 'skipped' and result like 'no email%'; assert n >= 1, '0042: skipped runs explain why';
+  -- the text queue
+  v_q := public.queue_text('00000000-0000-4000-8000-000000000001', v_cust, '(916) 555-0199', 'Hi Jordan, see you tomorrow', 'reminder', v_run);
+  assert v_q is not null, '0042: text queued';
+  assert public.queue_text('00000000-0000-4000-8000-000000000001', v_cust, 'no phone', 'x') is null, '0042: no phone, no text';
+  -- the review run: fast-forward it, claim it, complete it → review_requested_at
+  update public.automation_runs ar set due_at = now() - interval '1 minute' from public.automation_rules rl where rl.id = ar.rule_id and rl.key = 'job_review' and ar.subject_id = v_job;
+  runs := public.claim_runs(100);
+  select x into one from jsonb_array_elements(runs) x where x ->> 'rule_key' = 'job_review' and (x ->> 'subject_id')::uuid = v_job;
+  assert one is not null and (one -> 'settings' ->> 'review_url') like 'https://g.page%', '0042: review run claimed with the link';
+  perform public.complete_run((one ->> 'run_id')::uuid, 'sent', 'msg_rev');
+  assert (select review_requested_at from public.customers where id = v_cust) is not null, '0042: review asked is stamped on the customer';
+  -- a second paid job inside the skip window is skipped
+  perform public._emit('00000000-0000-4000-8000-000000000001', 'job.paid', 'job', v_job, v_cust, '{}'::jsonb);
+  perform public.enqueue_due_runs();
+  update public.automation_runs ar set due_at = now() - interval '1 minute' from public.automation_rules rl where rl.id = ar.rule_id and rl.key = 'job_review' and ar.status = 'queued';
+  perform public.claim_runs(100);
+  select count(*) into n from public.automation_runs ar join public.automation_rules rl on rl.id = ar.rule_id where rl.key = 'job_review' and ar.status = 'skipped' and ar.result like 'asked within%'; assert n >= 1, '0042: review not asked twice';
+  -- quiet hours hold a run
+  update public.retail_settings set quiet_from = '00:00', quiet_to = '23:59' where company_id = '00000000-0000-4000-8000-000000000001';
+  perform public._emit('00000000-0000-4000-8000-000000000001', 'booking.cancelled', 'appointment', (select v from r_ids where k = 'appt_staff'), (select v from r_ids where k = 'cust_ana'), '{}'::jsonb);
+  perform public.enqueue_due_runs();
+  runs := public.claim_runs(100);
+  assert not exists (select 1 from jsonb_array_elements(runs) x where x ->> 'rule_key' = 'booking_cancelled'), '0042: quiet hours hold the cancellation email';
+  assert exists (select 1 from public.automation_runs ar join public.automation_rules rl on rl.id = ar.rule_id where rl.key = 'booking_cancelled' and ar.status = 'queued'), '0042: still queued for the morning';
+  update public.retail_settings set quiet_from = '20:00', quiet_to = '08:00' where company_id = '00000000-0000-4000-8000-000000000001';
+  -- derived: a hold about to run out gets exactly one hold.expiring event
+  update public.appointments set status = 'hold', hold_expires_at = now() + interval '5 minutes', cancelled_at = null where token = (select token from r_atok where k = 'hold2');
+  perform public._derive_events(); perform public._derive_events();
+  select count(*) into n from public.events where kind = 'hold.expiring' and subject_id = (select id from public.appointments where token = (select token from r_atok where k = 'hold2')); assert n = 1, '0042: one hold.expiring: ' || n;
+end $$;
+
+-- Staff: owner/admin manage rules and read the log; everyone works the text queue; nobody else reads the tables.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare rules jsonb; r jsonb; lg jsonb; q jsonb; n int;
+begin
+  rules := public.automation_rules_list();
+  assert jsonb_array_length(rules) = 11, '0042: owner lists the rules';
+  select x into r from jsonb_array_elements(rules) x where x ->> 'key' = 'job_review';
+  r := public.save_automation_rule(jsonb_build_object('id', r ->> 'id', 'enabled', false, 'delay_minutes', 60, 'event_kind', 'something.else'));
+  assert (r ->> 'enabled')::boolean = false and (r ->> 'delay_minutes')::int = 60 and (r ->> 'event_kind') = 'job.paid', '0042: system rule keeps its kind';
+  r := public.save_automation_rule(jsonb_build_object('name', 'Thank you a week later', 'event_kind', 'job.paid', 'delay_minutes', 10080, 'action', jsonb_build_object('kind', 'email', 'template', 'review_request')));
+  assert (r ->> 'system')::boolean = false, '0042: custom rule';
+  perform public.delete_automation_rule((r ->> 'id')::uuid);
+  assert jsonb_array_length(public.automation_rules_list()) = 11, '0042: custom rule deleted';
+  lg := public.automation_log(50);
+  assert jsonb_array_length(lg) > 0 and (lg -> 0) ? 'status' and (lg -> 0) ? 'rule', '0042: the log';
+  q := public.text_queue_list();
+  assert jsonb_array_length(q) = 1 and (q -> 0 ->> 'customer') = 'Jordan Lee' and (q -> 0 ->> 'body') like 'Hi Jordan%', '0042: the text queue: ' || q::text;
+  perform public.text_queue_done((q -> 0 ->> 'id')::uuid);
+  assert jsonb_array_length(public.text_queue_list()) = 0, '0042: text marked sent';
+  perform public.mark_reviewed((select v from r_ids where k = 'cust_jordan'));
+  assert (select reviewed_at from public.customers where id = (select v from r_ids where k = 'cust_jordan')) is not null, '0042: marked reviewed';
+  begin
+    perform public.enqueue_due_runs();
+    raise exception 'expected service role only';
+  exception when sqlstate '42501' then null; end;
+  begin
+    select count(*) into n from public.events;
+    raise exception 'expected events hidden';
+  exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare n int;
+begin
+  begin
+    perform public.automation_rules_list();
+    raise exception 'expected owner/admin only';
+  exception when sqlstate '42501' then null; end;
+  select count(*) into n from public.automation_rules; assert n = 0, '0042: detailer sees no rules';
+  assert jsonb_array_length(public.text_queue_list()) = 0, '0042: detailer reads the queue';
+end $$;
+select pg_temp.logout();

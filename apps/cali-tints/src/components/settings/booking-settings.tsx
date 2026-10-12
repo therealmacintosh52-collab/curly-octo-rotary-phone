@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarOffIcon, LoaderCircleIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import type { BlackoutDay, BusinessHour, Resource, ResourceKind, RetailSettings, TimeOff } from "@/lib/db/types";
+import type { AutomationLogRow, AutomationRule, BlackoutDay, BusinessHour, Resource, ResourceKind, RetailSettings, TimeOff } from "@/lib/db/types";
+import { AutomationsCard } from "./automations-card";
 import { addBlackoutAction, addTimeOffAction, removeBlackoutAction, removeTimeOffAction, saveHoursAction, saveResourceAction, saveRetailSettingsAction, saveTemplatesAction } from "@/app/(app)/settings/retail-actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateOnly, formatDateTime } from "@/lib/dates";
@@ -30,6 +31,8 @@ export interface BookingSettingsData {
   blackouts: BlackoutDay[];
   timeOff: TimeOff[];
   people: { id: string; full_name: string }[];
+  rules: AutomationRule[];
+  log: AutomationLogRow[];
 }
 
 /**
@@ -46,6 +49,7 @@ export function BookingSettings({ data }: { data: BookingSettingsData }) {
       <ResourcesCard resources={data.resources} people={data.people} />
       <DaysOffCard blackouts={data.blackouts} timeOff={data.timeOff} resources={data.resources} />
       <TemplatesCard settings={data.settings} />
+      <AutomationsCard rules={data.rules} log={data.log} />
     </div>
   );
 }
@@ -78,6 +82,13 @@ function PolicyCard({ settings: s }: { settings: RetailSettings }) {
     signature_required_estimate: s.signature_required_estimate,
     signature_required_receipt: s.signature_required_receipt,
     policy_text: s.policy_text ?? "",
+    review_url: s.review_url ?? "",
+    quiet_from: (s.quiet_from ?? "20:00").slice(0, 5),
+    quiet_to: (s.quiet_to ?? "08:00").slice(0, 5),
+    abandoned_minutes: String(s.abandoned_minutes ?? 15),
+    review_delay_minutes: String(s.review_delay_minutes ?? 30),
+    review_skip_days: String(s.review_skip_days ?? 90),
+    estimate_nudge_days: String(s.estimate_nudge_days ?? 3),
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }));
 
@@ -101,6 +112,13 @@ function PolicyCard({ settings: s }: { settings: RetailSettings }) {
         signature_required_estimate: f.signature_required_estimate,
         signature_required_receipt: f.signature_required_receipt,
         policy_text: f.policy_text,
+        review_url: f.review_url,
+        quiet_from: f.quiet_from,
+        quiet_to: f.quiet_to,
+        abandoned_minutes: Number(f.abandoned_minutes),
+        review_delay_minutes: Number(f.review_delay_minutes),
+        review_skip_days: Number(f.review_skip_days),
+        estimate_nudge_days: Number(f.estimate_nudge_days),
       });
       if (!r.ok) return void toast.error(r.error);
       toast.success("Policy saved");
@@ -168,6 +186,28 @@ function PolicyCard({ settings: s }: { settings: RetailSettings }) {
             <Row label="Tax every line (not just parts)" checked={f.tax_all_lines} onChange={(v) => set("tax_all_lines", v)} />
             <Row label="Signature required on estimates" checked={f.signature_required_estimate} onChange={(v) => set("signature_required_estimate", v)} />
             <Row label="Signature required on receipts" checked={f.signature_required_receipt} onChange={(v) => set("signature_required_receipt", v)} />
+          </div>
+          <div className="grid gap-3 rounded-lg border border-border p-3" data-testid="automation-settings">
+            <div className="text-sm font-semibold">Follow-ups</div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="p-review">Google review link</Label>
+              <Input id="p-review" value={f.review_url} onChange={(e) => set("review_url", e.target.value)} placeholder="https://g.page/r/…/review" inputMode="url" />
+              <p className="text-caption text-subtle">Google Business Profile → Ask for reviews → copy the link. Without it the review request stays off.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Num id="p-review-delay" label="Ask for a review (minutes after paid)" value={f.review_delay_minutes} onChange={(v) => set("review_delay_minutes", v)} min={0} />
+              <Num id="p-review-skip" label="Don't ask again for (days)" value={f.review_skip_days} onChange={(v) => set("review_skip_days", v)} min={0} />
+              <Num id="p-nudge" label="Nudge an unanswered estimate (days)" value={f.estimate_nudge_days} onChange={(v) => set("estimate_nudge_days", v)} min={0} />
+              <Num id="p-abandoned" label="Abandoned booking follow-up (minutes)" value={f.abandoned_minutes} onChange={(v) => set("abandoned_minutes", v)} min={1} />
+              <div className="grid gap-1.5">
+                <Label htmlFor="p-quiet-from">Quiet hours from</Label>
+                <Input id="p-quiet-from" type="time" value={f.quiet_from} onChange={(e) => set("quiet_from", e.target.value)} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="p-quiet-to">Quiet hours until</Label>
+                <Input id="p-quiet-to" type="time" value={f.quiet_to} onChange={(e) => set("quiet_to", e.target.value)} />
+              </div>
+            </div>
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="p-policy">Policy text shown to customers</Label>

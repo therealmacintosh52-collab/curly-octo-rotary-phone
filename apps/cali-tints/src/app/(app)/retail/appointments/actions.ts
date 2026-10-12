@@ -7,9 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 import type { AppointmentStatus, AppointmentView, BookPayload, RetailPaymentMethod, Slot } from "@/lib/db/types";
 import { createDepositLink } from "@/lib/clover/deposit";
 import { depositsOnline } from "@/lib/clover/env";
-import { appUrl, sendRetailEmail } from "@/lib/retail/email";
-import { whenIn } from "@/lib/retail/slots";
-import { formatAddress } from "@/lib/address";
 import { errorMessage } from "@/lib/utils";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
@@ -50,7 +47,6 @@ export async function bookAppointmentAction(input: BookPayload): Promise<ActionR
   const { data, error } = await supabase.rpc("book_appointment", { p: parsed.data });
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate(data.id);
-  await notifyBooked(data, session.company.id, session.company.name, session.company.email);
   return { ok: true, data };
 }
 
@@ -62,8 +58,6 @@ export async function setAppointmentStatusAction(id: string, status: Appointment
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate(id);
   if (data.job_id) revalidatePath("/jobs");
-  if (status === "booked") await notifyBooked(data, session.company.id, session.company.name, session.company.email);
-  if (status === "cancelled") await notifyCancelled(data, session.company.id, session.company.name, session.company.email);
   return { ok: true, data };
 }
 
@@ -74,46 +68,10 @@ export async function rescheduleAppointmentAction(id: string, startsAt: string):
   const { data, error } = await supabase.rpc("reschedule_appointment", { p_id: id, p_starts_at: startsAt });
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate(id);
-  await notifyBooked(data, session.company.id, session.company.name, session.company.email);
   return { ok: true, data };
 }
 
-async function templates(companyId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("retail_settings").select("email_templates").eq("company_id", companyId).maybeSingle();
-  return data?.email_templates ?? null;
-}
-
-/** "You are booked" to the customer, when they have an email and email is configured; silent otherwise. */
-async function notifyBooked(a: AppointmentView, companyId: string, companyName: string, replyTo: string | null) {
-  if (!a.customer?.email) return;
-  // Staff views carry no token: the manage link is fetched through the gated RPC.
-  const supabase = await createClient();
-  const { data: token } = await supabase.rpc("appointment_link", { p_id: a.id });
-  const base = appUrl() ?? "";
-  await sendRetailEmail({
-    to: a.customer?.email,
-    key: "booking_confirmed",
-    templates: await templates(companyId),
-    vars: { first_name: a.customer?.first_name || "there", vehicle: a.vehicle?.name ?? "your car", starts_at: whenIn(a.starts_at, a.company.timezone), address: formatAddress(a.company).join(", "), manage_url: token ? `${base}/a/${token}` : base, company: companyName },
-    companyName,
-    replyTo,
-    refId: a.id,
-  });
-}
-
-async function notifyCancelled(a: AppointmentView, companyId: string, companyName: string, replyTo: string | null) {
-  const base = appUrl() ?? "";
-  await sendRetailEmail({
-    to: a.customer?.email,
-    key: "cancelled",
-    templates: await templates(companyId),
-    vars: { first_name: a.customer?.first_name || "there", starts_at: whenIn(a.starts_at, a.company.timezone), book_url: `${base}/book`, company: companyName },
-    companyName,
-    replyTo,
-    refId: a.id,
-  });
-}
+// Confirmations, cancellations and reminders go out through the automation rules (Settings → Booking → Automations), never twice.
 
 /** A deposit taken at drop-off (cash, check, on the Flex), or an online payment the owner matches by hand. */
 export async function recordDepositAtShopAction(id: string, method: RetailPaymentMethod, reference: string, amount?: number | null): Promise<ActionResult<AppointmentView>> {
@@ -123,7 +81,6 @@ export async function recordDepositAtShopAction(id: string, method: RetailPaymen
   const { data, error } = await supabase.rpc("record_deposit_at_shop", { p_appointment: id, p_method: method, p_reference: reference.trim() || null, p_amount: amount && amount > 0 ? Math.round(amount * 100) / 100 : null });
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate(id);
-  if (data.status === "booked") await notifyBooked(data, session.company.id, session.company.name, session.company.email);
   return { ok: true, data };
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDaysIcon, CarFrontIcon, ClockIcon, PlusIcon, UsersIcon, WalletIcon } from "lucide-react";
-import type { CalendarItem, RetailMoneySummary } from "@/lib/db/types";
+import type { CalendarItem, RetailMoneySummary, TextQueueRow } from "@/lib/db/types";
+import { TextQueue } from "./text-queue";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { durationLabel, holdSecondsLeft, mmss, timeIn } from "@/lib/retail/slots";
@@ -34,6 +35,8 @@ export interface RetailTodayData {
   appointments: CalendarItem[];
   /** Owner/admin only: deposits and what came in this week. */
   money?: RetailMoneySummary | null;
+  /** Texts the automations queued for the phone: one tap each. */
+  texts?: TextQueueRow[];
 }
 
 /**
@@ -71,6 +74,8 @@ export function RetailToday({ data, shopName, tz }: { data: RetailTodayData; sho
           <MoneyTile label="Collected this week" value={formatMoney(data.money.collected_week)} hint="deposits and counter payments" />
         </div>
       )}
+
+      {(data.texts?.length ?? 0) > 0 && <TextQueue rows={data.texts ?? []} />}
 
       {(data.leads.length > 0 || data.holds.length > 0) && (
         <Card className="mt-6 border-warning/50">

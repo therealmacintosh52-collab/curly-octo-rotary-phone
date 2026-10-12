@@ -3,7 +3,7 @@
  * the owner edits them in Settings → Booking. These defaults match what
  * migration 0038 seeds, and are what "Reset" restores.
  */
-export type TemplateKey = "estimate_sent" | "hold_created" | "hold_expiring" | "booking_confirmed" | "reminder" | "receipt" | "abandoned" | "cancelled";
+export type TemplateKey = "estimate_sent" | "hold_created" | "hold_expiring" | "booking_confirmed" | "reminder" | "receipt" | "abandoned" | "cancelled" | "review_request" | "estimate_nudge" | "booking_received";
 
 export interface Template {
   subject: string;
@@ -19,6 +19,9 @@ export const TEMPLATE_META: { key: TemplateKey; label: string; when: string; var
   { key: "receipt", label: "Receipt", when: "After the job is paid", vars: ["first_name", "vehicle", "receipt_url", "company"] },
   { key: "abandoned", label: "Abandoned booking", when: "A hold expired without a booking", vars: ["first_name", "vehicle", "services", "booking_url", "company"] },
   { key: "cancelled", label: "Cancelled", when: "An appointment is cancelled", vars: ["first_name", "starts_at", "book_url", "company"] },
+  { key: "review_request", label: "Review request", when: "After a job is paid (the delay is in the rule)", vars: ["first_name", "vehicle", "review_url", "company"] },
+  { key: "estimate_nudge", label: "Estimate not answered", when: "An estimate sits unanswered for a few days", vars: ["first_name", "vehicle", "estimate_url", "expires", "company"] },
+  { key: "booking_received", label: "Booking request received", when: "A customer books online without a deposit (you confirm it)", vars: ["first_name", "vehicle", "starts_at", "manage_url", "company"] },
 ];
 
 export const DEFAULT_TEMPLATES: Record<TemplateKey, Template> = {
@@ -30,6 +33,9 @@ export const DEFAULT_TEMPLATES: Record<TemplateKey, Template> = {
   receipt: { subject: "Your receipt from {{company}}", body: "Hi {{first_name}},\n\nThanks for coming in. Your receipt for the {{vehicle}}: {{receipt_url}}\n\n{{company}}" },
   abandoned: { subject: "Still want that spot?", body: "Hi {{first_name}},\n\nYou started booking the {{vehicle}} for {{services}}. Pick it back up here: {{booking_url}}\n\n{{company}}" },
   cancelled: { subject: "Cancelled: {{starts_at}}", body: "Hi {{first_name}},\n\nYour {{starts_at}} appointment is cancelled. Book again any time: {{book_url}}\n\n{{company}}" },
+  review_request: { subject: "How did we do?", body: "Hi {{first_name}},\n\nThanks for bringing the {{vehicle}} in. If you have a minute, a review helps us more than you know: {{review_url}}\n\n{{company}}" },
+  estimate_nudge: { subject: "Still thinking it over?", body: "Hi {{first_name}},\n\nYour estimate for the {{vehicle}} is still open: {{estimate_url}}\n\nQuestions? Just reply. It is good until {{expires}}.\n\n{{company}}" },
+  booking_received: { subject: "We got your booking request", body: "Hi {{first_name}},\n\nThanks! We have the {{vehicle}} down for {{starts_at}} and will confirm shortly. Move or cancel here: {{manage_url}}\n\n{{company}}" },
 };
 
 /** Replace `{{name}}` with the value; unknown names are left blank, never leaked as braces. */

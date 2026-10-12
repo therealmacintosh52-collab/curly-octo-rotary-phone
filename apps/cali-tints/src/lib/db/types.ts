@@ -147,6 +147,13 @@ export type RetailSettings = {
   signature_required_receipt: boolean;
   policy_text: string | null;
   email_templates: Record<string, { subject?: string; body?: string }>;
+  review_url: string | null;
+  quiet_from: string;
+  quiet_to: string;
+  abandoned_minutes: number;
+  review_delay_minutes: number;
+  review_skip_days: number;
+  estimate_nudge_days: number;
   updated_at: string;
 };
 
@@ -525,6 +532,33 @@ export type ReceiptView = {
   company: { name: string; phone: string | null; email: string | null; address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; postal_code: string | null; logo_path: string | null; timezone: string };
 };
 export type RetailMoneySummary = { deposits_outstanding: { count: number; amount: number }; deposits_week: number; collected_week: number; pending_links: number };
+
+// ---------------------------------------------------------------------------
+// Automation (0042)
+// ---------------------------------------------------------------------------
+export type AutomationActionKind = "email" | "text" | "both" | "notify_owner" | "none";
+export type AutomationAction = { kind: AutomationActionKind; template?: string; owner_subject?: string; respect_quiet?: boolean };
+export type AutomationCondition = { status_in?: string[]; needs_email?: boolean; needs_consent?: boolean; still_open?: boolean; review_ok?: boolean; no_later_booking?: boolean };
+export type AutomationRule = { id: string; company_id: string; key: string | null; name: string; enabled: boolean; event_kind: string; delay_minutes: number; condition: AutomationCondition; action: AutomationAction; system: boolean; sort_order: number; created_at: string; updated_at: string };
+export type AutomationRunStatus = "queued" | "claimed" | "sent" | "skipped" | "failed";
+export type AutomationLogRow = { id: string; rule: string; rule_key: string | null; event_kind: string; status: AutomationRunStatus; result: string | null; due_at: string; finished_at: string | null; created_at: string; subject_type: string; subject_id: string; customer: string | null; customer_id: string | null };
+export type TextQueueRow = { id: string; customer_id: string | null; customer: string | null; phone: string; body: string; reason: string | null; created_at: string };
+/** claim_runs(): one run the runner must carry out. */
+export type ClaimedRun = {
+  run_id: string;
+  company_id: string;
+  rule_key: string | null;
+  rule_name: string;
+  event_kind: string;
+  payload: Record<string, unknown>;
+  subject_type: "appointment" | "estimate" | "job" | "customer" | "payment";
+  subject_id: string;
+  subject: Record<string, unknown>;
+  action: AutomationAction;
+  customer: { id: string; first_name: string; display_name: string | null; email: string | null; phone: string | null; sms_opt_in: boolean } | null;
+  company: { name: string; email: string | null; phone: string | null; timezone: string; address: string | null };
+  settings: { hold_minutes: number; review_url: string | null; email_templates: Record<string, { subject?: string; body?: string }> | null };
+};
 
 /** quote_total(): a retail quote priced by size. */
 export type QuoteResult = {
@@ -1012,6 +1046,8 @@ export type Customer = {
   notes: string | null;
   archived_at: string | null;
   merged_into_id: string | null;
+  review_requested_at?: string | null;
+  reviewed_at?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1162,6 +1198,17 @@ export type Database = {
       receipt_link: { Args: { p_job_id: string }; Returns: string };
       receipt_signature_path: { Args: { p_job_id: string }; Returns: string | null };
       retail_money_summary: { Args: Record<string, never>; Returns: RetailMoneySummary };
+      enqueue_due_runs: { Args: Record<string, never>; Returns: { derived: number; events: number; runs: number } };
+      claim_runs: { Args: { p_limit?: number }; Returns: ClaimedRun[] };
+      complete_run: { Args: { p_id: string; p_status: "sent" | "skipped" | "failed"; p_result?: string | null }; Returns: undefined };
+      queue_text: { Args: { p_company: string; p_customer: string | null; p_phone: string; p_body: string; p_reason?: string | null; p_run?: string | null }; Returns: string | null };
+      automation_rules_list: { Args: Record<string, never>; Returns: AutomationRule[] };
+      save_automation_rule: { Args: { p: Partial<Pick<AutomationRule, "id" | "name" | "enabled" | "event_kind" | "delay_minutes" | "condition" | "action">> }; Returns: AutomationRule };
+      delete_automation_rule: { Args: { p_id: string }; Returns: undefined };
+      automation_log: { Args: { p_limit?: number }; Returns: AutomationLogRow[] };
+      text_queue_list: { Args: Record<string, never>; Returns: TextQueueRow[] };
+      text_queue_done: { Args: { p_id: string; p_dismiss?: boolean }; Returns: undefined };
+      mark_reviewed: { Args: { p_customer: string; p_on?: boolean }; Returns: undefined };
       record_retail_payment: { Args: { p_job_id: string; p_amount: number; p_method: string; p_reference?: string | null }; Returns: Job };
       jobs_needing_price: { Args: Record<string, never>; Returns: number };
       save_customer: { Args: { p: CustomerPayload }; Returns: Customer };

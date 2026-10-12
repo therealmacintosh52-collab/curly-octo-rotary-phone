@@ -13,7 +13,7 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 ## Contents
 
 1. [Features](#features)
-2. [Project layout](#project-layout)
+2. [Project layout](#project-layout) · [Retail OS: architecture, module map, flags, phone checklist](#retail-os-the-shops-everyday-customers)
 3. [Local setup](#local-setup)
 4. [Supabase setup](#supabase-setup)
 5. [First sign-in and demo data](#first-sign-in-and-demo-data)
@@ -45,7 +45,8 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 | Retail (the shop) | A location flagged **Retail** in Settings → Dealerships (seeded as *Cali Tint · Fulton Ave*) is the company's own counter. Its jobs are logged the same way but never put on a monthly invoice or into QuickBooks by the app; they show **Collect** until paid. Inside the Clover app, **Collect on this Clover** opens Clover's payment screen (Secure Pay) for the job's total and records the payment on the job (`record_retail_payment`); the owner or an admin can record cash or a check by hand. Clover's own QuickBooks app books those card sales if Mike wants them in the books |
 | Retail → Estimates `/retail/estimates` | Owner and admin write a quote for a walk-in: customer + car (priced by its size class), one option or **Good / Better / Best** built from the shop menu with condition add-ons, add-ons the customer can tick, an "Other" line with a typed amount, good-until date, PO, notes. **Email the link** (Resend, `estimate_sent` template) or **Text the link** (`sms:` from the phone) or copy it. The customer opens `/e/<token>` (no login; 24-byte token): picks the option, ticks add-ons, sees the live total and deposit, types their name, **signs on the screen** and approves (or declines); the signature PNG lands in the private `signatures` bucket, the approval is recorded with time, IP and device (`estimate_authorizations`), the owner gets an email. Staff can also **Mark approved** for an answer taken in person or by phone, **Decline**, and **Create the job** (the chosen lines at the snapshot prices). Branded PDF with the signature. Sent estimates expire on their date (daily cron). Managers and detailers see estimates without money |
 | Retail → Calendar `/retail/calendar` | One slot engine in Postgres (`find_slots`) for staff, the public page and the estimate link: a time is offered only when a bay (and a lift when the service needs one) and a tech with the right skill are free for the whole block, inside business hours, off blackout days and time off, honouring each service's start window, the lead time and how far ahead the shop books. Day view (bay / lift / tech badges on each row) and week view; **New appointment** (owner/admin/manager) picks the customer, services priced by the car's size, a time; an approved estimate schedules from its page with its lines and prices kept. Appointment page: Confirm a lead, **Check in** (opens the retail job with the lines at those prices), Done, Move, Cancel, No-show, the customer's manage link. Today shows leads to confirm and live holds |
-| Book online `/book` | No login. Car size → services with benefit text and the size price → the add-on questions the owner marked "ask the customer" (Settings → Shop menu) → a time → the spot is **held** (`hold_minutes`, countdown) while they type name, phone, email, two separate consents, the car, how they will pay → a **Lead** the shop confirms (the deposit does it in the next slice). `/a/<token>` lets them move or cancel inside the notice window (`cancel_hours`); inside it the page says to call. `?e=<estimate token>` books an approved estimate straight to a time. Emails (Resend, templates in Settings → Booking) for the hold, the confirmation and a cancellation when an address is on file |
+| Book online `/book` | No login. Car size → services with benefit text and the size price → the add-on questions the owner marked "ask the customer" (Settings → Shop menu) → a time → the spot is **held** (`hold_minutes`, countdown) while they type name, phone, email, two separate consents, the car, how they will pay → a **Lead** the shop confirms (a paid deposit confirms it by itself). `/a/<token>` lets them move or cancel inside the notice window (`cancel_hours`); inside it the page says to call. `?e=<estimate token>` books an approved estimate straight to a time. Emails (Resend, templates in Settings → Booking) for the hold, the confirmation and a cancellation when an address is on file |
+| Automations (Settings → Booking) | One events outbox in Postgres (`events`, written by the booking, estimate and payment RPCs) and eleven shipped rules (`automation_rules`: when → wait → if → do), each one on or off with its own delay and template: hold running out, abandoned booking, booking request received, booking confirmed, reminder before the visit (24 h and 2 h, once per mark), cancelled, receipt after a paid job, **ask for a review** 30 min after a paid job (skipped when asked in the last 90 days or already reviewed; the Google link from Settings), estimate not answered after 3 days, and two "tell me" rules that email the owner (an estimate approved, a new online booking). Vercel Cron calls `/api/cron/automation` **every five minutes**: `enqueue_due_runs` (derives the timed events, matches rules, honours **quiet hours** 20:00–08:00) → `claim_runs` → email through Resend and/or a **queued text** → `complete_run`. Nothing is paid for SMS: a text lands in **Texts to send** on Today, one tap opens the phone's messaging app with the message filled in, then **Sent**. Every run is in the log (sent, skipped and why, failed). Without `RESEND_API_KEY` emails log as skipped, never lost |
 | Deposits and the counter | Every payment on one ledger (`payments`: deposit / balance / refund, method, who, when). **Deposits**: 20% by policy; with `DEPOSITS_ONLINE=clover` the customer taps **Pay the deposit** on their booking page or the estimate thank-you page and pays on Clover's hosted checkout (your existing merchant; the link is made the moment they tap because Clover sessions live 15 minutes; the signed webhook at `/api/clover/webhook` is what marks it paid and flips the booking **Lead → Booked**; a redirect proves nothing). With the default `DEPOSITS_ONLINE=none` nothing is charged online: staff **Take the deposit** at drop-off (cash, check, on the Flex; the owner can match an online payment by its id). A paid deposit on an approved estimate books the appointment the moment the customer picks a time. **The counter** collects the balance = total − deposit (Collect on this Clover for that amount, or cash/check), then the customer **signs the receipt** on the phone; the receipt (lines, deposit, payments, signature, timestamp) is a PDF for staff and a `/r/<token>` page + PDF for the customer. The owner records refunds on the ledger. Today shows deposits still due and what came in this week |
 | Roles | **Owner**: everything, and the only one who sees invoices, payments, income, the price list and the export. **Admin**: every job, Settings for users and dealerships, may type the amount of an "Other" line. **Manager**: every job, no settings. **Detailer**: log cars, see and fix their own. Enforced by Postgres RLS and column privileges (migration `0029`): invoices, payments and the price list are owner-only at the database, `services.default_price` and `job_services.price` are unreadable by app users (the owner reads them through `service_prices_v` / `job_service_prices_v`), the money RPCs refuse everyone else, and no price sent with a job is ever saved (migration `0036`: the list price is used, no overrides, no reasons), except the amount the owner or an admin types on an "Other" line. "Other" logged by anyone else is flagged **Needs a price** for them |
 
@@ -54,16 +55,113 @@ Stack: Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · shadcn
 ```
 apps/cali-tints
 ├── supabase/
-│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice · 0016 search by service · 0017–0026 today by service, paint correction, week, "Other" label, archive, detailer dashboard, manager role, guide · 0027 removes the Terminal and Clover · 0028 jobs by the day, one invoice a month · 0029 only the owner sees money · 0030 photos (client_id, detailer file removal) · 0031 QuickBooks Online · 0032 jobs live in QuickBooks, photo kind · 0033 owner and admin see job prices · 0034 retail location, counter payments · 0035 no employee names on jobs · 0036 no prices on jobs · 0037 retail customers and vehicles · 0038 shop menu, size prices, booking settings · 0039 estimates, public approval page, e-signature · 0040 booking: slots, holds, calendar, public /book · 0041 deposits, the ledger, the signed receipt
-│   ├── seed.sql         company, 2 dealerships, 8 services, price overrides
-│   └── tests/           SQL test suite runnable on plain Postgres (run.sh)
+│   ├── migrations/      0001 schema · 0002 functions/RPCs · 0003 RLS · 0004 storage · 0005 double-billing guard · … · 0015 one car, one invoice · 0016 search by service · 0017–0026 today by service, paint correction, week, "Other" label, archive, detailer dashboard, manager role, guide · 0027 removes the Terminal and Clover · 0028 jobs by the day, one invoice a month · 0029 only the owner sees money · 0030 photos (client_id, detailer file removal) · 0031 QuickBooks Online · 0032 jobs live in QuickBooks, photo kind · 0033 owner and admin see job prices · 0034 retail location, counter payments · 0035 no employee names on jobs · 0036 no prices on jobs · 0037 retail customers and vehicles · 0038 shop menu, size prices, booking settings · 0039 estimates, public approval page, e-signature · 0040 booking: slots, holds, calendar, public /book · 0041 deposits, the ledger, the signed receipt · 0042 events outbox, automation rules, the text queue
+│   ├── seed.sql         company, 2 dealerships + the shop, the dealer menu and the 12 retail services, the default automation rules
+│   └── tests/           SQL test suite runnable on plain Postgres (run.sh): 01_flows (dealership side), 02_retail (the shop)
+├── docs/                GO-LIVE.md (the order to go live) · PARITY.md (every line of the brief, where it lives) · STATUS.md (module by module)
 ├── scripts/seed-demo.mjs   demo users + 60 days of jobs + invoices (uses the real RPCs)
 ├── public/sw.js         service worker (app shell cache)
 └── src/
-    ├── app/             routes: (app)/… authenticated, login, auth/*, api/*, dev/preview/* (dev only)
-    ├── components/      ui/ (primitives) · jobs/ · invoices/ · dashboard/ · settings/ · offline/ · pwa/
-    └── lib/             supabase clients · auth · vin · money · csv · dates · offline (idb) · invoices (pdf/csv/xlsx/email)
+    ├── app/             routes: (app)/… authenticated · public e/[token], book, a/[token], r/[token] · login, auth/*, api/*, dev/preview/* (dev only)
+    ├── components/      ui/ (primitives) · jobs/ · invoices/ · dashboard/ · retail/ · settings/ · offline/ · pwa/
+    └── lib/             supabase clients · auth · vin · money · csv · dates · offline (idb) · invoices (pdf/csv/xlsx/email) · retail (quote, slots, templates, email) · estimates · booking · clover (hosted checkout) · receipts · automation (the runner) · quickbooks
 ```
+
+## Retail OS: the shop's everyday customers
+
+The dealership side (New job → Jobs → one invoice a month → QuickBooks) and the retail side (walk-in customers) share one login, one database, one Settings, one company. They are kept apart by **data and navigation**, not by code: retail screens live under the **Retail** tab and the public pages; a retail job is still a `jobs` row on the shop location, now linked to a customer, a vehicle, an estimate and an appointment. Nothing here is multi-tenant yet, but `company_id` sits on every table so it can be.
+
+### Architecture
+
+```
+ customer's phone (no login)                      staff (owner · admin · manager · detailer)
+ ┌──────────────────────────────┐                 ┌──────────────────────────────────────────┐
+ │ /e/<token>   approve + sign  │                 │ Retail: Today · Calendar · Customers ·   │
+ │ /book        size→services→  │                 │         Estimates · appointment pages    │
+ │              slot→hold→lead  │                 │ Jobs (dealership) · Invoices · Dashboard │
+ │ /a/<token>   move · cancel · │                 │ Settings: Shop menu · Booking (policy,   │
+ │              pay the deposit │                 │   hours, bays/lifts/techs, templates,    │
+ │ /r/<token>   signed receipt  │                 │   automations + log)                     │
+ └──────────────┬───────────────┘                 └──────────────────┬───────────────────────┘
+                │ anon client: token RPCs only                        │ RLS + column privileges
+                ▼                                                     ▼
+ ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+ │ Supabase Postgres (security-definer RPCs are the only write path)                        │
+ │  customers · vehicles · services (+size prices, modifiers) · retail_settings · resources  │
+ │  estimates (+options, lines, authorizations) · appointments (+services, resources)        │
+ │  payments · receipt_tokens · jobs (+customer/vehicle/estimate/appointment)                │
+ │  events ─► automation_rules ─► automation_runs ─► text_queue        Storage: signatures   │
+ └───────┬──────────────────────────────────────────────────────┬───────────────────────────┘
+         │ every 5 min: /api/cron/automation                     │ daily: /api/cron/daily
+         │ enqueue_due_runs → claim_runs → send → complete_run    │ month close · QuickBooks ·
+         ▼                                                       │ expire estimates · holds ·
+ Resend (email) · text_queue (owner taps "sms:" link) ·          ▼ stale pay links
+ owner email                                      Clover hosted checkout ──► /api/clover/webhook
+                                                  (DEPOSITS_ONLINE=clover)   (signed; marks the
+                                                                              deposit paid, lead→booked)
+```
+
+### Module map (the brief's numbering)
+
+| # | Module | Built | Where |
+|---|---|---|---|
+| 1 | Core data, vehicle ID | Customers, vehicles (size class from NHTSA), odometer, duplicates + merge, consents, timeline | `0037`, `/retail/customers`, `src/components/retail/customer-*`, `vehicle-*` |
+| 2 | Pricing, canned jobs, estimates | Size-class price matrix, add-on modifiers, taxable per line, estimates with Good/Better/Best, public approval page with e-sign, PDF | `0038`, `0039`, `/settings/retail`, `/retail/estimates`, `/e/<token>`, `src/lib/retail/quote.ts`, `src/lib/estimates/` |
+| 3 | Booking, capacity | `find_slots` engine (bays, lifts, techs, skills, hours, days off, time off, start windows), holds, calendar, `/book`, manage links | `0040`, `/retail/calendar`, `/book`, `/a/<token>`, `src/lib/retail/slots.ts` |
+| 4 | Payments, deposits | Ledger, 20 % deposit via Clover hosted checkout (flag) or at drop-off, balance at the counter, signed receipt + PDF, refunds | `0041`, `src/lib/clover/`, `/api/clover/webhook`, `/r/<token>`, `src/lib/receipts/` |
+| 5 | Intake, photos, inspections | Photos per job (existing). Video, damage pins, DVI: not built | `job-photos`, `photo-picker.tsx` |
+| 6 | Work orders, board | Appointment statuses (lead → booked → checked in → done) open the retail job; no custom stage board | `set_appointment_status`, `/retail/appointments/[id]` |
+| 7 | CA BAR compliance | Not built (the shop is detailing; brakes/oil are seeded as services only) | — |
+| 8 | Messaging, inbox | Email templates with placeholders, `sms:` deep links, the text queue; no inbox, no Twilio | `src/lib/retail/templates.ts`, `text-queue.tsx` |
+| 9 | AI sales assistant | Not built (`AI_PROVIDER` reserved) | — |
+| 10 | Social automation | Not built | — |
+| 11 | Owner command bar | Not built | — |
+| 12 | Retention, marketing | Review request, estimate nudge, abandoned-booking follow-up, reminders; no segments or campaigns | `0042` rules |
+| 13 | Automation engine | Events outbox, rules (when → wait → if → do), 5-minute runner, quiet hours, run log | `0042`, `src/lib/automation/runner.ts`, `/api/cron/automation` |
+| 14 | Inventory, parts | Not built | — |
+| 15 | Dealer and fleet | Dealership invoicing, per-dealer prices, QuickBooks (existing); no dealer portal | `/invoices`, `src/lib/quickbooks/` |
+| 16 | Money, reports | Owner dashboard, income, exports, QuickBooks (existing); retail money tiles on Today; no P&L | `/`, `retail_money_summary` |
+| 17–21 | Team clocks, mobile dispatch, voice AI, visual selling, platform | Not built | — |
+
+### Flags (zero paid keys by default)
+
+| Flag | Values | Default | Effect |
+|---|---|---|---|
+| `DEPOSITS_ONLINE` | `none` · `clover` | `none` | `clover`: **Pay the deposit** opens Clover's hosted checkout; `none`: the choice is recorded and staff take the deposit at drop-off |
+| `RESEND_API_KEY` | key or unset | unset | Unset: every email (estimate link, hold, confirmation, reminder, receipt, review request) is logged as **skipped: not configured**; the queued texts still work |
+| `QUICKBOOKS_*` | keys or unset | unset | Dealership invoices to QuickBooks Online; nothing on the retail side depends on it |
+| `DEMO_ACCESS_KEY` | string or unset | unset | Turns a deployment into the guest preview on sample data; never set it on the real deployment |
+| `SMS_PROVIDER` | reserved | `none` | Not read by any code today. Texts go through the owner's phone (`sms:` links); a paid provider would plug into `queue_text` |
+| `AI_PROVIDER` | reserved | unset | Not read by any code today. Modules 9/11 would plug in here |
+
+### Environment variables
+
+| Variable | Needed | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | The project and its public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | Server only: users, signatures upload, the cron runners, the webhook |
+| `NEXT_PUBLIC_APP_URL` | yes | Every public link (`/e`, `/book`, `/a`, `/r`) and email footer |
+| `CRON_SECRET` | yes | Bearer for `/api/cron/daily` and `/api/cron/automation` (Vercel sends it) |
+| `RESEND_API_KEY`, `EMAIL_FROM` | for email | Without them emails are skipped and logged |
+| `DEPOSITS_ONLINE`, `CLOVER_ENV`, `CLOVER_MERCHANT_ID`, `CLOVER_ECOM_PRIVATE_KEY`, `CLOVER_WEBHOOK_SECRET`, `CLOVER_API_TOKEN` | for deposits online | See `.env.example` and GO-LIVE §7b |
+| `QUICKBOOKS_CLIENT_ID`, `QUICKBOOKS_CLIENT_SECRET`, `QUICKBOOKS_ENV` | for QuickBooks | Dealership side |
+| `DEMO_ACCESS_KEY` | demo only | Guest preview |
+| `SUPABASE_DB_URL` | `pnpm db:push` only | Never in the app |
+
+### Phone test checklist (390 px, guest preview or a real install)
+
+1. **Retail → Today**: leads to confirm, holds, today's appointments, the money tiles (owner/admin), **Texts to send** → tap a text → the messaging app opens with the message → back → **Sent**.
+2. **Customers** → search → *Ana Lopez* → vehicles, visits, estimates, payments on the timeline → **Mark reviewed**.
+3. **Customers → New** → scan a VIN → size chip appears → save.
+4. **Estimates → New** → customer, car, Good/Better/Best, an add-on, Other with an amount → Save → **Email the link** / **Text the link** / **Copy link**.
+5. Open the link as the customer (`/e/<token>`; demo: `/e/demo-estimate-token-ana-camry-0001`): pick a tier → total changes → tick an add-on → type the name → sign → **Approve** → thank-you page → **Pick a time**.
+6. **`/book`**: size → services + the add-on question → price → a day → a slot → details with the two consents → the hold countdown → confirm → done.
+7. **`/a/<token>`** (demo: `/a/demo-booking-token-ana-camry-00001`): move, cancel inside the notice window (refused), **Pay the deposit** (only with `DEPOSITS_ONLINE=clover`).
+8. **Calendar** → day and week → **New appointment** → appointment page → Confirm → Check in (opens the job) → Done.
+9. **Job page** (retail): Collect on this Clover / cash / check for the balance → **Sign the receipt** → receipt link → `/r/<token>` (demo: `/r/demo-receipt-token-ana-camry-000001`) → PDF.
+10. **Settings → Shop menu**: placeholder banner, size price grid (owner), add-ons with "Ask the customer".
+11. **Settings → Booking**: policy (deposit, hold, notice, review link, quiet hours, follow-up timings), hours, bays/lifts/techs, days off, templates (11), **Automations** (rules on/off, tap a rule → delay/template, **What went out** log).
+12. Sign in as a detailer: Retail tab without money anywhere; a manager: no settings.
 
 ## Local setup
 
@@ -98,8 +196,11 @@ Environment variables (`.env.local` locally, Vercel project settings in producti
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public key (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only: create/invite users, reset passwords, seed script |
 | `NEXT_PUBLIC_APP_URL` | Public URL, used in invite redirects and email footer |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Invoice emails (see below) |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Invoice and retail emails (see below) |
+| `CRON_SECRET` | Bearer for the two cron routes |
 | `SEED_*` | Demo credentials for `pnpm seed:demo` |
+
+The full list, with the retail flags, is under [Retail OS → Environment variables](#environment-variables).
 
 ## First sign-in and demo data
 
@@ -200,10 +301,12 @@ One source of truth: `src/app/globals.css`.
 ```bash
 pnpm lint          # eslint (Next + React compiler rules)
 pnpm typecheck     # tsc
-pnpm test          # vitest: VIN check digit/extraction, money, CSV, date presets, PDF/XLSX/CSV/email renderers
-pnpm db:test       # migrations + RLS/RPC/trigger tests on a local Postgres 16 (PGHOST/PGPORT/PGUSER env)
+pnpm test          # vitest: VIN check digit/extraction, money, CSV, date presets, PDF/XLSX/CSV/email renderers, retail quote maths, slots, templates, estimate/receipt PDFs, Clover payload + webhook, the automation runner
+pnpm db:test       # migrations + RLS/RPC/trigger tests on a local Postgres 16 (PGHOST/PGPORT/PGUSER env): tests/01_flows.sql and tests/02_retail.sql
 pnpm build
 ```
+
+End-to-end at 390 px (Playwright against a production build in guest mode, `DEMO_ACCESS_KEY=testkey123 pnpm build && pnpm start -p 3200`): `.dev/redesign-e2e.mjs` (dealership screens) and `.dev/retail-e2e.mjs` (every retail screen, the public pages, automations). They live in the gitignored `.dev/` folder of the development checkout.
 
 `pnpm typecheck` runs `next typegen` first so the generated `PageProps`/`LayoutProps`/`RouteContext` types exist on a fresh checkout (CI). `supabase/tests/run.sh` creates a throwaway database, installs a small stub of Supabase's `auth`/`storage` schemas, applies the migrations and seed, then runs `tests/01_flows.sql`, which asserts detailer isolation, idempotent `create_job`, price override rules, invoice generation/locking, payment status transitions, void/unlock, per-job grouping, dashboard stats, storage path policies, and (0015) car-is-invoice: auto-invoicing for detailers and retries, the backfill, edit/delete rules, the filtered list and detailer read access. CI (`.github/workflows/cali-tints-ci.yml`) runs all of the above.
 
@@ -220,7 +323,8 @@ Rules: UTF-8 with BOM, CRLF, RFC 4180 quoting, dates as `yyyy-mm-dd`, amounts wi
 ## Operations notes
 
 - **Locked jobs**: a job on an invoice cannot be edited. Void the invoice (only if no payments are recorded) to unlock its jobs; the next month close picks them up again, or `/invoices/new` re-invoices them now.
-- **Month close**: Vercel Cron calls `/api/cron/daily` at 7am Pacific with `CRON_SECRET`; it is idempotent, so **Run month close** in Settings → Company is safe any time (first-day setup, a missed cron). Hobby plans run crons once a day at most, which is all this needs.
+- **Month close**: Vercel Cron calls `/api/cron/daily` at 7am Pacific with `CRON_SECRET`; it is idempotent, so **Run month close** in Settings → Company is safe any time (first-day setup, a missed cron). The same run expires estimates, releases dead holds and closes stale deposit links.
+- **Automation**: `/api/cron/automation` runs every five minutes (`vercel.json`; Vercel Pro, since Hobby crons run once a day). Everything it sends is logged under Settings → Booking → Automations; a run is claimed once, so a double call sends nothing twice.
 - **Tax**: company default is 0 %; set per dealership if a dealer requires it. Rates are fractional in the database (`0.0775`), percentages in the UI.
 - **Timezone**: `companies.timezone` decides which calendar day a job belongs to for invoice periods and the dashboard.
 - **Logo**: upload in Settings → Company; the PDF uses it (grayscale bundled mark on the print variant).

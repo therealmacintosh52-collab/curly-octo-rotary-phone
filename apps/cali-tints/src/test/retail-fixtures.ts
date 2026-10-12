@@ -58,7 +58,7 @@ function withDerived(c: Customer): Customer {
 }
 
 export const customersFixture: Customer[] = [
-  base({ id: C1, first_name: "Ana", last_name: "Lopez", phone: "(916) 555-0100", email: "ana.lopez@example.com", source: "referral", tags: ["vip"], sms_opt_in: true, sms_opt_in_at: ago(120), marketing_opt_in: true, marketing_opt_in_at: ago(120), consent_source: "in person", notes: "Prefers mornings. Rear bumper scratch noted before first visit.", created_at: ago(120) }),
+  base({ id: C1, first_name: "Ana", last_name: "Lopez", phone: "(916) 555-0100", email: "ana.lopez@example.com", source: "referral", tags: ["vip"], sms_opt_in: true, sms_opt_in_at: ago(120), marketing_opt_in: true, marketing_opt_in_at: ago(120), consent_source: "in person", notes: "Prefers mornings. Rear bumper scratch noted before first visit.", created_at: ago(120), review_requested_at: ago(60), reviewed_at: ago(58) }),
   base({ id: C2, first_name: "Marcus", last_name: "Reed", phone: "(916) 555-0142", email: "marcus@example.com", source: "social", tags: [], sms_opt_in: true, sms_opt_in_at: ago(40), consent_source: "in person", created_at: ago(40) }),
   base({ id: C3, first_name: "Priya", last_name: "Nair", phone: "(530) 555-0177", source: "online_booking", tags: ["fleet"], sms_opt_in: true, sms_opt_in_at: ago(300), marketing_opt_in: true, marketing_opt_in_at: ago(300), created_at: ago(300) }),
   base({ id: C4, first_name: "Dana", last_name: "Whitfield", phone: "(916) 555-0199", email: "dana.w@example.com", source: "walk_in", tags: [], created_at: ago(15) }),
@@ -280,7 +280,7 @@ export function retailCatalogFixture(owner: boolean): RetailCatalog {
       { id: "m2", company_id: "c1", code: "pet_hair", label: "Pet hair", description: "Embedded pet hair in carpet and seats", kind: "flat", amount: 40, active: true, sort_order: 20, ask_customer: true, question: "Any pet hair in the car?", created_at: now, updated_at: now },
       { id: "m3", company_id: "c1", code: "biohazard", label: "Biohazard", description: "Vomit, mold, spills needing extraction", kind: "flat", amount: 75, active: true, sort_order: 30, ask_customer: false, question: null, created_at: now, updated_at: now },
     ],
-    settings: { id: "rs1", company_id: "c1", deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, hold_minutes: 30, cancel_hours: 24, slot_step_minutes: 30, lead_time_hours: 2, max_days_ahead: 60, reminder_hours: [24, 2], online_booking_enabled: true, estimate_valid_days: 14, tax_all_lines: false, signature_required_estimate: true, signature_required_receipt: true, policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", email_templates: DEFAULT_TEMPLATES, updated_at: now },
+    settings: { id: "rs1", company_id: "c1", deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, hold_minutes: 30, cancel_hours: 24, slot_step_minutes: 30, lead_time_hours: 2, max_days_ahead: 60, reminder_hours: [24, 2], online_booking_enabled: true, estimate_valid_days: 14, tax_all_lines: false, signature_required_estimate: true, signature_required_receipt: true, policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", email_templates: DEFAULT_TEMPLATES, review_url: "https://g.page/r/demo/review", quiet_from: "20:00:00", quiet_to: "08:00:00", abandoned_minutes: 15, review_delay_minutes: 30, review_skip_days: 90, estimate_nudge_days: 3, updated_at: now },
     resources: [
       ...[1, 2, 3, 4, 5, 6].map((n) => res(`bay${n}`, "bay", `Bay ${n}`, n)),
       res("lift1", "lift", "Lift 1", 11),
@@ -587,4 +587,46 @@ export function receiptFixture(token: string, money: boolean): ReceiptView | nul
     signed_name: "Ana Lopez", signed_at: r101.paid_at, has_signature: true, token: money ? null : token,
     company: { ...COMPANY, address_line2: null, logo_path: null },
   };
+}
+
+
+// ---------------------------------------------------------------------------
+// 0042: the shipped rules, a log, the texts queued for the phone.
+// ---------------------------------------------------------------------------
+import type { AutomationLogRow, AutomationRule, TextQueueRow } from "@/lib/db/types";
+
+export function automationRulesFixture(): AutomationRule[] {
+  const now = new Date().toISOString();
+  const mk = (key: string, name: string, event_kind: string, delay_minutes: number, action: AutomationRule["action"], sort_order: number, enabled = true): AutomationRule => ({ id: `rule-${key}`, company_id: "c1", key, name, enabled, event_kind, delay_minutes, condition: {}, action, system: true, sort_order, created_at: now, updated_at: now });
+  return [
+    mk("hold_expiring", "Hold running out", "hold.expiring", 0, { kind: "email", template: "hold_expiring" }, 10),
+    mk("hold_abandoned", "Abandoned booking", "hold.expired", 15, { kind: "both", template: "abandoned" }, 20),
+    mk("booking_booked", "Booking confirmed", "booking.booked", 0, { kind: "email", template: "booking_confirmed" }, 30),
+    mk("booking_reminder", "Reminder before the visit", "booking.reminder", 0, { kind: "both", template: "reminder" }, 40),
+    mk("booking_cancelled", "Cancelled", "booking.cancelled", 0, { kind: "email", template: "cancelled" }, 50),
+    mk("job_review", "Ask for a review", "job.paid", 30, { kind: "both", template: "review_request" }, 60),
+    mk("estimate_nudge", "Estimate not answered", "estimate.unanswered", 0, { kind: "email", template: "estimate_nudge" }, 70, false),
+    mk("estimate_accepted", "Tell me when one is approved", "estimate.accepted", 0, { kind: "notify_owner", owner_subject: "Estimate approved" }, 80),
+    mk("lead_created", "Tell me about a new online booking", "booking.lead", 0, { kind: "notify_owner", owner_subject: "New online booking to confirm" }, 90),
+    mk("lead_received", "Booking request received", "booking.lead", 0, { kind: "email", template: "booking_received" }, 95),
+    mk("payment_receipt", "Receipt after a paid job", "job.paid", 0, { kind: "email", template: "receipt" }, 100),
+  ];
+}
+
+export function automationLogFixture(): AutomationLogRow[] {
+  const row = (i: number, rule: string, rule_key: string, event_kind: string, status: AutomationLogRow["status"], result: string | null, customer: string | null, minutesAgo: number): AutomationLogRow => ({ id: `log-${i}`, rule, rule_key, event_kind, status, result, due_at: ago(0, minutesAgo / 60), finished_at: status === "queued" ? null : ago(0, minutesAgo / 60), created_at: ago(0, minutesAgo / 60 + 0.1), subject_type: "appointment", subject_id: A2, customer, customer_id: C2 });
+  return [
+    row(1, "Reminder before the visit", "booking_reminder", "booking.reminder", "sent", "email re_9f2 · text queued", "Marcus Reed", 25),
+    row(2, "Booking confirmed", "booking_booked", "booking.booked", "sent", "email re_8a1", "Priya Nair", 180),
+    row(3, "Ask for a review", "job_review", "job.paid", "skipped", "asked within 90 days", "Ana Lopez", 240),
+    row(4, "Tell me about a new online booking", "lead_created", "booking.lead", "sent", "owner email re_7c0", "Dana Whitfield", 300),
+    row(5, "Hold running out", "hold_expiring", "hold.expiring", "queued", null, null, -8),
+  ];
+}
+
+export function textQueueFixture(): TextQueueRow[] {
+  return [
+    { id: "tq-1", customer_id: C2, customer: "Marcus Reed", phone: "(916) 555-0142", body: "Hi Marcus, see you Mon, Oct 19 · 1:00 PM with the 2022 Tesla Model 3. Change or cancel here: https://cali-tints-demo.vercel.app/a/demo-booking-token-ana-camry-00001", reason: "Reminder before the visit", created_at: ago(0, 0.4) },
+    { id: "tq-2", customer_id: C5, customer: "Luis Ortega", phone: "(916) 555-0123", body: "Hi Luis, thanks for bringing the 2018 Honda Civic in. If you have a minute, a review helps us more than you know: https://g.page/r/demo/review", reason: "Ask for a review", created_at: ago(0, 2) },
+  ];
 }

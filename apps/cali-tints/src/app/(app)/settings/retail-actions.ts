@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOwner, requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
-import type { PriceModifier, Resource, RetailSettings } from "@/lib/db/types";
+import type { AutomationRule, PriceModifier, Resource, RetailSettings } from "@/lib/db/types";
 
 const optionalText = (max: number) => z.string().trim().max(max).transform((s) => s || null);
 const timeOrNull = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional();
@@ -151,6 +151,13 @@ const settingsSchema = z.object({
   signature_required_estimate: z.boolean(),
   signature_required_receipt: z.boolean(),
   policy_text: optionalText(2000),
+  review_url: optionalText(300),
+  quiet_from: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  quiet_to: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  abandoned_minutes: z.number().int().min(1).max(1440).optional(),
+  review_delay_minutes: z.number().int().min(0).max(10080).optional(),
+  review_skip_days: z.number().int().min(0).max(3650).optional(),
+  estimate_nudge_days: z.number().int().min(0).max(60).optional(),
 });
 export type RetailSettingsInput = z.input<typeof settingsSchema>;
 
@@ -253,6 +260,44 @@ export async function removeTimeOffAction(id: string): Promise<ActionResult> {
   await requireOwnerAdmin();
   const supabase = await createClient();
   const { error } = await supabase.from("time_off").delete().eq("id", id);
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate();
+  return { ok: true, data: undefined };
+}
+
+// --- Automations (owner/admin) ------------------------------------------------
+
+const ruleSchema = z.object({
+  id: z.uuid().optional(),
+  name: z.string().trim().min(1).max(80).optional(),
+  enabled: z.boolean().optional(),
+  event_kind: z.string().trim().regex(/^[a-z_]+\.[a-z_]+$/).optional(),
+  delay_minutes: z.number().int().min(0).max(43200).optional(),
+  condition: z.record(z.string(), z.unknown()).optional(),
+  action: z.object({ kind: z.enum(["email", "text", "both", "notify_owner", "none"]), template: z.string().regex(/^[a-z_]+$/).optional(), owner_subject: z.string().max(120).optional(), respect_quiet: z.boolean().optional() }).optional(),
+});
+export type RuleInput = z.input<typeof ruleSchema>;
+
+export async function saveAutomationRuleAction(input: RuleInput): Promise<ActionResult<AutomationRule>> {
+  await requireOwnerAdmin();
+  const parsed = ruleSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const p: Partial<Pick<AutomationRule, "id" | "name" | "enabled" | "event_kind" | "delay_minutes" | "condition" | "action">> = {
+    ...parsed.data,
+    condition: parsed.data.condition as AutomationRule["condition"] | undefined,
+    action: parsed.data.action as AutomationRule["action"] | undefined,
+  };
+  const { data, error } = await supabase.rpc("save_automation_rule", { p });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate();
+  return { ok: true, data };
+}
+
+export async function deleteAutomationRuleAction(id: string): Promise<ActionResult> {
+  await requireOwnerAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_automation_rule", { p_id: id });
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate();
   return { ok: true, data: undefined };

@@ -86,3 +86,21 @@ export async function addOdometerAction(vehicleId: string, reading: number, read
   revalidateRetail(vehicle?.customer_id ?? null, vehicleId);
   return { ok: true, data: undefined };
 }
+
+/** A queued text was sent from the phone (or is not wanted). Any member. */
+export async function textQueueDoneAction(id: string, dismiss = false): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("text_queue_done", { p_id: id, p_dismiss: dismiss });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/retail");
+  return { ok: true, data: undefined };
+}
+
+/** The customer left a review (or did not): no more review requests. Any member. */
+export async function markReviewedAction(customerId: string, on = true): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_reviewed", { p_customer: customerId, p_on: on });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath(`/retail/customers/${customerId}`);
+  return { ok: true, data: undefined };
+}

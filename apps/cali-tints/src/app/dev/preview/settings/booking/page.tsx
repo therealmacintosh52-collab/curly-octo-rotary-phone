@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { SettingsNav } from "@/components/settings/settings-nav";
 import { BookingSettings } from "@/components/settings/booking-settings";
-import { retailCatalogFixture } from "@/test/retail-fixtures";
+import { automationLogFixture, automationRulesFixture, retailCatalogFixture } from "@/test/retail-fixtures";
 import { previewSession } from "@/test/preview-session";
 
 /** Fixture preview of Settings → Booking. */
@@ -22,7 +22,7 @@ export default async function DevBookingSettingsPreview(props: PageProps<"/dev/p
               <SettingsNav />
             </div>
             <div className="mt-5">
-              <BookingSettings data={{ settings: cat.settings!, hours: cat.hours, resources: cat.resources, blackouts: cat.blackouts, timeOff: cat.time_off, people: [{ id: "u2", full_name: "Victor" }, { id: "u3", full_name: "Dee One" }, { id: "u5", full_name: "Sam" }] }} />
+              <BookingSettings data={{ settings: cat.settings!, hours: cat.hours, resources: cat.resources, blackouts: cat.blackouts, timeOff: cat.time_off, people: [{ id: "u2", full_name: "Victor" }, { id: "u3", full_name: "Dee One" }, { id: "u5", full_name: "Sam" }], rules: automationRulesFixture(), log: automationLogFixture() }} />
             </div>
           </Page>
         </AppShell>

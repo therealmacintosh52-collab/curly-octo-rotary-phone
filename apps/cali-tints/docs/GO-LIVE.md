@@ -25,7 +25,7 @@ Mike already pays for QuickBooks Online and the Clover devices. Total run cost: 
 
 1. New project (US West), strong database password, save it.
 2. Project Settings → API: copy the project URL and the publishable key; Settings → API keys: create a secret (service role) key.
-3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0041` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
+3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0042` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
 4. Authentication → URL configuration: Site URL `https://app.calitints.com`, Redirect URLs `https://app.calitints.com/auth/callback` and `https://app.calitints.com/auth/reset`. Email templates: the defaults are fine; the invite goes through this.
 5. Storage: the buckets (`job-photos`, `logos`, `submission-confirmations`) are created by the migrations. Nothing to click.
 6. Backups: Pro includes daily backups; turn on Point-in-time recovery if Mike wants hour-level restores (+$100/mo, usually not needed).
@@ -35,7 +35,7 @@ Mike already pays for QuickBooks Online and the Clover devices. Total run cost: 
 1. Import the GitHub repo. Root Directory `apps/cali-tints`, Framework Next.js, Install `pnpm install`, Build `pnpm build`.
 2. Environment variables (Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL=https://app.calitints.com`, `RESEND_API_KEY`, `EMAIL_FROM="Cali Tints Billing <billing@calitints.com>"`, `CRON_SECRET` (`openssl rand -hex 32`), `QUICKBOOKS_CLIENT_ID`, `QUICKBOOKS_CLIENT_SECRET`, `QUICKBOOKS_ENV=production`. **Do not set `DEMO_ACCESS_KEY`** on the real deployment.
 3. Domains: add `app.calitints.com`, set the DNS record the dashboard shows.
-4. Deploy. `vercel.json` registers the cron (`/api/cron/daily`, 7am Pacific); Vercel sends `CRON_SECRET` itself. Check Settings → Cron Jobs shows it.
+4. Deploy. `vercel.json` registers two crons: `/api/cron/daily` (7am Pacific: month close, QuickBooks, expired estimates and holds, stale deposit links) and `/api/cron/automation` (**every five minutes**: confirmations, reminders, the review request, nudges, the queued texts). Vercel sends `CRON_SECRET` itself. Check Settings → Cron Jobs shows both; the five-minute one needs the Pro plan (Hobby runs crons once a day).
 
 ## 4. Resend (you, 15 min)
 
@@ -49,6 +49,8 @@ Add and verify the sending domain (DNS records), create an API key, set `EMAIL_F
 4. Settings → Dealerships: each dealership's AP contact and email(s). The shop (*Cali Tint · Fulton Ave*) is seeded as the **Retail** location: walk-in jobs logged there are paid at the counter on the Clover and never invoiced. Fix its street number.
 5. Settings → Services & prices: check the menu and prices; per-dealership prices in the grid.
 6. Settings → Users: add every employee. Roles: Detailer for the team, Manager for a lead who should see every job, Admin for someone who runs Settings without money. Only Mike is Owner.
+7. Settings → Shop menu: the twelve retail services are seeded with **placeholder** prices and durations (a banner says so until each is edited); set the real price per car size, the add-ons, which services need a lift or a skill.
+8. Settings → Booking: hours, bays / lifts / techs (seeded 6 / 2 / one per detailer), days off, the policy (20 % deposit, 30-minute hold, 24-hour notice), the **review link** (Google: Business Profile → Ask for reviews → copy the short link; it goes into the review request 30 minutes after a paid job), quiet hours (default 20:00–08:00), and read the eleven email templates once. Under **Automations** every rule is on; switch off any Mike does not want.
 
 ## 6. QuickBooks Online (both, 20 min)
 
@@ -84,12 +86,16 @@ Until the Clover app is approved, the team can use the web app on their phones (
 - An invoice: Submit by email reaches the dealership's AP address (send one to yourself first), the QuickBooks card says Sent, the PDF downloads.
 - Export → every CSV downloads (Mike only).
 - Sign in as a manager: Jobs and the team dashboard only; `/invoices` redirects; the price list shows no prices.
+- Retail, on a phone: book a test appointment from `/book` (use Mike's own phone and email, tick both consents) → it shows under Retail → Today as a lead and Mike gets the "new online booking" email → Confirm it → the confirmation email arrives (needs Resend) → within five minutes a reminder text appears under **Texts to send** when the time is inside 24 hours → tap it → the messaging app opens with the text → Sent.
+- Write a test estimate for that customer → Email the link → open it on the phone → pick a tier, sign, approve → Mike gets the "estimate approved" email → Create the job → collect it as cash → sign the receipt → the receipt email arrives → 30 minutes later the review request is in the log and the text queue.
+- Settings → Booking → Automations → **What went out**: every one of those runs is listed as sent (or skipped with the reason). Cancel the test appointment and refund nothing (cash was a test).
 
 ## 9. Ongoing
 
 - **Every day**: jobs land on the dealership's open QuickBooks invoice as the team logs them. Mike sends each dealership's invoice from QuickBooks when the month is done (or whenever he likes).
 - **1st of every month, 7am**: the job closes the month here and links the mirror invoice to the QuickBooks one. Nothing to do unless a *Needs a price* job remains (set it before the month ends; the line updates in QuickBooks) or a red QB badge says a sync failed.
 - **Payments**: recorded in QuickBooks as usual; they appear here by the next morning. Checks that never reach QuickBooks can be recorded here with Add payment.
+- **Every five minutes**: the automation run. Nothing to do except glance at Retail → Today for **Texts to send** (one tap each; they wait, nothing is sent without the tap) and **Leads to confirm**. Quiet hours hold everything until 8am.
 - **New employee / device**: Settings → Users; install the Clover app on the new Flex.
 - **Updates**: push to the repo → Vercel deploys the web app; for the Clover app, run the workflow with a higher version code and upload the APK in the Developer Dashboard (devices update themselves).
 - **Backups**: Supabase daily; Export → CSV any time for the accountant.

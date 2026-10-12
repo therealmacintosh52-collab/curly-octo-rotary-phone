@@ -2,9 +2,7 @@
 
 import { headers } from "next/headers";
 import { z } from "zod";
-import { anonClient, isTokenShape, loadPublicEstimate } from "@/lib/estimates/public";
-import { appUrl, sendPlainRetailEmail } from "@/lib/retail/email";
-import { formatMoney } from "@/lib/money";
+import { anonClient, isTokenShape } from "@/lib/estimates/public";
 import { errorMessage } from "@/lib/utils";
 import { createDepositLink } from "@/lib/clover/deposit";
 import { depositsOnline } from "@/lib/clover/env";
@@ -46,21 +44,7 @@ export async function respondEstimateAction(token: string, input: RespondInput):
   const { data, error } = await anonClient().rpc("estimate_respond", { p_token: token, p: { ...parsed.data, ip, user_agent } });
   if (error) return { ok: false, error: errorMessage(error) };
 
-  if (data.status === "accepted") {
-    const e = await loadPublicEstimate(token);
-    if (e?.company.email) {
-      const chosen = e.options.find((o) => o.id === e.selected_option_id);
-      const url = appUrl();
-      const lines = [
-        `${e.customer.display_name ?? e.customer.first_name} approved estimate ${e.display_number}${e.vehicle?.name ? ` for the ${e.vehicle.name}` : ""}.`,
-        chosen ? `Option: ${chosen.name}` : null,
-        `Total: ${formatMoney(e.total ?? 0)}${(e.deposit_required ?? 0) > 0 ? ` · deposit ${formatMoney(e.deposit_required ?? 0)}` : ""}`,
-        `They chose to ${parsed.data.decision === "accept" && parsed.data.pay_choice === "deposit" ? "pay the deposit online" : "pay at the shop"}.`,
-        url ? `Open it: ${url}/retail/estimates/${e.id}` : null,
-      ].filter(Boolean) as string[];
-      await sendPlainRetailEmail({ to: e.company.email, subject: `${e.display_number} approved · ${e.customer.display_name ?? e.customer.first_name}`, body: lines.join("\n\n"), companyName: e.company.name, refId: e.id });
-    }
-  }
+  // The owner's "estimate approved" note goes out through the automation rules.
   return { ok: true, data: { status: data.status, total: data.total ?? null, deposit_required: data.deposit_required ?? null } };
 }
 
