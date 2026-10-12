@@ -80,3 +80,13 @@ Open after this fix (not changed here, outside the two named lines):
 
 Self-check: [x] nothing sent · [x] only the two named lines changed · [x] count stated · [x] owned paths only
 Cost: ~40k in / ~5k out tokens est. (estimate), model haiku-5-5
+
+### Split of the founding terms block (coordinator instruction, D-022; closes the open item above)
+Founding `:35-38`: the single 511-character terms block at `:37` is now two text messages, each in its own fenced block, labelled "Terms message 1 of 2" and "Terms message 2 of 2", with the markers "(1/2)" and "(2/2)" at the start of each message. The `:35` heading is unchanged.
+- Message 1 of 2: **281 characters** with placeholders as typed (hand count: 6 marker + 83 "Terms: … approve the preview." + 42 "Nothing is published … approve it." + 148 refund bracket + 2 joining spaces). Ends with the refund-rule bracket.
+- Message 2 of 2: **241 characters** with placeholders as typed (hand count: 6 marker + 137 "Annual option … [YOUR NUMBER] [OWNER DECIDES: pro-rata refund?]." + 75 "Domain name … [OWNER CONFIRMS]." + 21 "You own your content." + 2 joining spaces).
+- Arithmetic check: 511 original − 1 joining space + 12 marker characters = 522 = 281 + 241. The original 511 matches qa's raw count, which confirms the method.
+- The split is at the sentence boundary after the refund-rule bracket, so message 1 holds the price, deposit, approval and refund terms, and message 2 holds the annual option, cancellation, domain and content terms.
+- Wording: no term changed. The "(1/2)" and "(2/2)" markers and the two labels are the only additions.
+- Not added, because the source text does not contain them and adding them would change wording: (a) a "no guarantee of specific results" statement; (b) an explicit "Reply STOP to opt out" inside the two terms messages (the STOP opt-out appears in the opening, follow-up and annual texts, not in the terms). The source terms also contain no month-to-month term; they state a one-time $450 site price and a one-year annual option with no automatic renewal. If C7 requires (a) or (b) in the terms messages, owner or qa must supply exact wording before the first send.
+- Still open: the other follow-ups over 320 (gbp l.27, ai-search l.29, founding l.26), per qa's advisory.

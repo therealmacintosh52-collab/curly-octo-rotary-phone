@@ -33,8 +33,13 @@ Other option: $590 once covers the site build plus a year of hosting and small t
 ```
 
 ## Terms line (must appear in the two text messages BEFORE payment, C7)
+Terms message 1 of 2:
 ```
-Terms: Site price $450 total: $150 deposit now, $300 after you approve the preview. Nothing is published until you approve it. [OWNER DECIDES: refund rule, e.g. "Cancel before the preview and I refund the deposit in full; after the preview the deposit covers the work done."] Annual option: $590 for one year, no automatic renewal; cancel any time by texting me at [YOUR NUMBER] [OWNER DECIDES: pro-rata refund?]. Domain name, if you need one, is extra and billed at cost [OWNER CONFIRMS]. You own your content.
+(1/2) Terms: Site price $450 total: $150 deposit now, $300 after you approve the preview. Nothing is published until you approve it. [OWNER DECIDES: refund rule, e.g. "Cancel before the preview and I refund the deposit in full; after the preview the deposit covers the work done."]
+```
+Terms message 2 of 2:
+```
+(2/2) Annual option: $590 for one year, no automatic renewal; cancel any time by texting me at [YOUR NUMBER] [OWNER DECIDES: pro-rata refund?]. Domain name, if you need one, is extra and billed at cost [OWNER CONFIRMS]. You own your content.
 ```
 Affirmative consent: take the payment only after they text "yes" or pay the link themselves. Never charge on silence.
 
