@@ -16,7 +16,7 @@ node scripts/audit.mjs # gate: exits non-zero on any failure
 node scripts/lh.mjs    # Lighthouse mobile (prints the table)
 npm run contrast       # hero copy vs what is behind it, frame by frame
 node scripts/shots.mjs      # QA screenshots -> qa/
-npm run scroll-check   # film sweep, sliders, count-up; screenshots + qa/scroll.mp4
+npm run scroll-check   # sliders wipe + drag, count-up; screenshots + qa/scroll.mp4
 npm run compare        # before/after pairs from the hero frame -> public/assets/img/compare/
 npm run masks          # overlay the traced polygons on the poster to check them
 npm run video -- clip.mov   # encode a new hero clip to spec + recut posters
@@ -28,20 +28,7 @@ node scripts/indexnow.mjs --send    # push the sitemap to Bing
 Every business fact lives in `src/data/site.json`. Adding a service or a guide is
 a data change plus `npm run build && npm run og`.
 
-## Scroll-driven tint reveal and the before/after sliders
-
-**Tint story (home, under the stat band).** `npm run compare` crops the hero
-frame to the car (`masks.json → story_crop`) and brightens its glass so it reads
-as clear (`public/assets/img/tint-story.*`). The section is full-bleed with the
-copy overlaid on the left (stacked on phones, car zoomed 1.45× around the
-glass). One overlay per pane of glass is clipped to the polygons in
-`src/data/masks.json`; each overlay is a hard-edged gradient driven by `--p`, so
-as GSAP ScrollTrigger pins the section for 200% of a viewport and scrubs `--p`
-from 0 to 1 the film visibly sweeps across the glass like a squeegee pass, the
-car zooms 7%, a readout counts 100% → 5% VLT, a bar fills and three step cards
-light up. The owner chose the whole car at 5%; the copy says California
-requires 70% on the front side windows so the law guide is not contradicted.
-Reduced motion or no JS shows the finished 5% state (`--p: 1` in the markup).
+## Before/after sliders and scroll motion
 
 **Before/after sliders.** `CompareSlider.astro` stacks two images and clips the
 "before" to the left of `--pos`; a full-size `<input type="range">` is the handle,
@@ -98,7 +85,7 @@ src/data/site.json      all business facts: 11 services, 5 guides, 3 reviews,
                         6 FAQs, 10 areas, the three home pillars, profile URLs
 src/lib/seo.ts          schema builders. @type = LocalBusiness + knowsAbout
 src/layouts/Base.astro  head, preloads, JSON-LD, chrome
-src/components/         VideoHero, TintStory, CompareSlider, Difference, QuoteForm, …
+src/components/         VideoHero, CompareSlider, Difference, QuoteForm, …
 src/data/masks.json     glass/body/headlight polygons traced on the hero frame
 src/scripts/site.ts     nav, tracking, forms, hero autoplay, GSAP/Lenis
 src/styles/legacy.css   tokens + components (green/black, contrast-verified)

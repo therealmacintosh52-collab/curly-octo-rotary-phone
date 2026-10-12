@@ -104,17 +104,6 @@ const clearGlass = (img) => img.linear(1.7, 45).modulate({ saturation: 0.6 }).ti
 
 console.log('compare images →', path.relative(ROOT, OUT));
 
-// 0. The scroll story's start frame: the car crop with clear glass. The
-//    overlays in TintStory.astro take it to 5% as the page scrolls.
-{
-  const STORY = M.story_crop;                       // { left, top, width, height }
-  const clear = await maskedVariant(base, clearGlass, GLASS, [], 1.0);
-  const crop = await sharp(clear).extract(STORY).png().toBuffer();
-  await sharp(crop).jpeg({ quality: 82, mozjpeg: true }).toFile(path.join(ROOT, 'public/assets/img/tint-story.jpg'));
-  await sharp(crop).webp({ quality: 76 }).toFile(path.join(ROOT, 'public/assets/img/tint-story.webp'));
-  console.log('   tint-story (clear glass, cropped)');
-}
-
 // 1. Window tinting: clear glass → 5% across every window (owner's call).
 await save(await maskedVariant(base, clearGlass, GLASS, [], 1.0), 'window-tinting-before');
 await save(await maskedVariant(base, tinted(0.07), GLASS), 'window-tinting-after');

@@ -1,5 +1,5 @@
 {
-  "_comment": "Polygons traced on public/assets/img/hero-poster.jpg (1280x720), stored as 0-1 fractions of width/height so the same shapes drive the image pipeline (scripts/compare-images.mjs) and the CSS clip-paths in TintStory.astro. Re-trace if the poster changes: npm run masks renders an overlay to check.",
+  "_comment": "Polygons traced on public/assets/img/hero-poster.jpg (1280x720), stored as 0-1 fractions of width/height so the same shapes drive the image pipeline (scripts/compare-images.mjs). Re-trace if the poster changes: npm run masks renders an overlay to check.",
   "width": 1280,
   "height": 720,
   "polygons": {
@@ -369,11 +369,5 @@
     "wheel_front",
     "polisher",
     "arm"
-  ],
-  "story_crop": {
-    "left": 0,
-    "top": 160,
-    "width": 1150,
-    "height": 560
-  }
+  ]
 }

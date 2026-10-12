@@ -234,7 +234,7 @@ if (!prefersReduced) {
   const reveals = document.querySelectorAll<HTMLElement>('.js-reveal');
   const fine = window.matchMedia('(pointer: fine)').matches;
 
-  if (reveals.length || fine || document.querySelector('[data-tint-story], [data-compare], .sec-head')) {
+  if (reveals.length || fine || document.querySelector('[data-compare], .sec-head')) {
     const boot = async () => {
       try {
         const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([
@@ -258,7 +258,7 @@ if (!prefersReduced) {
         const more = document.querySelectorAll<HTMLElement>(
           '.sec-head, .page-head > .wrap, .split > *, .panel, .diff, .glance, .review, .faq, .table-scroll');
         more.forEach((el) => {
-          if (el.closest('.js-reveal') || el.closest('[data-tint-story], [data-stagger]')) return;
+          if (el.closest('.js-reveal') || el.closest('[data-stagger]')) return;
           el.classList.add('js-reveal');
         });
         document.documentElement.classList.add('has-motion');
@@ -302,27 +302,6 @@ if (!prefersReduced) {
             },
           });
         });
-
-        // Tint story: pin the section and sweep the film across the glass.
-        const story = document.querySelector<HTMLElement>('[data-tint-story]');
-        if (story) {
-          const pin = story.querySelector<HTMLElement>('[data-story-pin]')!;
-          const vlts = story.querySelectorAll<HTMLElement>('[data-vlt]');
-          const steps = story.querySelectorAll<HTMLElement>('[data-step]');
-          const paint = (p: number) => {
-            story.style.setProperty('--p', p.toFixed(4));
-            const vlt = Math.round(100 - p * 95);
-            vlts.forEach((el) => { el.textContent = String(vlt); });
-            const on = p < 0.34 ? 0 : p < 0.72 ? 1 : 2;
-            steps.forEach((li, i) => li.classList.toggle('is-on', i === on));
-          };
-          paint(0);
-          ScrollTrigger.create({
-            trigger: story, start: 'top top', end: '+=200%', pin: pin, scrub: 0.4,
-            anticipatePin: 1,
-            onUpdate: (st) => paint(st.progress),
-          });
-        }
 
         // Staggered groups: children of a grid or checklist reveal in sequence.
         document.querySelectorAll<HTMLElement>('[data-stagger], .checklist').forEach((group) => {

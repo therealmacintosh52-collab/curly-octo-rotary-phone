@@ -3,7 +3,6 @@ import data from '../data/site.json';
 import Base from '../layouts/Base.astro';
 import VideoHero from '../components/VideoHero.astro';
 import StatBand from '../components/StatBand.astro';
-import TintStory from '../components/TintStory.astro';
 import CompareSlider from '../components/CompareSlider.astro';
 import QuoteForm from '../components/QuoteForm.astro';
 import ServiceCards from '../components/ServiceCards.astro';
@@ -31,8 +30,6 @@ const faqs = data.home_faqs as [string, string][];
   <VideoHero hasVideo={true} focus="50% 30%" />
 
   <StatBand />
-
-  <TintStory />
 
   <!-- On phones this lands directly under the hero, which is the point. -->
   <section>

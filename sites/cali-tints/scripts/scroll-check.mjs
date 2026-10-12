@@ -1,10 +1,10 @@
 /**
- * Scroll-behaviour check: the tint story sweeps the film on with scroll, the
- * sliders wipe and then obey a drag, the stat numbers count up. Screenshots and
+ * Scroll-behaviour check: the sliders wipe with scroll and then obey a drag,
+ * the stat numbers count up, reveals run without errors. Screenshots and
  * a screen recording of a real scroll through the home page land in qa/.
  *
  *   node scripts/scroll-check.mjs            (after npm run build)
- *   qa/scroll.mp4 (+ .webm)  qa/<device>-story-<pct>.png  qa/desktop-slider-*.png
+ *   qa/scroll.mp4 (+ .webm)  qa/<device>-trio.png  qa/desktop-slider-*.png
  */
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync, mkdirSync, readdirSync, renameSync, unlinkSync } from 'node:fs';
@@ -24,32 +24,20 @@ const BASE=`http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
 let fail = 0;
 const ok = (c, msg) => { console.log(`${c ? '✓' : '✗'} ${msg}`); if (!c) fail++; };
-const readStory = (pg) => pg.evaluate(() => ({
-  p: getComputedStyle(document.querySelector('[data-tint-story]')).getPropertyValue('--p').trim(),
-  vlt: document.querySelector('[data-vlt]').textContent,
-  bar: Math.round(document.querySelector('.story__bar i').getBoundingClientRect().width / document.querySelector('.story__bar').getBoundingClientRect().width * 100),
-  on: [...document.querySelectorAll('[data-step]')].findIndex((li) => li.classList.contains('is-on')),
-}));
-
 for (const [label, vp, mobile] of [['desktop', { width: 1440, height: 900 }, false], ['iphone', { width: 390, height: 844 }, true]]) {
   const pg = await browser.newPage({ viewport: vp, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile });
   const errors = []; pg.on('pageerror', (e) => errors.push(e.message));
   await pg.goto(BASE + '/', { waitUntil: 'load' });
   await pg.waitForTimeout(2500); // gsap boots after load + idle
   const counts = await pg.evaluate(() => [...document.querySelectorAll('[data-count]')].map((el) => el.textContent));
-  const storyTop = await pg.evaluate(() => document.querySelector('[data-tint-story]').getBoundingClientRect().top + window.scrollY);
-  const readings = [];
-  for (const frac of [0, 0.3, 0.6, 1.0]) {
-    await pg.evaluate((y) => window.scrollTo(0, y), storyTop + frac * vp.height * 2);
-    await pg.waitForTimeout(900);
-    readings.push({ frac, ...(await readStory(pg)) });
-    await pg.screenshot({ path: path.join(QA, `${label}-story-${Math.round(frac * 100)}.png`) });
-  }
-  console.log(label, 'story readings', JSON.stringify(readings));
-  ok(Number(readings[0].p) < 0.05 && Number(readings.at(-1).p) > 0.98, `${label}: film sweeps ${readings[0].p} → ${readings.at(-1).p}`);
-  ok(readings[0].vlt === '100' && readings.at(-1).vlt === '5', `${label}: readout ${readings[0].vlt}% → ${readings.at(-1).vlt}%`);
-  ok(readings[0].bar === 0 && readings.at(-1).bar === 100, `${label}: bar ${readings[0].bar}% → ${readings.at(-1).bar}%`);
-  ok(readings[0].on === 0 && readings[1].on === 0 && readings[2].on === 1 && readings.at(-1).on === 2, `${label}: steps light in order ${readings.map((r) => r.on).join('')}`);
+  // Home trio: scroll the three sliders to mid-screen and screenshot.
+  const trioTop = await pg.evaluate(() => document.querySelector('[data-compare]').getBoundingClientRect().top + window.scrollY);
+  await pg.evaluate(([y, h]) => window.scrollTo(0, y - h * 0.45), [trioTop, vp.height]); await pg.waitForTimeout(1200);
+  const trio = await pg.evaluate(() => [...document.querySelectorAll('[data-compare]')].map((f) => parseFloat(f.style.getPropertyValue('--pos'))));
+  await pg.screenshot({ path: path.join(QA, `${label}-trio.png`) });
+  // Phones stack the three, so only the first has reached mid-screen there.
+  const seen = mobile ? trio.slice(0, 1) : trio;
+  ok(trio.length === 3 && seen.every((v) => v < 50), `${label}: home slider${mobile ? '' : 's'} wiped by mid-screen (${trio.map((v) => Math.round(v)).join('/')}%)`);
   ok(counts.join('|') === '4.9|48|11', `${label}: stat numbers counted up to ${counts.join(', ')}`);
   ok(errors.length === 0, `${label}: no JS errors${errors.length ? ': ' + errors.join('; ') : ''}`);
   await pg.close();
@@ -91,7 +79,7 @@ for (const [label, vp, mobile] of [['desktop', { width: 1440, height: 900 }, fal
   await pg.close();
 }
 
-// Screen recording: a real wheel scroll through the hero, stat band, story and
+// Screen recording: a real wheel scroll through the hero, stat band and
 // the three home sliders, so the motion can be judged by eye.
 {
   const size = { width: 1440, height: 900 };
@@ -102,9 +90,8 @@ for (const [label, vp, mobile] of [['desktop', { width: 1440, height: 900 }, fal
   await pg.waitForTimeout(2200);
   await pg.mouse.move(720, 450);
   const trioTop = await pg.evaluate(() => [...document.querySelectorAll('[data-compare]')][0].closest('section').getBoundingClientRect().top + window.scrollY);
-  const storyEnd = await pg.evaluate(() => document.querySelector('[data-tint-story]').getBoundingClientRect().top + window.scrollY) + 900 * 2;
-  // hero → story (fast), story (slow, the whole pin), story → sliders (medium), sliders (slow)
-  const legs = [[Math.min(storyEnd, 1800), 120, 28], [900 * 2, 42, 34], [trioTop - storyEnd - 1800, 140, 28], [1100, 34, 34]];
+  // hero → sliders (medium), sliders (slow)
+  const legs = [[trioTop - 500, 120, 28], [900, 34, 34]];
   for (const [dist, step, wait] of legs) {
     for (let y = 0; y < dist; y += step) { await pg.mouse.wheel(0, step); await pg.waitForTimeout(wait); }
     await pg.waitForTimeout(700);

@@ -222,12 +222,6 @@
   .hero-v h1 { max-width: none; }
 }
 
-/* ----------------------------------------------------------- scroll story */
-.story { position: relative; }
-.story__track { position: relative; }
-.story__beat { min-height: 92vh; display: flex; align-items: center; }
-.story__beat p { max-width: 54ch; }
-
 /* --------------------------------------------------------------- motion
    Reveals start visible and are only hidden once JS has confirmed it will
    animate them. A page with JS disabled, or a crawler, sees everything. */
@@ -347,77 +341,3 @@ html.lenis, html.lenis body { height: auto; }
 .diff li .icon { flex: none; margin-top: .22em; width: 16px; height: 16px; color: var(--slate-light); }
 .diff__col--after li .icon { color: var(--accent-dk); stroke-width: 3; }
 @media (max-width: 640px) { .diff__cols { grid-template-columns: 1fr; } }
-
-/* ------------------------------------------------------------ tint story
-   --p (0 → 1) is set on the section by the scroll scrub. Everything below
-   reads it: the film edge, the zoom, the bar. Default 1 = finished. */
-.story { padding: 0; background: #070907; color: #fff; overflow: clip; }
-.story__pin { position: relative; }
-.story__stage { position: relative; display: grid; min-height: 100svh; align-items: center; }
-.story__view, .story__shade, .story__copy { grid-area: 1 / 1; }
-.story__view { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.story__shade { position: relative; z-index: 1; }
-.story__copy { position: relative; z-index: 2; }
-.story__car {
-  position: relative; width: min(100%, calc(100svh * 2.0536)); aspect-ratio: 1150 / 560;
-  isolation: isolate; transform-origin: 62% 32%; transform: scale(calc(1 + var(--p) * .07));
-  will-change: transform;
-}
-.story__car img { width: 100%; height: auto; display: block; }
-/* The film: dark up to the edge, a wet highlight at it, nothing past it. The
-   glass lives between 42% and 81% of the crop, so the edge travels 30% → 96%. */
-.story__glass {
-  --x: calc(30% + var(--p) * 66%);
-  position: absolute; inset: 0; pointer-events: none; opacity: .94;
-  background: linear-gradient(105deg,
-    #050705 0, #050705 calc(var(--x) - 7%), rgba(5,7,5,.7) calc(var(--x) - 1.2%),
-    rgba(214,236,206,.75) var(--x), rgba(5,7,5,0) calc(var(--x) + 2.2%));
-}
-.story__badge {
-  position: absolute; left: 50%; bottom: 6%; transform: translateX(10%); z-index: 2; padding: 8px 14px; border-radius: 999px;
-  background: rgba(11,15,11,.8); color: var(--accent-vivid); font-family: var(--font-display); font-weight: 700;
-  letter-spacing: .06em; font-variant-numeric: tabular-nums; font-size: clamp(.8rem, .6rem + .6vw, 1.05rem);
-  box-shadow: 0 0 0 1px rgba(128,216,80,.35), 0 10px 30px rgba(0,0,0,.4);
-}
-.story__shade { background: linear-gradient(90deg, rgba(7,9,7,.96) 0, rgba(7,9,7,.9) 26%, rgba(7,9,7,.55) 42%, rgba(7,9,7,0) 60%); pointer-events: none; }
-.story__copy { display: flex; align-items: center; padding: clamp(28px, 4vw, 56px) 0; pointer-events: none; }
-.story__copy .wrap { width: 100%; }
-.story__panel { max-width: 460px; pointer-events: auto; }
-.story .eyebrow { color: var(--accent-lt); }
-.story h2 { color: #fff; font-size: clamp(1.7rem, 1.2rem + 1.8vw, 2.6rem); margin-bottom: .45em; }
-.story p { color: #c9d3c5; max-width: 46ch; font-size: .98rem; margin-bottom: .9em; }
-.story__vlt { display: flex; align-items: baseline; gap: 12px; margin: 6px 0 10px; }
-.story__vlt b { font-family: var(--font-display); font-size: clamp(3.4rem, 2.4rem + 4vw, 6rem); line-height: 1; color: var(--accent-vivid); letter-spacing: -.045em; font-variant-numeric: tabular-nums; text-shadow: 0 0 34px rgba(128,216,80,.35); }
-.story__vlt > span { color: #c9d3c5; font-size: .95rem; max-width: 14ch; line-height: 1.25; }
-.story__bar { position: relative; height: 6px; border-radius: 3px; background: rgba(255,255,255,.14); margin: 0 0 30px; overflow: visible; }
-.story__bar i { position: absolute; inset: 0 auto 0 0; width: calc(var(--p) * 100%); border-radius: 3px; background: linear-gradient(90deg, var(--accent-dk), var(--accent-vivid)); box-shadow: 0 0 14px rgba(128,216,80,.6); }
-.story__bar span { position: absolute; top: 12px; left: 0; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: #9aa697; font-family: var(--font-display); font-weight: 700; }
-.story__steps { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 7px; counter-reset: step; }
-.story__steps li { display: grid; grid-template-columns: 26px 1fr; gap: 1px 10px; align-items: baseline; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: rgba(7,9,7,.5); color: #9aa697; transition: color .3s, border-color .3s, background .3s, transform .3s; margin: 0; }
-.story__steps li::before { counter-increment: step; content: counter(step); font-family: var(--font-display); font-weight: 700; font-size: .78rem; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.08); }
-.story__steps li b { display: block; color: inherit; font-family: var(--font-display); font-size: .95rem; }
-.story__steps li span { font-size: .84rem; grid-column: 2; }
-.story__steps li.is-on { color: #fff; border-color: var(--accent-vivid); background: rgba(128,216,80,.14); transform: translateX(6px); }
-.story__steps li.is-on::before { background: var(--accent-vivid); color: var(--ink); }
-.story .btn-row { gap: 10px; }
-@media (max-width: 940px) {
-  .story__stage { grid-template-rows: auto auto; min-height: 0; }
-  .story__view { grid-area: 1 / 1; aspect-ratio: 4 / 3; }
-  .story__car { width: 100%; transform-origin: 55% 36%; transform: scale(calc(1.45 + var(--p) * .08)); }
-  .story__badge { left: auto; right: 14px; bottom: 14px; transform: none; }
-  .story__shade { grid-area: 1 / 1; background: linear-gradient(180deg, rgba(7,9,7,0) 70%, #070907 100%); }
-  .story__copy { grid-area: 2 / 1; padding: 10px 0 34px; pointer-events: auto; }
-  .story__panel { max-width: none; }
-  .story__vlt b { font-size: 3.4rem; }
-  .story__steps { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .story__steps li { grid-template-columns: 1fr; padding: 8px 9px; }
-  .story__steps li::before { margin-bottom: 4px; }
-  .story__steps li span { grid-column: 1; font-size: .76rem; }
-  .story__steps li.is-on { transform: translateY(-3px); }
-}
-@media (max-width: 520px) {
-  .story__steps li b { font-size: .84rem; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .story__car, .story__steps li { transition: none; }
-}
