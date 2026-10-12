@@ -35,7 +35,5 @@
 ## QUALITY SCORE: <1–5>
 <2–4 lines of reasons. Below 4 = say what would make it a 4.>
 
-## Receiver validation (filled by the receiving agent)
-- Input contract met: YES / NO — <reasons>
-- Independent score: <1–5> — <reasons>
-- Action: ACCEPTED / REJECTED (fixes: …)
+## Receiver validation
+Not written here (single-writer rule, PROTOCOL §6). The receiver writes its validation — input contract met YES/NO, independent score 1–5 with reasons, ACCEPTED/REJECTED with fixes — at the top of its own reply handoff `<taskID>-<receiver>-to-<sender>.md` (on REJECTED) or in the "Input validation" section of its forward handoff (on ACCEPTED).

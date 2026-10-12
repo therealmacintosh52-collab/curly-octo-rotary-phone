@@ -31,3 +31,8 @@ Each entry: pattern · where it happened · leading indicator · the fix that is
 - Where: ClipForge requires a PC; owner is phone-only.
 - Indicator: deliverable requires hardware, software, or hours the owner does not have.
 - Fix required: red-team checks every deliverable against CONTEXT.md "Owner" constraints.
+
+## FP-07 Blanket citation standing in for per-claim tags
+- Where: T-005 asset inventory (`ops/handoffs/T-005-scout-to-red-team.md`). The header "(source: ops/CONTEXT.md)" covered rows whose facts are not in CONTEXT.md ("25 pages", "chat functions", "proven", "Investing = regulated advice"). In IDEAS I-001, "payer VERIFIED(cache a1)" sat on a source that shows only agency asking prices. Rejected by red-team 2026-10-12 (`ops/handoffs/T-005-red-team-to-scout.md`). Cost: one round-trip, with growth's Day-1 plan delayed.
+- Indicator: one source named in a table header or section lead for many rows; or a VERIFIED tag whose quoted text does not itself state the claim it is attached to.
+- Fix required: a tag on each row, with the quote that states the claim. A blanket source is valid only if every fact in the block appears in it. Red-team checks at least 3 repo-cited claims per handoff against the repo before accepting.
