@@ -4,8 +4,7 @@ import type { QboInvoice, QboInvoiceLine } from "./client";
 
 /*
   How an invoice here becomes a QuickBooks Invoice (pure functions, unit-tested):
-  - DocNumber = our number (INV-000012). QuickBooks keeps it only when
-    "Custom transaction numbers" is on (Settings → Sales → Sales form content).
+  - No DocNumber: QuickBooks numbers the invoice; the app records that number.
   - TxnDate = the last day of the period (the month); DueDate = + payment terms days when the company has them.
   - One line per invoice line (car × service): Qty 1, UnitPrice = the price,
     Description = "Sep 12 · Stock 4821 · 2024 Mercedes-Benz GLE 450 · Used".
@@ -38,7 +37,6 @@ export function invoicePayload(bundle: InvoiceBundle, customerId: string, itemId
     Number(invoice.tax) > 0 ? `Tax of ${Number(invoice.tax).toFixed(2)} on the Cali Tints invoice is not carried to QuickBooks; add it here if it applies.` : null,
   ].filter(Boolean);
   return {
-    DocNumber: invoice.display_number.slice(0, 21), // QuickBooks limit
     TxnDate: invoice.period_end,
     ...(terms ? { DueDate: addDays(invoice.period_end, terms) } : {}),
     CustomerRef: { value: customerId },

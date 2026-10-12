@@ -87,7 +87,7 @@ export default async function DevInvoicesPreview(props: PageProps<"/dev/preview/
   const prices: Record<string, number> = { Used: 200, PDI: 60, Sold: 20, "Service Loaner Detail": 125, "Touch Up Detail": 30 };
   const soFar = DEALERSHIPS.map((d) => {
     const mine = openJobs.filter((j) => j.dealership_id === d.id);
-    return { dealership_id: d.id, dealership: d.name, cars: mine.length, total: mine.reduce((s, j) => s + j.services.reduce((t, n) => t + (d.id === "d2" && n === "Used" ? 215 : (prices[n] ?? 0)), 0), 0) };
+    return { dealership_id: d.id, dealership: d.name, cars: mine.length, total: mine.reduce((s, j) => s + j.services.reduce((t, n) => t + (d.id === "d2" && n === "Used" ? 215 : (prices[n] ?? 0)), 0), 0), quickbooks: { docNumber: d.id === "d1" ? "1061" : "1062", balance: null, error: null, url: "https://app.qbo.intuit.com" } };
   });
 
   return (

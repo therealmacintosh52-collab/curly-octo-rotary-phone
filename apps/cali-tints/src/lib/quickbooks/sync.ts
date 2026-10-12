@@ -7,6 +7,7 @@ import { errorMessage } from "@/lib/utils";
 import { QuickBooksApiError, QuickBooksClient } from "./client";
 import { getCredentials, markConnection } from "./connection";
 import { invoicePayload } from "./payload";
+import { linkClosedMonths, pullOpenMonths, syncOpenMonths } from "./live";
 
 type Db = SupabaseClient<Database>;
 
@@ -15,6 +16,10 @@ export interface SyncReport {
   pushErrors: { id: string; display_number: string; error: string }[];
   paymentsRecorded: number;
   pullErrors: string[];
+  /** Open months kept live in QuickBooks this run. */
+  live: { dealershipId: string; monthStart: string; docNumber: string | null; jobs: number }[];
+  /** Closed months whose mirror invoice took over an existing QuickBooks invoice. */
+  linked: number;
   /** The company has no QuickBooks sign-in (nothing ran). */
   notConnected?: boolean;
 }
@@ -78,6 +83,7 @@ export async function pushInvoice(db: Db, companyId: string, invoiceId: string):
       const current = await c.client.getInvoice(bundle.invoice.quickbooks_invoice_id);
       payload.Id = current.Id;
       payload.SyncToken = current.SyncToken;
+      payload.DocNumber = current.DocNumber; // keep the number QuickBooks gave it
     }
     const saved = await c.client.saveInvoice(payload);
     const now = new Date().toISOString();
@@ -121,7 +127,7 @@ export async function pullBalances(db: Db, companyId: string, report: SyncReport
   if (!c || "error" in c) return;
   const { data: rows } = await db
     .from("invoices")
-    .select("id, display_number, total, amount_paid, quickbooks_invoice_id")
+    .select("id, display_number, total, amount_paid, status, quickbooks_invoice_id")
     .eq("company_id", companyId)
     .not("quickbooks_invoice_id", "is", null)
     .in("status", ["draft", "submitted", "partial"])
@@ -139,7 +145,12 @@ export async function pullBalances(db: Db, companyId: string, report: SyncReport
         if (error) throw new Error(error.message);
         report.paymentsRecorded += 1;
       }
-      await db.from("invoices").update({ quickbooks_balance: theirBalance, quickbooks_balance_at: now, quickbooks_sync_token: q.SyncToken ?? null, quickbooks_error: null }).eq("id", r.id);
+      // Sent from QuickBooks: the app shows it as sent too (nothing to email from here).
+      const sent = q.EmailStatus === "EmailSent" && r.status === "draft";
+      await db
+        .from("invoices")
+        .update({ quickbooks_balance: theirBalance, quickbooks_balance_at: now, quickbooks_sync_token: q.SyncToken ?? null, quickbooks_doc_number: q.DocNumber ?? null, quickbooks_error: null, ...(sent ? { status: "submitted" as const, submitted_at: now } : {}) })
+        .eq("id", r.id);
     } catch (err) {
       report.pullErrors.push(`${r.display_number}: ${errorMessage(err)}`);
       await noteFailure(db, companyId, err);
@@ -149,12 +160,21 @@ export async function pullBalances(db: Db, companyId: string, report: SyncReport
   if (report.pullErrors.length === 0) await db.from("companies").update({ quickbooks_last_sync_at: new Date().toISOString() }).eq("id", companyId);
 }
 
-/** The daily sync for one company: push what is missing, pull payments. Nothing runs for a company without a sign-in. */
+/**
+ * The sync for one company: open months live in QuickBooks, closed months
+ * handed to their mirror invoice, anything still missing pushed, payments
+ * and sent-state pulled. Nothing runs for a company without a sign-in.
+ */
 export async function syncQuickBooks(db: Db, companyId: string): Promise<SyncReport> {
-  const report: SyncReport = { pushed: [], pushErrors: [], paymentsRecorded: 0, pullErrors: [] };
+  const report: SyncReport = { pushed: [], pushErrors: [], paymentsRecorded: 0, pullErrors: [], live: [], linked: 0 };
   const { data: company } = await db.from("companies").select("quickbooks_realm_id, quickbooks_auto_push").eq("id", companyId).maybeSingle();
   if (!company?.quickbooks_realm_id) return { ...report, notConnected: true };
-  if (company.quickbooks_auto_push) await pushUnsynced(db, companyId, report);
+  report.linked = await linkClosedMonths(db, companyId);
+  if (company.quickbooks_auto_push) {
+    await syncOpenMonths(db, companyId, report);
+    await pushUnsynced(db, companyId, report);
+  }
+  await pullOpenMonths(db, companyId, report);
   await pullBalances(db, companyId, report);
   return report;
 }

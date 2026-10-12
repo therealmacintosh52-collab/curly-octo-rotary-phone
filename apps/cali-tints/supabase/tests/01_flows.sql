@@ -849,3 +849,37 @@ begin
   exception when sqlstate '22023' then null; end;
 end $$;
 select set_config('request.jwt.claims', '', false);
+
+-- 0032: jobs live in QuickBooks. The tracker is the owner's; the QuickBooks number on a job is for everyone; photos are just photos.
+select pg_temp.logout();
+select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
+do $$
+declare v_job uuid := (select v from t_ids where k = 'np_job');
+begin
+  insert into public.quickbooks_month_invoices (company_id, dealership_id, month_start, qbo_invoice_id, doc_number, job_count)
+  values ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000101', date_trunc('month', now())::date, '7001', '1061', 1)
+  on conflict (dealership_id, month_start) do update set doc_number = excluded.doc_number;
+  update public.jobs set quickbooks_invoice_id = '7001', quickbooks_doc_number = '1061', quickbooks_synced_at = now() where id = v_job;
+  assert (select auto_send_monthly from public.companies where id = '00000000-0000-4000-8000-000000000001') = false, '0032: app emailing is opt-in';
+end $$;
+select set_config('request.jwt.claims', '', false);
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare v_job uuid := (select v from t_ids where k = 'np_job'); f jsonb; n int;
+begin
+  f := public.jobs_filtered(p_q => 'NP1');
+  assert (f -> 'rows' -> 0 ->> 'quickbooks_doc_number') = '1061', '0032: the detailer sees the QuickBooks number on their job';
+  select count(*) into n from public.quickbooks_month_invoices; assert n = 0, '0032: the tracker itself is the owner''s';
+  insert into public.job_photos (company_id, job_id, kind, storage_path, client_id)
+  values ('00000000-0000-4000-8000-000000000001', v_job, 'photo', '00000000-0000-4000-8000-000000000001/' || v_job || '/p9.jpg', '50000000-0000-4000-8000-000000000009');
+  assert (select kind::text from public.job_photos where client_id = '50000000-0000-4000-8000-000000000009') = 'photo', '0032: plain photo kind';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare n int; f jsonb;
+begin
+  select count(*) into n from public.quickbooks_month_invoices where doc_number = '1061'; assert n = 1, '0032: owner sees the open month in QuickBooks';
+  f := public.invoices_filtered(p_limit => 1);
+  assert (f -> 'rows' -> 0) ? 'quickbooks_doc_number', '0032: invoice rows carry the QuickBooks number';
+end $$;
+select pg_temp.logout();

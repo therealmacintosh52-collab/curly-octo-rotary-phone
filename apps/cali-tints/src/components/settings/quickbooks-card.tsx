@@ -58,7 +58,7 @@ export function QuickBooksCard({ company, configured, notice = null }: { company
       const r = await syncQuickBooksAction();
       if (!r.ok) return void toast.error(r.error);
       const d = r.data;
-      const parts = [d.pushed.length ? `${d.pushed.length} ${d.pushed.length === 1 ? "invoice" : "invoices"} sent` : null, d.paymentsRecorded ? `${d.paymentsRecorded} ${d.paymentsRecorded === 1 ? "payment" : "payments"} recorded` : null].filter(Boolean);
+      const parts = [d.live.length ? `${d.live.length} open ${d.live.length === 1 ? "month" : "months"} live` : null, d.pushed.length ? `${d.pushed.length} ${d.pushed.length === 1 ? "invoice" : "invoices"} sent` : null, d.paymentsRecorded ? `${d.paymentsRecorded} ${d.paymentsRecorded === 1 ? "payment" : "payments"} recorded` : null].filter(Boolean);
       if (d.pushErrors.length || d.pullErrors.length) toast.warning(parts.length ? parts.join(" · ") : "Sync ran with errors", { description: d.pushErrors[0]?.error ?? d.pullErrors[0] });
       else toast.success(parts.length ? parts.join(" · ") : "QuickBooks is up to date");
       router.refresh();
@@ -90,7 +90,7 @@ export function QuickBooksCard({ company, configured, notice = null }: { company
         <CardTitle className="flex items-center gap-2">
           <BookOpenCheckIcon className="size-4 text-primary" /> QuickBooks Online
         </CardTitle>
-        <CardDescription>Every month&apos;s invoice is created in QuickBooks the moment it is made, one line per car and service. Payments you record in QuickBooks show up here.</CardDescription>
+        <CardDescription>Every job goes to QuickBooks the moment it is saved: one open invoice per dealership per month, one line per car and service, numbered by QuickBooks. You send it and take payments in QuickBooks; the app shows the number, the balance and what was paid.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-5">
         {notice?.kind === "connected" && (
@@ -157,8 +157,8 @@ export function QuickBooksCard({ company, configured, notice = null }: { company
         <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
           <label className="flex cursor-pointer items-start justify-between gap-4 sm:col-span-2">
             <span className="grid gap-1">
-              <span className="text-sm font-medium">Send every invoice automatically</span>
-              <span className="text-xs text-muted-foreground">On the 1st, the month&apos;s invoices go to QuickBooks right after they are made. Off: use Sync now or Send to QuickBooks on an invoice.</span>
+              <span className="text-sm font-medium">Keep QuickBooks live</span>
+              <span className="text-xs text-muted-foreground">Every saved, edited or deleted job updates the dealership&apos;s open invoice in QuickBooks right away, and the daily sync catches anything missed. Off: use Sync now or Send to QuickBooks on an invoice.</span>
             </span>
             <Switch checked={autoPush} onCheckedChange={setAutoPush} aria-label="Send every invoice to QuickBooks automatically" data-testid="quickbooks-auto-push" />
           </label>
@@ -174,7 +174,7 @@ export function QuickBooksCard({ company, configured, notice = null }: { company
           </div>
         </form>
         <p className="text-caption text-subtle">
-          Tip: turn on <em>Custom transaction numbers</em> in QuickBooks (Settings → Sales → Sales form content) so invoices keep their Cali Tints numbers. Using QuickBooks Desktop? Use Export → CSV or the invoice&apos;s Excel download and import it there.
+          QuickBooks numbers the invoices; those numbers show on jobs and invoices here. Using QuickBooks Desktop? Use Export → CSV or the invoice&apos;s Excel download and import it there.
         </p>
       </CardContent>
     </Card>

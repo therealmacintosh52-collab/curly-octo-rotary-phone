@@ -12,6 +12,8 @@ export interface MonthSoFarRow {
   total: number;
   /** Lines logged as "Other" without a price yet. */
   needsPrice?: number;
+  /** The open QuickBooks invoice for this month (live). */
+  quickbooks?: { docNumber: string | null; balance: number | null; error: string | null; url: string | null } | null;
 }
 
 /** The month in progress: per dealership, the jobs waiting to become the 1st's invoice. */
@@ -23,7 +25,7 @@ export function MonthSoFar({ rows, today, showMoney }: { rows: MonthSoFarRow[]; 
         <CardTitle className="flex items-center gap-2">
           <CalendarClockIcon className="size-4 text-primary" /> {monthName} so far
         </CardTitle>
-        <CardDescription>Each dealership&apos;s jobs become one invoice on the 1st. Nothing to do until then.</CardDescription>
+        <CardDescription>Each dealership&apos;s jobs sit on one open QuickBooks invoice for the month, kept live as the team logs cars. Send it from QuickBooks when the month ends; the 1st closes it here.</CardDescription>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
@@ -37,7 +39,21 @@ export function MonthSoFar({ rows, today, showMoney }: { rows: MonthSoFarRow[]; 
                     {r.dealership}
                   </Link>
                   <div className="text-caption text-subtle">
-                    {r.cars} {r.cars === 1 ? "car" : "cars"} not invoiced yet
+                    {r.cars} {r.cars === 1 ? "car" : "cars"} this month
+                    {r.quickbooks?.docNumber ? (
+                      <>
+                        {" · "}
+                        {r.quickbooks.url ? (
+                          <a href={r.quickbooks.url} target="_blank" rel="noreferrer" className="text-primary hover:underline" data-testid="month-qbo">
+                            QuickBooks {r.quickbooks.docNumber}
+                          </a>
+                        ) : (
+                          <span data-testid="month-qbo">QuickBooks {r.quickbooks.docNumber}</span>
+                        )}
+                      </>
+                    ) : r.quickbooks?.error ? (
+                      <span className="text-destructive"> · QuickBooks: {r.quickbooks.error}</span>
+                    ) : null}
                     {r.needsPrice ? (
                       <>
                         {" · "}

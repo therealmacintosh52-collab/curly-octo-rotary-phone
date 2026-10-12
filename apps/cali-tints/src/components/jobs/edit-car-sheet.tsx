@@ -100,9 +100,14 @@ export function EditCarSheet({
     })),
   );
 
+  const otherMake = make === "Other";
+
   function submit() {
     if (!tag.trim()) return toast.error("Stock number is required");
     if (vin && vinStatus(vin) === "invalid") return toast.error("VIN must be 17 characters");
+    if (!year) return toast.error("Year is required");
+    if (!(otherMake ? customMake.trim() : make)) return toast.error("Make is required");
+    if (!model.trim()) return toast.error("Model is required");
     if (services.length === 0) return toast.error("Select at least one service");
     start(async () => {
       const r = await save({
@@ -110,9 +115,9 @@ export function EditCarSheet({
         detailer_id: isAdmin ? detailerId : undefined,
         tag_number: tag.trim().toUpperCase(),
         vin: vin ? normalizeVin(vin) : null,
-        year: year ? Number(year) : null,
-        make: make === "Other" ? customMake.trim() || null : make || null,
-        model: model.trim() || null,
+        year: Number(year),
+        make: make === "Other" ? customMake.trim() : make,
+        model: model.trim(),
         color: color || null,
         // Unchanged date keeps the original timestamp; a new date is stored per dateInputToIso.
         performed_at: performedAt === toDateInput(new Date(car.performed_at)) ? car.performed_at : dateInputToIso(performedAt),
@@ -130,7 +135,6 @@ export function EditCarSheet({
   }
 
   const modelOptions = make.startsWith("Mercedes") ? MERCEDES_MODELS : [];
-  const otherMake = make === "Other";
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>

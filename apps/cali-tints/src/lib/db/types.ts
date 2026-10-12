@@ -11,7 +11,7 @@ export type InvoiceStatus = "draft" | "submitted" | "partial" | "paid" | "void";
 export type InvoiceMode = "batch" | "per_job";
 export type SubmissionMethod = "email" | "portal" | "paper";
 export type SubmissionStatus = "sent" | "failed";
-export type PhotoKind = "before" | "after";
+export type PhotoKind = "photo" | "before" | "after";
 export type PaymentMethod = "check" | "ach" | "card" | "cash" | "other";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -138,6 +138,10 @@ export type Job = {
   deleted_at: string | null;
   deleted_by: string | null;
   delete_reason: string | null;
+  /** The QuickBooks invoice this job is a line on (kept live). */
+  quickbooks_invoice_id: string | null;
+  quickbooks_doc_number: string | null;
+  quickbooks_synced_at: string | null;
   dup_reviewed_at: string | null;
   dup_reviewed_by: string | null;
   dup_review_note: string | null;
@@ -195,6 +199,26 @@ export type JobPhoto = {
   /** The id the device gave the photo; unique per job, so retried uploads never duplicate. */
   client_id: string | null;
   created_at: string;
+}
+
+/** The dealership's open QuickBooks invoice for a month, as the app last saw it (owner-readable). */
+export type QuickBooksMonthInvoice = {
+  id: string;
+  company_id: string;
+  dealership_id: string;
+  month_start: string;
+  qbo_invoice_id: string | null;
+  doc_number: string | null;
+  sync_token: string | null;
+  total: number | null;
+  balance: number | null;
+  email_status: string | null;
+  job_count: number;
+  synced_at: string | null;
+  error: string | null;
+  invoice_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /** The company's QuickBooks sign-in: tokens encrypted, service role only. */
@@ -441,6 +465,7 @@ export type InvoiceListRow = {
   services: string[];
   /** In QuickBooks (0031). Older rows may lack the keys. */
   quickbooks_invoice_id?: string | null;
+  quickbooks_doc_number?: string | null;
   quickbooks_error?: string | null;
 };
 
@@ -464,6 +489,8 @@ export type JobListRow = {
   invoice_id: string | null;
   display_number: string | null;
   invoice_status: InvoiceStatus | null;
+  /** The QuickBooks invoice number the job sits on (live), if the company is connected. */
+  quickbooks_doc_number?: string | null;
   photo_count: number;
   deleted: boolean;
 };
@@ -526,6 +553,7 @@ export type Database = {
       invoice_submissions: Table<InvoiceSubmission>;
       vin_cache: Table<VinCache>;
       quickbooks_connections: Table<QuickBooksConnection>;
+      quickbooks_month_invoices: Table<QuickBooksMonthInvoice>;
       audit_log: Table<AuditLog>;
     };
     Views: {

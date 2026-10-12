@@ -194,6 +194,9 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     if (!dealershipId) return "Pick a dealership";
     if (!tag.trim()) return "Stock number is required";
     if (vin && vinState === "invalid") return "VIN must be 17 characters (no I, O or Q)";
+    if (!year) return "Year is required";
+    if (!(make === "Other" ? customMake.trim() : make)) return "Make is required";
+    if (!model.trim()) return "Model is required";
     if (services.length === 0) return "Select at least one service";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performedAt)) return "Date is invalid";
     return null;
@@ -341,7 +344,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-title">New job</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Stock number, services, photos, save. The month&apos;s jobs become one invoice on the 1st.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Date, stock number, year, make, model, services, save. It lands on the dealership&apos;s QuickBooks invoice right away.</p>
         </div>
         <AnimatePresence>
           {savedCount > 0 && (
@@ -477,7 +480,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
 
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="year">Year</Label>
+            <Label htmlFor="year">Year <span className="text-destructive">*</span></Label>
             <Select value={year} onValueChange={setYear}>
               <SelectTrigger id="year" aria-label="Year">
                 <SelectValue placeholder="Year" />
@@ -492,7 +495,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
             </Select>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="make">Make</Label>
+            <Label htmlFor="make">Make <span className="text-destructive">*</span></Label>
             <Select
               value={MAKES.includes(make as (typeof MAKES)[number]) ? make : "Other"}
               onValueChange={(v) => {
@@ -517,7 +520,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
             )}
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="model">Model</Label>
+            <Label htmlFor="model">Model <span className="text-destructive">*</span></Label>
             <ModelCombobox id="model" value={model} onChange={setModel} options={modelOptions} placeholder="e.g. GLE 450" />
           </div>
           <div className="grid gap-1.5">
@@ -564,7 +567,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-label text-subtle">Photos</h2>
-          <span className="text-caption text-subtle">{photos.length === 0 ? "Before and after · optional" : `${photos.length} ${photos.length === 1 ? "photo" : "photos"}`}</span>
+          <span className="text-caption text-subtle">{photos.length === 0 ? "Optional" : `${photos.length} ${photos.length === 1 ? "photo" : "photos"}`}</span>
         </div>
         <PhotoPicker photos={photos} onChange={setPhotos} disabled={saving} />
       </section>

@@ -131,7 +131,7 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
             <label className="flex cursor-pointer items-start justify-between gap-4 sm:col-span-2">
               <span className="grid gap-1">
                 <span className="text-sm font-medium">Email each month&apos;s invoice automatically</span>
-                <span className="text-xs text-muted-foreground">The moment the 1st&apos;s invoice is made it goes to the dealership&apos;s AP contact with the PDF and CSV. Off: it waits under Invoices as Not sent until you send it.</span>
+                <span className="text-xs text-muted-foreground">Off by default: with QuickBooks connected you send the invoice from QuickBooks. On: the moment the 1st&apos;s invoice is made, the app also emails it to the dealership&apos;s AP contact with the PDF and CSV.</span>
               </span>
               <Switch checked={f.auto_send_monthly} onCheckedChange={(v) => setF((s) => ({ ...s, auto_send_monthly: v }))} aria-label="Email each month's invoice automatically" data-testid="auto-send-monthly" />
             </label>

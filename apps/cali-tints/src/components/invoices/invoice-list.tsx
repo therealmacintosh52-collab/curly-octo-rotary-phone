@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 /** "QB" when the invoice is in QuickBooks, a red one when the last push failed; nothing otherwise. */
 function QuickBooksMark({ r }: { r: InvoiceListRow }) {
   if (r.quickbooks_error) return <Badge variant="destructive" title={`QuickBooks: ${r.quickbooks_error}`}>QB</Badge>;
-  if (r.quickbooks_invoice_id) return <Badge variant="muted" title={`In QuickBooks as ${r.display_number}`}>QB</Badge>;
+  if (r.quickbooks_invoice_id) return <Badge variant="muted" title="In QuickBooks">QB</Badge>;
   return null;
 }
 import { RestoreInvoiceButton } from "./restore-invoice-button";
@@ -148,7 +148,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2 text-caption text-subtle">
                   <span className="truncate">
-                    {r.display_number} · {r.dealership}
+                    {r.quickbooks_doc_number ? `QuickBooks ${r.quickbooks_doc_number}` : r.display_number} · {r.dealership}
                   </span>
                   {r.car_count === 1 && <span className="shrink-0">{periodLabel(r)}</span>}
                 </div>
@@ -208,7 +208,7 @@ export function InvoiceList({ rows, page, count, params, isAdmin, filtered, grou
                   <TableCell className="text-muted-foreground">{r.dealership}</TableCell>
                   <TableCell>
                     <Link href={`/invoices/${r.id}`} className="tabular-nums text-muted-foreground hover:text-primary">
-                      {r.display_number}
+                      {r.quickbooks_doc_number ? `QB ${r.quickbooks_doc_number}` : r.display_number}
                     </Link>
                   </TableCell>
                   <TableCell>

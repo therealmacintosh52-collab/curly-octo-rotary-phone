@@ -12,7 +12,7 @@ import { PhotoPicker, type PendingPhoto } from "./photo-picker";
 
 export interface JobPhoto {
   id: string;
-  kind: "before" | "after";
+  kind: "photo" | "before" | "after";
   url: string | null;
   created_at: string;
 }
@@ -35,7 +35,7 @@ export function JobPhotos({ photos, jobId, canEdit }: { photos: JobPhoto[]; jobI
         return;
       }
       const form = new FormData();
-      for (const p of pending) form.append(p.kind, new File([p.blob], p.name || `${p.kind}.jpg`, { type: "image/jpeg" }));
+      for (const p of pending) form.append("photo", new File([p.blob], p.name || "photo.jpg", { type: "image/jpeg" }));
       const r = await addPhotosAction(jobId, form);
       if (!r.ok) return void toast.error(r.error);
       toast.success(`${r.data} ${r.data === 1 ? "photo" : "photos"} added`);
@@ -50,10 +50,9 @@ export function JobPhotos({ photos, jobId, canEdit }: { photos: JobPhoto[]; jobI
       {photos.length === 0 ? <p className="text-sm text-muted-foreground">No photos yet.</p> : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" data-testid="job-photo-grid">
           {photos.map((p) => (
-            <button key={p.id} type="button" onClick={() => setOpen(p)} aria-label={`Open ${p.kind} photo`} className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted">
+            <button key={p.id} type="button" onClick={() => setOpen(p)} aria-label="Open photo" className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {p.url && <img src={p.url} alt={`${p.kind} photo`} className="size-full object-cover transition-transform group-hover:scale-105" loading="lazy" />}
-              <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white">{p.kind}</span>
+              {p.url && <img src={p.url} alt="Photo of the car" className="size-full object-cover transition-transform group-hover:scale-105" loading="lazy" />}
             </button>
           ))}
         </div>
@@ -102,7 +101,7 @@ export function JobPhotos({ photos, jobId, canEdit }: { photos: JobPhoto[]; jobI
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add photos</DialogTitle>
-            <DialogDescription>Before and after, from the camera. Up to four of each.</DialogDescription>
+            <DialogDescription>From the camera, up to eight. Optional.</DialogDescription>
           </DialogHeader>
           <PhotoPicker photos={pending} onChange={setPending} disabled={busy} />
           <DialogFooter>

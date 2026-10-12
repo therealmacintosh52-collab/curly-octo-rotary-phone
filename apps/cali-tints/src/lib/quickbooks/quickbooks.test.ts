@@ -9,7 +9,7 @@ describe("QuickBooks invoice payload", () => {
 
   it("maps the invoice: our number, period end, customer, one line per car × service", () => {
     const p = invoicePayload(b, "cust-1", "item-9");
-    expect(p.DocNumber).toBe("INV-000012");
+    expect(p.DocNumber).toBeUndefined(); // QuickBooks numbers it
     expect(p.TxnDate).toBe(b.invoice.period_end);
     expect(p.CustomerRef).toEqual({ value: "cust-1" });
     expect(p.BillEmail).toEqual({ Address: b.dealership.ap_emails[0] });

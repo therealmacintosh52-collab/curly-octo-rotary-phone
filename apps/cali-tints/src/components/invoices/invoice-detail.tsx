@@ -86,7 +86,7 @@ export function InvoiceDetail(p: InvoiceDetailProps) {
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="text-label text-subtle">
-            <span className="tabular-nums">{invoice.display_number}</span> · {dealership.name}
+            <span className="tabular-nums">{invoice.quickbooks_doc_number ? `QuickBooks ${invoice.quickbooks_doc_number} · ${invoice.display_number}` : invoice.display_number}</span> · {dealership.name}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-title tracking-wide">{title}</h1>

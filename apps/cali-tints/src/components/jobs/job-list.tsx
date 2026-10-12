@@ -60,8 +60,9 @@ function PageLinks({ page, count, params }: { page: number; count: number; param
 function JobState({ r, short, flagged }: { r: JobListRow; short?: boolean; flagged?: boolean }) {
   if (r.deleted) return <Badge variant="destructive" title="Deleted · kept in the archive">Deleted</Badge>;
   if (flagged && !r.invoice_id) return <Badge variant="warning" title="Logged as Other without a price · set it with Edit job">Needs price</Badge>;
-  if (r.invoice_id) return <Badge variant="info" title={`On invoice ${r.display_number ?? ""}`}>{short ? "Invoiced" : (r.display_number ?? "Invoiced")}</Badge>;
-  return <Badge variant="muted" title="Goes on the month's invoice on the 1st">{short ? "Open" : "Not invoiced yet"}</Badge>;
+  if (r.invoice_id) return <Badge variant="info" title={`On invoice ${r.quickbooks_doc_number ?? r.display_number ?? ""}`}>{short ? "Invoiced" : (r.quickbooks_doc_number ? `QB ${r.quickbooks_doc_number}` : (r.display_number ?? "Invoiced"))}</Badge>;
+  if (r.quickbooks_doc_number) return <Badge variant="muted" title={`On this month's QuickBooks invoice ${r.quickbooks_doc_number}, still open`}>{short ? `QB ${r.quickbooks_doc_number}` : `In QuickBooks · ${r.quickbooks_doc_number}`}</Badge>;
+  return <Badge variant="muted" title="Goes on the dealership's QuickBooks invoice as soon as it syncs">{short ? "Open" : "Not in QuickBooks yet"}</Badge>;
 }
 
 /**

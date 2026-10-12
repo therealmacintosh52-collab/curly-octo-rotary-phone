@@ -243,6 +243,7 @@ export function invoiceListFixture(): InvoiceListRow[] {
         cars: cars.slice(0, 4).map((c) => ({ tag: c.tag, vin: c.vin, vehicle: c.vehicle, detailer: c.detailer })),
         services: [...new Set(cars.map((c) => c.service))],
         quickbooks_invoice_id: status === "void" ? null : String(1000 + n),
+        quickbooks_doc_number: status === "void" ? null : String(1000 + n),
         quickbooks_error: null,
       });
     }
@@ -279,6 +280,7 @@ export function jobListFixture(): JobListRow[] {
       invoice_id: invoice?.id ?? null,
       display_number: invoice?.display_number ?? null,
       invoice_status: invoice?.status ?? null,
+      quickbooks_doc_number: deleted ? null : invoice ? invoice.quickbooks_invoice_id ?? null : c.dealership_id === "d1" ? "1061" : "1062",
       photo_count: n % 4 === 0 ? 2 : n % 7 === 0 ? 1 : 0,
       deleted,
     });

@@ -137,24 +137,24 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
           <Outputs items={["Nothing is changed by looking. Numbers update the moment a car is logged or a payment lands.", "The greeting follows the clock: Good morning until noon, afternoon until 5, then evening."]} />
         </Section>
 
-        <Section id="new" title="New job" intro="One car, one job. On the 1st, every job from the month becomes one invoice per dealership; nobody has to make invoices by hand.">
+        <Section id="new" title="New job" intro="One car, one job. Every job goes straight onto the dealership's QuickBooks invoice for the month; nobody types anything into QuickBooks by hand.">
           <Inputs>
             <Row what="Dealership" does="Who gets billed. Remembers your last pick." />
             <Row what="Stock number" does="The dealership's stock number for the car. Required. Type it or tap Scan barcode and point the camera at the window sticker or the stock tag." />
             <Row what="VIN" does="Optional. Type the 17 characters or scan the barcode; the year, make and model fill in on their own." />
-            <Row what="Year · Make · Model · Color" does="Filled by the VIN when you scan. Make lists the common ones; pick Other to type a make that is not there." />
+            <Row what="Year · Make · Model" does="Required. Filled by the VIN when you scan; otherwise pick them. Make lists the common ones; pick Other to type a make that is not there. Color is optional." />
             <Row what="Services" does={money ? "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. The price comes from the price list. Pick Other and type what was done when it is not on the menu." : "Tap every service done on this car: Used, PDI, Sold, Loaner, Paint Correction and so on. No prices here; the owner's price list does that. Pick Other and type what was done when it is not on the menu."} />
             {money && <Row what="Price" does="Pre-filled from the dealership's price list. Change it only when the job was different; a reason is asked when the price is outside the normal range. Other logged by someone else shows Needs a price until you set it." />}
             {wide && <Row what="Detailer" does="Who did the car. Defaults to you." />}
             <Row what="RO / PO number" does="Optional. The dealership's repair or purchase order, printed on the invoice." />
             <Row what="Notes" does="Optional. Anything the office should know. Printed on the invoice." />
-            <Row what="Photos" does="Before and After: tap one to open the camera, up to four each. On a Clover Flex the camera opens inside the app. Optional, but the dealership loves them, and a photo settles any damage question." />
+            <Row what="Photos" does="Optional. Take a photo opens the camera (inside the app on a Clover Flex); up to eight per car. A photo settles any damage question." />
             <Row what="Save & next" does="Saves the job. The form clears for the next car." />
           </Inputs>
           <Outputs
             items={[
               "A green card shows the stock number and the dealership, with Open job.",
-              "The job appears at the top of the Jobs list, under Today, marked Not invoiced yet.",
+              "The job appears at the top of the Jobs list, under Today, and within seconds as a line on the dealership's open QuickBooks invoice for the month (the QB number shows on the row).",
               "The office sees it on their side right away.",
               "No signal? It is kept on the device and sent when you are back online.",
             ]}
@@ -188,11 +188,11 @@ export function Guide({ role, name, welcome = false, roleSwitcher }: { role: Use
         {money && (
           <Section id="invoices" title="Invoices" only="Owner" intro="One invoice per dealership per month, made on the 1st from that month's jobs.">
             <Inputs>
-              <Row what="This month so far" does="Each dealership's jobs waiting for the 1st, with the running total. Invoice now closes a dealership early (the rest of the month then gets a second invoice)." />
+              <Row what="This month so far" does="Each dealership's open QuickBooks invoice for the month: cars, running total, the QuickBooks number with a link to open it there. Send it from QuickBooks when the month ends. Invoice now closes a dealership early." />
               <Row what="Search box" does={<>Invoice number, dealership, a stock number on it, or a month: <em>sep</em>, <em>september 2026</em>.</>} />
               <Row what="All · Unpaid · Overdue · Paid" does="Show only invoices in that state. Unpaid opens extra chips: Not sent, Sent to dealer, Partly paid. Void and Archive too." />
               <Row what="A row" does="Opens that month's invoice." />
-              <Row what="Send invoices" does="Emails every Not sent invoice to its dealership. Tick which ones, tap the eye to see the email first, then Send. Each goes as its own email with the PDF and a CSV attached. With Settings → Email automatically on, the 1st does this on its own." />
+              <Row what="Send invoices" does="Optional: emails Not sent invoices from the app with the PDF and CSV. Normally you send from QuickBooks instead; an invoice you emailed from QuickBooks shows as Sent here after the next sync." />
             </Inputs>
             <Outputs items={["Sent invoices change from Not sent to Sent to dealer and get a timestamp.", "With QuickBooks connected (Settings), every invoice is created there the moment it is made; a QB mark on the row says it is in. Payments recorded in QuickBooks show up here the next morning."]} />
           </Section>

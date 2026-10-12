@@ -54,8 +54,8 @@ Add and verify the sending domain (DNS records), create an API key, set `EMAIL_F
 
 1. On developer.intuit.com (your login): create an app, QuickBooks Online Accounting scope. Keys & credentials → Production: copy the client id and secret into Vercel (`QUICKBOOKS_*`), add the redirect URI `https://app.calitints.com/api/quickbooks/callback`. Production keys need the app's *Production settings* filled in (privacy URL `https://app.calitints.com/privacy`, terms URL `/terms`, a host domain, EULA); Intuit approves that in a day or two. Test with the Development keys and `QUICKBOOKS_ENV=sandbox` against a sandbox company first.
 2. Mike: Settings → QuickBooks Online → **Connect QuickBooks**, sign in with the Intuit login that owns the books, pick the company. Open invoices go over at once.
-3. Mike, in QuickBooks: Settings → Sales → Sales form content → **Custom transaction numbers** on, so invoices keep their `INV-…` numbers.
-4. Check: an invoice shows *Sent* in its QuickBooks card; in QuickBooks the customer (dealership) and the *Auto detailing* item exist. Record a test payment in QuickBooks; after the next daily run (or **Sync now**) the invoice here shows it.
+3. Check: log a test job; within seconds it is a line on a new open invoice in QuickBooks for that dealership (the job row shows `QB <number>`). Edit the job: the line changes. Delete it: the line goes. In QuickBooks the customer (dealership) and the *Auto detailing* item exist.
+4. Record a test payment in QuickBooks on a closed month's invoice; after the next daily run (or **Sync now**) the invoice here shows it. Sending the invoice from QuickBooks marks it Sent here after the next sync.
 
 ## 7. The Clover app (you: 1 to 2 weeks of calendar time, mostly waiting)
 
@@ -77,7 +77,8 @@ Until the Clover app is approved, the team can use the web app on their phones (
 
 ## 9. Ongoing
 
-- **1st of every month, 7am**: the job closes the month, emails the invoices and sends them to QuickBooks. Mike gets nothing to do unless an invoice is marked *Failed* (red QB badge) or *Needs a price* jobs remain (set them before the 1st; or fix and Resend after).
+- **Every day**: jobs land on the dealership's open QuickBooks invoice as the team logs them. Mike sends each dealership's invoice from QuickBooks when the month is done (or whenever he likes).
+- **1st of every month, 7am**: the job closes the month here and links the mirror invoice to the QuickBooks one. Nothing to do unless a *Needs a price* job remains (set it before the month ends; the line updates in QuickBooks) or a red QB badge says a sync failed.
 - **Payments**: recorded in QuickBooks as usual; they appear here by the next morning. Checks that never reach QuickBooks can be recorded here with Add payment.
 - **New employee / device**: Settings → Users; install the Clover app on the new Flex.
 - **Updates**: push to the repo → Vercel deploys the web app; for the Clover app, run the workflow with a higher version code and upload the APK in the Developer Dashboard (devices update themselves).

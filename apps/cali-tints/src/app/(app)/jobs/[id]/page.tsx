@@ -23,6 +23,7 @@ type JobRow = {
   invoice_id: string | null;
   deleted_at: string | null;
   delete_reason: string | null;
+  quickbooks_doc_number: string | null;
   created_at: string;
   dealership: { name: string } | null;
   detailer: { full_name: string } | null;
@@ -43,7 +44,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .from("jobs")
     .select(
       // Prices are not readable here (column privileges); the owner gets them from job_service_prices_v below.
-      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, created_at, dealership:dealerships(name), detailer:profiles!jobs_detailer_id_fkey(full_name), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, service:services(name))",
+      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, created_at, dealership:dealerships(name), detailer:profiles!jobs_detailer_id_fkey(full_name), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, service:services(name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -87,6 +88,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       dealership_name: job.dealership?.name ?? "",
       detailer_name: job.detailer?.full_name ?? null,
       invoice: job.invoice_id ? { id: job.invoice_id, display_number: job.invoice?.display_number ?? invoiceNumber ?? "", status: job.invoice?.status ?? "" } : null,
+      quickbooks_doc_number: job.quickbooks_doc_number,
       deleted_at: job.deleted_at,
       deleted_reason: job.delete_reason,
       created_at: job.created_at,

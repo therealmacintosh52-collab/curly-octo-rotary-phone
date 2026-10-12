@@ -63,6 +63,7 @@ export interface QboInvoice {
   Line: QboInvoiceLine[];
   TotalAmt?: number;
   Balance?: number;
+  EmailStatus?: "NotSet" | "NeedToSend" | "EmailSent" | string;
   sparse?: boolean;
 }
 export interface QboCompanyInfo {
@@ -160,6 +161,11 @@ export class QuickBooksClient {
   async saveInvoice(inv: QboInvoice): Promise<QboInvoice> {
     const r = await this.request<{ Invoice: QboInvoice }>("POST", "invoice", inv);
     return r.Invoice;
+  }
+
+  /** Delete an invoice (the month emptied out before it was sent). */
+  async deleteInvoice(id: string, syncToken: string): Promise<void> {
+    await this.request("POST", "invoice", { Id: id, SyncToken: syncToken }, { operation: "delete" });
   }
 }
 

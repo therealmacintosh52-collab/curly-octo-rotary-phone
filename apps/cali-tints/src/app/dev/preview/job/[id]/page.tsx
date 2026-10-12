@@ -47,6 +47,7 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
               dealership_name: row.dealership,
               detailer_name: row.detailer,
               invoice: row.invoice_id ? { id: row.invoice_id, display_number: row.display_number ?? "", status: row.invoice_status ?? "draft" } : null,
+              quickbooks_doc_number: row.quickbooks_doc_number ?? null,
               deleted_at: row.deleted ? row.performed_at : null,
               deleted_reason: row.deleted ? "Logged twice" : null,
               created_at: row.performed_at,
@@ -54,8 +55,8 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
             photos={
               row.photo_count > 0
                 ? [
-                    { id: `${row.id}-b`, kind: "before" as const, url: "/demo/before.svg", created_at: row.performed_at },
-                    ...(row.photo_count > 1 ? [{ id: `${row.id}-a`, kind: "after" as const, url: "/demo/after.svg", created_at: row.performed_at }] : []),
+                    { id: `${row.id}-b`, kind: "photo" as const, url: "/demo/before.svg", created_at: row.performed_at },
+                    ...(row.photo_count > 1 ? [{ id: `${row.id}-a`, kind: "photo" as const, url: "/demo/after.svg", created_at: row.performed_at }] : []),
                   ]
                 : []
             }

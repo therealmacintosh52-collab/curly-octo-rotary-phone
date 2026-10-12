@@ -6,6 +6,7 @@ import type { UpdateJobInput } from "@/lib/jobs/schema";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
+import { syncJobToQuickBooks } from "@/lib/quickbooks/live";
 import { errorMessage } from "@/lib/utils";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -19,14 +20,25 @@ function revalidateJob(id?: string) {
   revalidatePath("/");
 }
 
+/** Keep QuickBooks live after a change: best effort, never blocks the save (the daily sync catches up). */
+async function liveQuickBooks(jobId: string, previous?: { dealership_id: string; performed_at: string } | null) {
+  try {
+    await syncJobToQuickBooks(createAdminClient(), jobId, previous);
+  } catch {
+    /* no service key or QuickBooks down: the daily sync retries */
+  }
+}
+
 /** Edit an open job (RLS + RPC enforce ownership and locking). */
 export async function updateJobAction(input: UpdateJobInput): Promise<ActionResult> {
   const parsed = updateJobSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { id, ...p } = parsed.data;
   const supabase = await createClient();
+  const { data: before } = await supabase.from("jobs").select("dealership_id, performed_at").eq("id", id).maybeSingle();
   const { error } = await supabase.rpc("update_job", { p_id: id, p });
   if (error) return { ok: false, error: errorMessage(error) };
+  await liveQuickBooks(id, before);
   revalidateJob(id);
   return { ok: true, data: undefined };
 }
@@ -37,6 +49,7 @@ export async function softDeleteJobAction(id: string, reason: string): Promise<A
   const supabase = await createClient();
   const { error } = await supabase.rpc("soft_delete_job", { p_id: id, p_reason: reason.trim() || null });
   if (error) return { ok: false, error: errorMessage(error) };
+  await liveQuickBooks(id);
   revalidateJob(id);
   return { ok: true, data: undefined };
 }
@@ -47,6 +60,7 @@ export async function restoreJobAction(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("restore_job", { p_id: id });
   if (error) return { ok: false, error: errorMessage(error) };
+  await liveQuickBooks(id);
   revalidateJob(id);
   return { ok: true, data: undefined };
 }
@@ -63,7 +77,7 @@ export async function addPhotosAction(jobId: string, form: FormData): Promise<Ac
   if (!job) return { ok: false, error: "Job not found" };
   if (job.deleted_at) return { ok: false, error: "This job is deleted" };
   let added = 0;
-  for (const kind of ["before", "after"] as const) {
+  for (const kind of ["photo", "before", "after"] as const) {
     for (const entry of form.getAll(kind)) {
       if (!(entry instanceof File) || entry.size === 0) continue;
       if (entry.size > MAX_PHOTO_BYTES) return { ok: false, error: "A photo is over 5 MB" };

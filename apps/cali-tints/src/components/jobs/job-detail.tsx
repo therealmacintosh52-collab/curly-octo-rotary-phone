@@ -16,11 +16,13 @@ export interface JobDetailProps {
     dealership_name: string;
     detailer_name: string | null;
     invoice: { id: string; display_number: string; status: string } | null;
+    /** The QuickBooks invoice number this job sits on (live, kept by the app). */
+    quickbooks_doc_number?: string | null;
     deleted_at: string | null;
     deleted_reason: string | null;
     created_at: string;
   };
-  photos: { id: string; kind: "before" | "after"; url: string | null; created_at: string }[];
+  photos: { id: string; kind: "photo" | "before" | "after"; url: string | null; created_at: string }[];
   priceList: PriceListRow[];
   detailers: { id: string; full_name: string }[];
   isAdmin: boolean;
@@ -50,8 +52,10 @@ export function JobDetail(p: JobDetailProps) {
     deleted
       ? { label: "Deleted", detail: `${formatDate(job.deleted_at)}${job.deleted_reason ? ` · ${job.deleted_reason}` : ""} · in the archive`, state: "off" }
       : inv
-        ? { label: "On the month's invoice", detail: `${inv.display_number}${inv.status === "void" ? " · voided" : ""}`, state: "done" }
-        : { label: "Month's invoice", detail: "Goes on the dealership's invoice on the 1st", state: "now" },
+        ? { label: "On the month's invoice", detail: `${job.quickbooks_doc_number ? `QuickBooks ${job.quickbooks_doc_number}` : inv.display_number}${inv.status === "void" ? " · voided" : ""}`, state: "done" }
+        : job.quickbooks_doc_number
+          ? { label: "In QuickBooks", detail: `Invoice ${job.quickbooks_doc_number} · open until the month closes`, state: "done" }
+          : { label: "QuickBooks", detail: "Goes on the dealership's open invoice when it syncs", state: "now" },
     deleted || !inv || inv.status === "void"
       ? { label: "Paid", detail: "—", state: deleted ? "off" : "todo" }
       : paid
@@ -72,7 +76,7 @@ export function JobDetail(p: JobDetailProps) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-title tracking-wide">{title}</h1>
-            {deleted ? <Badge variant="destructive">Deleted</Badge> : inv ? <Badge variant="info">{inv.display_number}</Badge> : <Badge variant="muted">Not invoiced yet</Badge>}
+            {deleted ? <Badge variant="destructive">Deleted</Badge> : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
             {canSeeMoney && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
           </div>
         </div>

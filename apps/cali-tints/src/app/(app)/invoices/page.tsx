@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireOwner } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { QBO_HOSTS } from "@/lib/quickbooks/env";
 import type { InvoiceListResult } from "@/lib/db/types";
 import { EMPTY_INVOICE_LIST, invoiceFilterArgs, parseInvoiceFilters, resolveInvoiceFilters, STATUS_LABELS } from "@/lib/invoices/query";
 import { formatMoney } from "@/lib/money";
@@ -41,13 +42,24 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
     // The month in progress: jobs not yet on an invoice, per dealership (the owner's price view).
     supabase.from("job_service_prices_v").select("job_id, dealership_id, price, needs_price").is("invoice_id", null).is("deleted_at", null),
   ]);
+  // The open QuickBooks invoice per dealership (live), owner-readable.
+  const { data: trackers } = await supabase.from("quickbooks_month_invoices").select("dealership_id, month_start, qbo_invoice_id, doc_number, balance, error").is("invoice_id", null).order("month_start", { ascending: false });
+  const qboApp = QBO_HOSTS[session.company.quickbooks_env === "sandbox" ? "sandbox" : "production"].app;
   if (error) throw new Error(error.message);
   const result = (list as InvoiceListResult | null) ?? EMPTY_INVOICE_LIST;
 
   const soFar: MonthSoFarRow[] = (dealerships ?? []).map((d) => {
     const mine = (openJobs ?? []).filter((j) => j.dealership_id === d.id);
     const total = mine.reduce((s, j) => s + Number(j.price), 0);
-    return { dealership_id: d.id, dealership: d.name, cars: new Set(mine.map((j) => j.job_id)).size, total, needsPrice: mine.filter((j) => j.needs_price).length };
+    const t = (trackers ?? []).find((x) => x.dealership_id === d.id);
+    return {
+      dealership_id: d.id,
+      dealership: d.name,
+      cars: new Set(mine.map((j) => j.job_id)).size,
+      total,
+      needsPrice: mine.filter((j) => j.needs_price).length,
+      quickbooks: session.company.quickbooks_realm_id ? { docNumber: t?.doc_number ?? null, balance: t?.balance ?? null, error: t?.error ?? null, url: t?.qbo_invoice_id ? `${qboApp}/app/invoice?txnId=${t.qbo_invoice_id}` : null } : null,
+    };
   });
 
   const unsentGroups: UnsentGroup[] = Object.values(

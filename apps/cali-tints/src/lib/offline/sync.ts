@@ -60,6 +60,7 @@ async function run(): Promise<SyncResult> {
       if (error) throw error;
 
       await uploadPhotos(item, job.id);
+      await liveQuickBooks(job.id);
       const invoiceNumber = await invoiceNumberFor(job.invoice_id, job.id);
 
       await addRecentJob({
@@ -123,7 +124,17 @@ export async function createJobDirect(item: OutboxItem): Promise<SavedCar> {
   const { data: job, error } = await supabase.rpc("create_job", { p: { ...item.payload, client_id: item.client_id } });
   if (error) throw error;
   await uploadPhotos(item, job.id);
+  await liveQuickBooks(job.id);
   return { id: job.id, invoice_id: job.invoice_id, invoice_number: await invoiceNumberFor(job.invoice_id, job.id) };
+}
+
+/** Ask the server to put this job on the dealership's QuickBooks invoice now. Best effort: the daily sync covers a miss. */
+async function liveQuickBooks(jobId: string) {
+  try {
+    await fetch("/api/quickbooks/live", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jobId }), credentials: "same-origin", keepalive: true });
+  } catch {
+    /* offline again, or the server is busy */
+  }
 }
 
 /**
