@@ -128,7 +128,7 @@ def test_full_pipeline_phase2_creates_clips(client, sample_video, monkeypatch):
     for name in ("transcript.json", "analysis.json", "candidates.json", "scores.json"):
         assert client.get(f"/api/jobs/{job['id']}/files/{name}").status_code == 200
     h = client.get("/api/health").json()
-    assert h["stages"][:4] == ["ingest", "transcribe", "analyze", "score"]
+    assert h["stages"][:5] == ["ingest", "transcribe", "brief", "analyze", "score"]
 
 
 def test_full_pipeline_all_stages(client, sample_video, monkeypatch):

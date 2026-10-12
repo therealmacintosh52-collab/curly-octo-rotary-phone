@@ -21,7 +21,7 @@ def test_heuristic_copy_respects_platform_rules():
     assert yt["source"] == "heuristic" and yt["title"].endswith("#Shorts") and len(yt["title"]) <= 100
     assert yt["hashtags"][-1] == "#shorts" and len(yt["hashtags"]) == 3
     tt = out["tiktok"]
-    assert "#fyp" in tt["hashtags"] and len(tt["hashtags"]) == 4 and "#reselling" in tt["hashtags"]
+    assert "#fyp" in tt["hashtags"] and len(tt["hashtags"]) == PCONF["platforms"]["tiktok"]["hashtag_max"] and "#reselling" in tt["hashtags"]
     assert tt["caption"].splitlines()[0].startswith("Welcome back to the channel")
     assert "Follow for part two." in tt["caption"] and tt["caption"].rstrip().endswith("#fyp")
     assert all(k in ("reselling", "listings", "titles") or len(k) >= 4 for k in tt["keywords"])
@@ -51,7 +51,7 @@ def test_llm_hook_feeds_title_and_filler_stripped():
 
 
 def test_llm_copy_merges_over_heuristic(monkeypatch):
-    def fake(clip, platforms, platform_config, keywords=None, video_title=None):
+    def fake(clip, platforms, platform_config, keywords=None, video_title=None, **kw):
         return {"tiktok": {"title": "LLM title", "hook": "LLM hook", "caption": "LLM caption\n\n#one #two",
                            "hashtags": ["one", "#two"], "keywords": ["alpha"]}}
     monkeypatch.setattr(llm, "generate_copy", fake)
