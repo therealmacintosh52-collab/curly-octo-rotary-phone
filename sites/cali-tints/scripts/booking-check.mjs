@@ -100,19 +100,24 @@ const page = async (vp, mobile = false) => { const pg = await browser.newPage({ 
   await pg.close();
 }
 
-// 1b. Home page: the calendar is open at the top and a slot can be picked
+// 1b. Home page: the booking card is open in the hero and already has a day and time
 {
   const pg = await page({ width: 1440, height: 900 });
-  await pg.goto(BASE + '/', { waitUntil: 'load' }); await pg.waitForSelector('.cal__day'); await pg.waitForTimeout(600);
-  const top = await pg.evaluate(() => document.querySelector('[data-booking]').getBoundingClientRect().top + window.scrollY);
-  ok(top < 2200, `home page booking sits near the top (${Math.round(top)}px down)`);
-  await pg.locator('.book__svc').nth(2).click();
-  await pg.locator('.cal__day:not(:disabled)').first().click(); await pg.waitForTimeout(200);
-  await pg.locator('.slot').first().click(); await pg.waitForTimeout(200);
-  const sum = await pg.locator('[data-summary]').textContent();
-  ok(/Vinyl Wraps/.test(sum) && /AM|PM/.test(sum), `home booking summary: "${sum.replace(/\s+/g, ' ').slice(0, 70)}"`);
-  await pg.evaluate((y) => window.scrollTo(0, y - 120), top); await pg.waitForTimeout(400);
+  await pg.goto(BASE + '/', { waitUntil: 'load' }); await pg.waitForSelector('.daychip'); await pg.waitForTimeout(600);
+  const r = await pg.evaluate(() => { const card = document.querySelector('.hero-v__book'); const b = card.getBoundingClientRect(); return { top: b.top + window.scrollY, bottom: b.bottom, chips: document.querySelectorAll('.daychip').length, on: document.querySelectorAll('.daychip.is-on').length, slot: document.querySelector('.slot.is-on')?.textContent, ready: !document.querySelector('[data-submit]').disabled, sum: document.querySelector('[data-summary]').textContent.replace(/\s+/g, ' ') }; });
+  ok(r.top < 200 && r.bottom <= 900, `booking card is inside the first screen (top ${Math.round(r.top)}px, bottom ${Math.round(r.bottom)}px)`);
+  ok(r.chips >= 6 && r.on === 1 && r.slot && r.ready, `preselected and ready to send: ${r.chips} days, "${r.slot}" picked, summary "${r.sum.slice(0, 60)}"`);
+  await pg.selectOption('select[name=svc]', 'vinyl-wraps'); await pg.waitForTimeout(200);
+  const sum2 = await pg.evaluate(() => document.querySelector('[data-summary]').textContent.replace(/\s+/g, ' '));
+  ok(/Vinyl Wraps/.test(sum2) && /AM/.test(sum2), `service switch keeps a valid time: "${sum2.slice(0, 60)}"`);
   await pg.screenshot({ path: path.join(QA, 'desktop-home-booking.png') });
+  const ph = await page({ width: 390, height: 844 }, true);
+  await ph.goto(BASE + '/', { waitUntil: 'load' }); await ph.waitForSelector('.daychip'); await ph.waitForTimeout(500);
+  const y = await ph.evaluate(() => document.querySelector('.hero-v__book').getBoundingClientRect().top + window.scrollY);
+  await ph.evaluate((yy) => window.scrollTo(0, yy - 10), y); await ph.waitForTimeout(400);
+  await ph.screenshot({ path: path.join(QA, 'iphone-home-booking.png') });
+  ok((await ph.evaluate(() => document.documentElement.scrollWidth)) <= 390, 'phone home page with the card fits');
+  await ph.close();
   await pg.close();
 }
 

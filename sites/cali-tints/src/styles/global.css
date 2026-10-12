@@ -334,7 +334,8 @@ html.lenis, html.lenis body { height: auto; }
 
 /* --------------------------------------------------------------- booking */
 .book { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .9fr); gap: clamp(24px, 3vw, 44px); align-items: start; }
-.book__steps { display: grid; gap: 28px; }
+.book__steps { display: grid; gap: 28px; min-width: 0; }
+.book__step { padding: 0; min-width: 0; }   /* a <section>, but not a page section */
 .book__step h2 { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; margin-bottom: 14px; }
 .book__step h2 span { width: 30px; height: 30px; border-radius: 50%; background: var(--grad-accent); color: #fff; display: grid; place-items: center; font-size: .9rem; flex: none; }
 .book__services { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
@@ -349,7 +350,7 @@ html.lenis, html.lenis body { height: auto; }
 .cal { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); padding: 16px; max-width: 460px; }
 .cal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .cal__head b { font-family: var(--font-display); font-size: 1.05rem; }
-.cal__nav { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); display: grid; place-items: center; cursor: pointer; }
+.cal__nav { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--text); display: grid; place-items: center; cursor: pointer; }
 .cal__nav:disabled { opacity: .35; cursor: default; }
 .cal__nav .icon { width: 16px; height: 16px; }
 [data-cal-prev] .icon { transform: rotate(180deg); }
@@ -363,7 +364,7 @@ html.lenis, html.lenis body { height: auto; }
 .cal__hint { margin: 10px 0 0; font-size: .8rem; color: var(--slate); }
 .book__daylabel { font-weight: 600; margin-bottom: 10px; }
 .slots { display: flex; flex-wrap: wrap; gap: 8px; }
-.slot { padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-family: var(--font-display); font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums; }
+.slot { padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-family: var(--font-display); font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums; }
 .slot:hover { border-color: var(--accent); }
 .slot.is-on { background: var(--accent-vivid); color: var(--ink); border-color: var(--accent-vivid); }
 .slots__none { color: var(--slate); font-size: .92rem; }
@@ -557,3 +558,44 @@ a.card:hover { border-color: rgba(128,216,80,.45); box-shadow: 0 24px 60px -24px
 .crm__dialog::backdrop { background: rgba(0,0,0,.6); }
 .crm__form .field label { display: grid; gap: 4px; font-weight: 600; font-size: .85rem; }
 @media (max-width: 760px) { .crm__stats { grid-template-columns: 1fr 1fr; } .crm__search { min-width: 0; width: 100%; } }
+
+/* ----------------------------------------------- booking card in the hero */
+.hero-v { position: relative; }
+.hero-v__book { position: relative; z-index: 3; padding: 0 22px 28px; }
+.hero-v__bookcard { max-width: 560px; margin: 0 auto; background: rgba(13,18,13,.92); backdrop-filter: blur(14px); border: 1px solid rgba(128,216,80,.3); border-radius: var(--radius-lg); padding: 18px 18px 14px; box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 30px 80px -20px rgba(128,216,80,.35), 0 30px 60px rgba(0,0,0,.55); }
+.hero-v__bookhead { margin-bottom: 8px; }
+.hero-v__bookhead .eyebrow { margin-bottom: 4px; }
+.hero-v__bookhead strong { display: block; font-family: var(--font-display); font-size: 1.12rem; color: #fff; }
+.book--compact { grid-template-columns: 1fr; gap: 12px; }
+.book--compact .book__steps { gap: 12px; }
+.book--compact .book__step h2 { font-size: .95rem; margin-bottom: 8px; }
+.book--compact .book__step h2 span { width: 22px; height: 22px; font-size: .72rem; }
+.book--compact .book__select select { width: 100%; max-width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper-2); color: var(--text); font: inherit; font-weight: 600; }
+.daystrip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.daychip { flex: 0 0 auto; min-width: 58px; padding: 6px 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; display: flex; flex-direction: column; align-items: center; line-height: 1.1; font-family: var(--font-display); }
+.daychip small { font-size: .64rem; letter-spacing: .06em; text-transform: uppercase; color: var(--slate); }
+.daychip b { font-size: 1.15rem; margin: 2px 0; }
+.daychip:hover { border-color: var(--accent); }
+.daychip.is-on { background: var(--accent-vivid); color: var(--ink); border-color: var(--accent-vivid); }
+.daychip.is-on small { color: var(--ink); }
+.book--compact .book__daylabel { font-size: .85rem; margin-bottom: 6px; }
+.book--compact .slot { padding: 7px 12px; font-size: .85rem; }
+.book--compact .book__side { position: static; }
+.book--compact .book__form { padding: 14px 14px 12px; box-shadow: none; border: 1px solid var(--line); }
+.book--compact .book__form::before { display: none; }
+.book--compact .book__form h2 { font-size: .95rem; margin-bottom: 8px; }
+.book--compact .book__summary { padding: 8px 10px; font-size: .86rem; margin-bottom: 10px; }
+.book--compact .field { margin-bottom: 8px; }
+.book--compact .field label { font-size: .78rem; }
+.book--compact .field input { padding: 9px 11px; }
+.book--compact .field textarea { display: none; }
+.book--compact .field:has(textarea) label { display: none; }
+.book--compact .form-note { font-size: .74rem; margin-top: 8px; }
+.book--compact .book__alt .btn { font-size: .76rem; padding: 7px 10px; }
+@media (min-width: 941px) {
+  /* Over the clip, right-hand third, scrolling inside itself if the screen is short. */
+  .hero-v__book { position: absolute; top: clamp(14px, 1.6vw, 26px); right: max(22px, calc((100vw - var(--wrap)) / 2)); bottom: auto; width: 400px; padding: 0; max-height: calc(100% - 28px); }
+  .hero-v__bookcard { max-height: calc(100vh - 160px); overflow-y: auto; scrollbar-width: thin; padding: 16px 16px 12px; }
+  .hero-v__inner .wrap { grid-template-columns: minmax(0, 1.28fr) minmax(0, .72fr); }
+}
+@media (min-width: 941px) and (max-width: 1180px) { .hero-v__book { width: 360px; } }

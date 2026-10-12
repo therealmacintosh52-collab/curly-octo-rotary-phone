@@ -2,6 +2,7 @@
 import data from '../data/site.json';
 import Icon from './Icon.astro';
 import Stars from './Stars.astro';
+import BookingCalendar from './BookingCalendar.astro';
 const S = data.site;
 
 export interface Props {
@@ -9,8 +10,10 @@ export interface Props {
   focus?: string;
   /** Set false until a real clip exists in public/assets/video/. */
   hasVideo?: boolean;
+  /** The compact booking card, open in the hero (over the clip on desktop, under the copy on phones). */
+  book?: boolean;
 }
-const { focus = '50% 50%', hasVideo = false } = Astro.props;
+const { focus = '50% 50%', hasVideo = false, book = false } = Astro.props;
 ---
 <section class:list={['hero-v', !hasVideo && 'hero-v--noclip']} data-hero style={`--hero-focus:${focus}`}>
   <div class="hero-v__media">
@@ -81,4 +84,16 @@ const { focus = '50% 50%', hasVideo = false } = Astro.props;
       </div>
     </div>
   </div>
+
+  {book && (
+    <div class="hero-v__book" id="book">
+      <div class="hero-v__bookcard">
+        <div class="hero-v__bookhead">
+          <span class="eyebrow">Book now</span>
+          <strong>Pick a time, we confirm by text</strong>
+        </div>
+        <BookingCalendar compact />
+      </div>
+    </div>
+  )}
 </section>

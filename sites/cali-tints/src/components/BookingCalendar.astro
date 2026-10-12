@@ -16,6 +16,8 @@ import data from '../data/site.json';
 import { EMAIL_IS_PLACEHOLDER } from '../lib/seo';
 import Icon from './Icon.astro';
 import OpenNow from './OpenNow.astro';
+export interface Props { compact?: boolean }
+const { compact = false } = Astro.props;
 const S = data.site;
 const B = data.booking;
 const host = S.base_url.replace(/^https?:\/\//, '');
@@ -35,24 +37,34 @@ const config = {
     <p class="form-note">Prefer to talk? <a href={`tel:${S.phone_link}`} data-loc="book-embed">Call {S.phone_display}</a> during business hours.</p>
   </div>
 ) : (
-  <div class="book" data-booking data-functions={FUNCTIONS ? "1" : undefined} data-config={JSON.stringify(config)}>
+  <div class:list={['book', compact && 'book--compact']} data-booking data-compact={compact ? '1' : undefined} data-functions={FUNCTIONS ? "1" : undefined} data-config={JSON.stringify(config)}>
     <div class="book__steps">
       <section class="book__step" data-step="service">
-        <h2><span>1</span> What are we doing?</h2>
-        <div class="book__services" role="radiogroup" aria-label="Service">
-          {data.services.map((s) => (
-            <label class="book__svc">
-              <input type="radio" name="svc" value={s.slug} />
-              <span class="book__svc-ico"><Icon name={s.icon} /></span>
-              <span><b>{s.nav}</b><small>{s.duration_minutes >= 360 ? 'Drop-off, same day or next' : `About ${Math.round(s.duration_minutes / 60)} hour${s.duration_minutes >= 120 ? 's' : ''}`}</small></span>
-            </label>
-          ))}
-        </div>
+        <h2><span>1</span> {compact ? 'Service' : 'What are we doing?'}</h2>
+        {compact ? (
+          <div class="field book__select">
+            <label class="sr-only" for="bk-svc">Service</label>
+            <select id="bk-svc" name="svc">
+              {data.services.map((s, i) => <option value={s.slug} selected={i === 0}>{s.nav}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div class="book__services" role="radiogroup" aria-label="Service">
+            {data.services.map((s) => (
+              <label class="book__svc">
+                <input type="radio" name="svc" value={s.slug} />
+                <span class="book__svc-ico"><Icon name={s.icon} /></span>
+                <span><b>{s.nav}</b><small>{s.duration_minutes >= 360 ? 'Drop-off, same day or next' : `About ${Math.round(s.duration_minutes / 60)} hour${s.duration_minutes >= 120 ? 's' : ''}`}</small></span>
+              </label>
+            ))}
+          </div>
+        )}
       </section>
 
       <section class="book__step" data-step="day">
-        <h2><span>2</span> Pick a day</h2>
-        <div class="cal" data-cal>
+        <h2><span>2</span> {compact ? 'Day' : 'Pick a day'}</h2>
+        {compact && <div class="daystrip" data-daystrip role="group" aria-label="Choose a day"></div>}
+        <div class="cal" data-cal hidden={compact}>
           <div class="cal__head">
             <button type="button" class="cal__nav" data-cal-prev aria-label="Previous month"><Icon name="arrow" /></button>
             <b data-cal-title>Loading…</b>
@@ -65,7 +77,7 @@ const config = {
       </section>
 
       <section class="book__step" data-step="time">
-        <h2><span>3</span> Pick a start time</h2>
+        <h2><span>3</span> {compact ? 'Start time' : 'Pick a start time'}</h2>
         <p class="book__daylabel" data-day-label>Choose a day first.</p>
         <div class="slots" data-slots role="radiogroup" aria-label="Start time"></div>
       </section>
@@ -73,7 +85,7 @@ const config = {
 
     <aside class="book__side">
       <form class="quote-card book__form" id="booking" data-booking-form method="post" action={data.form_endpoint}>
-        <h2>Your booking request</h2>
+        <h2>{compact ? 'Your details' : 'Your booking request'}</h2>
         <p class="book__summary" data-summary>Pick a service, a day and a time on the left.</p>
         <input type="hidden" name="service" data-f-service />
         <input type="hidden" name="date" data-f-date />
@@ -106,7 +118,7 @@ const config = {
         </div>
         <p class="form-note">{B.note}</p>
       </form>
-      <OpenNow variant="card" loc="book-card" />
+      {!compact && <OpenNow variant="card" loc="book-card" />}
     </aside>
   </div>
 )}

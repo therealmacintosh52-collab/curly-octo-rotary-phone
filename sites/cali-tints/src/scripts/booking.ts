@@ -45,7 +45,13 @@ function boot(el: HTMLElement) {
   let day: { y: number; m: number; d: number } | null = null;   // m 0-based
   let time: number | null = null;                   // minutes since midnight
 
-  // Service radios
+  const compact = Boolean(el.dataset.compact);
+  // Service: radios on the full page, a <select> in the compact (hero) card.
+  const sel = el.querySelector<HTMLSelectElement>('select[name=svc]');
+  if (sel) {
+    if (service) sel.value = service.slug; else service = cfg.services.find((s) => s.slug === sel.value) ?? null;
+    sel.addEventListener('change', () => { service = cfg.services.find((s) => s.slug === sel.value) ?? null; time = null; pickFirst(); renderCal(); renderSlots(); renderSummary(); });
+  }
   el.querySelectorAll<HTMLInputElement>('input[name=svc]').forEach((r) => {
     if (service && r.value === service.slug) r.checked = true;
     r.addEventListener('change', () => {
@@ -62,7 +68,29 @@ function boot(el: HTMLElement) {
     return Boolean(cfg.hours[dow]) && utc >= todayUTC && utc <= lastUTC;
   };
 
+  const strip = el.querySelector<HTMLElement>('[data-daystrip]');
+  const SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MSHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  /** Compact card: the next twelve open days as chips. */
+  function renderStrip() {
+    if (!strip) return;
+    strip.innerHTML = '';
+    let n = 0;
+    for (let i = 0; i <= cfg.weeks * 7 && n < 12; i++) {
+      const dt = new Date(todayUTC + i * 86400000);
+      const y = dt.getUTCFullYear(), m = dt.getUTCMonth(), d = dt.getUTCDate();
+      if (!isOpenDay(y, m, d) || !slotsFor(y, m, d).length) continue;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'daychip';
+      b.innerHTML = `<small>${i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : SHORT[dt.getUTCDay()]}</small><b>${d}</b><small>${MSHORT[m]}</small>`;
+      if (day && day.y === y && day.m === m && day.d === d) { b.classList.add('is-on'); b.setAttribute('aria-pressed', 'true'); }
+      b.addEventListener('click', () => { day = { y, m, d }; time = slotsFor(y, m, d)[0] ?? null; renderStrip(); renderSlots(); renderSummary(); });
+      strip.appendChild(b); n++;
+    }
+  }
+
   function renderCal() {
+    renderStrip();
     const { y, m } = view;
     title.textContent = `${MONTHS[m]} ${y}`;
     grid.innerHTML = '';
@@ -88,6 +116,30 @@ function boot(el: HTMLElement) {
   el.querySelector('[data-cal-prev]')!.addEventListener('click', () => { view = view.m === 0 ? { y: view.y - 1, m: 11 } : { y: view.y, m: view.m - 1 }; renderCal(); });
   el.querySelector('[data-cal-next]')!.addEventListener('click', () => { view = view.m === 11 ? { y: view.y + 1, m: 0 } : { y: view.y, m: view.m + 1 }; renderCal(); });
 
+  /** Start times for a day, honouring the lead time and the service length. */
+  function slotsFor(y: number, m: number, d: number): number[] {
+    const h = cfg.hours[new Date(Date.UTC(y, m, d)).getUTCDay()];
+    if (!h) return [];
+    const dur = service?.minutes ?? cfg.slot, dropOff = dur >= 360;
+    const open = h[0] * 60, close = h[1] * 60;
+    const lastStart = dropOff ? open + 120 : Math.max(open, close - Math.min(dur, 180));
+    const out: number[] = [];
+    for (let t = open; t <= lastStart; t += cfg.slot) if (Date.UTC(y, m, d, 0, t) >= lead.getTime()) out.push(t);
+    return out;
+  }
+  /** Compact card: land on the first open day and its first start time, so the
+      visitor only has to type a name and number. */
+  function pickFirst() {
+    if (!compact) return;
+    for (let i = 0; i <= cfg.weeks * 7; i++) {
+      const dt = new Date(todayUTC + i * 86400000);
+      const y = dt.getUTCFullYear(), m = dt.getUTCMonth(), d = dt.getUTCDate();
+      if (!isOpenDay(y, m, d)) continue;
+      const ts = slotsFor(y, m, d);
+      if (ts.length) { day = { y, m, d }; time = ts[0]; view = { y, m }; return; }
+    }
+  }
+
   function renderSlots() {
     slots.innerHTML = '';
     if (!day) { dayLabel.textContent = 'Choose a day first.'; return; }
@@ -108,7 +160,7 @@ function boot(el: HTMLElement) {
       b.type = 'button'; b.className = 'slot'; b.textContent = fmtHour(t / 60);
       b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', time === t ? 'true' : 'false');
       if (time === t) b.classList.add('is-on');
-      b.addEventListener('click', () => { time = t; renderSlots(); renderSummary(); summary.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+      b.addEventListener('click', () => { time = t; renderSlots(); renderSummary(); if (!compact) summary.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
       slots.appendChild(b); any = true;
     }
     if (!any) slots.innerHTML = '<p class="slots__none">No start times left that day. Try the next open day.</p>';
@@ -166,6 +218,7 @@ function boot(el: HTMLElement) {
     if (isOpenDay(y, m - 1, d)) { day = { y, m: m - 1, d }; view = { y, m: m - 1 }; }
     if (qt && /^\d{2}:\d{2}$/.test(qt)) { const [hh, mm] = qt.split(':').map(Number); time = hh * 60 + mm; }
   }
+  if (!day) pickFirst();
   renderCal(); renderSlots(); renderSummary();
   el.querySelectorAll<HTMLInputElement>('#bk-vehicle, [data-f-note]').forEach((i) => i.addEventListener('input', () => { if (!submit.disabled) renderSummary(); }));
 

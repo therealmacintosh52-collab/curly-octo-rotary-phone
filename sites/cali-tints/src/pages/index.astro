@@ -4,7 +4,6 @@ import Base from '../layouts/Base.astro';
 import VideoHero from '../components/VideoHero.astro';
 import StatBand from '../components/StatBand.astro';
 import SplitImage from '../components/SplitImage.astro';
-import BookingCalendar from '../components/BookingCalendar.astro';
 import QuoteForm from '../components/QuoteForm.astro';
 import ServiceCards from '../components/ServiceCards.astro';
 import Faq from '../components/Faq.astro';
@@ -28,22 +27,9 @@ const faqs = data.home_faqs as [string, string][];
 >
   <!-- The badge sits top-centre of the clip; the band runs the full 16:9 so
        focus only governs the poster if the ratio is ever changed. -->
-  <VideoHero hasVideo={true} focus="50% 30%" />
+  <VideoHero hasVideo={true} focus="50% 30%" book={true} />
 
   <StatBand />
-
-  <!-- The booking calendar, open, straight under the hero: pick a service, a
-       day and a time without leaving the home page. -->
-  <section id="book">
-    <div class="wrap">
-      <div class="sec-head">
-        <span class="eyebrow">Book now</span>
-        <h2>Pick a time. We confirm by text.</h2>
-        <p>Choose the service, a day and a start time. Hold the slot with a deposit or just send the request; prices are quoted on your car, and you can always call during business hours.</p>
-      </div>
-      <BookingCalendar />
-    </div>
-  </section>
 
   <section class="bg-alt">
     <div class="wrap">
