@@ -73,7 +73,30 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
 .foot{font-size:.8rem;color:var(--muted);text-align:center}
 .empty{color:var(--muted);font-size:.92rem}
 .err{color:var(--bad);font-size:.85rem}
-@media (prefers-reduced-motion: reduce){.bar i{transition:none}}
+.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.agent{background:var(--bg);border-radius:10px;padding:10px;min-width:0;display:grid;gap:4px}
+.agent .n{font-family:var(--display);font-weight:700;display:flex;justify-content:space-between;gap:6px;align-items:center}
+.agent .h{font-size:.72rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.agent .t{font-size:.85rem}
+.agent .r{font-size:.78rem;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--hold);flex:none}
+.dot.working{background:var(--warn);animation:pulse 1.2s infinite}
+.dot.done{background:var(--good)}
+.dot.blocked{background:var(--bad)}
+.dot.rejected{background:var(--bad)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+.task{display:grid;gap:4px;padding:10px 0;border-top:1px solid var(--line)}
+.task:first-of-type{border-top:0}
+.task .tt{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.task .tid{font-family:var(--display);font-weight:700}
+.task .tn{font-size:.95rem}
+.chain{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.step{font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;border-radius:6px;padding:2px 7px;background:var(--line);color:var(--muted);white-space:nowrap}
+.step.pass{background:var(--good);color:#fff}
+.step.now{background:var(--warn);color:#1d1a26;animation:pulse 1.2s infinite}
+.step.fail{background:var(--bad);color:#fff}
+.task .tr{font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.bar i{transition:none}.dot.working,.step.now{animation:none}}
 </style>
 
 <div class="wrap">
@@ -113,6 +136,18 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
     <h2>Your yes / no</h2>
     <p class="empty" style="margin:0 0 6px">Anything that spends money, contacts someone, publishes, or creates an account waits here until you tap. Nothing is sent by the team.</p>
     <div id="approvals"><p class="empty">Nothing is waiting on you.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>The team</h2>
+    <p class="empty" id="orch-line" style="margin:0 0 8px">Orchestrator: —</p>
+    <div class="agents" id="agents"><p class="empty">Agent status appears here while the team runs.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Work in the chain</h2>
+    <p class="empty" style="margin:0 0 6px">Every piece of work passes gates: research → legal check → build → quality check → ready for you. Nothing reaches a customer before the quality gate.</p>
+    <div id="tasks"><p class="empty">Tasks appear here while the team runs.</p></div>
   </div>
 
   <div class="card">
@@ -222,6 +257,44 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
     busy.delete(id); renderApprovals(); renderState();
   }
 
+  const AGENT_ORDER=["scout","red-team","builder","qa","growth","auditor","system-qc","scribe"];
+  const STEPS=["scout","red-team","builder","qa","growth","owner","auditor"];
+  let agents=[], tasks=[];
+
+  function renderAgents(){
+    const box=$("#agents"); box.textContent="";
+    const s=state||{};
+    $("#orch-line").textContent="Orchestrator: "+(s.orchestrator||"—");
+    if(!agents.length){ box.appendChild(el("p","empty","Agent status appears here while the team runs.")); return; }
+    const sorted=agents.slice().sort((a,b)=>AGENT_ORDER.indexOf(a.id)-AGENT_ORDER.indexOf(b.id));
+    sorted.forEach(a=>{
+      const c=el("div","agent");
+      const n=el("div","n"); n.appendChild(el("span",null,a.id)); n.appendChild(el("i","dot "+(a.status||"idle"))); c.appendChild(n);
+      c.appendChild(el("div","h",a.hat||""));
+      c.appendChild(el("div","t",(a.status==="working"?"Now: ":"Last: ")+(a.task||"—")));
+      const r=[]; if(a.result) r.push(a.result); if(a.score!=null) r.push("score "+a.score+"/5"); if(a.updatedAt) r.push(when(a.updatedAt));
+      c.appendChild(el("div","r",r.join(" · ")));
+      box.appendChild(c);
+    });
+  }
+
+  function renderTasks(){
+    const box=$("#tasks"); box.textContent="";
+    if(!tasks.length){ box.appendChild(el("p","empty","Tasks appear here while the team runs.")); return; }
+    const order={working:0,blocked:1,rejected:2,ready:3,done:4};
+    tasks.slice().sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||String(b.id).localeCompare(String(a.id))).slice(0,8).forEach(t=>{
+      const c=el("div","task");
+      const tt=el("div","tt"); tt.appendChild(el("span","tid",t.id)); tt.appendChild(el("span","pill "+(t.status==="done"||t.status==="ready"?"yes":t.status==="working"?"open":t.status==="blocked"||t.status==="rejected"?"no":""),t.status||"")); c.appendChild(tt);
+      c.appendChild(el("div","tn",t.title||""));
+      const ch=el("div","chain");
+      const passed=Array.isArray(t.passed)?t.passed:[]; const failed=Array.isArray(t.failed)?t.failed:[];
+      STEPS.forEach(sname=>{ let cls="step"; if(passed.includes(sname)) cls+=" pass"; else if(failed.includes(sname)) cls+=" fail"; else if(t.now===sname) cls+=" now"; ch.appendChild(el("span",cls,sname)); });
+      c.appendChild(ch);
+      if(t.note) c.appendChild(el("div","tr",t.note));
+      box.appendChild(c);
+    });
+  }
+
   function renderFeed(){
     const ul=$("#feed"); ul.textContent="";
     if(!feed.length){ const li=el("li"); li.appendChild(el("span","k","—")); li.appendChild(el("span","empty","The team logs each run here.")); ul.appendChild(li); return; }
@@ -229,7 +302,7 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
   }
 
   async function boot(){
-    renderState(); renderQuests(); renderApprovals(); renderFeed();
+    renderState(); renderQuests(); renderApprovals(); renderFeed(); renderAgents(); renderTasks();
     if(!(window.claude&&window.claude.use)){ $("#offline").hidden=false; return; }
     try{
       const user=await claude.use("user");
@@ -237,7 +310,9 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
     }catch(e){}
     db=await claude.use("db");
     if(!db){ $("#offline").hidden=false; return; }
-    db.doc("board/state").onSnapshot(s=>{ state=s.exists?s.data():null; renderState(); }, showErr);
+    db.doc("board/state").onSnapshot(s=>{ state=s.exists?s.data():null; renderState(); renderAgents(); }, showErr);
+    db.collection("agents").onSnapshot(s=>{ agents=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderAgents(); }, showErr);
+    db.collection("tasks").onSnapshot(s=>{ tasks=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderTasks(); }, showErr);
     db.collection("quests").orderBy("order").onSnapshot(s=>{ quests=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderQuests(); renderState(); }, showErr);
     db.collection("approvals").onSnapshot(s=>{ approvals=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderApprovals(); renderState(); }, showErr);
     db.collection("feed").orderBy("ts","desc").limit(10).onSnapshot(s=>{ feed=s.docs.map(d=>d.data()); renderFeed(); }, showErr);

@@ -11,6 +11,9 @@ URL: https://claude.ai/artifact/XamS5YHiL4nxM4PMu6EVSC (private to the owner). P
 - `quests/q#`: order, title, minutes, xp, expected, why, steps[], asset, status (open|done), doneAt, credited, session
 - `approvals/A-###`: item, why, scope, status (open|yes|no|hold), note, answeredAt
 - `feed/f-<date>-<n>`: ts, kind, text
+- `agents/<name>` (one per agent, ids scout, red-team, builder, qa, growth, auditor, system-qc, scribe): hat, status (idle|working|done|blocked|rejected), task, result, score, updatedAt. **Write `working` + task at every dispatch and the result when the handoff lands**, so the owner sees the team move in real time.
+- `tasks/T-###`: title, status (working|blocked|rejected|ready|done), now (the step lit now), passed[] and failed[] (subset of scout, red-team, builder, qa, growth, owner, auditor), note. Keep the newest 8; delete older done rows.
+- `board/state.orchestrator`: one line on what the Orchestrator is doing now, or "Idle; next run <time>".
 
 ## Rules
 Numbers come only from LEDGER (money), METRICS (counts) and TODAY (quests). XP is credited only for quests the owner marked done; money XP only after auditor CONFIRMED. The page never sends, spends or contacts anyone; a tap on Yes is an approval the Orchestrator logs, nothing more.
