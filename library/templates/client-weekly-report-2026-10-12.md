@@ -1,6 +1,6 @@
 # Weekly Client Report — v2026-10-12
-Status: DRAFT template (T-010). Fill on a phone in under 10 minutes (stopwatch: scoreboard 5 min, rest 5). Needs qa check of every number against the client's own data before the owner sends. One client per file: `clients/<slug>/reports/<date>.md`. Never copy one client's numbers into another.
-Rules: "—" for any number you do not have. Never estimate an actual. Estimates appear only in the ROI sentence and are labeled ESTIMATE. No jargon.
+Status: DRAFT template (T-010). Fill on a phone in under 10 minutes (qa estimate, not yet stopwatched: lookups 4 min + about 550 typed characters 4.5 min). Phone method: copy last week's file, cut This into Last, type only This week; first report: Last = "—". Needs qa check of every number against the client's own data before the owner sends. One client per file: `clients/<slug>/reports/<date>.md`. Never copy one client's numbers into another.
+Rules: "—" for any number you do not have. Never estimate an actual. Estimates appear only in the ROI sentence and are labeled ESTIMATE. No jargon. Length caps that hold the 10 minutes (HYPOTHESIS, UNVERIFIED until stopwatched): each win at most 50 characters, next fix at most 70, footer at most 60, quest at most 50 (reuse a saved quest, change only the number), ROI sentence: type only the bracketed values.
 
 ```
 [CLIENT BUSINESS] — Week of [Mon date] to [Sun date]
@@ -28,7 +28,7 @@ Phase: [0 diagnosis / 1 free & organic / 2 paid / 3 compound] · Gate: [X]/5 · 
 | ROAS | — | — | — | paid only; else "n/a" |
 | Reviews (count + avg) | — (— avg) | — | — | Google profile |
 | Referrals | — | — | — | client |
-Light rule: 🟢 up or on plan · 🟡 flat/unknown · 🔴 down or missing 2 weeks in a row. HYPOTHESIS rule; adjust after 4 reports.
+Light rule (HYPOTHESIS, adjust after 4 reports): 🟢 up more than 10% or on plan · 🟡 within 10% or unknown · 🔴 down more than 10%, or missing 2 weeks where the client should have it. Cost rows (CPL, CAC): down is 🟢. Rows that do not apply this phase (CAC, ROAS, CPL with $0 ads): write "n/a" and leave Light "—".
 Below the table (MOS scoreboard footer): Top 3 winners [ ] · Bottom 3 (fix/kill) [ ] · #1 bottleneck [one line] · Gate status [X]/5.
 
 ## 3 wins (real, from the table or work done this week)
@@ -41,11 +41,13 @@ Below the table (MOS scoreboard footer): Top 3 winners [ ] · Bottom 3 (fix/kill
 ➡️ [one action, who does it, by when]
 
 ## 1 ROI sentence
-"You paid $[X] this [week/month]; we saw [Y leads, from the table] and an ESTIMATE of $[Z] in revenue (assumption: [Y × your avg job $___ × close rate ___%, from your numbers]). Estimates are not guarantees." If no lead or revenue data yet: "You paid $[X]; lead and revenue numbers are — until [source] is shared. Next week we add [tracking step]."
+If Revenue and Booked jobs are in the table, write "You paid $[X]; the table shows [Y] leads, [J] booked jobs and $[R] revenue you reported (client-reported)." Use ESTIMATE only for revenue the client has not reported.
+Otherwise: "You paid $[X] this [week/month]; we saw [Y leads, from the table] and an ESTIMATE of $[Z] in revenue (assumption: [Y × your avg job $___ × close rate ___%, from your numbers]). Estimates are not guarantees." If no lead or revenue data yet: "You paid $[X]; lead and revenue numbers are — until [source] is shared. Next week we add [tracking step]."
 
 ## 1 client quest (their win, under 15 min)
 🎯 [e.g. "Ask 3 happy customers for a Google review today; text them the link I sent."] Reply "done" and I'll count it. (MOS: suggest the client's own quests.) Review wording: ask every customer, no reward, no picking only happy ones.
 
 ## Send block (owner, by hand)
 Channel: client's text or email thread (existing client only). End line: "Reply STOP to end these reports; to cancel service, text or email me anytime."
+Send format (no table): one line per row, "🟢 GBP calls 21 (was 25)". Put the "Where I read it" column in the owner copy only.
 Owner log, one line: `report: [client] · week [date] · sent Y/N · replied Y/N · quest done Y/N · renewal Y/N`
