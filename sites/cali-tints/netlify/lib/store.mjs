@@ -50,6 +50,19 @@ export async function saveLead(lead) {
   return lead;
 }
 
+/** Up to 20 short label → value pairs from the booking questions. */
+export function detailsFrom(raw) {
+  const out = {};
+  if (raw && typeof raw === 'object') {
+    for (const [k, v] of Object.entries(raw).slice(0, 20)) {
+      if (typeof k === 'string' && (typeof v === 'string' || typeof v === 'number')) out[k.slice(0, 40)] = String(v).slice(0, 160);
+    }
+  } else if (typeof raw === 'string') {
+    raw.split('\n').slice(0, 20).forEach((line) => { const i = line.indexOf(':'); if (i > 0) out[line.slice(0, i).trim().slice(0, 40)] = line.slice(i + 1).trim().slice(0, 160); });
+  }
+  return out;
+}
+
 /** Shape a public submission into a lead document. Everything is a short string. */
 export function leadFromInput(input, source) {
   const s = (v, n = 200) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
@@ -62,6 +75,7 @@ export function leadFromInput(input, source) {
     vehicle: s(input.vehicle, 120), service: s(input.service, 80),
     date: s(input.date, 60), time: s(input.time, 20), duration: s(input.duration, 20),
     note: s(input.message || input.note, 600),
+    details: detailsFrom(input.details),     // { "Which windows": "Full car", ... }
     quote_cents: 0,                          // the owner fills this in after seeing the car
     deposit: { status: 'none', amount_cents: 0 },   // none | pending | paid
     payments: [],                            // { kind: deposit|balance|full, amount_cents, when, ref }

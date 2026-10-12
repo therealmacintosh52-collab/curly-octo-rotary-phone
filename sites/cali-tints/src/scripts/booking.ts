@@ -8,10 +8,12 @@
 import { shopNow, fmtHour, openState } from '../lib/hours';
 
 interface Svc { slug: string; name: string; minutes: number }
+interface Q { key: string; label: string; type: 'one' | 'many' | 'text'; options?: string[]; default?: string; placeholder?: string }
 interface Cfg {
   tz: string; hours: ([number, number] | null)[]; slot: number; lead: number; weeks: number;
   phone: string; phoneLink: string; name: string; address: string; services: Svc[]; placeholder: boolean;
   endpoint: string; thanks: string; deposits: Record<string, number>; currency: string; fullOptional: boolean;
+  questions: Record<string, Q[]>; common: Q[];
 }
 const LEADS = '/.netlify/functions/leads';
 const CHECKOUT = '/.netlify/functions/checkout';
@@ -50,17 +52,87 @@ function boot(el: HTMLElement) {
   const sel = el.querySelector<HTMLSelectElement>('select[name=svc]');
   if (sel) {
     if (service) sel.value = service.slug; else service = cfg.services.find((s) => s.slug === sel.value) ?? null;
-    sel.addEventListener('change', () => { service = cfg.services.find((s) => s.slug === sel.value) ?? null; time = null; pickFirst(); renderCal(); renderSlots(); renderSummary(); });
+    sel.addEventListener('change', () => { service = cfg.services.find((s) => s.slug === sel.value) ?? null; time = null; pickFirst(); renderCal(); renderSlots(); renderQuestions(); });
   }
   el.querySelectorAll<HTMLInputElement>('input[name=svc]').forEach((r) => {
     if (service && r.value === service.slug) r.checked = true;
     r.addEventListener('change', () => {
       service = cfg.services.find((s) => s.slug === r.value) ?? null;
-      time = null; renderSlots(); renderSummary();
+      time = null; renderSlots(); renderQuestions();
       el.querySelector('[data-step=day]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
   if (q.get('note')) f('note').value = q.get('note')!.slice(0, 300);
+
+  // ----------------------------------------------------------- specifics
+  // One answer per question key. Defaults first, then anything the query
+  // string carries (the assistant and the service widgets link in with
+  // ?shade=20%&film=Carbon&body=SUV …), then whatever the visitor taps.
+  const qbox = el.querySelector<HTMLElement>('[data-questions]')!;
+  const details: Record<string, string | string[]> = {};
+  const allQs = (): Q[] => [...((service && cfg.questions[service.slug]) || []), ...cfg.common];
+  const match = (qq: Q, v: string) => qq.options?.find((o) => o.toLowerCase() === v.toLowerCase() || o.toLowerCase().startsWith(v.toLowerCase()));
+  function seedDetails() {
+    for (const qq of allQs()) {
+      if (details[qq.key] !== undefined) continue;
+      const fromQ = q.get(qq.key);
+      if (fromQ) {
+        if (qq.type === 'many') { const picks = fromQ.split(',').map((x) => match(qq, x.trim())).filter(Boolean) as string[]; if (picks.length) { details[qq.key] = picks; continue; } }
+        else if (qq.type === 'text') { details[qq.key] = fromQ.slice(0, 120); continue; }
+        else { const m = match(qq, fromQ); if (m) { details[qq.key] = m; continue; } }
+      }
+      if (qq.type === 'one' && qq.default) details[qq.key] = qq.default;
+    }
+  }
+  ['year', 'make', 'model'].forEach((k) => { const v = q.get(k); const i = el.querySelector<HTMLInputElement>(`#bk-${k}`); if (v && i) i.value = v.slice(0, 40); });
+
+  function renderQuestions() {
+    seedDetails();
+    qbox.innerHTML = '';
+    const longJob = (service?.minutes ?? 0) >= 360;
+    if (longJob) details.wait = 'Drop off';
+    for (const qq of allQs()) {
+      if (qq.key === 'doors' && details.body === 'Motorcycle') continue;
+      const fs = document.createElement('fieldset'); fs.className = `qa qa--${qq.type}`;
+      const lg = document.createElement('legend'); lg.textContent = qq.label; fs.appendChild(lg);
+      if (qq.type === 'text') {
+        const i = document.createElement('input'); i.type = 'text'; i.maxLength = 120; i.placeholder = qq.placeholder || ''; i.value = String(details[qq.key] || ''); i.className = 'qa__text'; i.setAttribute('aria-label', qq.label);
+        i.addEventListener('input', () => { details[qq.key] = i.value; renderSummary(); });
+        fs.appendChild(i);
+      } else {
+        const row = document.createElement('div'); row.className = 'qa__opts';
+        for (const opt of qq.options || []) {
+          const lab = document.createElement('label'); lab.className = 'chip';
+          const inp = document.createElement('input'); inp.type = qq.type === 'one' ? 'radio' : 'checkbox'; inp.name = `q_${qq.key}`; inp.value = opt;
+          const cur = details[qq.key];
+          inp.checked = qq.type === 'one' ? cur === opt : Array.isArray(cur) && cur.includes(opt);
+          if (qq.key === 'wait' && longJob && opt !== 'Drop off') inp.disabled = true;
+          inp.addEventListener('change', () => {
+            if (qq.type === 'one') details[qq.key] = opt;
+            else { const set = new Set(Array.isArray(details[qq.key]) ? (details[qq.key] as string[]) : []); inp.checked ? set.add(opt) : set.delete(opt); details[qq.key] = Array.from(set); }
+            if (qq.key === 'body') renderQuestions(); else renderSummary();
+          });
+          const sp = document.createElement('span'); sp.textContent = opt;
+          lab.append(inp, sp); row.appendChild(lab);
+        }
+        fs.appendChild(row);
+      }
+      qbox.appendChild(fs);
+    }
+    renderSummary();
+  }
+  /** Answers as label → value, for the summary, the email, the text and the CRM. */
+  function detailsOut(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const qq of allQs()) {
+      if (qq.key === 'doors' && details.body === 'Motorcycle') continue;
+      const v = details[qq.key];
+      const str = Array.isArray(v) ? v.join(', ') : (v || '');
+      if (str) out[qq.label] = str;
+    }
+    return out;
+  }
+  const vehicleStr = () => ['year', 'make', 'model'].map((k) => (el.querySelector<HTMLInputElement>(`#bk-${k}`)?.value || '').trim()).filter(Boolean).join(' ');
 
   const isOpenDay = (y: number, m: number, d: number) => {
     const utc = Date.UTC(y, m, d);
@@ -174,8 +246,16 @@ function boot(el: HTMLElement) {
     const dow = DAYS[new Date(Date.UTC(day!.y, day!.m, day!.d)).getUTCDay()];
     const dateStr = `${dow}, ${MONTHS[day!.m]} ${day!.d}, ${day!.y}`;
     const timeStr = fmtHour(time! / 60);
-    summary.innerHTML = `<b>${service!.name}</b><br>${dateStr} at ${timeStr}<br><small>${service!.minutes >= 360 ? 'Drop-off; we text when it is ready.' : `Allow about ${Math.round(service!.minutes / 60)} hour${service!.minutes >= 120 ? 's' : ''}.`}</small>`;
+    const d = detailsOut();
+    const svcQs = (cfg.questions[service!.slug] || []).map((qq) => d[qq.label]).filter(Boolean);
+    const veh = vehicleStr();
+    const car = [veh, [details.doors && details.body !== 'Motorcycle' ? `${details.doors}-door` : '', String(details.body || '').toLowerCase()].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const esc = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
+    summary.innerHTML = `<b>${esc(service!.name)}</b>${svcQs.length ? ` · ${esc(svcQs.join(' · '))}` : ''}<br>${car ? esc(car) + '<br>' : '<span class="book__summary-miss">Add the year, make and model below.</span><br>'}${dateStr} at ${timeStr} · ${esc(String(details.wait || ''))}<br><small>${service!.minutes >= 360 ? 'Drop-off; we text when it is ready.' : `Allow about ${Math.round(service!.minutes / 60)} hour${service!.minutes >= 120 ? 's' : ''}.`}${details.confirm ? ` We confirm by ${String(details.confirm).toLowerCase()}.` : ''}</small>`;
     f('service').value = service!.name; f('date').value = dateStr; f('time').value = timeStr;
+    f('vehicle').value = car;
+    const detailLines = Object.entries(d).map(([k, v]) => `${k}: ${v}`).join('\n');
+    f('details').value = detailLines;
     f('duration').value = `${service!.minutes} minutes`;
     f('subject').value = `Booking request: ${service!.name}, ${dateStr} ${timeStr}`;
     // ISO-ish local stamps for calendar links (shop local time, no zone shift).
@@ -185,18 +265,18 @@ function boot(el: HTMLElement) {
     const end = `${day!.y}${pad(day!.m + 1)}${pad(day!.d)}T${pad(Math.floor(endMin / 60))}${pad(endMin % 60)}00`;
     const gcal = new URL('https://calendar.google.com/calendar/render');
     gcal.searchParams.set('action', 'TEMPLATE');
-    gcal.searchParams.set('text', `${service!.name} — ${f('vehicle' as never)?.value || 'customer vehicle'}`);
+    gcal.searchParams.set('text', `${service!.name} — ${car || 'customer vehicle'}`);
     gcal.searchParams.set('dates', `${start}/${end}`);
     gcal.searchParams.set('ctz', cfg.tz);
     gcal.searchParams.set('location', cfg.address);
-    gcal.searchParams.set('details', `Booking request via ${location.host}. ${f('note').value}`);
+    gcal.searchParams.set('details', `Booking request via ${location.host}.\n${detailLines}\n${f('note').value}`.trim());
     f('gcal').value = gcal.href;
 
-    const body = `Booking request: ${service!.name} on ${dateStr} at ${timeStr}. Vehicle: ${(el.querySelector<HTMLInputElement>('#bk-vehicle')?.value) || '(add vehicle)'}. ${f('note').value}`.trim();
+    const body = `Booking request: ${service!.name} on ${dateStr} at ${timeStr}. Vehicle: ${car || '(add vehicle)'}. ${Object.entries(d).map(([k, v]) => `${k}: ${v}`).join('; ')}. ${f('note').value}`.trim();
     (el.querySelector<HTMLAnchorElement>('[data-sms]')!).href = `sms:${cfg.phoneLink}?&body=${encodeURIComponent(body)}`;
     const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Cali Tints//Booking//EN', 'BEGIN:VEVENT',
       `UID:${start}-${service!.slug}@calitints`, `DTSTAMP:${start}`, `DTSTART;TZID=${cfg.tz}:${start}`, `DTEND;TZID=${cfg.tz}:${end}`,
-      `SUMMARY:${service!.name} at ${cfg.name}`, `LOCATION:${cfg.address}`, `DESCRIPTION:Requested online. The shop confirms by text or call. ${cfg.phone}`,
+      `SUMMARY:${service!.name} at ${cfg.name}`, `LOCATION:${cfg.address}`, `DESCRIPTION:${[car, ...Object.entries(d).map(([k, v]) => `${k}: ${v}`)].filter(Boolean).join('\\n')}\\nThe shop confirms by text or call. ${cfg.phone}`,
       'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
     (el.querySelector<HTMLAnchorElement>('[data-ics]')!).href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
     alt.hidden = false;
@@ -219,8 +299,8 @@ function boot(el: HTMLElement) {
     if (qt && /^\d{2}:\d{2}$/.test(qt)) { const [hh, mm] = qt.split(':').map(Number); time = hh * 60 + mm; }
   }
   if (!day) pickFirst();
-  renderCal(); renderSlots(); renderSummary();
-  el.querySelectorAll<HTMLInputElement>('#bk-vehicle, [data-f-note]').forEach((i) => i.addEventListener('input', () => { if (!submit.disabled) renderSummary(); }));
+  renderCal(); renderSlots(); renderQuestions();
+  el.querySelectorAll<HTMLInputElement>('#bk-year, #bk-make, #bk-model, [data-f-note]').forEach((i) => i.addEventListener('input', () => { if (!submit.disabled) renderSummary(); }));
 
   // ------------------------------------------------------------ sending
   // Order: save the lead in the CRM (if the host runs it), then either send
@@ -253,7 +333,8 @@ function boot(el: HTMLElement) {
     if ((form.querySelector<HTMLInputElement>('input[name=_gotcha]')?.value) || (form.querySelector<HTMLInputElement>('input[name=_honey]')?.value)) return;
     if (submit.disabled) return;
     const fd = new FormData(form);
-    const payload = Object.fromEntries(Array.from(fd.entries()).filter(([k]) => !k.startsWith('_')).map(([k, v]) => [k, String(v)]));
+    const payload: Record<string, unknown> = Object.fromEntries(Array.from(fd.entries()).filter(([k]) => !k.startsWith('_') && !k.startsWith('q_') && !k.startsWith('veh_')).map(([k, v]) => [k, String(v)]));
+    payload.details = detailsOut();
     const btnLabel = submit.textContent; submit.disabled = true; submit.textContent = 'Sending…';
 
     let leadId = '';

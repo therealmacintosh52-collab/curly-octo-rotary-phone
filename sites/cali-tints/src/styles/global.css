@@ -599,3 +599,29 @@ a.card:hover { border-color: rgba(128,216,80,.45); box-shadow: 0 24px 60px -24px
   .hero-v__inner .wrap { grid-template-columns: minmax(0, 1.28fr) minmax(0, .72fr); }
 }
 @media (min-width: 941px) and (max-width: 1180px) { .hero-v__book { width: 360px; } }
+
+/* ------------------------------------------------------ booking specifics */
+.book__hint { font-size: .86rem; color: var(--slate); margin: -6px 0 12px; }
+.qa-list { display: grid; gap: 12px; }
+.qa { border: 0; padding: 0; margin: 0; min-width: 0; }
+.qa legend { font-family: var(--font-display); font-weight: 700; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; padding: 0; }
+.qa__opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { position: relative; display: inline-flex; }
+.chip input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.chip span { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-family: var(--font-display); font-weight: 700; font-size: .82rem; line-height: 1.2; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.chip:hover span { border-color: var(--accent); }
+.chip:has(input:checked) span { background: var(--accent-vivid); color: var(--ink); border-color: var(--accent-vivid); }
+.chip:has(input:focus-visible) span { outline: 3px solid var(--accent-vivid); outline-offset: 2px; }
+.chip:has(input:disabled) span { opacity: .35; cursor: default; }
+.qa__text { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper-2); color: var(--text); font: inherit; font-size: .9rem; }
+.book__vehicle { display: grid; grid-template-columns: 86px 1fr 1fr; gap: 8px; }
+.book__summary-miss { color: var(--slate); font-size: .86rem; }
+.book--compact .qa-list { gap: 9px; }
+.book--compact .chip span { padding: 5px 10px; font-size: .76rem; }
+.book--compact .qa legend { font-size: .68rem; margin-bottom: 4px; }
+.book--compact .book__hint { font-size: .78rem; margin: -4px 0 8px; }
+.lead__details { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 14px; margin: 0; font-size: .84rem; }
+.lead__details > div { display: flex; gap: 6px; min-width: 0; }
+.lead__details dt { color: var(--slate); flex: none; }
+.lead__details dt::after { content: ':'; }
+.lead__details dd { margin: 0; color: var(--text); font-weight: 600; }

@@ -6,7 +6,7 @@
  *   GET    (anyone)  ?ping=1 → { ok, crm: true|false } so the site knows the CRM is live
  * Owner calls carry x-admin-key = ADMIN_PASSWORD.
  */
-import { CORS, json, isOwner, listLeads, getLead, saveLead, leadFromInput, STATUSES } from '../lib/store.mjs';
+import { CORS, json, isOwner, listLeads, getLead, saveLead, leadFromInput, detailsFrom, STATUSES } from '../lib/store.mjs';
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 204, headers: CORS });
@@ -55,6 +55,7 @@ export default async (req) => {
     for (const k of ['name', 'phone', 'email', 'vehicle', 'service', 'date', 'time']) {
       if (typeof body[k] === 'string') lead[k] = body[k].trim().slice(0, 120);
     }
+    if (body.details) lead.details = { ...(lead.details || {}), ...detailsFrom(body.details) };
     if (typeof body.note === 'string' && body.note.trim()) lead.notes.push({ when: new Date().toISOString(), text: body.note.trim().slice(0, 600) });
     if (body.payment && Number.isFinite(body.payment.amount_cents)) {
       // Cash or card taken at the counter, recorded by hand.

@@ -10,10 +10,13 @@ document.querySelectorAll<HTMLElement>('[data-widget]').forEach((w) => {
   const book = w.querySelector<HTMLAnchorElement>('[data-book]')!;
   const $ = <T extends Element>(s: string) => w.querySelector<T>(s)!;
   const $$ = <T extends Element>(s: string) => Array.from(w.querySelectorAll<T>(s));
-  const set = (text: string) => {
+  // "Your pick" line + the same choices as booking-form answers (?shade=20%&film=Carbon …),
+  // so the booking page lands with those chips already picked.
+  const set = (text: string, params: Record<string, string> = {}) => {
     out.textContent = text;
-    const u = new URL(book.getAttribute('href')!, location.origin);
+    const u = new URL('/book/', location.origin);
     u.searchParams.set('service', slug); u.searchParams.set('note', text.slice(0, 300));
+    for (const [k, v] of Object.entries(params)) if (v) u.searchParams.set(k, v);
     book.setAttribute('href', u.pathname + u.search);
   };
 
@@ -32,7 +35,7 @@ document.querySelectorAll<HTMLElement>('[data-widget]').forEach((w) => {
       outV.textContent = `${v}%`; txt.textContent = `${v}% VLT`;
       rearLegal.textContent = `Rear at ${v}%: legal (front doors forward stay at 70%)`;
       const film = (w.querySelector<HTMLInputElement>('input[name=film]:checked')?.value) || 'Ceramic';
-      set(`${film} film, ${v}% on the rear and back glass, fronts at the legal 70%`);
+      set(`${film} film, ${v}% on the rear and back glass, fronts at the legal 70%`, { windows: 'Full car', shade: `${v}%`, film });
     };
     range.addEventListener('input', paint); $$<HTMLInputElement>('input[name=film]').forEach((r) => r.addEventListener('change', paint)); paint();
   }
@@ -45,7 +48,7 @@ document.querySelectorAll<HTMLElement>('[data-widget]').forEach((w) => {
       const cover = w.querySelector<HTMLInputElement>('input[name=cover]:checked')!.value;
       paintEl.setAttribute('fill', col.dataset.hex!);
       gloss.setAttribute('opacity', finish === 'Gloss' ? '1' : finish === 'Satin' ? '.45' : '.12');
-      set(`${cover}: ${col.value}, ${finish.toLowerCase()} finish`);
+      set(`${cover}: ${col.value}, ${finish.toLowerCase()} finish`, { coverage: cover === 'Roof only' ? 'Roof' : cover === 'Hood only' ? 'Hood' : cover, finish, colour: col.value });
     };
     $$<HTMLInputElement>('input[type=radio]').forEach((r) => r.addEventListener('change', paint)); paint();
   }
@@ -58,7 +61,7 @@ document.querySelectorAll<HTMLElement>('[data-widget]').forEach((w) => {
       svgName.textContent = n.toUpperCase().slice(0, 24); svgTag.textContent = t.slice(0, 28);
       svgName.setAttribute('font-size', n.length > 16 ? '11' : '14');
       const c = Math.max(1, Number(count.value) || 1);
-      set(`${c} vehicle${c > 1 ? 's' : ''} lettered for ${n}${t ? ` (${t})` : ''}`);
+      set(`${c} vehicle${c > 1 ? 's' : ''} lettered for ${n}${t ? ` (${t})` : ''}`, { count: c === 1 ? '1' : c <= 3 ? '2–3' : c <= 10 ? '4–10' : '10+', coverage: 'Lettering only' });
     };
     [name, tag, count].forEach((i) => i.addEventListener('input', paint)); paint();
   }
@@ -72,7 +75,7 @@ document.querySelectorAll<HTMLElement>('[data-widget]').forEach((w) => {
       const front = ['hood', 'bumper', 'fenders', 'mirrors'].every((z) => ids.includes(z));
       const pkg = ids.length === 7 ? 'Full-car film' : front && ids.length === 4 ? 'Front package' : front ? 'Front package plus extras' : ids.length ? 'Custom coverage' : 'Nothing selected';
       hint.textContent = ids.length === 7 ? 'Full car: every painted panel, for cars kept a long time or dark colours that show every chip.' : front && ids.length === 4 ? 'Front package: hood, bumper, fenders and mirrors. That is where the chips land.' : ids.length ? 'Custom: we cut film for exactly these panels.' : 'Tap a panel on the car or tick a box.';
-      set(`${pkg}: ${on.map((b) => b.value.toLowerCase()).join(', ') || 'none'}`);
+      set(`${pkg}: ${on.map((b) => b.value.toLowerCase()).join(', ') || 'none'}`, { coverage: pkg === 'Front package plus extras' ? 'Front + extras' : pkg === 'Full-car film' ? 'Full car' : pkg === 'Custom coverage' ? 'Custom' : 'Front package' });
     };
     boxes.forEach((b) => b.addEventListener('change', paint));
     shapes.forEach((s) => s.addEventListener('click', () => { const b = boxes.find((x) => x.dataset.zoneBox === s.dataset.zone); if (b) { b.checked = !b.checked; paint(); } }));
@@ -102,14 +105,15 @@ document.querySelectorAll<HTMLElement>('[data-widget]').forEach((w) => {
       const r = w.querySelector<HTMLInputElement>('input[name=stage]:checked')!;
       const sw = Number(r.dataset.swirl);
       swirls.setAttribute('opacity', String(sw)); shine.setAttribute('opacity', String(0.08 + (0.35 - sw) * 0.9));
-      set(r.value);
+      set(r.value, { stage: r.value.startsWith('One') ? 'One' : r.value.startsWith('Two') ? 'Two' : 'Three' });
     };
     $$<HTMLInputElement>('input[name=stage]').forEach((r) => r.addEventListener('change', paint)); paint();
   }
 
   if (type === 'builder') {
     const items = $$<HTMLInputElement>('[data-item]');
-    const paint = () => { const on = items.filter((i) => i.checked).map((i) => i.value); set(on.length ? on.join(', ') : 'Tick what the car needs'); };
+    const key = slug === 'detailing' ? 'addons' : slug === 'upholstery' ? 'areas' : 'items';
+    const paint = () => { const on = items.filter((i) => i.checked).map((i) => i.value); set(on.length ? on.join(', ') : 'Tick what the car needs', { [key]: on.join(',') }); };
     items.forEach((i) => i.addEventListener('change', paint)); paint();
   }
 
@@ -118,7 +122,8 @@ document.querySelectorAll<HTMLElement>('[data-widget]').forEach((w) => {
     const paint = () => {
       const on = btns.filter((b) => b.getAttribute('aria-pressed') === 'true');
       answers.forEach((a) => { a.hidden = !on.some((b) => b.dataset.symptom === a.dataset.answer); });
-      set(on.length ? on.map((b) => b.textContent!.trim()).join(', ') : 'Tap what you see');
+      const picked = on.map((b) => b.textContent!.trim());
+      set(picked.length ? picked.join(', ') : 'Tap what you see', slug === 'tint-removal-repair' ? { problem: picked.join(',') } : { type: picked[0] || '', symptoms: picked.join(', ') });
     };
     btns.forEach((b) => b.addEventListener('click', () => { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); paint(); }));
     paint();

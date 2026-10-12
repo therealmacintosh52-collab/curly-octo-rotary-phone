@@ -248,7 +248,57 @@
         "heading": "Pick your shade",
         "text": "Slide to see how dark each window goes. California allows 70% or lighter on the front side windows; behind that, your call."
       },
-      "deposit_cents": 5000
+      "deposit_cents": 5000,
+      "booking_questions": [
+        {
+          "key": "windows",
+          "label": "Which windows",
+          "type": "one",
+          "options": [
+            "Full car",
+            "Front two only",
+            "Rear + back glass",
+            "Windshield strip",
+            "Not sure"
+          ],
+          "default": "Full car"
+        },
+        {
+          "key": "shade",
+          "label": "Shade",
+          "type": "one",
+          "options": [
+            "5%",
+            "20%",
+            "35%",
+            "50%",
+            "70% (legal fronts)",
+            "Ask me"
+          ],
+          "default": "20%"
+        },
+        {
+          "key": "film",
+          "label": "Film",
+          "type": "one",
+          "options": [
+            "Ceramic",
+            "Carbon",
+            "Not sure"
+          ],
+          "default": "Ceramic"
+        },
+        {
+          "key": "old_tint",
+          "label": "Old tint on the car?",
+          "type": "one",
+          "options": [
+            "No",
+            "Yes, remove it first"
+          ],
+          "default": "No"
+        }
+      ]
     },
     {
       "slug": "tint-removal-repair",
@@ -347,7 +397,43 @@
           ]
         ]
       },
-      "deposit_cents": 5000
+      "deposit_cents": 5000,
+      "booking_questions": [
+        {
+          "key": "problem",
+          "label": "What's wrong",
+          "type": "many",
+          "options": [
+            "Purple or faded",
+            "Bubbling",
+            "Peeling",
+            "Scratched",
+            "Fix-it ticket"
+          ]
+        },
+        {
+          "key": "windows",
+          "label": "Windows affected",
+          "type": "one",
+          "options": [
+            "One window",
+            "Rear only",
+            "Whole car"
+          ],
+          "default": "Whole car"
+        },
+        {
+          "key": "retint",
+          "label": "Re-tint after?",
+          "type": "one",
+          "options": [
+            "Yes",
+            "No",
+            "Not sure"
+          ],
+          "default": "Yes"
+        }
+      ]
     },
     {
       "slug": "vinyl-wraps",
@@ -428,7 +514,52 @@
         "heading": "Try a colour",
         "text": "Pick a colour and finish, then how much of the car it covers."
       },
-      "deposit_cents": 15000
+      "deposit_cents": 15000,
+      "booking_questions": [
+        {
+          "key": "coverage",
+          "label": "Coverage",
+          "type": "one",
+          "options": [
+            "Full wrap",
+            "Roof",
+            "Hood",
+            "Chrome delete",
+            "Stripes or accents",
+            "Not sure"
+          ],
+          "default": "Full wrap"
+        },
+        {
+          "key": "finish",
+          "label": "Finish",
+          "type": "one",
+          "options": [
+            "Gloss",
+            "Satin",
+            "Matte",
+            "Carbon",
+            "Not sure"
+          ],
+          "default": "Gloss"
+        },
+        {
+          "key": "colour",
+          "label": "Colour in mind",
+          "type": "text",
+          "placeholder": "e.g. Nardo grey, satin black"
+        },
+        {
+          "key": "paint",
+          "label": "Paint underneath",
+          "type": "one",
+          "options": [
+            "Good",
+            "Chips or peeling"
+          ],
+          "default": "Good"
+        }
+      ]
     },
     {
       "slug": "commercial-wraps",
@@ -504,7 +635,55 @@
         "heading": "Put your name on the van",
         "text": "Type your business name and phone number to see it on a panel."
       },
-      "deposit_cents": 15000
+      "deposit_cents": 15000,
+      "booking_questions": [
+        {
+          "key": "count",
+          "label": "How many vehicles",
+          "type": "one",
+          "options": [
+            "1",
+            "2–3",
+            "4–10",
+            "10+"
+          ],
+          "default": "1"
+        },
+        {
+          "key": "vehicle_type",
+          "label": "Vehicle type",
+          "type": "many",
+          "options": [
+            "Van",
+            "Pickup",
+            "Box truck",
+            "Trailer",
+            "Car",
+            "Bus"
+          ]
+        },
+        {
+          "key": "coverage",
+          "label": "Coverage",
+          "type": "one",
+          "options": [
+            "Lettering only",
+            "Partial",
+            "Full"
+          ],
+          "default": "Partial"
+        },
+        {
+          "key": "artwork",
+          "label": "Artwork",
+          "type": "one",
+          "options": [
+            "Ready to print",
+            "Need a design"
+          ],
+          "default": "Need a design"
+        }
+      ]
     },
     {
       "slug": "paint-protection-film",
@@ -580,7 +759,42 @@
         "heading": "Choose what to protect",
         "text": "Tap the panels. The front end takes almost all the rock chips; the rest is for people who keep the car a long time."
       },
-      "deposit_cents": 10000
+      "deposit_cents": 10000,
+      "booking_questions": [
+        {
+          "key": "coverage",
+          "label": "Coverage",
+          "type": "one",
+          "options": [
+            "Front package",
+            "Front + extras",
+            "Full car",
+            "Custom"
+          ],
+          "default": "Front package"
+        },
+        {
+          "key": "finish",
+          "label": "Finish",
+          "type": "one",
+          "options": [
+            "Gloss",
+            "Matte"
+          ],
+          "default": "Gloss"
+        },
+        {
+          "key": "age",
+          "label": "Car age",
+          "type": "one",
+          "options": [
+            "Brand new",
+            "Under a year",
+            "Older"
+          ],
+          "default": "Brand new"
+        }
+      ]
     },
     {
       "slug": "ceramic-coating",
@@ -656,7 +870,31 @@
         "heading": "How long does protection last?",
         "text": "Drag across the years to compare wax, a sealant and a ceramic coating."
       },
-      "deposit_cents": 10000
+      "deposit_cents": 10000,
+      "booking_questions": [
+        {
+          "key": "coverage",
+          "label": "Coverage",
+          "type": "one",
+          "options": [
+            "Paint",
+            "Paint + wheels + glass",
+            "Everything incl. interior"
+          ],
+          "default": "Paint"
+        },
+        {
+          "key": "paint",
+          "label": "Paint condition",
+          "type": "one",
+          "options": [
+            "New",
+            "Light swirls",
+            "Needs correction first"
+          ],
+          "default": "Light swirls"
+        }
+      ]
     },
     {
       "slug": "detailing",
@@ -744,7 +982,43 @@
           "Machine polish (light)"
         ]
       },
-      "deposit_cents": 5000
+      "deposit_cents": 5000,
+      "booking_questions": [
+        {
+          "key": "package",
+          "label": "Package",
+          "type": "one",
+          "options": [
+            "Interior",
+            "Exterior",
+            "Both",
+            "Full with polish"
+          ],
+          "default": "Both"
+        },
+        {
+          "key": "addons",
+          "label": "Add-ons",
+          "type": "many",
+          "options": [
+            "Engine bay",
+            "Pet hair",
+            "Odour",
+            "Headliner",
+            "Shampoo seats"
+          ]
+        },
+        {
+          "key": "condition",
+          "label": "Condition",
+          "type": "one",
+          "options": [
+            "Light",
+            "Heavy"
+          ],
+          "default": "Light"
+        }
+      ]
     },
     {
       "slug": "paint-correction",
@@ -820,7 +1094,33 @@
         "heading": "How much correction?",
         "text": "Pick a stage to see what it removes."
       },
-      "deposit_cents": 7500
+      "deposit_cents": 7500,
+      "booking_questions": [
+        {
+          "key": "stage",
+          "label": "Stage",
+          "type": "one",
+          "options": [
+            "One",
+            "Two",
+            "Three",
+            "Not sure"
+          ],
+          "default": "Not sure"
+        },
+        {
+          "key": "issues",
+          "label": "Issues",
+          "type": "many",
+          "options": [
+            "Swirls",
+            "Scratches",
+            "Water spots",
+            "Oxidation",
+            "Buffer trails"
+          ]
+        }
+      ]
     },
     {
       "slug": "customization",
@@ -911,7 +1211,35 @@
           "Window visors and accessories"
         ]
       },
-      "deposit_cents": 5000
+      "deposit_cents": 5000,
+      "booking_questions": [
+        {
+          "key": "items",
+          "label": "Items",
+          "type": "many",
+          "options": [
+            "Smoked tail lights",
+            "Smoked headlights",
+            "Chrome delete",
+            "Dash cam",
+            "Head unit / CarPlay",
+            "Speakers / sub",
+            "Remote start",
+            "LED interior",
+            "Other"
+          ]
+        },
+        {
+          "key": "parts",
+          "label": "Parts",
+          "type": "one",
+          "options": [
+            "I have them",
+            "Need them supplied"
+          ],
+          "default": "Need them supplied"
+        }
+      ]
     },
     {
       "slug": "upholstery",
@@ -1002,7 +1330,47 @@
           "Full re-trim in cloth"
         ]
       },
-      "deposit_cents": 10000
+      "deposit_cents": 10000,
+      "booking_questions": [
+        {
+          "key": "areas",
+          "label": "Areas",
+          "type": "many",
+          "options": [
+            "Driver seat",
+            "Passenger seat",
+            "Rear bench",
+            "Door cards",
+            "Steering wheel",
+            "Headliner",
+            "Carpet"
+          ]
+        },
+        {
+          "key": "material",
+          "label": "Material",
+          "type": "one",
+          "options": [
+            "Match existing",
+            "Leather",
+            "Cloth",
+            "Alcantara",
+            "Not sure"
+          ],
+          "default": "Match existing"
+        },
+        {
+          "key": "problem",
+          "label": "Problem",
+          "type": "one",
+          "options": [
+            "Tear or crack",
+            "Worn",
+            "Full retrim"
+          ],
+          "default": "Tear or crack"
+        }
+      ]
     },
     {
       "slug": "inspections-mechanic",
@@ -1104,7 +1472,29 @@
           ]
         ]
       },
-      "deposit_cents": 5000
+      "deposit_cents": 5000,
+      "booking_questions": [
+        {
+          "key": "type",
+          "label": "Type",
+          "type": "one",
+          "options": [
+            "Pre-purchase",
+            "Warning light",
+            "Noise",
+            "Brakes",
+            "Service due",
+            "Other"
+          ],
+          "default": "Service due"
+        },
+        {
+          "key": "symptoms",
+          "label": "What you notice",
+          "type": "text",
+          "placeholder": "e.g. squeal when braking, light came on Tuesday"
+        }
+      ]
     }
   ],
   "guides": [
@@ -1464,7 +1854,53 @@
     "slot_minutes": 60,
     "lead_hours": 2,
     "weeks_ahead": 6,
-    "note": "Pick a day and time and send the request. The shop confirms by text or a call. A deposit holds the slot and comes off the final price."
+    "note": "Pick a day and time and send the request. The shop confirms by text or a call. A deposit holds the slot and comes off the final price.",
+    "common_questions": [
+      {
+        "key": "body",
+        "label": "Body style",
+        "type": "one",
+        "options": [
+          "Sedan",
+          "Coupe",
+          "SUV",
+          "Truck",
+          "Van",
+          "Motorcycle"
+        ],
+        "default": "Sedan"
+      },
+      {
+        "key": "doors",
+        "label": "Doors",
+        "type": "one",
+        "options": [
+          "2",
+          "4"
+        ],
+        "default": "4"
+      },
+      {
+        "key": "wait",
+        "label": "Drop off or wait?",
+        "type": "one",
+        "options": [
+          "Drop off",
+          "Wait if it's quick"
+        ],
+        "default": "Drop off"
+      },
+      {
+        "key": "confirm",
+        "label": "Best way to confirm",
+        "type": "one",
+        "options": [
+          "Text",
+          "Call"
+        ],
+        "default": "Text"
+      }
+    ]
   },
   "assistant": {
     "name": "Cali",

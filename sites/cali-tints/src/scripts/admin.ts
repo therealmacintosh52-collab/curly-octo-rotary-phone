@@ -8,7 +8,7 @@
 interface Payment { kind: string; amount_cents: number; when: string; ref: string }
 interface Lead {
   id: string; created: string; source: string; status: string; name: string; phone: string; email: string;
-  vehicle: string; service: string; date: string; time: string; duration: string; note: string; quote_cents: number;
+  vehicle: string; service: string; date: string; time: string; duration: string; note: string; details?: Record<string, string>; quote_cents: number;
   deposit: { status: string; amount_cents: number }; payments: Payment[]; notes: { when: string; text: string }[]; updated: string;
 }
 interface Cfg { statuses: [string, string][]; services: string[]; phone: string; currency: string; name: string }
@@ -85,7 +85,7 @@ function boot(el: HTMLElement) {
 
   function visible(): Lead[] {
     return leads.filter((l) => (filter === 'all' ? true : filter === 'open' ? !['done', 'lost'].includes(l.status) : l.status === filter))
-      .filter((l) => !q || [l.name, l.phone, l.vehicle, l.service, l.note].join(' ').toLowerCase().includes(q));
+      .filter((l) => !q || [l.name, l.phone, l.vehicle, l.service, l.note, ...Object.values(l.details || {})].join(' ').toLowerCase().includes(q));
   }
 
   function render() {
@@ -113,6 +113,7 @@ function boot(el: HTMLElement) {
           <select class="lead__status" aria-label="Status">${cfg.statuses.map(([k, n]) => `<option value="${k}" ${k === l.status ? 'selected' : ''}>${n}</option>`).join('')}</select>
         </div>
       </header>
+      ${l.details && Object.keys(l.details).length ? `<dl class="lead__details">${Object.entries(l.details).map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
       ${l.note ? `<p class="lead__note">“${esc(l.note)}”</p>` : ''}
       ${l.notes.length ? `<ul class="lead__notes">${l.notes.map((n) => `<li><small>${when(n.when)}</small> ${esc(n.text)}</li>`).join('')}</ul>` : ''}
       ${l.payments.length ? `<p class="lead__pay">${l.payments.map((p) => `${p.kind} ${money(p.amount_cents)} (${p.ref === 'manual' ? 'at the shop' : 'card online'})`).join(' · ')}</p>` : ''}
@@ -176,8 +177,9 @@ function boot(el: HTMLElement) {
 
   // CSV export of what is on screen
   el.querySelector('[data-crm-export]')!.addEventListener('click', () => {
-    const cols = ['created', 'status', 'name', 'phone', 'email', 'vehicle', 'service', 'date', 'time', 'quote_cents', 'note', 'source'];
-    const csv = [cols.join(','), ...visible().map((l) => cols.map((c) => `"${String((l as unknown as Record<string, unknown>)[c] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+    const cols = ['created', 'status', 'name', 'phone', 'email', 'vehicle', 'service', 'date', 'time', 'quote_cents', 'details', 'note', 'source'];
+    const cell = (l: Lead, c: string) => c === 'details' ? Object.entries(l.details || {}).map(([k, v]) => `${k}: ${v}`).join('; ') : String((l as unknown as Record<string, unknown>)[c] ?? '');
+    const csv = [cols.join(','), ...visible().map((l) => cols.map((c) => `"${cell(l, c).replace(/"/g, '""')}"`).join(','))].join('\n');
     const a = document.createElement('a'); a.href = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`; a.download = 'cali-tints-leads.csv'; a.click();
   });
 

@@ -39,7 +39,7 @@ const server = createServer(async (req, res) => {
     if (fn === 'leads') {
       if (req.method === 'GET' && u.searchParams.get('ping')) return send(res, 200, { ok: true, crm: true, stripe: true });
       if (req.method === 'GET') return owner ? send(res, 200, { leads, summary: { new: leads.filter((l) => l.status === 'new').length, today: leads.length, week: leads.length, deposits_cents: 5000 } }) : send(res, 401, { error: 'unauthorized' });
-      if (req.method === 'POST') { const l = { id: `l${leads.length + 1}`, created: new Date().toISOString(), status: 'new', quote_cents: 0, deposit: { status: 'none', amount_cents: 0 }, payments: [], notes: [], email: '', duration: '', ...body, note: body.message || body.note || '' }; leads.unshift(l); return send(res, 200, { ok: true, id: l.id }); }
+      if (req.method === 'POST') { const l = { id: `l${leads.length + 1}`, created: new Date().toISOString(), status: 'new', quote_cents: 0, deposit: { status: 'none', amount_cents: 0 }, payments: [], notes: [], email: '', duration: '', ...body, details: body.details || {}, note: body.message || body.note || '' }; leads.unshift(l); return send(res, 200, { ok: true, id: l.id }); }
       if (req.method === 'PATCH') { if (!owner) return send(res, 401, {}); const l = leads.find((x) => x.id === body.id); if (!l) return send(res, 404, {}); Object.assign(l, body.status ? { status: body.status } : {}, Number.isFinite(body.quote_cents) ? { quote_cents: body.quote_cents } : {}); if (body.note) l.notes.push({ when: new Date().toISOString(), text: body.note }); return send(res, 200, { ok: true, lead: l }); }
     }
     if (fn === 'checkout') {
@@ -86,17 +86,31 @@ const page = async (vp, mobile = false) => { const pg = await browser.newPage({ 
   ok(st.gcal.startsWith('https://calendar.google.com/calendar/render?action=TEMPLATE'), 'owner add-to-Google-Calendar link filled');
   ok(st.sms.startsWith('sms:+19167012005') && st.ics.startsWith('data:text/calendar'), 'text-the-shop and .ics fallbacks ready');
   ok(st.pay && /\$50/.test(st.depositText), `deposit choice shown with the service deposit: "${st.depositText}"`);
-  await pg.fill('#bk-name', 'Ana Diaz'); await pg.fill('#bk-phone', '9165550100'); await pg.fill('#bk-vehicle', '2021 Tesla Model 3'); await pg.fill('#bk-note', '20% rear, ceramic');
+  // the specifics: defaults picked, chips change the summary and the hidden details
+  const qs = await pg.evaluate(() => [...document.querySelectorAll('.qa legend')].map((l) => l.textContent));
+  ok(qs.slice(0, 4).join('|') === 'Which windows|Shade|Film|Old tint on the car?' && qs.includes('Body style') && qs.includes('Drop off or wait?'), `tint questions + common ones render: ${qs.join(', ')}`);
+  await pg.locator('label.chip:has(input[name=q_shade][value="5%"])').click();
+  await pg.locator('label.chip:has(input[name=q_film][value="Carbon"])').click();
+  await pg.locator('label.chip:has(input[name=q_body][value="SUV"])').click();
+  await pg.locator('label.chip:has(input[name=q_old_tint][value="Yes, remove it first"])').click();
+  await pg.fill('#bk-name', 'Ana Diaz'); await pg.fill('#bk-phone', '9165550100'); await pg.fill('#bk-year', '2021'); await pg.fill('#bk-make', 'Tesla'); await pg.fill('#bk-model', 'Model 3'); await pg.fill('#bk-note', 'lease return next month');
+  await pg.waitForTimeout(200);
+  const sp = await pg.evaluate(() => ({ sum: document.querySelector('[data-summary]').textContent.replace(/\s+/g, ' '), details: document.querySelector('[data-f-details]').value, vehicle: document.querySelector('[data-f-vehicle]').value, sms: document.querySelector('[data-sms]').getAttribute('href') }));
+  ok(/Full car · 5% · Carbon · Yes, remove it first/.test(sp.sum) && /2021 Tesla Model 3, 4-door suv/.test(sp.sum), `summary is specific: "${sp.sum.slice(0, 110)}"`);
+  ok(/Shade: 5%/.test(sp.details) && /Film: Carbon/.test(sp.details) && /Body style: SUV/.test(sp.details) && sp.vehicle === '2021 Tesla Model 3, 4-door suv', 'hidden details and vehicle fields filled');
+  ok(decodeURIComponent(sp.sms).includes('Shade: 5%'), 'text-the-shop message carries the specifics');
   await pg.screenshot({ path: path.join(QA, 'desktop-book.png') });
   await pg.locator('[data-submit]').click();
   await pg.waitForURL(/thank-you\/\?paid=deposit/, { timeout: 8000 }).catch(() => {});
   ok(/thank-you\/\?paid=deposit&lead=l1/.test(pg.url()), `deposit checkout bounced to the thank-you page: ${pg.url().replace(BASE, '')}`);
   await pg.waitForTimeout(300);
   ok(/Deposit received/.test(await pg.locator('h1').textContent()), 'thank-you page shows the deposit state');
-  ok(leads.length === 1 && leads[0].vehicle === '2021 Tesla Model 3' && leads[0].source === 'booking', `lead saved in the CRM with the vehicle (${leads[0]?.vehicle})`);
-  await pg.goto(BASE + '/book/?service=ceramic-coating&note=2021%20Tesla%20Model%203', { waitUntil: 'load' }); await pg.waitForTimeout(500);
-  const pre = await pg.evaluate(() => ({ svc: document.querySelector('input[name=svc]:checked')?.value, note: document.querySelector('[data-f-note]').value }));
-  ok(pre.svc === 'ceramic-coating' && pre.note === '2021 Tesla Model 3', `prefill from the query string: ${pre.svc}, "${pre.note}"`);
+  ok(leads.length === 1 && leads[0].vehicle === '2021 Tesla Model 3, 4-door suv' && leads[0].source === 'booking', `lead saved in the CRM with the vehicle (${leads[0]?.vehicle})`);
+  ok(leads[0]?.details?.Shade === '5%' && leads[0]?.details?.Film === 'Carbon' && leads[0]?.details?.['Body style'] === 'SUV', `lead carries the specifics: ${JSON.stringify(leads[0]?.details)}`);
+  await pg.goto(BASE + '/book/?service=window-tinting&shade=20%25&film=Carbon&windows=Rear&body=Truck&year=2019&make=Ford&model=F-150&note=from%20the%20widget', { waitUntil: 'load' }); await pg.waitForTimeout(500);
+  const pre = await pg.evaluate(() => ({ svc: document.querySelector('input[name=svc]:checked')?.value, shade: document.querySelector('input[name=q_shade]:checked')?.value, film: document.querySelector('input[name=q_film]:checked')?.value, win: document.querySelector('input[name=q_windows]:checked')?.value, body: document.querySelector('input[name=q_body]:checked')?.value, year: document.querySelector('#bk-year').value, note: document.querySelector('[data-f-note]').value }));
+  ok(pre.svc === 'window-tinting' && pre.shade === '20%' && pre.film === 'Carbon' && pre.win === 'Rear + back glass' && pre.body === 'Truck' && pre.year === '2019' && pre.note === 'from the widget', `prefill from the query string: ${JSON.stringify(pre)}`);
+  await pg.screenshot({ path: path.join(QA, 'desktop-book-specifics.png') });
   await pg.close();
 }
 
@@ -107,6 +121,8 @@ const page = async (vp, mobile = false) => { const pg = await browser.newPage({ 
   const r = await pg.evaluate(() => { const card = document.querySelector('.hero-v__book'); const b = card.getBoundingClientRect(); return { top: b.top + window.scrollY, bottom: b.bottom, chips: document.querySelectorAll('.daychip').length, on: document.querySelectorAll('.daychip.is-on').length, slot: document.querySelector('.slot.is-on')?.textContent, ready: !document.querySelector('[data-submit]').disabled, sum: document.querySelector('[data-summary]').textContent.replace(/\s+/g, ' ') }; });
   ok(r.top < 200 && r.bottom <= 900, `booking card is inside the first screen (top ${Math.round(r.top)}px, bottom ${Math.round(r.bottom)}px)`);
   ok(r.chips >= 6 && r.on === 1 && r.slot && r.ready, `preselected and ready to send: ${r.chips} days, "${r.slot}" picked, summary "${r.sum.slice(0, 60)}"`);
+  const hq = await pg.evaluate(() => ({ n: document.querySelectorAll('.hero-v__book .qa').length, shade: document.querySelector('.hero-v__book input[name=q_shade]:checked')?.value, wait: document.querySelector('.hero-v__book input[name=q_wait]:checked')?.value }));
+  ok(hq.n >= 7 && hq.shade === '20%' && hq.wait === 'Drop off', `hero card asks the specifics with defaults picked (${hq.n} questions, shade ${hq.shade})`);
   await pg.selectOption('select[name=svc]', 'vinyl-wraps'); await pg.waitForTimeout(200);
   const sum2 = await pg.evaluate(() => document.querySelector('[data-summary]').textContent.replace(/\s+/g, ' '));
   ok(/Vinyl Wraps/.test(sum2) && /AM/.test(sum2), `service switch keeps a valid time: "${sum2.slice(0, 60)}"`);
@@ -145,6 +161,7 @@ const page = async (vp, mobile = false) => { const pg = await browser.newPage({ 
   const cards = await pg.locator('.lead').count();
   ok(cards === 2, `both leads on the board (${cards})`);
   ok((await pg.locator('.lead').first().textContent()).includes('Ben Ortiz'), 'newest lead first');
+  ok((await pg.locator('.lead').nth(1).locator('.lead__details').textContent()).replace(/\s+/g, '').includes('Shade5%'), 'lead card lists the specifics');
   await pg.locator('.lead').nth(1).locator('.lead__status').selectOption('confirmed'); await pg.waitForTimeout(500);
   ok(leads.find((l) => l.name === 'Ana Diaz')?.status === 'confirmed', 'status change saved');
   await pg.locator('.lead').nth(1).locator('[data-quote]').fill('350'); await pg.locator('.lead').nth(1).locator('[data-act=quote]').click(); await pg.waitForTimeout(500);

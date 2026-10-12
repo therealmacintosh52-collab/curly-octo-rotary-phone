@@ -29,6 +29,7 @@ const config = {
   services: data.services.map((s) => ({ slug: s.slug, name: s.nav, minutes: s.duration_minutes })),
   placeholder: EMAIL_IS_PLACEHOLDER, endpoint: data.form_endpoint, thanks: `${S.base_url}/thank-you/`,
   deposits: Object.fromEntries(data.services.map((s) => [s.slug, s.deposit_cents])), currency: P.currency, fullOptional: P.full_payment_optional,
+  questions: Object.fromEntries(data.services.map((s) => [s.slug, s.booking_questions])), common: B.common_questions,
 };
 ---
 {B.provider_url ? (
@@ -81,6 +82,12 @@ const config = {
         <p class="book__daylabel" data-day-label>Choose a day first.</p>
         <div class="slots" data-slots role="radiogroup" aria-label="Start time"></div>
       </section>
+
+      <section class="book__step" data-step="details">
+        <h2><span>4</span> {compact ? 'The specifics' : 'Tell us the specifics'}</h2>
+        <p class="book__hint">{compact ? 'So the right film, colour or parts are ready when you arrive.' : 'What the shop would ask you on the phone, so the quote and the slot are right before you arrive.'}</p>
+        <div class="qa-list" data-questions></div>
+      </section>
     </div>
 
     <aside class="book__side">
@@ -92,10 +99,16 @@ const config = {
         <input type="hidden" name="time" data-f-time />
         <input type="hidden" name="duration" data-f-duration />
         <input type="hidden" name="add_to_calendar" data-f-gcal />
+        <input type="hidden" name="vehicle" data-f-vehicle />
+        <input type="hidden" name="details" data-f-details />
         <div class="field"><label for="bk-name">Your name</label><input id="bk-name" name="name" type="text" autocomplete="name" required /></div>
         <div class="field"><label for="bk-phone">Mobile number (we confirm by text)</label><input id="bk-phone" name="phone" type="tel" autocomplete="tel" required /></div>
-        <div class="field"><label for="bk-vehicle">Vehicle (year, make, model)</label><input id="bk-vehicle" name="vehicle" type="text" placeholder="2021 Toyota Camry" required /></div>
-        <div class="field"><label for="bk-note">Anything we should know?</label><textarea id="bk-note" name="message" data-f-note placeholder="Shade, colour, which windows or panels, existing film or wrap on the car."></textarea></div>
+        <div class="book__vehicle">
+          <div class="field"><label for="bk-year">Year</label><input id="bk-year" name="veh_year" type="number" inputmode="numeric" min="1950" max="2030" placeholder="2021" required /></div>
+          <div class="field"><label for="bk-make">Make</label><input id="bk-make" name="veh_make" type="text" autocomplete="off" placeholder="Toyota" required /></div>
+          <div class="field"><label for="bk-model">Model</label><input id="bk-model" name="veh_model" type="text" autocomplete="off" placeholder="Camry" required /></div>
+        </div>
+        <div class="field"><label for="bk-note">Anything else?</label><textarea id="bk-note" name="message" data-f-note placeholder="Existing film or wrap, a deadline, where you were quoted elsewhere."></textarea></div>
         <fieldset class="book__pay" data-pay hidden>
           <legend>Hold the slot</legend>
           <label><input type="radio" name="pay" value="deposit" checked /><span><b>Pay the deposit now</b><small data-pay-deposit>Card, secure checkout. Comes off the final price.</small></span></label>

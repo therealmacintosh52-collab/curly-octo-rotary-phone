@@ -41,10 +41,13 @@ export function openState(at = new Date()) {
   return { open: false, label: 'Closed' };
 }
 
-export function bookingLink(serviceSlug, note) {
+export function bookingLink(serviceSlug, note, details) {
   const u = new URL('/book/', BASE_URL);
   if (serviceSlug) u.searchParams.set('service', serviceSlug);
   if (note) u.searchParams.set('note', String(note).slice(0, 300));
+  // Answers the customer already gave, keyed by the question key, so the form
+  // lands with those chips picked (shade=20%, film=Carbon, body=SUV …).
+  if (details && typeof details === 'object') for (const [k, v] of Object.entries(details).slice(0, 12)) if (v) u.searchParams.set(String(k).slice(0, 24), String(v).slice(0, 60));
   return u.href;
 }
 
@@ -57,7 +60,7 @@ const faqLines = data.home_faqs.map(([q, a]) => `Q: ${q}\nA: ${a}`).join('\n');
 /** Stable system prompt: nothing time-dependent in here, so it caches. */
 export const SYSTEM = `You are ${ASSISTANT.name}, the booking and sales assistant for ${S.name}, a window tint, vinyl wrap, paint protection film, ceramic coating and detailing shop at ${S.street}, ${S.city}, ${S.region} ${S.zip} (Arden-Arcade, between Business 80 and Highway 50). Phone ${S.phone_display}. Hours: ${S.hours_human}.
 
-Your job: find out what the customer drives and what they want fixed (heat, looks, protection, a problem), recommend the right service in plain words, answer questions from the facts below, and move them to a booking. Every reply ends with a clear next step: book a time, or call the shop if it is open now. Use the check_open_now tool before telling anyone to call. Use booking_link to produce the booking page link once a service is chosen; include the customer's vehicle and wishes in the note.
+Your job: find out what the customer drives (year, make, model, body style), what they want fixed (heat, looks, protection, a problem), and the specifics the shop needs before the car arrives: for tint, which windows, the shade and ceramic or carbon, and whether old film must come off; for wraps, the coverage, finish and colour; for PPF and coating, the coverage and the paint's condition; for detailing, the package and add-ons; for repairs, what is wrong. Ask one at a time, then recommend the right service in plain words and move them to a booking with those answers carried in the booking_link details. Every reply ends with a clear next step: book a time, or call the shop if it is open now. Use the check_open_now tool before telling anyone to call. Use booking_link to produce the booking page link once a service is chosen; include the customer's vehicle and wishes in the note.
 
 Facts that must stay true:
 - Prices are quoted on the vehicle; never invent a dollar figure. Say "quoted on your car" and explain what moves the price (glass count, panels, film grade, condition).
@@ -90,8 +93,14 @@ export const TOOLS = [
       properties: {
         service_slug: { type: 'string', enum: SERVICES.map((s) => s.slug) },
         note: { type: 'string', description: 'Vehicle and what the customer wants, in one line' },
+        details: {
+          type: 'object',
+          description: 'Answers already given, keyed by question: windows, shade, film, old_tint, coverage, finish, colour, package, addons, stage, body (Sedan|Coupe|SUV|Truck|Van|Motorcycle), doors (2|4), wait (Drop off|Wait if it\'s quick), confirm (Text|Call), year, make, model',
+          properties: {},
+          additionalProperties: true,
+        },
       },
-      required: ['service_slug', 'note'],
+      required: ['service_slug', 'note', 'details'],
       additionalProperties: false,
     },
   },
@@ -117,7 +126,7 @@ export function runTool(name, input) {
   if (name === 'booking_link') {
     const s = SERVICES.find((x) => x.slug === input.service_slug);
     if (!s) return ['Unknown service', null];
-    const href = bookingLink(s.slug, input.note);
+    const href = bookingLink(s.slug, input.note, input.details);
     return [JSON.stringify({ url: href, service: s.nav, note: BOOKING.note }), { label: `Book ${s.nav.toLowerCase()}`, href }];
   }
   if (name === 'service_details') {

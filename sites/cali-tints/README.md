@@ -101,6 +101,21 @@ FormSubmit address is activated, the form says it is not connected and the
 customer is pointed at the text and call options; nothing is silently lost.
 Anything on the site can prefill it: `/book/?service=<slug>&note=<text>`.
 
+**The specifics.** Step 4 asks what the shop would ask on the phone, per service,
+from `services[].booking_questions` in `site.json` (tint: which windows, shade,
+film, old tint to remove; wraps: coverage, finish, colour, paint condition; PPF
+and coating: coverage and condition; detailing: package and add-ons; repairs:
+what is wrong …) plus the common questions in `booking.common_questions` (body
+style, doors, drop off or wait, text or call). Each question is
+`{key, label, type: one | many | text, options, default}`; single-choice
+questions with a `default` come preselected so the hero card stays ready to
+send. The vehicle is year, make and model in three fields. The answers go into
+the summary, the email (`details`), the text message, the calendar links and the
+CRM lead (`details` object, shown on the lead card and in the CSV). Widgets and
+the assistant pass answers as query parameters keyed by question
+(`?shade=20%25&film=Carbon&body=SUV&year=2019&make=Ford&model=F-150`) and the
+form picks them up. Edit the questions in `site.json`; nothing else changes.
+
 ### The assistant (bottom-right corner, every page)
 
 `Assistant.astro` + `src/scripts/assistant.ts`. Two brains:
