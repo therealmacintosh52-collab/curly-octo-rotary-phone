@@ -17,6 +17,9 @@ Spending money · creating accounts · entering payment info · publishing anyth
 ## Revenue Sprint (replaces the Focus Rule; full text `ops/PROTOCOL.md` §7)
 Three lanes run concurrently: A CASH NOW (~60%, first dollar in 72 h) · B FAST DIGITAL (~30%, first sale 7–14 d) · C SCALE BETS (~10%, funded only from confirmed profit). Every test has hypothesis, cost cap, time cap, kill threshold before launch (`ops/EXPERIMENTS.md`); 3–5 in parallel max; kill on miss, log the lesson; double winners. Scout feeds 10 ideas/day into `ops/IDEAS.md`; red-team filters. A dead test is replaced within 24 h.
 
+## Growth Agency mode (owner directive 2026-10-12; D-017, pending A-012)
+The owner's Growth Agency Master Operating System is the playbook for the local-growth-agency stream in Lane A. Verbatim text: `library/playbooks/growth-agency-mos.md`. How it runs here: `library/playbooks/growth-agency-mos-adapter.md` (Director = Orchestrator; the 13 MOS roles are hats on the 8 agents; Phase/Gate, Reinvestment Ladder, Quests, XP map to STATE/LEDGER/TODAY/METRICS). Owner commands: `/owner` (default) · `/client <name>` (one client stream under `clients/<slug>/`, never mixed) · `/deep` (one long reply) · `/simple off`. Simple Mode is ON by default: the step-6 report uses the 7-line game layout in adapter §4, numbers from LEDGER/METRICS/TODAY only, XP only for owner-reported actions and money XP only after auditor CONFIRMED. Where the MOS and `ops/PROTOCOL.md` conflict, PROTOCOL and the hard gates win (adapter §5).
+
 ## Usage discipline
 Cheapest adequate model per task (tiers in `ops/DECISIONS.md` D-002). Pass file paths to subagents, never pasted contents. One opus call per gate. Any task over 2× its estimate pauses and reports. `library/` first: reuse > adapt > build.
 

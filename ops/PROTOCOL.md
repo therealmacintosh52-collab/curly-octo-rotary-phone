@@ -65,3 +65,14 @@ Mission: real revenue THIS WEEK by every legal, ethical, TOS-compliant method th
 - **Scoreboard (`ops/METRICS.md`, daily):** revenue today/week/month · profit · cash collected vs pending · cost per test · revenue per owner-hour · active tests + status · winners · killed (with lesson) · allocation balances.
 - **Never-stop rule:** a dead test is replaced from `ops/IDEAS.md` within 24 h. A plateaued winner gets the next lever: price, upsell, new channel, new market, automation. There is no "done".
 Hard gates (§2) and truth rules (§1) are unchanged. "Every way that works" means every legitimate way.
+
+## 8. Growth Agency mode (owner directive 2026-10-12; D-017)
+The local-growth-agency stream in Lane A runs on the owner's Master Operating System, `library/playbooks/growth-agency-mos.md`, through `library/playbooks/growth-agency-mos-adapter.md`. Binding points for every agent:
+- Roles: no new agents; the adapter's role map names which agent wears which MOS hat. A task row's inputs name the hat.
+- Truth: MOS labels [VERIFIED + date] / [CONSENSUS] / [HYPOTHESIS — test it] are the same tiers as §1; STALE at 6 months.
+- Risk rules are red-team FAIL conditions: written result guarantees, client passwords, missing one-page service agreement, long-term contracts, spend before the Graduation Gate.
+- Reinvestment Ladder: the level is computed by auditor from CONFIRMED revenue only; any purchase is an `A-###`.
+- XP and scoreboards: system-qc writes them in `ops/METRICS.md` from owner-reported actions; money XP only after auditor CONFIRMED. Nobody self-awards.
+- Client mode: `clients/<slug>/` per client, one client per task, client money never enters `ops/LEDGER.md` (only the owner's fees do).
+- Conflicts: §1–§7 and the hard gates win over the MOS text.
+

@@ -1,12 +1,13 @@
 # CONTEXT — who we work for and what we are optimizing
 
 Owned by the Orchestrator. Updated whenever the owner's situation changes. Every agent reads the "Goal" and "Constraints" sections; the rest is reference.
-**Last updated:** 2026-10-12 (org created)
+**Last updated:** 2026-10-12 (session 2: Growth Agency MOS adopted for the Lane A stream, D-017; branch updated)
 
 ## Goal
 Real revenue THIS WEEK, then reinvest profit to scale winners and fund new avenues (Revenue Sprint, `ops/PROTOCOL.md` §7). Lane A first dollar in 72 h; Lane B first sale in 7–14 days; Lane C only from profit. Long-run target >$10,000/month net. Never stop testing.
 
 ## Owner
+- Operating playbook for the local-growth-agency stream: `library/playbooks/growth-agency-mos.md` via `library/playbooks/growth-agency-mos-adapter.md` (D-017, pending A-012).
 - Solo founder, Sacramento / Elk Grove, California. **Phone-only, no PC.** Everything the owner does must be doable in a mobile browser or app in minutes.
 - Time: **3–7 hours/week** for approvals, phone tasks, logins, customer contact.
 - Budget: **under $100/month total** (AI usage + tools + any tests). Current known fixed cost: Zendrop $29/mo (see LEDGER).
@@ -26,7 +27,7 @@ No scams · no spam · no fake reviews · no TOS-violating automation · legal i
 ## Environment facts that shape work
 - Sandbox egress is allowlisted: raw HTTP and WebFetch to commercial hosts return 403 (`dropship-os/NETWORK-INVESTIGATION.md`). **WebSearch works.** MCP connectors work. Agents cite search-result URLs; nobody "reads a page".
 - Model rates used for cost tracking (API-equivalent, per MTok in/out): fable $10/$50 · opus $4/$20 · sonnet $2/$10 · haiku $0.10/$0.50. The org runs on Claude Code usage quota; dollars are a proxy.
-- Repo branch for all work: `claude/affectionate-brown-h3wfam`. Containers are ephemeral; commit and push every session.
+- Repo branch for all work: `claude/growth-agency-mos-4xccqt` (session 2; session 1 was `claude/affectionate-brown-h3wfam`). Containers are ephemeral; commit and push every session.
 
 ## UNKNOWNS the owner must fill (each blocks something)
 - [ ] Did Cali Tints and/or Phil's Auto pay? Amount, terms, hosting arrangement? (blocks the pitch and the pricing anchor)
