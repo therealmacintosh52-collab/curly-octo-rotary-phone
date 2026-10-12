@@ -62,7 +62,8 @@ Standard: title names service + city, under
 2 = service and city · 1 = present but generic
 ("Home", brand only) · 0 = no title shown.
 Fix: "Change the page title to
-'[service] in [city] | [name]'. Your web
+'[[FILL: service]] in [[FILL: city]] |
+[[FILL: name]]'. Your web
 person can do this in minutes."
 
 2. Share-preview description/image (S6)
@@ -128,7 +129,7 @@ Standard: Lighthouse mobile performance 90+
 (line 25).
 2 = 90+ · 1 = 50-89 · 0 = under 50.
 (Cut-offs are our rubric.)
-Fix: "Your phone speed score is [n]. The usual
+Fix: "Your phone speed score is [[FILL: n]]. The usual
 first steps are smaller images and fewer
 plug-ins. Web person."
 
@@ -139,7 +140,7 @@ hours. Six things.
 2 = all six seen · 1 = three to five ·
 0 = two or fewer.
 Fix: "Fill the missing parts of your Google
-profile: [list]. Owner, about 15 min."
+profile: [[FILL: list]]. Owner, about 15 min."
 
 10. Recent reviews (S11)
 Standard: real reviews, never invented (line 23).
@@ -155,7 +156,8 @@ Standard: identical on every listing (line 200).
 2 = identical in all three · 1 = same facts,
 different format (Ste/Suite) · 0 = a different
 phone, address or name anywhere.
-Fix: "Your [item] differs between [A] and [B].
+Fix: "Your [[FILL: item]] differs between
+[[FILL: A]] and [[FILL: B]].
 Make it match everywhere. Owner."
 
 12. One page per main service (S7)
@@ -170,8 +172,8 @@ Web person."
 ## Top 3 fixes: how to pick
 Take the three lowest scores. Ties: this order
 5, 3, 9, 11, 4, 1, 8, 7, 10, 12, 2, 6.
-Copy the fix text, fill its [brackets] from the
-screenshots, say who can do it.
+Copy the fix text, fill its [[FILL: ...]]
+parts from the screenshots, say who can do it.
 
 ## Never in the report
 Rankings, AI citations, traffic or lead promises.

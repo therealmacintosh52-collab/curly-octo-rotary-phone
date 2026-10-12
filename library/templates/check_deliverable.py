@@ -22,7 +22,9 @@ DESC_MAX = 750
 
 FAIL_PATTERNS = [
     (r"\[\[FILL", "unfilled [[FILL: ...]] placeholder"),
-    (r"\[[A-Z][A-Z0-9 /_'-]{2,}\]", "unlabeled bracket placeholder like [YOUR NAME]"),
+    # any [bracket] placeholder ([YOUR NAME], [n], [city]); skips [[FILL]] inner part,
+    # checkboxes "[ ]"/"[x]" and Markdown links "[text](url)"
+    (r"(?<!\[)\[(?!\[)[^\[\]\n]{2,60}\](?![\](])", "unlabeled bracket placeholder like [YOUR NAME]"),
     (r"REPLACE[-_ ]?ME|\bTODO\b|\bXXX\b|\bTBD\b", "unlabeled placeholder word"),
     # result promises (growth offers: "Do not promise rankings, calls, or reviews")
     (r"(?i)guarantee\w*\s+(\w+\s+){0,3}(rank|ranking|calls|leads|traffic|reviews|citation)", "result guarantee"),
