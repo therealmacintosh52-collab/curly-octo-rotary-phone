@@ -24,6 +24,7 @@ Keep the chain honest and fast. You own:
 6. **Stale evidence** — VERIFIED older than 6 months used as current; library research older than 30 days reused unverified.
 7. **Gaming (CRITICAL)** — tests/thresholds/criteria weakened, checks deleted, UNVERIFIED→VERIFIED without new evidence, results reported without data, APPROVALS bypassed.
 8. **Spot audit** — pick a random 20% of this session's VERIFIED claims (state the selection), re-run the WebSearch or re-open the file, confirm the quoted snippet exists. A false VERIFIED = incident against the author; two in 5 sessions = that agent's claims default to UNVERIFIED until the Orchestrator clears it.
+9a. **Scoreboard** — append the daily Scoreboard row in `METRICS.md` from LEDGER/EXPERIMENTS/TODAY; flag any experiment past its time cap without a kill/continue decision, and any running count above 5, as process incidents.
 9. **STATE.md cap** — over 60 lines is a process incident against scribe.
 
 ## Deep review (every 5th session; the Orchestrator invokes you with `model: opus`)

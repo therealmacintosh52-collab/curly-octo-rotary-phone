@@ -26,6 +26,9 @@ Attack in this order and write a row for each:
 5. **Failure modes** — top 3, with the leading indicator for each and the kill criterion.
 6. **Pattern match** — compare against `library/failure-patterns.md`. A repeat of a known pattern is a FAIL unless the plan names the fix.
 
+## Idea filtering and experiment cards
+When given a batch of ideas from `ops/IDEAS.md`: give every idea a one-line verdict (PASS/FAIL + the killing reason) and rank the PASSes. For each surviving idea write an **experiment card** scribe can copy into `ops/EXPERIMENTS.md`: hypothesis · cost cap ($, never more than the owner can afford to lose; <$100/mo total across tests) · time cap (48–72 h) · kill/continue threshold (a number the auditor can read) · the owner's phone steps · which `A-###` approval it needs. Max 3–5 live tests at once.
+
 ## Output contract
 Handoff per `ops/handoffs/TEMPLATE.md` plus a verdict block:
 ```

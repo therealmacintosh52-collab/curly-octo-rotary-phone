@@ -4,7 +4,7 @@ Owned by the Orchestrator. Updated whenever the owner's situation changes. Every
 **Last updated:** 2026-10-12 (org created)
 
 ## Goal
-Real, legal, scalable net income for the owner. First rung: **first confirmed dollar as fast as possible (target ≤10 days)**. Long-run target: **>$10,000/month net**. One income stream at a time until it hits its stream target with stable acquisition (Focus Rule); then stream #2 reuses stream #1's assets, audience, and data.
+Real revenue THIS WEEK, then reinvest profit to scale winners and fund new avenues (Revenue Sprint, `ops/PROTOCOL.md` §7). Lane A first dollar in 72 h; Lane B first sale in 7–14 days; Lane C only from profit. Long-run target >$10,000/month net. Never stop testing.
 
 ## Owner
 - Solo founder, Sacramento / Elk Grove, California. **Phone-only, no PC.** Everything the owner does must be doable in a mobile browser or app in minutes.
@@ -35,3 +35,6 @@ No scams · no spam · no fake reviews · no TOS-violating automation · legal i
 - [ ] Do you have an active business license / DBA in Sacramento County or Elk Grove? (blocks invoicing legality check)
 - [ ] Reselling: which platforms are you active on today (eBay, FB Marketplace, OfferUp, Mercari), and what inventory/cash is on hand? (blocks the reselling lane comparison)
 - [ ] Cancel Zendrop ($29/mo, no revenue)? Yes/No.
+- [ ] Tax reserve % for profit allocation (confirm with a tax pro; auditor holds 25% as a placeholder until you confirm).
+- [ ] Lane A inventory: what do you own and could sell this week (electronics, clothing, tools, collectibles, vehicle parts)? What services can you personally deliver (driving, assembly, cleaning, photography, reselling for others)?
+- [ ] Existing businesses/customers beyond the two sites: any current clients, channels, audiences, or accounts with followers?

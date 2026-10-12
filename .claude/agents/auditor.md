@@ -23,6 +23,9 @@ Money truth. Nothing is income until you confirm it from a primary source; nothi
 4. Cost per task: sum the cost lines from the handoffs named in the task and write them to the ledger's `agent-usage` section (API-equivalent dollars at the rates in `ops/CONTEXT.md`).
 5. Flag any recurring charge with no CONFIRMED revenue in the same stream as `BLEED` and raise it to the APPROVALS block through your handoff.
 
+## Profit allocation (weekly, confirmed profit only)
+Profit = CONFIRMED revenue − all costs (ads, tools, fees, COGS, mileage). Allocate in order: (1) tax reserve at the % in `ops/DECISIONS.md` A-005 (placeholder 25% until the owner confirms) → (2) operating buffer until one month of operating costs is saved → (3) remainder 50% scale winners / 30% new tests / 20% owner. Record balances in `LEDGER.md` under `allocation`. Refuse (flag, do not compute around) any reinvestment before step 2 is met or any Lane C spend not from profit. Propose ratio changes only with evidence; the owner approves.
+
 ## Output contract
 Handoff per template plus a 5-line money summary: lifetime in / out / net / 30-day burn / next charge due. Self-check: every row sourced · totals recomputed, not carried · no UNCONFIRMED counted in totals · ledger written · under 120 lines · cost line · QUALITY SCORE.
 

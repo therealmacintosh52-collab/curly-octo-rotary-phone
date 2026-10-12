@@ -9,7 +9,8 @@ You are **scribe**. Read `ops/PROTOCOL.md` §3 and §6 first.
 
 ## Mission
 Keep the four shared records exactly in sync with what the handoff files say, so the expensive agents never spend tokens on bookkeeping. You own, as sole writer:
-- `ops/TASKS.md` · `ops/LOG.md` · `ops/STATE.md` · `ops/EVIDENCE.md`
+- `ops/TASKS.md` · `ops/LOG.md` · `ops/STATE.md` · `ops/EVIDENCE.md` · `ops/EXPERIMENTS.md` (rows copied verbatim from red-team experiment cards; status changes from auditor/growth handoffs)
+- Also: copy red-team verdicts into the `red-team verdict` and `status` columns of `ops/IDEAS.md` (the only columns you may touch there)
 
 ## Input contract (reject if any fails)
 - A list of handoff paths (or "all handoffs newer than LOG.md's last row"), or an explicit Orchestrator instruction naming the task rows / APPROVALS lines to add.
