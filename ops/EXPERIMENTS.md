@@ -1,11 +1,21 @@
-# EXPERIMENTS — every live test, with its card set BEFORE launch (scribe is the sole writer; cards come from red-team handoffs)
+# EXPERIMENTS — every live test, with its card set BEFORE launch (scribe is the sole writer; cards come from red-team experiment cards)
 
 Max 3–5 running at once. Kill the moment a threshold is missed; lesson goes to `library/`. Winner = threshold hit → double effort/budget next cycle.
+
+## Launch conditions (red-team T-006, C1–C8)
+
+Copied verbatim from `ops/handoffs/T-006-red-team-to-growth.md` (lines 115–117).
+
+```
+VERDICT: PASS-WITH-CONDITIONS (Day-1 plan = EXP-A1..A5)
+Conditions (in TASKS.md before launch): C1 A-004 Q2-Q4 answered before any service offer is sent; EXP-A1 can start on Q5/Q8 alone · C2 license held, or A-010 logged, before the first service payment · C3 one personal text per business, none in two lists, stop on no/stop · C4 review wording per card 5, no incentive, no gating · C5 deposit/payment CONFIRMED before any build (E12) · C6 the two sites are "sample builds" unless Q1 confirms clients · C7 subscriptions/prepay: terms shown before payment, affirmative consent, cancel by text · C8 EXP-A1 owned items only, one sweep
+Kill criteria (growth/auditor): per-card thresholds at H72 · any card with a missed owner step twice = kill · total cash spend > $25 = pause all · any complaint or "stop" = that business off every list
+```
 
 | EXP-### | idea | lane | hypothesis | cost cap ($) | time cap (h) | kill / continue threshold | launched (date, A-### approval) | status (planned/running/killed/winner) | result | lesson → library path |
 |---|---|---|---|---|---|---|---|---|---|---|
 | EXP-A1 | I-013+I-016 sell owned items | A (lane from IDEAS.md; card has no lane field) | ≤5 owned items listed for local pickup bring ≥$50 cash within 72 h. | $0 | 72 h from first listing | CONTINUE if ≥$50 collected by H72 · one −20% reprice at H48 if <3 buyer messages · KILL if $0 at H72. | pending A-### (see card) | planned | — | — |
 | EXP-A2 | I-003 GBP copy-paste pack $99 (+ I-010 $29 add-on line) | A (lane from IDEAS.md; card has no lane field) | ≥1 of 5 Elk Grove businesses with thin Google profiles pays $99 after one personal text. | $0 | 72 h from first send | CONTINUE if ≥1 payment CONFIRMED by auditor by H72 · KILL if 0 paid and ≤1 reply asking details. | pending A-### (see card) | planned | — | — |
 | EXP-A3 | I-009 AI-search readiness check $49 | A (lane from IDEAS.md; card has no lane field) | ≥1 of 3 local businesses with websites pays $49 for a one-page AI-search report. | $0 | 72 h from first send | CONTINUE if ≥1 CONFIRMED payment by H72 · KILL if 0. | pending A-### (see card) | planned | — | — |
-| EXP-A4 | I-001+I-018 founding-client site: $450 ($150 deposit) or $590/yr prepaid | A (lane from IDEAS.md; card has no lane field) | ≥1 of 3 Elk Grove lash/nail studios with no Website button pays a deposit or prepay after one text. | $0 cash (builder tokens only after deposit) | 72 h from first send | CONTINUE if ≥1 deposit CONFIRMED by H72, or ≥2 replies asking for price/preview (one 48 h extension) · KILL if 0 positive replies at H72. | pending A-### (see card) | planned | — | — |
+| EXP-A4 | I-001+I-018 founding-client site: $450 ($150 deposit) or $590/yr prepaid | A (lane from IDEAS.md; card has no lane field) | ≥1 of 3 Elk Grove lash/nail studios with no Website button pays a deposit or prepay after one text. | $0 cash (builder tokens only after deposit) | 72 h total (D-019: built-in extension capped) | CONTINUE if ≥1 deposit CONFIRMED by H72, or ≥2 replies asking for price/preview (one 48 h extension) · KILL if 0 positive replies at H72. | pending A-### (see card) | planned | — | — |
 | EXP-A5 | I-010 review-request QR kit $29 | A (lane from IDEAS.md; card has no lane field) | ≥1 of the 8 EXP-A2/A4 recipients buys the $29 add-on. | $0 (shop prints) | 72 h from the EXP-A2 send | CONTINUE if ≥1 CONFIRMED by H72 · KILL if 0. | pending A-### (see card) | planned | — | — |

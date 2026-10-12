@@ -1,5 +1,5 @@
 # STATE — read this first, every session (hard cap: 60 lines)
-Session: 1 · Updated: 2026-10-12 · Written by: scribe (per Orchestrator instruction S1b; sources: TASKS.md, LOG.md, handoffs T-001..T-007 and S1, DECISIONS.md, IDEAS.md)
+Session: 2 · Updated: 2026-10-12 · Written by: scribe (per Orchestrator instruction S2a; sources: TASKS.md, LOG.md, handoffs T-001..T-007 and S1, EXPERIMENTS.md header, DECISIONS.md D-019)
 
 ## APPROVALS NEEDED (reply with the ID and yes/no)
 - A-001 Choose stream #1 after reading T-001/T-002 · answer: — · scope: until stream target met
@@ -24,13 +24,20 @@ Session: 1 · Updated: 2026-10-12 · Written by: scribe (per Orchestrator instru
 - T-001 scout — done (ACCEPTED, score 3; criterion 3 waived per D-012)
 - T-002 red-team — done (folded into T-006 per D-012)
 - T-003 auditor — done
-- T-004 system-qc — running (Orchestrator); TASKS.md row status: todo
+- T-003b auditor — doing (INC-011 fix, agent-usage, allocation)
+- T-004 system-qc — done (S1, attempt 1, ≈0.5h)
 - T-005 scout — done (attempt 2 ACCEPTED, score 4; attempt 1 REJECTED)
 - T-006 red-team — done (PASS-WITH-CONDITIONS, score 4)
 - T-007 growth — done (score 4)
+- T-008 scout — doing (20 new ideas I-021..I-040)
+- T-009 red-team — todo
+- T-010 builder — doing (library/templates: gbp-pack, ai-search-check, review-card)
+- T-011 qa — todo
+- T-012 growth — todo
+- T-013 system-qc — todo
 
 ## Open incidents
-pending T-004
+10 open (INC-002..INC-011), none CRITICAL; fixes queued per D-019
 
 ## Money (from T-003 handoff, verbatim)
 - **Lifetime in:** $0.00 (CONFIRMED)
@@ -43,4 +50,4 @@ pending T-004
 0 of 3–7 used. Day 1 plan needs ≈63 min (per Orchestrator instruction; T-007 handoff: "Day 1 asks ~63 min").
 
 ## Next action
-Owner works ops/TODAY.md. Orchestrator runs T-004, then session 2.
+Owner works ops/TODAY.md. Orchestrator runs session 2: T-008, T-010, T-003b doing; T-009, T-011, T-012, T-013 queued.
