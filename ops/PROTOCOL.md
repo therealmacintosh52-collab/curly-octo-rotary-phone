@@ -22,6 +22,8 @@ Escalation = write the ask into the APPROVALS block of `ops/STATE.md` via the sc
 - A receiver's independent score below 4 returns the work with specific fixes.
 - Gates: red-team PASS before build; qa PASS before anything is shown to a customer or published; auditor confirmation before any dollar counts as income.
 - Keep handoffs under 120 lines. Link to files instead of pasting them.
+- **Tag lint (D-018):** a VERIFIED row must carry date + quoted snippet + a primary source (search-result URL, repo file path, or live tool field). Scribe copies a row to EVIDENCE.md as VERIFIED only if all three are present; otherwise it records the row as UNQUOTED and flags CONFLICT. A derived record (STATE.md, EVERYTHING.md, another handoff) is never a primary source.
+- Every handoff lists the tools it actually used ("Tools used" line). A tool outside the agent's list is self-reported there; system-qc treats an unreported one as a contract violation.
 
 ## 4. Repair protocol (any failure: rejection, failed test, broken deploy, bad data, tool error)
 1. DIAGNOSE — log in `ops/INCIDENTS.md` (via system-qc, or directly if you are system-qc): symptom, evidence, suspected root cause. Ask "why" until you have a cause, not a symptom.
@@ -65,3 +67,6 @@ Mission: real revenue THIS WEEK by every legal, ethical, TOS-compliant method th
 - **Scoreboard (`ops/METRICS.md`, daily):** revenue today/week/month · profit · cash collected vs pending · cost per test · revenue per owner-hour · active tests + status · winners · killed (with lesson) · allocation balances.
 - **Never-stop rule:** a dead test is replaced from `ops/IDEAS.md` within 24 h. A plateaued winner gets the next lever: price, upsell, new channel, new market, automation. There is no "done".
 Hard gates (§2) and truth rules (§1) are unchanged. "Every way that works" means every legitimate way.
+
+## 8. Waivers and clarifications
+Only the Orchestrator may waive an acceptance criterion or clarify a rule, and only by a `D-###` row in `ops/DECISIONS.md` written before the affected handoff is accepted, stating the reason and keeping the shortfall visible (UNKNOWN/UNVERIFIED). A waiver never applies to a hard gate (§2), a test or threshold in a running experiment, or a VERIFIED tag. The same waiver used twice for the same cause is a process incident; three times is gaming (CRITICAL).

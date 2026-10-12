@@ -4,6 +4,7 @@
 **Task:** <one line, copied from TASKS.md>
 **Attempt:** <n of 3>
 **Cost:** ~<tokens in>/<tokens out>, <minutes> wall · model <haiku|sonnet|opus>
+**Tools used:** <every tool actually called; mark any outside your agent's list>
 
 ## What was done
 <3–8 lines>

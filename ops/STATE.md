@@ -9,8 +9,8 @@ Session: 1 · Updated: 2026-10-12 · Written by: scribe (per Orchestrator instru
 - A-005 Tax reserve % (placeholder 25% until confirmed with a tax pro) · answer: — · scope: until changed
 - A-006 Check Shopify billing for store ft6xi1-n1: were the Jun and Jul $29 Zendrop charges actually collected? (owner-only; agents cannot see it) · answer: — · scope: one-time
 - A-007 Send the EXP-A2 ($99 Google Business Profile pack) text once to each listed business (wording: `library/outreach/gbp-pack-offer-2026-10-13.md`) · answer: — · scope: one send per business
-- A-008 Send the EXP-A4 ($450 site / $150 deposit, or $590 annual) text once to each listed Elk Grove prospect (`library/outreach/founding-site-offer-2026-10-13.md`) · answer: — · scope: one send per business
-- A-009 Send the EXP-A3 ($49 AI-search readiness check) text once to each listed business (`library/outreach/ai-search-check-offer-2026-10-13.md`) · answer: — · scope: one send per business
+- A-008 Send the EXP-A3 ($49 AI-search readiness check) text once to each listed business (`library/outreach/ai-search-check-offer-2026-10-13.md`) · answer: — · scope: one send per business
+- A-009 Send the EXP-A4 ($450 site / $150 deposit, or $590 annual) text once to each listed Elk Grove prospect (`library/outreach/founding-site-offer-2026-10-13.md`) · answer: — · scope: one send per business
 - A-010 Apply for a business license (Elk Grove or Sacramento per your address), fee up to $25 · answer: — · scope: one-time
 - A-011 Activate a payment rail for business payments (only if you have none; name the app) · answer: — · scope: one-time
 
