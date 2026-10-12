@@ -155,8 +155,17 @@ export type RetailSettings = {
   review_delay_minutes: number;
   review_skip_days: number;
   estimate_nudge_days: number;
+  /** 0044: shop supplies = min(pct × labor, cap); taxable defaults by line type. */
+  shop_supplies_pct: number;
+  shop_supplies_cap: number | null;
+  shop_supplies_taxable: boolean;
+  parts_taxable_default: boolean;
+  labor_taxable_default: boolean;
   updated_at: string;
 };
+
+/** A named shop labor rate (0044); one is the default. */
+export type LaborRate = { id: string; company_id: string; name: string; rate: number; is_default: boolean; active: boolean; sort_order: number; created_at: string; updated_at: string };
 
 export type Resource = { id: string; company_id: string; kind: ResourceKind; name: string; profile_id: string | null; skills: string[]; active: boolean; sort_order: number; created_at: string; updated_at: string };
 export type BusinessHour = { id: string; company_id: string; dow: number; opens: string; closes: string; closed: boolean };
@@ -195,6 +204,8 @@ export type RetailCatalog = {
   blackouts: BlackoutDay[];
   time_off: TimeOff[];
   tax_rate: number;
+  /** Active labor rates (0044). */
+  labor_rates?: LaborRate[];
 };
 
 // ---------------------------------------------------------------------------
@@ -202,10 +213,13 @@ export type RetailCatalog = {
 // ---------------------------------------------------------------------------
 export type EstimateStatus = "draft" | "sent" | "viewed" | "accepted" | "declined" | "expired";
 export type EstimateTier = "good" | "better" | "best" | "single";
+/** A catalog service priced by size, or labor (hours × rate), a part, a fee, a sublet (0044). */
+export type EstimateLineType = "service" | "labor" | "part" | "fee" | "sublet";
 
 export type EstimateLineView = {
   id: string;
   service_id: string | null;
+  line_type?: EstimateLineType;
   name: string;
   benefit_text: string | null;
   qty: number;
@@ -215,6 +229,16 @@ export type EstimateLineView = {
   unit_price: number | null;
   line_total: number | null;
   modifiers: { code: string; label: string; kind?: "percent" | "flat"; amount?: number }[];
+  /** 0044 */
+  hours?: number | null;
+  rate?: number | null;
+  part_number?: string | null;
+  vendor?: string | null;
+  finding_id?: string | null;
+  /** Staff money only, never on the public view. */
+  cost?: number | null;
+  /** Single option: the customer's answer per line (null until answered). */
+  customer_approved?: boolean | null;
 };
 export type EstimateAddonView = EstimateLineView & { default_on: boolean; customer_approved: boolean | null };
 export type EstimateOptionView = {
@@ -228,6 +252,9 @@ export type EstimateOptionView = {
   subtotal: number | null;
   tax: number | null;
   total: number | null;
+  /** 0044 */
+  labor_subtotal?: number | null;
+  shop_supplies?: number | null;
   lines: EstimateLineView[];
 };
 export type EstimateAuthorizationView = {
@@ -282,6 +309,13 @@ export type EstimateView = {
   updated_at: string;
   /** Only on the public view. */
   token: string | null;
+  /** 0044: a quote, or a supplement written on an open repair order; when its lines landed on the job. */
+  kind?: "quote" | "supplement";
+  applied_at?: string | null;
+  shop_supplies?: number | null;
+  job?: { id: string; ro_number: string | null; tag_number: string; performed_at: string; paid_at: string | null; odometer: number | null } | null;
+  /** The findings this estimate quotes (media URLs signed by the page). */
+  findings?: JobFinding[];
   subtotal: number | null;
   tax_rate: number | null;
   tax: number | null;
@@ -293,9 +327,12 @@ export type EstimateView = {
   addons: EstimateAddonView[];
   authorizations: EstimateAuthorizationView[];
   company: { name: string; phone: string | null; email: string | null; address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; postal_code: string | null; logo_path: string | null; timezone: string };
-  policy: { policy_text: string | null; deposit_kind: "percent" | "flat" | "none"; deposit_value: number; deposit_refundable: boolean; signature_required: boolean; cancel_hours: number } | null;
+  policy: { policy_text: string | null; deposit_kind: "percent" | "flat" | "none"; deposit_value: number; deposit_refundable: boolean; signature_required: boolean; cancel_hours: number; shop_supplies_pct?: number; shop_supplies_cap?: number | null; shop_supplies_taxable?: boolean; tax_rate?: number } | null;
   public_money: boolean;
 };
+
+/** job_estimates(): the estimates written on a repair order. */
+export type JobEstimate = { id: string; display_number: string; status: EstimateStatus; kind: "quote" | "supplement"; sent_at: string | null; accepted_at: string | null; applied_at: string | null; total: number | null; lines: number };
 
 export type EstimateListRow = {
   id: string;
@@ -316,9 +353,15 @@ export type EstimateListRow = {
 };
 export type EstimateListResult = { count: number; rows: EstimateListRow[] };
 
-/** What the builder sends to create_estimate / update_estimate. */
-export type EstimateLineInput = { service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[] };
+/** What the builder sends to create_estimate / update_estimate. A service line prices through the matrix; the others carry their own numbers (0044). */
+export type EstimateLineInput =
+  | { line_type?: "service"; service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[]; cost?: number | null; finding_id?: string | null }
+  | { line_type: "labor"; label: string; hours: number; rate?: number | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null }
+  | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null }
+  | { line_type: "fee" | "sublet"; label: string; qty?: number; price: number; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null };
 export type EstimatePayload = {
+  /** 0044: write the estimate on an open repair order (its customer and car are used). */
+  job_id?: string | null;
   customer_id?: string;
   vehicle_id?: string | null;
   size_class?: VehicleSize;
@@ -1199,6 +1242,7 @@ export type Database = {
       blackout_days: Table<BlackoutDay>;
       time_off: Table<TimeOff>;
       estimates: Table<EstimateRow>;
+      labor_rates: Table<LaborRate>;
       appointments: Table<AppointmentRow>;
       payments: Table<PaymentRow>;
       jobs: Table<Job>;
@@ -1258,7 +1302,7 @@ export type Database = {
       customer_timeline: { Args: { p_id: string }; Returns: CustomerTimeline };
       save_vehicle: { Args: { p: VehiclePayload }; Returns: Vehicle };
       retail_catalog: { Args: Record<string, never>; Returns: RetailCatalog };
-      create_estimate: { Args: { p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; token: string; total: number; deposit_required: number } };
+      create_estimate: { Args: { p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; token: string; total: number; deposit_required: number; customer_id: string; job_id: string | null; kind: "quote" | "supplement" } };
       update_estimate: { Args: { p_id: string; p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; total: number } };
       send_estimate: { Args: { p_id: string }; Returns: { token: string; expires_at: string; display_number: string } };
       estimate_link: { Args: { p_id: string }; Returns: string };
@@ -1294,6 +1338,7 @@ export type Database = {
       delete_finding: { Args: { p_id: string }; Returns: { id: string; paths: string[] } };
       job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
       vehicle_open_findings: { Args: { p_vehicle: string; p_exclude_job?: string | null }; Returns: JobFinding[] };
+      job_estimates: { Args: { p_job: string }; Returns: JobEstimate[] };
       is_member: { Args: Record<string, never>; Returns: boolean };
       resolve_service_price: { Args: { p_dealership_id: string; p_service_id: string }; Returns: number | null };
       dealership_price_list: { Args: { p_dealership_id: string }; Returns: PriceListRow[] };

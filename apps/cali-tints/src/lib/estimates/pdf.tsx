@@ -102,16 +102,25 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
               <Text style={s.optionTotal}>{formatMoney(o.total ?? 0)}</Text>
             </View>
             {o.description ? <Text style={[s.small, { marginBottom: 4 }]}>{o.description}</Text> : null}
-            {o.lines.map((l) => (
+            {o.lines.filter((l) => !(accepted && o.tier === "single" && l.customer_approved === false)).map((l) => (
               <View key={l.id} style={s.line}>
                 <View style={s.lineName}>
-                  <Text>{l.name}{l.qty !== 1 ? ` × ${l.qty}` : ""}</Text>
+                  <Text>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</Text>
+                  {l.line_type === "labor" ? <Text style={s.small}>{`${l.hours} h × ${formatMoney(l.rate ?? 0)}`}</Text> : null}
+                  {l.line_type === "part" ? <Text style={s.small}>{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number, l.vendor].filter(Boolean).join(" · ")}</Text> : null}
+                  {l.line_type === "sublet" && l.vendor ? <Text style={s.small}>{l.vendor}</Text> : null}
                   {l.benefit_text ? <Text style={s.small}>{l.benefit_text}</Text> : null}
                   {l.modifiers.length ? <Text style={s.small}>{l.modifiers.map((m) => m.label).join(", ")}</Text> : null}
                 </View>
                 <Text style={s.lineAmt}>{formatMoney(l.line_total ?? 0)}</Text>
               </View>
             ))}
+            {(o.shop_supplies ?? 0) > 0 ? (
+              <View style={s.line}>
+                <View style={s.lineName}><Text>Shop supplies</Text></View>
+                <Text style={s.lineAmt}>{formatMoney(o.shop_supplies ?? 0)}</Text>
+              </View>
+            ) : null}
           </View>
         ))}
 

@@ -280,7 +280,11 @@ export function retailCatalogFixture(owner: boolean): RetailCatalog {
       { id: "m2", company_id: "c1", code: "pet_hair", label: "Pet hair", description: "Embedded pet hair in carpet and seats", kind: "flat", amount: 40, active: true, sort_order: 20, ask_customer: true, question: "Any pet hair in the car?", created_at: now, updated_at: now },
       { id: "m3", company_id: "c1", code: "biohazard", label: "Biohazard", description: "Vomit, mold, spills needing extraction", kind: "flat", amount: 75, active: true, sort_order: 30, ask_customer: false, question: null, created_at: now, updated_at: now },
     ],
-    settings: { id: "rs1", company_id: "c1", deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, hold_minutes: 30, cancel_hours: 24, slot_step_minutes: 30, lead_time_hours: 2, max_days_ahead: 60, reminder_hours: [24, 2], online_booking_enabled: true, estimate_valid_days: 14, tax_all_lines: false, signature_required_estimate: true, signature_required_receipt: true, policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", email_templates: DEFAULT_TEMPLATES, review_url: "https://g.page/r/demo/review", quiet_from: "20:00:00", quiet_to: "08:00:00", abandoned_minutes: 15, review_delay_minutes: 30, review_skip_days: 90, estimate_nudge_days: 3, updated_at: now },
+    settings: { id: "rs1", company_id: "c1", deposit_kind: "percent", deposit_value: 20, deposit_refundable: false, hold_minutes: 30, cancel_hours: 24, slot_step_minutes: 30, lead_time_hours: 2, max_days_ahead: 60, reminder_hours: [24, 2], online_booking_enabled: true, estimate_valid_days: 14, tax_all_lines: false, signature_required_estimate: true, signature_required_receipt: true, policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", email_templates: DEFAULT_TEMPLATES, review_url: "https://g.page/r/demo/review", quiet_from: "20:00:00", quiet_to: "08:00:00", abandoned_minutes: 15, review_delay_minutes: 30, review_skip_days: 90, estimate_nudge_days: 3, shop_supplies_pct: 5, shop_supplies_cap: 10, shop_supplies_taxable: false, parts_taxable_default: true, labor_taxable_default: false, updated_at: now },
+    labor_rates: [
+      { id: "lr1", company_id: "c1", name: "Shop rate", rate: 120, is_default: true, active: true, sort_order: 10, created_at: now, updated_at: now },
+      { id: "lr2", company_id: "c1", name: "Diagnostic", rate: 150, is_default: false, active: true, sort_order: 20, created_at: now, updated_at: now },
+    ],
     resources: [
       ...[1, 2, 3, 4, 5, 6].map((n) => res(`bay${n}`, "bay", `Bay ${n}`, n)),
       res("lift1", "lift", "Lift 1", 11),
@@ -302,7 +306,7 @@ export const SIZE_LABEL_FIXTURE: Record<VehicleSize, string> = { compact: "Compa
 // 0039: estimates. Three of them: sent with three options (Ana), approved and
 // signed (Luis), a draft (Dana). Prices are the sedan/compact/XL seed prices.
 // ---------------------------------------------------------------------------
-import type { EstimateListResult, EstimateListRow, EstimateStatus, EstimateView } from "@/lib/db/types";
+import type { EstimateListResult, EstimateListRow, EstimateLineType, EstimateStatus, EstimateView, JobEstimate } from "@/lib/db/types";
 
 const E1 = "90000000-0000-4000-8000-000000000001";
 const E2 = "90000000-0000-4000-8000-000000000002";
@@ -310,42 +314,58 @@ const E3 = "90000000-0000-4000-8000-000000000003";
 export const ESTIMATE_IDS = { ana: E1, luis: E2, dana: E3 };
 /** The public link of Ana's estimate in the demo (any other token is a 404). */
 export const ESTIMATE_TOKEN = "demo-estimate-token-ana-camry-0001";
+/** The supplement written on RO-000042 (Marcus, the Tesla) from the tech's findings. */
+const E4 = "90000000-0000-4000-8000-000000000004";
+export const ESTIMATE_TOKEN_RO = "demo-estimate-token-marcus-tesla-0004";
 
-type L = { id: string; svc: number | "other"; name?: string; qty?: number; price: number; modifiers?: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; taxable?: boolean };
+type L = { id: string; svc: number | "other" | null; name?: string; qty?: number; price: number; modifiers?: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; taxable?: boolean; type?: EstimateLineType; hours?: number; part_number?: string; vendor?: string; cost?: number; finding_id?: string; customer_approved?: boolean | null };
 const seedName = (i: number) => RETAIL_SEED[i][0];
 const seedBenefit = (i: number) => RETAIL_SEED[i][1];
 const seedMinutes = (i: number) => RETAIL_SEED[i][2];
 const line = (money: boolean, l: L) => {
-  const total = l.price * (l.qty ?? 1) + (l.modifiers ?? []).reduce((s, m) => s + m.amount, 0);
+  const type: EstimateLineType = l.type ?? "service";
+  const qty = type === "labor" ? (l.hours ?? 1) : (l.qty ?? 1);
+  const total = l.price * qty + (l.modifiers ?? []).reduce((s, m) => s + m.amount, 0);
   return {
     id: l.id,
-    service_id: l.svc === "other" ? "s8" : RETAIL_SERVICE_ID(l.svc),
-    name: l.name ?? (l.svc === "other" ? "Other" : seedName(l.svc)),
-    benefit_text: l.svc === "other" ? null : seedBenefit(l.svc),
-    qty: l.qty ?? 1,
-    taxable: l.taxable ?? false,
-    duration_minutes: l.svc === "other" ? 60 : seedMinutes(l.svc),
+    service_id: l.svc === null ? null : l.svc === "other" ? "s8" : RETAIL_SERVICE_ID(l.svc),
+    line_type: type,
+    name: l.name ?? (l.svc === "other" || l.svc === null ? "Other" : seedName(l.svc)),
+    benefit_text: l.svc === "other" || l.svc === null ? null : seedBenefit(l.svc),
+    qty,
+    taxable: l.taxable ?? (type === "part"),
+    duration_minutes: type === "labor" ? Math.round((l.hours ?? 1) * 60) : type !== "service" ? 0 : l.svc === "other" ? 60 : seedMinutes(l.svc as number),
     unit_price: money ? l.price : null,
     line_total: money ? total : null,
     modifiers: (l.modifiers ?? []).map((m) => (money ? m : { code: m.code, label: m.label })),
+    hours: type === "labor" ? (l.hours ?? 1) : null,
+    rate: type === "labor" && money ? l.price : null,
+    part_number: l.part_number ?? null,
+    vendor: l.vendor ?? null,
+    finding_id: l.finding_id ?? null,
+    cost: money ? (l.cost ?? null) : null,
+    customer_approved: l.customer_approved ?? null,
   };
 };
 const sum = (ls: ReturnType<typeof line>[]) => ls.reduce((s, l) => s + (l.line_total ?? 0), 0);
 
 const COMPANY = { name: "Cali Tints", phone: "(916) 555-0110", email: "mike@calitints.example", address_line1: "2900 Fulton Ave", address_line2: null, city: "Sacramento", state: "CA", postal_code: "95821", logo_path: null, timezone: "America/Los_Angeles" };
-const POLICY = { policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", deposit_kind: "percent" as const, deposit_value: 20, deposit_refundable: false, signature_required: true, cancel_hours: 24 };
+const POLICY = { policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", deposit_kind: "percent" as const, deposit_value: 20, deposit_refundable: false, signature_required: true, cancel_hours: 24, shop_supplies_pct: 5, shop_supplies_cap: 10, shop_supplies_taxable: false, tax_rate: 0 };
+const suppliesFor = (lines: ReturnType<typeof line>[]) => Math.min(Math.round(lines.filter((l) => l.line_type === "labor").reduce((s, l) => s + (l.line_total ?? 0), 0) * 5) / 100, 10);
 
-function build(money: boolean, pub: boolean, base: { id: string; n: number; status: EstimateStatus; customer: Customer; vehicle: Vehicle; options: { id: string; tier: EstimateView["options"][number]["tier"]; name: string; description: string | null; recommended: boolean; lines: L[] }[]; addons: (L & { default_on: boolean; customer_approved: boolean | null })[]; selected?: string; created: string; expires: string; sent?: string | null; viewed?: { first: string; last: string; count: number }; accepted?: string | null; auth?: EstimateView["authorizations"][number] | null; customer_notes?: string | null; internal_notes?: string | null; po?: string | null }): EstimateView {
+function build(money: boolean, pub: boolean, base: { id: string; n: number; status: EstimateStatus; customer: Customer; vehicle: Vehicle; options: { id: string; tier: EstimateView["options"][number]["tier"]; name: string; description: string | null; recommended: boolean; lines: L[] }[]; addons: (L & { default_on: boolean; customer_approved: boolean | null })[]; selected?: string; created: string; expires: string; sent?: string | null; viewed?: { first: string; last: string; count: number }; accepted?: string | null; auth?: EstimateView["authorizations"][number] | null; customer_notes?: string | null; internal_notes?: string | null; po?: string | null; job?: EstimateView["job"]; kind?: "quote" | "supplement"; applied?: string | null; findings?: JobFinding[]; token?: string }): EstimateView {
   const options = base.options.map((o) => {
     const lines = o.lines.map((l) => line(true, l));
     const subtotal = sum(lines);
-    return { id: o.id, tier: o.tier, name: o.name, description: o.description, recommended: o.recommended, sort_order: 0, duration_minutes: lines.reduce((s, l) => s + l.duration_minutes, 0), subtotal: money ? subtotal : null, tax: money ? 0 : null, total: money ? subtotal : null, lines: o.lines.map((l) => line(money, l)) };
+    const supplies = suppliesFor(lines);
+    return { id: o.id, tier: o.tier, name: o.name, description: o.description, recommended: o.recommended, sort_order: 0, duration_minutes: lines.reduce((s, l) => s + l.duration_minutes, 0), subtotal: money ? subtotal : null, labor_subtotal: money ? lines.filter((l) => l.line_type === "labor").reduce((s, l) => s + (l.line_total ?? 0), 0) : null, shop_supplies: money ? supplies : null, tax: money ? 0 : null, total: money ? subtotal + supplies : null, lines: o.lines.map((l) => line(money, l)) };
   });
   const addons = base.addons.map((a) => ({ ...line(money, a), default_on: a.default_on, customer_approved: a.customer_approved }));
   const headlineId = base.selected ?? base.options.find((o) => o.recommended)?.id ?? base.options[0].id;
   const headline = base.options.find((o) => o.id === headlineId)!;
   const accepted = base.status === "accepted";
   const subtotal = sum(headline.lines.map((l) => line(true, l))) + base.addons.filter((a) => (accepted ? a.customer_approved : a.default_on)).reduce((s, a) => s + (line(true, a).line_total ?? 0), 0);
+  const supplies = suppliesFor(headline.lines.map((l) => line(true, l)));
   return {
     id: base.id,
     display_number: `EST-${String(base.n).padStart(6, "0")}`,
@@ -363,15 +383,20 @@ function build(money: boolean, pub: boolean, base: { id: string; n: number; stat
     accepted_at: base.accepted ?? null,
     declined_at: null,
     decline_reason: null,
-    job_id: null,
+    job_id: base.job?.id ?? null,
+    job: base.job ?? null,
+    kind: base.kind ?? "quote",
+    applied_at: base.applied ?? null,
+    findings: base.findings ?? [],
     created_at: base.created,
     updated_at: base.created,
-    token: pub ? ESTIMATE_TOKEN : null,
+    token: pub ? (base.token ?? ESTIMATE_TOKEN) : null,
     subtotal: money ? subtotal : null,
+    shop_supplies: money ? supplies : null,
     tax_rate: money ? 0 : null,
     tax: money ? 0 : null,
-    total: money ? subtotal : null,
-    deposit_required: money ? Math.round(subtotal * 20) / 100 : null,
+    total: money ? subtotal + supplies : null,
+    deposit_required: money ? Math.round((subtotal + supplies) * 20) / 100 : null,
     customer: { id: base.customer.id, display_name: pub ? base.customer.first_name : base.customer.display_name, first_name: base.customer.first_name, phone: pub ? null : base.customer.phone, email: pub ? null : base.customer.email },
     vehicle: { id: base.vehicle.id, name: vehicleName(base.vehicle), color: base.vehicle.color, plate: pub ? null : base.vehicle.plate, size_class: base.vehicle.size_class },
     options,
@@ -416,6 +441,23 @@ function estimateBase(id: string) {
         addons: [],
         created: ago(0, 1), expires: new Date(Date.now() + 14 * 86400000).toISOString(), customer_notes: "Pet hair in the back; the extraction gets the third row.", internal_notes: null, po: null,
       };
+    case E4: {
+      const found = jobFindingsFixture("40000000-0000-4000-8000-000000000999").filter((f) => f.id === FINDING_IDS.pads || f.id === FINDING_IDS.spots).map((f) => ({ ...f, status: "quoted" as const, estimate_line_id: f.id === FINDING_IDS.pads ? "l11" : "l13" }));
+      return {
+        id: E4, n: 4, status: "sent" as EstimateStatus, customer: cust(C2), vehicle: veh(V2), kind: "supplement" as const, token: ESTIMATE_TOKEN_RO,
+        job: { id: "40000000-0000-4000-8000-000000000999", ro_number: "RO-000042", tag_number: "R-102", performed_at: ago(0, 0.7), paid_at: null, odometer: 31200 },
+        findings: found,
+        options: [{ id: "o4-single", tier: "single" as const, name: "While it is here", description: "What the tech found during the detail", recommended: true, lines: [
+          { id: "l11", svc: null, type: "labor" as const, name: "Replace rear brake pads", hours: 1.5, price: 120, finding_id: FINDING_IDS.pads },
+          { id: "l12", svc: null, type: "part" as const, name: "Rear brake pads", qty: 1, price: 68, part_number: "BP-4412", vendor: "NAPA", cost: 34, taxable: true },
+          { id: "l13", svc: 4, price: 90, finding_id: FINDING_IDS.spots },
+          { id: "l14", svc: null, type: "fee" as const, name: "Brake fluid disposal", price: 8 },
+        ] }],
+        addons: [],
+        created: ago(0, 0.3), expires: new Date(Date.now() + 14 * 86400000).toISOString(), sent: ago(0, 0.25),
+        customer_notes: "The pads are at 2 mm, so we would not wait on those. The water spots are cosmetic.", internal_notes: null, po: null,
+      };
+    }
     default:
       return null;
   }
@@ -427,13 +469,21 @@ export function estimateViewFixture(id: string, money: boolean): EstimateView | 
 }
 
 export function estimatePublicFixture(token: string): EstimateView | null {
-  if (token !== ESTIMATE_TOKEN) return null;
-  return build(true, true, estimateBase(E1)!);
+  if (token === ESTIMATE_TOKEN) return build(true, true, estimateBase(E1)!);
+  if (token === ESTIMATE_TOKEN_RO) return build(true, true, estimateBase(E4)!);
+  return null;
+}
+
+/** job_estimates(): the estimates written on a demo repair order. */
+export function jobEstimatesFixture(jobId: string, money: boolean): JobEstimate[] {
+  if (jobId !== "40000000-0000-4000-8000-000000000999") return [];
+  const e = estimateViewFixture(E4, money)!;
+  return [{ id: e.id, display_number: e.display_number, status: e.status, kind: "supplement", sent_at: e.sent_at, accepted_at: e.accepted_at, applied_at: null, total: e.total, lines: e.options[0].lines.length }];
 }
 
 export function estimateListFixture(money: boolean, q = "", status = "open"): EstimateListResult {
   const t = q.trim().toLowerCase();
-  const rows: EstimateListRow[] = [E3, E1, E2]
+  const rows: EstimateListRow[] = [E4, E3, E1, E2]
     .map((id) => estimateViewFixture(id, money)!)
     .filter((e) => (status === "all" ? true : status === "open" ? ["draft", "sent", "viewed"].includes(e.status) : e.status === status))
     .filter((e) => !t || e.display_number.toLowerCase().includes(t) || (e.customer.display_name ?? "").toLowerCase().includes(t) || (e.vehicle?.name ?? "").toLowerCase().includes(t))
@@ -443,7 +493,7 @@ export function estimateListFixture(money: boolean, q = "", status = "open"): Es
 
 /** The customer page's estimates list. */
 export function customerEstimatesFixture(customerId: string, money: boolean): NonNullable<CustomerTimeline["estimates"]> {
-  return [E3, E1, E2]
+  return [E4, E3, E1, E2]
     .map((id) => estimateViewFixture(id, money)!)
     .filter((e) => e.customer.id === customerId)
     .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, created_at: e.created_at, expires_at: e.expires_at, vehicle: e.vehicle?.name ?? null, total: e.total, job_id: e.job_id }));
@@ -638,6 +688,7 @@ export const FINDING_IDS = {
   note: "92000000-0000-4000-8000-000000000003",
   chip: "92000000-0000-4000-8000-000000000004",
   haze: "92000000-0000-4000-8000-000000000005",
+  filter: "92000000-0000-4000-8000-000000000006",
 } as const;
 const JOB_R101 = "40000000-0000-4000-8000-000000000998";
 const JOB_R102 = "40000000-0000-4000-8000-000000000999";
@@ -670,6 +721,7 @@ export function jobFindingsFixture(jobId: string): JobFinding[] {
           { id: "91000000-0000-4000-8000-000000000002", kind: "video", storage_path: "demo/pads.mp4", mime: "video/mp4", duration_s: 12.4, size_bytes: 18400000, created_at: ago(0, 0.5), url: null },
         ],
       }),
+      finding({ id: FINDING_IDS.filter, job_id: jobId, severity: "ok", title: "Cabin air filter is dirty", body: "Worth doing at the next oil change.", created_at: ago(0, 0.35), updated_at: ago(0, 0.35) }),
       finding({ id: FINDING_IDS.spots, job_id: jobId, severity: "soon", title: "Water spots on the hood and roof", body: "Hard-water etching, light.", recommended_service_id: RETAIL_SERVICE_ID(4), recommended_service: "Water spot removal", created_at: ago(0, 0.4), updated_at: ago(0, 0.4),
         media: [{ id: "91000000-0000-4000-8000-000000000003", kind: "finding", storage_path: "demo/spots.jpg", mime: "image/jpeg", duration_s: null, size_bytes: 410000, created_at: ago(0, 0.4), url: "/demo/after.svg" }] }),
     ];

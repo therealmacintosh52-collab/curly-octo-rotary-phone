@@ -11,14 +11,18 @@ import { errorMessage } from "@/lib/utils";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
-const lineSchema = z.object({
-  service_id: z.uuid(),
-  qty: z.number().positive().max(99).optional(),
-  label: z.string().trim().max(120).nullable().optional(),
-  price: z.number().min(0).max(100000).nullable().optional(),
-  modifiers: z.array(z.string().trim().max(40)).max(10).optional(),
-});
+const money = z.number().min(0).max(100000);
+const extra = { taxable: z.boolean().nullable().optional(), cost: money.nullable().optional(), finding_id: z.uuid().nullable().optional() };
+/** A service line prices through the size matrix; labor, parts, fees and sublets carry their own numbers (0044). */
+const lineSchema = z.discriminatedUnion("line_type", [
+  z.object({ line_type: z.literal("service"), service_id: z.uuid(), qty: z.number().positive().max(99).optional(), label: z.string().trim().max(120).nullable().optional(), price: money.nullable().optional(), modifiers: z.array(z.string().trim().max(40)).max(10).optional(), ...extra }),
+  z.object({ line_type: z.literal("labor"), label: z.string().trim().min(1, "Say what the labor is").max(120), hours: z.number().min(0.05).max(999), rate: z.number().min(0).max(10000).nullable().optional(), ...extra }),
+  z.object({ line_type: z.literal("part"), label: z.string().trim().min(1, "Name the part").max(120), qty: z.number().positive().max(999).optional(), price: money, part_number: z.string().trim().max(60).nullable().optional(), vendor: z.string().trim().max(80).nullable().optional(), ...extra }),
+  z.object({ line_type: z.enum(["fee", "sublet"]), label: z.string().trim().min(1, "Name it").max(120), qty: z.number().positive().max(999).optional(), price: money, vendor: z.string().trim().max(80).nullable().optional(), ...extra }),
+]);
+const lineInput = z.preprocess((v) => (v && typeof v === "object" && !("line_type" in v) ? { ...(v as object), line_type: "service" } : v), lineSchema);
 const payloadSchema = z.object({
+  job_id: z.uuid().nullable().optional(),
   customer_id: z.uuid().optional(),
   vehicle_id: z.uuid().nullable().optional(),
   size_class: z.enum(["compact", "sedan", "suv_truck", "xl"]).optional(),
@@ -27,11 +31,11 @@ const payloadSchema = z.object({
   internal_notes: z.string().trim().max(4000).nullable().optional(),
   customer_notes: z.string().trim().max(4000).nullable().optional(),
   options: z
-    .array(z.object({ tier: z.enum(["good", "better", "best", "single"]), name: z.string().trim().min(1).max(60), description: z.string().trim().max(300).nullable().optional(), recommended: z.boolean().optional(), lines: z.array(lineSchema).min(1).max(30) }))
+    .array(z.object({ tier: z.enum(["good", "better", "best", "single"]), name: z.string().trim().min(1).max(60), description: z.string().trim().max(300).nullable().optional(), recommended: z.boolean().optional(), lines: z.array(lineInput).min(1).max(60) }))
     .min(1)
     .max(3)
     .optional(),
-  addons: z.array(lineSchema.extend({ default_on: z.boolean().optional() })).max(20).optional(),
+  addons: z.array(z.preprocess((v) => (v && typeof v === "object" && !("line_type" in v) ? { ...(v as object), line_type: "service" } : v), z.object({ line_type: z.literal("service"), service_id: z.uuid(), qty: z.number().positive().max(99).optional(), label: z.string().trim().max(120).nullable().optional(), price: money.nullable().optional(), modifiers: z.array(z.string().trim().max(40)).max(10).optional(), default_on: z.boolean().optional(), ...extra }))).max(20).optional(),
 });
 
 function revalidate(id?: string, customerId?: string | null) {
@@ -46,11 +50,12 @@ export async function createEstimateAction(input: EstimatePayload): Promise<Acti
   if (!session.canPrices) return { ok: false, error: "Only the owner or an admin writes estimates" };
   const parsed = payloadSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  if (!parsed.data.customer_id) return { ok: false, error: "Pick the customer" };
+  if (!parsed.data.customer_id && !parsed.data.job_id) return { ok: false, error: "Pick the customer" };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_estimate", { p: parsed.data });
   if (error) return { ok: false, error: errorMessage(error) };
-  revalidate(data.id, parsed.data.customer_id);
+  revalidate(data.id, parsed.data.customer_id ?? data.customer_id);
+  if (parsed.data.job_id) revalidatePath(`/jobs/${parsed.data.job_id}`);
   return { ok: true, data: { id: data.id, display_number: data.display_number } };
 }
 
@@ -124,6 +129,7 @@ export async function convertEstimateAction(id: string, input: { tag_number?: st
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate(id);
   revalidatePath("/jobs");
+  revalidatePath(`/jobs/${data.id}`);
   return { ok: true, data: { jobId: data.id } };
 }
 

@@ -113,3 +113,102 @@ export function depositFor(total: number, policy: { deposit_kind: "percent" | "f
   if (policy.deposit_kind === "flat") return round2(Math.min(policy.deposit_value, total));
   return round2((total * policy.deposit_value) / 100);
 }
+
+// ---------------------------------------------------------------------------
+// 0044: labor, parts, fees, sublets and shop supplies, the same maths as
+// public._estimate_price_line() and public._estimate_option_totals().
+// ---------------------------------------------------------------------------
+export type LineType = "service" | "labor" | "part" | "fee" | "sublet";
+
+/** What the builder holds per line before the server prices it. */
+export type EstimateLineDraft = {
+  line_type: LineType;
+  service_id: string | null;
+  qty: number;
+  label: string | null;
+  /** Open-amount services, parts, fees, sublets: the typed price. */
+  price: number | null;
+  modifiers: string[];
+  hours: number | null;
+  rate: number | null;
+  part_number: string | null;
+  vendor: string | null;
+  taxable: boolean | null;
+  cost: number | null;
+  finding_id: string | null;
+};
+
+export interface SuppliesPolicy {
+  shop_supplies_pct?: number | null;
+  shop_supplies_cap?: number | null;
+  shop_supplies_taxable?: boolean | null;
+  parts_taxable_default?: boolean | null;
+  labor_taxable_default?: boolean | null;
+}
+
+export interface PricedLine extends QuoteLine {
+  line_type: LineType;
+  hours: number | null;
+  rate: number | null;
+}
+
+export const emptyLine = (line_type: LineType, patch: Partial<EstimateLineDraft> = {}): EstimateLineDraft => ({ line_type, service_id: null, qty: 1, label: null, price: null, modifiers: [], hours: null, rate: null, part_number: null, vendor: null, taxable: null, cost: null, finding_id: null, ...patch });
+
+/** Price one line: a service through the matrix, labor = hours × rate, the rest qty × price. Throws on a bad line. */
+export function priceLine(
+  line: EstimateLineDraft,
+  size: VehicleSize,
+  catalog: { services: QuoteService[]; modifiers: QuoteModifier[]; taxRate: number; taxAllLines: boolean; defaultRate?: number | null; policy?: SuppliesPolicy | null },
+): PricedLine {
+  if (line.line_type === "service") {
+    if (!line.service_id) throw new Error("A service line needs a service");
+    const q = quoteTotal({ size, lines: [{ service_id: line.service_id, qty: line.qty, label: line.label, price: line.price, modifiers: line.modifiers }] }, catalog);
+    return { ...q.lines[0], line_type: "service", hours: null, rate: null };
+  }
+  const name = (line.label ?? "").trim();
+  if (!name) throw new Error(`A ${line.line_type} line needs a name`);
+  if (line.line_type === "labor") {
+    const hours = Number(line.hours ?? 0);
+    const rate = line.rate ?? catalog.defaultRate ?? null;
+    if (!(hours > 0)) throw new Error("Labor needs hours");
+    if (rate === null || rate < 0) throw new Error("Pick a labor rate");
+    const taxable = catalog.taxAllLines || (line.taxable ?? !!catalog.policy?.labor_taxable_default);
+    return { line_type: "labor", service_id: "", name, unit_price: rate, qty: hours, modifiers: [], line_total: round2(hours * rate), taxable, duration_minutes: Math.round(hours * 60), placeholder: false, hours, rate };
+  }
+  const qty = Math.max(Number(line.qty ?? 1), 0.01);
+  const unit = Math.max(Number(line.price ?? 0), 0);
+  const taxable = catalog.taxAllLines || (line.taxable ?? (line.line_type === "part" ? (catalog.policy?.parts_taxable_default ?? true) : false));
+  return { line_type: line.line_type, service_id: "", name, unit_price: unit, qty, modifiers: [], line_total: round2(unit * qty), taxable, duration_minutes: 0, placeholder: false, hours: null, rate: null };
+}
+
+export interface OptionTotals {
+  subtotal: number;
+  labor_subtotal: number;
+  shop_supplies: number;
+  tax: number;
+  total: number;
+  duration_minutes: number;
+}
+
+/** Shop supplies = min(pct × labor, cap); tax on the taxable lines (and the supplies when the shop says so). */
+export function optionTotals(lines: { line_type?: LineType | null; line_total: number | null; taxable: boolean; duration_minutes: number; qty: number }[], taxRate: number, policy: SuppliesPolicy | null | undefined): OptionTotals {
+  const subtotal = round2(lines.reduce((s, l) => s + (l.line_total ?? 0), 0));
+  const labor = round2(lines.filter((l) => l.line_type === "labor").reduce((s, l) => s + (l.line_total ?? 0), 0));
+  let supplies = 0;
+  const pct = Number(policy?.shop_supplies_pct ?? 0);
+  if (pct > 0 && labor > 0) {
+    supplies = round2((labor * pct) / 100);
+    if (policy?.shop_supplies_cap !== null && policy?.shop_supplies_cap !== undefined) supplies = Math.min(supplies, Number(policy.shop_supplies_cap));
+  }
+  let taxable = lines.filter((l) => l.taxable).reduce((s, l) => s + (l.line_total ?? 0), 0);
+  if (policy?.shop_supplies_taxable) taxable += supplies;
+  const tax = round2(taxable * taxRate);
+  return {
+    subtotal,
+    labor_subtotal: labor,
+    shop_supplies: supplies,
+    tax,
+    total: round2(subtotal + supplies + tax),
+    duration_minutes: lines.reduce((s, l) => s + ((l.line_type ?? "service") === "service" ? l.duration_minutes * Math.max(l.qty, 1) : l.duration_minutes), 0),
+  };
+}

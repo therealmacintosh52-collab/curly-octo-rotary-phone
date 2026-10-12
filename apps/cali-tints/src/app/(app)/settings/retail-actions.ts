@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOwner, requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
-import type { AutomationRule, PriceModifier, Resource, RetailSettings } from "@/lib/db/types";
+import type { AutomationRule, LaborRate, PriceModifier, Resource, RetailSettings } from "@/lib/db/types";
 
 const optionalText = (max: number) => z.string().trim().max(max).transform((s) => s || null);
 const timeOrNull = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).nullable().optional();
@@ -158,6 +158,11 @@ const settingsSchema = z.object({
   review_delay_minutes: z.number().int().min(0).max(10080).optional(),
   review_skip_days: z.number().int().min(0).max(3650).optional(),
   estimate_nudge_days: z.number().int().min(0).max(60).optional(),
+  shop_supplies_pct: z.number().min(0).max(100).optional(),
+  shop_supplies_cap: z.number().min(0).max(100000).nullable().optional(),
+  shop_supplies_taxable: z.boolean().optional(),
+  parts_taxable_default: z.boolean().optional(),
+  labor_taxable_default: z.boolean().optional(),
 });
 export type RetailSettingsInput = z.input<typeof settingsSchema>;
 
@@ -298,6 +303,63 @@ export async function deleteAutomationRuleAction(id: string): Promise<ActionResu
   await requireOwnerAdmin();
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_automation_rule", { p_id: id });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate();
+  return { ok: true, data: undefined };
+}
+
+// --- Labor rates and shop supplies (0044) ---------------------------------------
+
+const suppliesSchema = z.object({
+  shop_supplies_pct: z.number().min(0).max(100),
+  shop_supplies_cap: z.number().min(0).max(100000).nullable(),
+  shop_supplies_taxable: z.boolean(),
+  parts_taxable_default: z.boolean(),
+  labor_taxable_default: z.boolean(),
+});
+export type SuppliesInput = z.input<typeof suppliesSchema>;
+
+/** Shop supplies as a share of labor (capped), and whether parts / labor are taxed by default. Owner: these shape every price. */
+export async function saveSuppliesAction(input: SuppliesInput): Promise<ActionResult> {
+  const session = await requireOwner();
+  const parsed = suppliesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("retail_settings").upsert({ ...parsed.data, company_id: session.company.id }, { onConflict: "company_id" });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate();
+  revalidatePath("/retail/estimates");
+  return { ok: true, data: undefined };
+}
+
+const laborRateSchema = z.object({ id: z.uuid().optional(), name: z.string().trim().min(1).max(60), rate: z.number().min(0).max(10000), is_default: z.boolean().optional(), active: z.boolean().optional(), sort_order: z.number().int().min(0).max(9999).optional() });
+export type LaborRateInput = z.input<typeof laborRateSchema>;
+
+/** A named shop rate (owner/admin). Making one the default clears the old default first. */
+export async function saveLaborRateAction(input: LaborRateInput): Promise<ActionResult<LaborRate>> {
+  const session = await requireOwnerAdmin();
+  const parsed = laborRateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { id, ...data } = parsed.data;
+  if (data.is_default) {
+    const { error: clearErr } = await supabase.from("labor_rates").update({ is_default: false }).eq("company_id", session.company.id).eq("is_default", true);
+    if (clearErr) return { ok: false, error: errorMessage(clearErr) };
+  }
+  const q = id ? supabase.from("labor_rates").update(data).eq("id", id).select("*").single() : supabase.from("labor_rates").insert({ ...data, company_id: session.company.id }).select("*").single();
+  const { data: row, error } = await q;
+  if (error) return { ok: false, error: errorMessage(error).includes("labor_rates_company_id_name_key") ? "A rate with that name already exists" : errorMessage(error) };
+  revalidate();
+  revalidatePath("/retail/estimates");
+  return { ok: true, data: row };
+}
+
+export async function deleteLaborRateAction(id: string): Promise<ActionResult> {
+  await requireOwnerAdmin();
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("labor_rates").select("is_default").eq("id", id).maybeSingle();
+  if (row?.is_default) return { ok: false, error: "Make another rate the default first" };
+  const { error } = await supabase.from("labor_rates").delete().eq("id", id);
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate();
   return { ok: true, data: undefined };

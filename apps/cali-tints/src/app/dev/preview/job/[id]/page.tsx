@@ -3,7 +3,7 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { jobListFixture, priceListFixture } from "@/test/fixtures";
-import { fromLastTimeFixture, jobFindingsFixture, retailChargeFixture, retailServicesFixture } from "@/test/retail-fixtures";
+import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailChargeFixture, retailServicesFixture } from "@/test/retail-fixtures";
 import { previewSession } from "@/test/preview-session";
 
 /** Every row of the demo Jobs list opens as its own page (guest demo in production). */
@@ -74,6 +74,7 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
             canNote={open && (isAdmin || row.detailer_id === "u5")}
             userId={profile.id}
             initialTab={sp.tab === "notes" ? "notes" : "job"}
+            estimates={row.retail ? jobEstimatesFixture(row.id, isAdmin) : []}
           />
         </AppShell>
       </SyncProvider>

@@ -1144,3 +1144,113 @@ begin
   select count(*) into n from public.job_photos where finding_id = (select v from r_ids where k = 'finding_pads'); assert n = 0, '0043: media rows gone';
 end $$;
 select pg_temp.logout();
+
+-- 0044: estimates on the repair order: line types, supplies, per-item approval, onto the RO
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare e public.estimates; d jsonb; o jsonb; n int; v_lr uuid; v_ana uuid := (select v from r_ids where k = 'cust_ana'); v_mazda uuid := (select v from r_ids where k = 'veh_mazda');
+  v_job uuid := (select v from r_ids where k = 'job_det'); f jsonb; v_find uuid; s jsonb;
+begin
+  -- settings: a 5 % supplies fee capped at $10, parts taxable, labor not; a default rate of $120
+  update public.retail_settings set shop_supplies_pct = 5, shop_supplies_cap = 10, parts_taxable_default = true, labor_taxable_default = false where company_id = public.current_company_id();
+  update public.companies set tax_rate = 0.10 where id = public.current_company_id();
+  select id into v_lr from public.labor_rates where company_id = public.current_company_id() and is_default;
+  assert v_lr is not null and (select rate from public.labor_rates where id = v_lr) = 120, '0044: default labor rate seeded';
+  -- a finding on the detailer's RO to quote from
+  f := public.add_finding(jsonb_build_object('job_id', v_job, 'severity', 'urgent', 'title', 'Front pads at 2 mm', 'recommended_service_id', (select v from r_ids where k = 'svc_oil')));
+  v_find := (f ->> 'id')::uuid;
+  -- the supplement on the RO: service 210 (full detail on a sedan) + labor 2.5 h × 120 + part 2 × 40 + fee 25 + sublet 150 = 765
+  e := public.create_estimate(jsonb_build_object('job_id', v_job, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', jsonb_build_array(
+         jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')),
+         jsonb_build_object('line_type', 'labor', 'label', 'Replace front pads', 'hours', 2.5, 'finding_id', v_find),
+         jsonb_build_object('line_type', 'part', 'label', 'Brake pads', 'part_number', 'BP-123', 'vendor', 'NAPA', 'qty', 2, 'price', 40, 'cost', 22),
+         jsonb_build_object('line_type', 'fee', 'label', 'Disposal fee', 'price', 25),
+         jsonb_build_object('line_type', 'sublet', 'label', 'Rotor resurfacing', 'vendor', 'Machine shop', 'price', 150))))));
+  assert e.kind = 'supplement' and e.job_id = v_job and e.customer_id = v_ana and e.vehicle_id = v_mazda, '0044: supplement on the RO carries its customer and car';
+  o := public.estimate_detail(e.id) -> 'options' -> 0;
+  assert (o ->> 'labor_subtotal')::numeric = 300 and (o ->> 'shop_supplies')::numeric = 10 and (o ->> 'subtotal')::numeric = 765, '0044: labor subtotal, capped supplies, subtotal: ' || o::text;
+  -- tax only on the parts (80 × 10 %)
+  assert e.subtotal = 765 and e.shop_supplies = 10 and e.tax = 8 and e.total = 783, '0044: totals: ' || e.subtotal || ' / ' || e.shop_supplies || ' / ' || e.tax || ' / ' || e.total;
+  assert (select status from public.job_findings where id = v_find) = 'quoted' and (select estimate_line_id from public.job_findings where id = v_find) is not null, '0044: the finding is on the estimate';
+  d := public.estimate_detail(e.id);
+  assert (select count(*) from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'labor' and (l ->> 'hours')::numeric = 2.5 and (l ->> 'rate')::numeric = 120) = 1, '0044: labor line in the json';
+  assert (select (l ->> 'cost')::numeric from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part') = 22 and (d -> 'job' ->> 'ro_number') like 'RO-%' and jsonb_array_length(d -> 'findings') = 1, '0044: cost for staff, the RO, the findings';
+  insert into r_ids values ('est_sup', e.id), ('finding_pads2', v_find);
+  -- labor without hours is refused
+  begin
+    perform public.create_estimate(jsonb_build_object('customer_id', v_ana, 'options', jsonb_build_array(jsonb_build_object('name', 'x', 'lines', jsonb_build_array(jsonb_build_object('line_type', 'labor', 'label', 'Work'))))));
+    raise exception 'expected hours required';
+  exception when sqlstate '22023' then null; end;
+  s := public.send_estimate(e.id);
+  assert (select status from public.job_findings where id = v_find) = 'quoted', '0044: still quoted once sent';
+  -- the manager sees the lines but no rate or cost
+  select count(*) into n from public.services where line_kind is not null; assert n = 0, '0044: no system services yet';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare d jsonb;
+begin
+  d := public.estimate_detail((select v from r_ids where k = 'est_sup'));
+  assert (select l -> 'rate' from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'labor') = 'null'::jsonb
+     and (select l -> 'cost' from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part') = 'null'::jsonb
+     and (select (l ->> 'hours')::numeric from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'labor') = 2.5, '0044: manager sees hours, not rate or cost';
+  begin
+    insert into public.labor_rates (company_id, name, rate) values (public.current_company_id(), 'Diag', 150);
+    raise exception 'expected manager cannot add rates';
+  exception when sqlstate '42501' then null; end;
+end $$;
+-- the customer: sees rate but not cost, unticks the part, signs
+select pg_temp.logout();
+drop table if exists r_tok; create temp table r_tok as select token, id from public.estimates where id = (select v from r_ids where k = 'est_sup');
+grant select on r_tok to anon;
+select pg_temp.anon();
+do $$
+declare v_token text := (select token from r_tok); d jsonb; r jsonb; v_opt uuid; v_keep uuid[]; v_part uuid;
+begin
+  d := public.estimate_by_token(v_token);
+  assert (select (l ->> 'rate')::numeric from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'labor') = 120
+     and (select l -> 'cost' from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part') = 'null'::jsonb
+     and (d -> 'options' -> 0 ->> 'shop_supplies')::numeric = 10 and (d -> 'policy' ->> 'shop_supplies_pct')::numeric = 5 and (d -> 'job' ->> 'ro_number') like 'RO-%' and jsonb_array_length(d -> 'findings') = 1, '0044: the customer sees the rate, supplies, the RO and the findings, not the cost: ' || (d -> 'policy')::text;
+  v_opt := (d -> 'options' -> 0 ->> 'id')::uuid;
+  select array_agg((l ->> 'id')::uuid) into v_keep from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' <> 'part';
+  select (l ->> 'id')::uuid into v_part from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part';
+  r := public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'approved_line_ids', to_jsonb(v_keep), 'name', 'Ana Lopez',
+         'signature_path', '00000000-0000-4000-8000-000000000001/estimates/' || (d ->> 'id') || '/sig.png', 'pay_choice', 'at_shop'));
+  -- without the part: 685 + 10 supplies, no taxable lines left → 695
+  assert (r ->> 'status') = 'accepted' and (r ->> 'total')::numeric = 695, '0044: per-item approval drops the part: ' || r::text;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'est_sup'); v_job uuid := (select v from r_ids where k = 'job_det'); j public.jobs; n int; d jsonb; je jsonb;
+begin
+  assert (select customer_approved from public.estimate_lines where estimate_id = v_est and line_type = 'part') = false
+     and (select customer_approved from public.estimate_lines where estimate_id = v_est and line_type = 'labor') = true, '0044: the answer is on the lines';
+  assert (select status from public.job_findings where id = (select v from r_ids where k = 'finding_pads2')) = 'approved', '0044: the finding is approved';
+  -- the advisor puts the approved work on the RO
+  select count(*) into n from public.job_services where job_id = v_job; assert n = 1, '0044: one line before';
+  j := public.convert_estimate_to_job(v_est);
+  assert j.id = v_job, '0044: a supplement lands on its RO';
+  select count(*) into n from public.job_services where job_id = v_job; assert n = 5, '0044: full detail kept once, labor, fee, sublet, supplies added: ' || n;
+  assert (select label from public.job_services js join public.services s on s.id = js.service_id where js.job_id = v_job and s.line_kind = 'labor') = 'Replace front pads — 2.50 h @ $120.00', '0044: labor label';
+  assert pg_temp.js_price(v_job, (select id from public.services where line_kind = 'shop_supplies')) = 10, '0044: supplies row';
+  d := public.retail_charge(v_job);
+  -- 210 (the job's own full detail) + 300 + 25 + 150 + 10 = 695, tax 0 (no taxable lines approved)
+  assert (d ->> 'subtotal')::numeric = 695 and (d ->> 'tax')::numeric = 0 and (d ->> 'balance')::numeric = 695, '0044: the counter balance carries the supplement: ' || (d ->> 'subtotal') || ' / ' || (d ->> 'tax');
+  assert (select applied_at from public.estimates where id = v_est) is not null, '0044: applied';
+  assert (public.convert_estimate_to_job(v_est)).id = v_job and (select count(*) from public.job_services where job_id = v_job) = 5, '0044: applying twice adds nothing';
+  je := public.job_estimates(v_job);
+  assert jsonb_array_length(je) = 1 and (je -> 0 ->> 'kind') = 'supplement' and (je -> 0 ->> 'lines')::int = 4 and (je -> 0 ->> 'applied_at') is not null, '0044: the RO lists its estimate: ' || je::text;
+  -- two labor lines on one job are allowed now
+  d := to_jsonb(public.create_estimate(jsonb_build_object('job_id', v_job, 'options', jsonb_build_array(jsonb_build_object('name', 'More', 'lines', jsonb_build_array(
+         jsonb_build_object('line_type', 'labor', 'label', 'Bleed brakes', 'hours', 0.5), jsonb_build_object('line_type', 'labor', 'label', 'Road test', 'hours', 0.25)))))));
+  perform public.mark_estimate_accepted((d ->> 'id')::uuid, (select id from public.estimate_options where estimate_id = (d ->> 'id')::uuid), '{}', 'Ana on the phone', 'phone');
+  j := public.convert_estimate_to_job((d ->> 'id')::uuid);
+  select count(*) into n from public.job_services js join public.services s on s.id = js.service_id where js.job_id = v_job and s.line_kind = 'labor'; assert n = 3, '0044: repeated labor rows: ' || n;
+  -- the hidden services never reach the menus
+  assert (select count(*) from jsonb_array_elements(public.retail_catalog() -> 'services') s where s ->> 'name' in ('Labor', 'Parts', 'Fee', 'Sublet', 'Shop supplies')) = 0, '0044: system services hidden from the catalog';
+  assert jsonb_array_length(public.retail_catalog() -> 'labor_rates') = 1, '0044: the catalog carries the labor rates';
+  update public.retail_settings set shop_supplies_pct = 0, shop_supplies_cap = null where company_id = public.current_company_id();
+  update public.companies set tax_rate = 0 where id = public.current_company_id();
+end $$;
+select pg_temp.logout();

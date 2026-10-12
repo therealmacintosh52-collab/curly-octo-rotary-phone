@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { JobFinding, PriceListRow } from "@/lib/db/types";
+import type { JobEstimate, JobFinding, PriceListRow } from "@/lib/db/types";
 import { signedUrls } from "@/lib/media/signed";
 import { withoutPrices } from "@/lib/jobs/price-list";
 import { JobDetail, type JobDetailProps } from "@/components/jobs/job-detail";
@@ -63,7 +63,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const open = !job.invoice_id && !job.deleted_at;
   const retail = !!job.dealership?.retail;
   const own = session.isAdmin || job.detailer_id === session.userId;
-  const [{ data: photoRows }, priceListRes, { data: detailers }, { data: charge }, { data: invoiceNumber }, { data: findingRows }, { data: lastTimeRows }, { data: catalog }] = await Promise.all([
+  const [{ data: photoRows }, priceListRes, { data: detailers }, { data: charge }, { data: invoiceNumber }, { data: findingRows }, { data: lastTimeRows }, { data: catalog }, { data: estimateRows }] = await Promise.all([
     supabase.from("job_photos").select("id, kind, storage_path, created_at, finding_id").eq("job_id", id).order("created_at"),
     supabase.rpc("dealership_price_list", { p_dealership_id: job.dealership_id }),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [{ id: session.profile.id, full_name: session.profile.full_name }] }),
@@ -75,6 +75,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     retail ? supabase.rpc("job_findings", { p_job: id }) : Promise.resolve({ data: [] as JobFinding[] }),
     retail && job.vehicle ? supabase.rpc("vehicle_open_findings", { p_vehicle: job.vehicle.id, p_exclude_job: id }) : Promise.resolve({ data: [] as JobFinding[] }),
     retail ? supabase.rpc("retail_catalog") : Promise.resolve({ data: null }),
+    retail ? supabase.rpc("job_estimates", { p_job: id }) : Promise.resolve({ data: [] as JobEstimate[] }),
   ]);
   const findings = (findingRows ?? []) as JobFinding[];
   const fromLastTime = (lastTimeRows ?? []) as JobFinding[];
@@ -126,6 +127,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     canNote: own && !job.deleted_at,
     userId: session.userId,
     initialTab: sp.tab === "notes" ? "notes" : "job",
+    estimates: (estimateRows ?? []) as JobEstimate[],
   };
   return <JobDetail {...detail} />;
 }

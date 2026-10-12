@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { LaborRatesCard, SuppliesCard } from "./labor-rates-card";
 
 const mins = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}` : `${m}m`);
 const RESOURCE_LABEL: Record<ResourceKind, string> = { bay: "Bay", lift: "Lift", tech: "Tech" };
@@ -148,6 +149,9 @@ export function RetailCatalogManager({ catalog }: { catalog: RetailCatalog }) {
           </ul>
         </CardContent>
       </Card>
+
+      <LaborRatesCard rates={catalog.labor_rates ?? []} />
+      <SuppliesCard settings={catalog.settings} />
 
       <Card>
         <CardHeader>

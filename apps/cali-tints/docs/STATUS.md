@@ -5,11 +5,11 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 | # | Module | Status | Migration / commit | Next step (needs a yes) |
 |---|---|---|---|---|
 | 1 | Core data, vehicle ID | **Done** | `0037` · `5d1095e` | Products used per vehicle; "next visit" reminders (needs Module 12's maintenance reminders) |
-| 2 | Pricing, estimates | **Done** | `0038`, `0039` · `d546691`, `f6ae1b1` | Canned jobs with parts and fees; per-item approve/decline on tiers; contract attachments |
+| 2 | Pricing, estimates | **Done** (labor / parts / fees / sublets, supplies, per-item approval) | `0038`, `0039`, `0044` | Saved canned jobs; a parts markup matrix; contract attachments |
 | 3 | Booking, capacity | **Done** | `0040` · `0ceb6a0` | Multi-tech / line-item scheduling; an embeddable widget; drag-and-drop calendar grid |
 | 4 | Payments, deposits | **Done** (Clover only) | `0041` · `23f7828` | First real run in the Clover sandbox from the owner's side; tipping, BNPL, memberships, gift cards (all need a decision on a processor feature) |
 | 5 | Intake, photos, inspections | Partial (photos; the RO notes tab with findings, photos, clips, declined work kept) | `0030`, `0043` | Fuel / keys at check-in; SVG damage pins; DVI templates; condition sign-off |
-| 6 | Work orders, board | Partial (RO numbers, statuses, the notes tab) | `0040`, `0043` | 7b: the estimate from the findings with labor / parts / fees / sublets, per-item signed approval, approved work onto the RO; then a stage board and a "ready for pickup" text rule |
+| 6 | Work orders, board | Partial (RO numbers, statuses, the notes tab, findings → estimate → signed approval → work onto the RO) | `0040`, `0043`, `0044` | A stage board over the retail jobs; a "ready for pickup" text rule; the tech told in-app when work is approved |
 | 7 | BAR compliance | Not started | — | Only if the shop does mechanical work for money; research the current BAR rules live first |
 | 8 | Messaging, inbox | Partial (templates, text queue, `sms:` links) | `0042` | A per-customer thread of what went out; Twilio only if the owner pays for A2P 10DLC |
 | 9 | AI sales assistant | Not started (by decision: no AI keys) | — | Zero-key scripted web chat through the same `/book` tools, then an LLM behind `AI_PROVIDER` |
@@ -28,7 +28,7 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 
 ## Verified on every commit
 
-`pnpm typecheck` · `pnpm lint` · `pnpm test` (74) · `supabase/tests/run.sh` (01_flows + 02_retail) · `pnpm build` · Playwright at 390 px in guest mode (`.dev/redesign-e2e.mjs`, `.dev/retail-e2e.mjs`) · GitHub Actions green · Vercel READY on the demo.
+`pnpm typecheck` · `pnpm lint` · `pnpm test` (77) · `supabase/tests/run.sh` (01_flows + 02_retail) · `pnpm build` · Playwright at 390 px in guest mode (`.dev/redesign-e2e.mjs`, `.dev/retail-e2e.mjs`) · GitHub Actions green · Vercel READY on the demo.
 
 ## Known gaps in the first slice (by design)
 

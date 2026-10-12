@@ -59,3 +59,33 @@ describe("templates", () => {
     expect(t.body).toBe("Custom {{first_name}}");
   });
 });
+
+describe("line types and shop supplies (mirror public._estimate_price_line / _estimate_option_totals)", async () => {
+  const { emptyLine, optionTotals, priceLine } = await import("./quote");
+  const catalog = { services, modifiers, taxRate: 0.1, taxAllLines: false, defaultRate: 120, policy: { shop_supplies_pct: 5, shop_supplies_cap: 10, shop_supplies_taxable: false, parts_taxable_default: true, labor_taxable_default: false } };
+  it("prices labor by hours × rate, parts by qty × price, fees and sublets untaxed", () => {
+    const labor = priceLine(emptyLine("labor", { label: "Replace front pads", hours: 2.5 }), "sedan", catalog);
+    expect(labor).toMatchObject({ line_total: 300, qty: 2.5, unit_price: 120, taxable: false, duration_minutes: 150 });
+    const part = priceLine(emptyLine("part", { label: "Brake pads", qty: 2, price: 40, part_number: "BP-123" }), "sedan", catalog);
+    expect(part).toMatchObject({ line_total: 80, taxable: true });
+    const fee = priceLine(emptyLine("fee", { label: "Disposal fee", price: 25 }), "sedan", catalog);
+    const sublet = priceLine(emptyLine("sublet", { label: "Rotors", price: 150, vendor: "Machine shop" }), "sedan", catalog);
+    expect(fee.taxable).toBe(false);
+    expect(sublet.line_total).toBe(150);
+    const svc = priceLine(emptyLine("service", { service_id: "full" }), "sedan", catalog);
+    expect(svc).toMatchObject({ line_type: "service", line_total: 200 });
+    const t = optionTotals([svc, labor, part, fee, sublet], 0.1, catalog.policy);
+    // 755 of lines, supplies capped at 10, tax on the parts only
+    expect(t).toMatchObject({ subtotal: 755, labor_subtotal: 300, shop_supplies: 10, tax: 8, total: 773, duration_minutes: 390 });
+  });
+  it("drops the supplies with the labor and taxes them when told to", () => {
+    const part = priceLine(emptyLine("part", { label: "Pads", price: 80 }), "sedan", catalog);
+    expect(optionTotals([part], 0.1, catalog.policy)).toMatchObject({ shop_supplies: 0, tax: 8, total: 88 });
+    const labor = priceLine(emptyLine("labor", { label: "Work", hours: 1 }), "sedan", catalog);
+    expect(optionTotals([labor], 0.1, { shop_supplies_pct: 5, shop_supplies_cap: null, shop_supplies_taxable: true })).toMatchObject({ shop_supplies: 6, tax: 0.6, total: 126.6 });
+  });
+  it("refuses labor without hours and lines without a name", () => {
+    expect(() => priceLine(emptyLine("labor", { label: "x" }), "sedan", catalog)).toThrow(/hours/);
+    expect(() => priceLine(emptyLine("part", { price: 5 }), "sedan", catalog)).toThrow(/name/);
+  });
+});

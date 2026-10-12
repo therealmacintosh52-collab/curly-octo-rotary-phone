@@ -29,8 +29,8 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 | Feature | Source | Where it lives | Status | Flag |
 |---|---|---|---|---|
 | Price matrix: service × size class × condition modifier | DOC | `0038`, `service_prices_by_size`, `price_modifiers`, `quote_total`, Settings → Shop menu | Built | none |
-| Canned jobs (labor + parts + fees), oil/tire/brake templates, sublets | TEK | — | Not built (oil change, brakes seeded as services) | none |
-| Labor rates, parts markup, shop supplies, disposal fee, tax per line type | TEK | `services.taxable`, `retail_settings.tax_all_lines` | Partial (tax per item; no markup/fees) | none |
+| Canned jobs (labor + parts + fees), oil/tire/brake templates, sublets | TEK | labor / part / fee / sublet lines (`0044`, `estimate_lines.line_type`) | Partial (the line types exist; saved templates do not) | none |
+| Labor rates, parts markup, shop supplies, disposal fee, tax per line type | TEK | `labor_rates`, shop supplies (% of labor, cap), fee lines, taxable defaults by type (`0044`) | Partial (no parts markup matrix) | none |
 | Estimate types Standard / Quick / Options / Package | QIQ | `estimate_options` (single or good/better/best) | Partial (single or tiers) | none |
 | Quote requests default to Good/Better/Best | DOC | `estimate-builder.tsx` | Built | none |
 | Tier descriptions from catalog benefit text only | DOC | `services.benefit_text` | Built | none |
@@ -38,7 +38,7 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 | Staff "mark accepted" → authorization record | QIQ | `mark_estimate_accepted`, `estimate_authorizations` | Built | none |
 | Scheduling from an estimate carries its notes and lines | QIQ | `book_appointment(p_estimate)`, "Schedule it", `/book?e=` | Built | none |
 | Public estimate page: token link, tiers, add-ons, live total, e-sign, pay choice, viewed timestamps, matches the PDF | DOC QIQ ALP TEK | `/e/<token>`, `estimate_by_token`, `estimate_respond`, `/api/e/[token]/pdf` | Built | none (deposit payment needs `DEPOSITS_ONLINE=clover`) |
-| Per-item approve / decline on the public page | DOC | add-on toggles | Partial (add-ons per item; the chosen tier as a whole) | none |
+| Per-item approve / decline on the public page | DOC | every line of a single-option estimate + add-ons (`estimate_respond`, `0044`) | Built (tiered estimates: the tier as a whole + add-ons) | none |
 | Deposit priced on the chosen option | QIQ | `estimates.deposit_required` | Built | none |
 | Public instant-quote calculator → book | DOC | `/book` (size → services → price) | Built | none |
 | Branded estimate / invoice templates | URB | `src/lib/estimates/pdf.tsx`, `src/lib/receipts/pdf.tsx` | Built | none |
@@ -100,7 +100,7 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 |---|---|---|---|---|
 | Work board with custom stages | ALP | appointment statuses, Today | Partial (fixed statuses, no board) | none |
 | Tech mobile view | ALP | My jobs, Retail Today, the RO notes tab (`ro-notes.tsx`) | Partial | none |
-| Mid-job upsell → updated estimate link → approve | DOC TEK | new estimate from the customer page | Partial (manual) | none |
+| Mid-job upsell → updated estimate link → approve | DOC TEK | Build the estimate from the findings → the customer's link with the findings and media → per-item signed approval → Add the approved work to the RO (`0044`) | Built | none |
 | Declined work saved and resurfaced | TEK DOC | `job_findings.status = declined`, "From last time" on the next RO, the customer page count | Built (no drip yet) | none |
 | Status texts (checked in, ready) | URB | — | Not built (rules exist for booked / reminder / cancelled only) | none |
 | Real-time dashboard: today's jobs, deposits outstanding | ALP | Retail Today, `retail_money_summary` | Built (refresh on load, not live) | none |
@@ -110,7 +110,7 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 | Feature | Source | Where it lives | Status | Flag |
 |---|---|---|---|---|
 | Write It Right rules blocking start / finalize | — | — | Not built | none |
-| Signed documents immutable with versions | — | `estimate_authorizations` append-only, signatures bucket | Partial | none |
+| Signed documents immutable with versions | — | `estimate_authorizations` append-only (a supplement on an RO is a further authorization with its own signed amount), signatures bucket | Partial | none |
 
 ## Module 8: messaging and inbox
 

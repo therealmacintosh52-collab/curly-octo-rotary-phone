@@ -3,10 +3,13 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CircleAlertIcon, EllipsisVerticalIcon, FilmIcon, PlayIcon, PlusIcon, StickyNoteIcon, VideoIcon, XIcon } from "lucide-react";
+import { CircleAlertIcon, ClipboardCheckIcon, EllipsisVerticalIcon, FileTextIcon, FilmIcon, PlayIcon, PlusIcon, StickyNoteIcon, VideoIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { FindingSeverity, FindingStatus, JobFinding } from "@/lib/db/types";
+import type { FindingSeverity, FindingStatus, JobEstimate, JobFinding } from "@/lib/db/types";
 import { addFindingAction, addFindingPhotosAction, deleteFindingAction, registerFindingMediaAction, updateFindingAction } from "@/app/(app)/jobs/actions";
+import { convertEstimateAction } from "@/app/(app)/retail/estimates/actions";
+import { formatMoney } from "@/lib/money";
+import { EstimateStatusBadge } from "@/components/retail/estimate-status-badge";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { MAX_VIDEO_BYTES, MAX_VIDEO_SECONDS, extensionFor, formatClipLength, isVideoMime, mediaMime } from "@/lib/media/kind";
@@ -38,6 +41,10 @@ export interface RoNotesProps {
   /** Owner and admin remove anything; others only what they wrote. */
   canDeleteAny: boolean;
   userId: string;
+  /** The estimates written on this RO (0044) and whether this user prices (builds and applies them). */
+  estimates?: JobEstimate[];
+  canQuote?: boolean;
+  jobOpen?: boolean;
 }
 
 const SEVERITY_LABEL: Record<FindingSeverity, string> = { ok: "Looks fine", soon: "Soon", urgent: "Urgent" };
@@ -62,6 +69,17 @@ export function RoNotes(p: RoNotesProps) {
   const [open, setOpen] = useState<JobFinding["media"][number] | null>(null);
   const [pending, start] = useTransition();
   const urgent = p.findings.filter((f) => f.kind === "finding" && f.severity === "urgent" && f.status === "open").length;
+  const quotable = p.findings.filter((f) => f.kind === "finding" && (f.status === "open" || f.status === "declined")).map((f) => f.id);
+  const estimates = p.estimates ?? [];
+  function applyEstimate(e: JobEstimate) {
+    start(async () => {
+      if (demo) return void toast.success(`Approved work added to ${p.roNumber ?? "the RO"}`, { description: "Guest preview — nothing changed" });
+      const r = await convertEstimateAction(e.id, {});
+      if (!r.ok) return void toast.error(r.error);
+      toast.success(`Approved work added to ${p.roNumber ?? "the RO"}`);
+      router.refresh();
+    });
+  }
 
   function setStatus(f: JobFinding, status: "open" | "declined" | "done") {
     start(async () => {
@@ -179,13 +197,46 @@ export function RoNotes(p: RoNotesProps) {
               ))}
             </ol>
           )}
-          {p.canWrite && (
-            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setAdding(true)} data-testid="finding-add">
-              <PlusIcon /> Add a finding
-            </Button>
-          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {p.canWrite && (
+              <Button type="button" variant="outline" size="sm" onClick={() => setAdding(true)} data-testid="finding-add">
+                <PlusIcon /> Add a finding
+              </Button>
+            )}
+            {p.canQuote && p.jobOpen !== false && quotable.length > 0 && (
+              <Button asChild size="sm" data-testid="build-estimate">
+                <Link href={`/retail/estimates/new?job=${p.jobId}&findings=${quotable.join(",")}`}><FileTextIcon /> Build the estimate ({quotable.length})</Link>
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      {estimates.length > 0 && (
+        <Card data-testid="ro-estimates">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FileTextIcon className="size-4 text-primary" /> Estimates on this RO <Badge variant="muted">{estimates.length}</Badge></CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-border text-sm">
+              {estimates.map((e) => (
+                <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                  <div className="min-w-0">
+                    <Link href={`/retail/estimates/${e.id}`} className="font-medium hover:text-primary">{e.display_number}</Link>
+                    <span className="ml-2 text-caption text-subtle">{e.lines} {e.lines === 1 ? "item" : "items"}{e.total !== null ? ` · ${formatMoney(e.total)}` : ""}{e.applied_at ? " · on the RO" : e.status === "accepted" ? " · approved, not on the RO yet" : e.status === "sent" || e.status === "viewed" ? " · waiting on the customer" : ""}</span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <EstimateStatusBadge status={e.status} />
+                    {p.canQuote && e.status === "accepted" && !e.applied_at && (
+                      <Button size="sm" onClick={() => applyEstimate(e)} disabled={pending} data-testid="apply-estimate"><ClipboardCheckIcon /> Add to the RO</Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
         <DialogContent className="max-w-3xl p-2">

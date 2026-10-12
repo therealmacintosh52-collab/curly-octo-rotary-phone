@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArchiveIcon, ArrowLeftIcon, CameraIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
-import type { JobFinding, PriceListRow } from "@/lib/db/types";
+import type { JobEstimate, JobFinding, PriceListRow } from "@/lib/db/types";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { Page } from "@/components/app/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,8 @@ export interface JobDetailProps {
   canNote?: boolean;
   userId?: string;
   initialTab?: "job" | "notes";
+  /** The estimates written on this RO (0044). */
+  estimates?: JobEstimate[];
 }
 
 const vehicle = (v: { year: number | null; make: string | null; model: string | null }) => [v.year, v.make, v.model].filter(Boolean).join(" ");
@@ -67,9 +69,14 @@ export function JobDetail(p: JobDetailProps) {
 
   const retail = !!job.retail;
   const paidAtCounter = !!job.payment?.paid_at;
+  const estimates = p.estimates ?? [];
+  const waiting = estimates.filter((e) => e.status === "sent" || e.status === "viewed").length;
+  const toApply = estimates.filter((e) => e.status === "accepted" && !e.applied_at).length;
+  const applied = estimates.filter((e) => !!e.applied_at).reduce((s, e) => s + e.lines, 0);
   const steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[] = retail
     ? [
         { label: "Logged", detail: `${formatDate(job.performed_at)} · ${job.dealership_name}`, state: "done" },
+        ...(waiting || toApply || applied ? [{ label: waiting ? "Waiting on approval" : toApply ? "Approved" : "Approved work added", detail: waiting ? `${waiting} ${waiting === 1 ? "estimate" : "estimates"} with the customer` : toApply ? "Add the approved work to the RO from the notes tab" : `${applied} ${applied === 1 ? "line" : "lines"} from the estimate`, state: (waiting ? "now" : toApply ? "now" : "done") as "now" | "done" }] : []),
         deleted
           ? { label: "Deleted", detail: `${formatDate(job.deleted_at)}${job.deleted_reason ? ` · ${job.deleted_reason}` : ""} · in the archive`, state: "off" }
           : paidAtCounter
@@ -129,7 +136,7 @@ export function JobDetail(p: JobDetailProps) {
       </div>
 
       {retail ? (
-        <RoLayout initialTab={p.initialTab} count={(p.findings ?? []).length} notes={<RoNotes jobId={job.id} roNumber={job.ro_number ?? null} findings={p.findings ?? []} fromLastTime={p.fromLastTime ?? []} services={p.retailServices ?? []} canWrite={!!p.canNote && !deleted} canDeleteAny={canSetAmount && isAdmin} userId={p.userId ?? ""} />}>
+        <RoLayout initialTab={p.initialTab} count={(p.findings ?? []).length} notes={<RoNotes jobId={job.id} roNumber={job.ro_number ?? null} findings={p.findings ?? []} fromLastTime={p.fromLastTime ?? []} services={p.retailServices ?? []} canWrite={!!p.canNote && !deleted} canDeleteAny={canSetAmount && isAdmin} userId={p.userId ?? ""} estimates={estimates} canQuote={canSetAmount} jobOpen={!deleted && !paidAtCounter} />}>
           {body(p, steps, retail, deleted, isAdmin, canSetAmount)}
         </RoLayout>
       ) : (
@@ -149,7 +156,7 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
               <CardTitle>Where it stands</CardTitle>
             </CardHeader>
             <CardContent>
-              <ol className="grid gap-3 sm:grid-cols-3" data-testid="job-steps">
+              <ol className={cn("grid gap-3", steps.length > 3 ? "sm:grid-cols-4" : "sm:grid-cols-3")} data-testid="job-steps">
                 {steps.map((s, i) => (
                   <li key={i} className="flex gap-3 sm:flex-col sm:gap-2">
                     <span

@@ -35,7 +35,7 @@ export default async function InvoicesPage(props: PageProps<"/invoices">) {
 
   const [{ data: list, error }, { data: services }, { data: dealerships }, { data: unsent }, { data: openJobs }] = await Promise.all([
     supabase.rpc("invoices_filtered", invoiceFilterArgs(filters)),
-    supabase.from("services").select("id, name").order("sort_order"),
+    supabase.from("services").select("id, name").is("line_kind", null).order("sort_order"),
     supabase.from("dealerships").select("id, name").eq("active", true).eq("retail", false).order("name"),
     // Unsent invoices by dealership, for "Send invoices".
     supabase.from("invoices").select("id, display_number, total, period_start, period_end, dealership_id, dealership:dealerships(name, ap_emails), invoice_items(tag_number, year, make, model)").eq("status", "draft").order("number").limit(200),

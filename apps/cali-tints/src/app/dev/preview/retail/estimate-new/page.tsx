@@ -4,7 +4,8 @@ import { AppShell } from "@/components/app/app-shell";
 import { RetailNav } from "@/components/retail/retail-nav";
 import { EstimateBuilder } from "@/components/retail/estimate-builder";
 import type { CustomerPick } from "@/components/retail/customer-picker";
-import { pickedCustomersFixture, retailCatalogFixture } from "@/test/retail-fixtures";
+import { jobFindingsFixture, pickedCustomersFixture, retailCatalogFixture, RETAIL_JOB_CUSTOMER } from "@/test/retail-fixtures";
+import { linesFromFindings } from "@/lib/estimates/from-findings";
 import { previewSession } from "@/test/preview-session";
 
 /** Fixture preview of the estimate builder (owner/admin). `?customer=&vehicle=` arrives from a customer's page. */
@@ -12,7 +13,10 @@ export default async function DevEstimateNewPreview(props: PageProps<"/dev/previ
   const sp = await props.searchParams;
   const { session, canPrices } = previewSession(sp);
   const recent = pickedCustomersFixture();
-  const picked = typeof sp.customer === "string" ? recent.find((c) => c.id === sp.customer) : undefined;
+  const jobId = typeof sp.job === "string" ? sp.job : null;
+  const job = jobId ? RETAIL_JOB_CUSTOMER[jobId.endsWith("999") ? "R-102" : "R-101"] : undefined;
+  const catalog = retailCatalogFixture(canPrices);
+  const picked = job ? recent.find((c) => c.id === job.id) : typeof sp.customer === "string" ? recent.find((c) => c.id === sp.customer) : undefined;
   const initialPick: CustomerPick | null = picked ? { customer: picked, vehicleId: typeof sp.vehicle === "string" && picked.vehicles.some((v) => v.id === sp.vehicle) ? sp.vehicle : picked.vehicles.length === 1 ? picked.vehicles[0].id : null } : null;
   return (
     <SessionProvider value={session}>
@@ -21,7 +25,7 @@ export default async function DevEstimateNewPreview(props: PageProps<"/dev/previ
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
             <RetailNav />
           </div>
-          <EstimateBuilder catalog={retailCatalogFixture(canPrices)} recent={recent} initialPick={initialPick} />
+          <EstimateBuilder catalog={catalog} recent={recent} initialPick={initialPick} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={jobId ? linesFromFindings(jobFindingsFixture(jobId), typeof sp.findings === "string" ? sp.findings.split(",") : [], catalog) : undefined} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

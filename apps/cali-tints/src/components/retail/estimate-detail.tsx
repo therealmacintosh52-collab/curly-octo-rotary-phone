@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateView } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
@@ -53,6 +53,26 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
   const chosen = e.options.find((o) => o.id === e.selected_option_id) ?? null;
   const customerName = e.customer.display_name ?? e.customer.first_name;
   const url = sentUrl ?? publicUrl ?? "";
+  const ro = e.job ?? null;
+  const supplement = e.kind === "supplement" && !!ro;
+  const [applying, startApply] = useTransition();
+  function applyToRo() {
+    if (!ro) return;
+    startApply(async () => {
+      if (demo) return void toast.success(`Added to ${ro.ro_number ?? ro.tag_number}`, { description: "Guest preview — nothing changed" });
+      const r = await convertEstimateAction(e.id, {});
+      if (!r.ok) return void toast.error(r.error);
+      toast.success(`Approved work added to ${ro.ro_number ?? ro.tag_number}`);
+      router.refresh();
+    });
+  }
+  const lineMeta = (l: EstimateView["options"][number]["lines"][number]) => {
+    const t = l.line_type ?? "service";
+    if (t === "labor") return `${l.hours} h${showMoney && l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}`;
+    if (t === "part") return [l.qty !== 1 ? `${l.qty} ×${showMoney && l.unit_price !== null ? ` ${formatMoney(l.unit_price)}` : ""}` : null, l.part_number, l.vendor].filter(Boolean).join(" · ");
+    if (t === "sublet") return l.vendor ?? "";
+    return "";
+  };
   const smsBody = `Hi ${e.customer.first_name || "there"}, here is your estimate${e.vehicle?.name ? ` for the ${e.vehicle.name}` : ""} from ${e.company.name}: ${url}`;
 
   function send(via: "email" | "link") {
@@ -103,11 +123,17 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-title tracking-wide">{e.display_number}</h1>
             <EstimateStatusBadge status={e.status} />
-            {e.job_id && (
+            {e.job_id && !supplement && (
               <Badge variant="info" asChild>
                 <Link href={`/jobs/${e.job_id}`}>Job created</Link>
               </Badge>
             )}
+            {supplement && ro && (
+              <Badge variant="info" asChild data-testid="estimate-ro">
+                <Link href={`/jobs/${ro.id}?tab=notes`}>On {ro.ro_number ?? ro.tag_number}</Link>
+              </Badge>
+            )}
+            {e.applied_at && supplement && <Badge variant="success" data-testid="estimate-applied"><CheckIcon /> On the RO</Badge>}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <Link href={`/retail/customers/${e.customer.id}`} className="font-medium text-foreground hover:text-primary" data-testid="estimate-customer">{customerName}</Link>
@@ -159,14 +185,21 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
                     {o.lines.map((l) => (
                       <li key={l.id} className="flex items-start justify-between gap-3 py-2">
                         <div className="min-w-0">
-                          <div className="font-medium">{l.name}{l.qty !== 1 ? ` × ${l.qty}` : ""}</div>
+                          <div className="flex flex-wrap items-center gap-2 font-medium">
+                            {(l.line_type ?? "service") !== "service" && <Badge variant="muted">{l.line_type}</Badge>}
+                            <span>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</span>
+                            {accepted && o.tier === "single" && l.customer_approved === false && <Badge variant="muted">Declined</Badge>}
+                          </div>
+                          {lineMeta(l) && <div className="text-caption text-subtle">{lineMeta(l)}</div>}
                           {l.benefit_text && <div className="text-caption text-subtle">{l.benefit_text}</div>}
                           {l.modifiers.length > 0 && <div className="text-caption text-warning">{l.modifiers.map((m) => m.label).join(", ")}</div>}
+                          {showMoney && l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * ((l.line_type ?? "service") === "labor" ? 1 : l.qty))}</div>}
                         </div>
-                        {showMoney && <span className="shrink-0 tabular-nums">{money(l.line_total)}</span>}
+                        {showMoney && <span className={cn("shrink-0 tabular-nums", accepted && o.tier === "single" && l.customer_approved === false && "line-through text-muted-foreground")}>{money(l.line_total)}</span>}
                       </li>
                     ))}
                   </ul>
+                  {showMoney && (o.shop_supplies ?? 0) > 0 && <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-sm"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums">{money(o.shop_supplies)}</span></div>}
                   <div className="mt-2 text-caption text-subtle">About {Math.round((o.duration_minutes / 60) * 10) / 10} h of work</div>
                 </CardContent>
               </Card>
@@ -197,6 +230,28 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
             </Card>
           )}
 
+          {(e.findings ?? []).length > 0 && (
+            <Card data-testid="estimate-findings">
+              <CardHeader>
+                <CardTitle>What the tech found</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y divide-border text-sm">
+                  {e.findings!.map((f) => (
+                    <li key={f.id} className="flex items-start justify-between gap-3 py-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2"><span className={cn("inline-block size-2.5 shrink-0 rounded-full", f.severity === "urgent" ? "bg-destructive" : f.severity === "soon" ? "bg-warning" : "bg-success")} /><span className="font-medium">{f.title}</span></div>
+                        {f.body && <p className="mt-0.5 text-caption text-subtle">{f.body}</p>}
+                        {f.media.length > 0 && <div className="mt-1 text-caption text-subtle">{f.media.length} {f.media.length === 1 ? "photo or clip" : "photos / clips"} on the RO</div>}
+                      </div>
+                      <Badge variant={f.status === "approved" ? "success" : f.status === "declined" ? "muted" : "info"}>{f.status === "approved" ? "Approved" : f.status === "declined" ? "Declined" : "Quoted"}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
           {(e.customer_notes || e.internal_notes) && (
             <Card>
               <CardHeader>
@@ -215,6 +270,7 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
             <Card data-testid="estimate-money">
               <CardContent className="grid gap-1.5 pt-5 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">{accepted ? "Subtotal" : e.options.length > 1 ? "Subtotal (recommended)" : "Subtotal"}</span><span className="tabular-nums">{money(e.subtotal)}</span></div>
+                {(e.shop_supplies ?? 0) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums" data-testid="estimate-supplies">{money(e.shop_supplies)}</span></div>}
                 <div className="flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(e.tax_rate ?? 0))})</span><span className="tabular-nums">{money(e.tax)}</span></div>
                 <div className="flex justify-between border-t border-border pt-2 text-base font-semibold"><span>Total</span><span className="tabular-nums" data-testid="estimate-total">{money(e.total)}</span></div>
                 {(e.deposit_required ?? 0) > 0 && <div className="flex justify-between text-caption text-subtle"><span>Deposit to book</span><span className="tabular-nums">{money(e.deposit_required)}</span></div>}
@@ -306,7 +362,24 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
             </Card>
           )}
 
-          {isAdmin && accepted && (
+          {supplement && ro && accepted && (
+            <Card data-testid="estimate-apply">
+              <CardHeader>
+                <CardTitle>Next</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {e.applied_at ? (
+                  <p className="text-sm text-muted-foreground">The approved work is on {ro.ro_number ?? ro.tag_number}; the counter collects it with the rest.</p>
+                ) : canPrices ? (
+                  <Button onClick={applyToRo} loading={applying} data-testid="apply-to-ro"><ClipboardCheckIcon /> Add the approved work to {ro.ro_number ?? ro.tag_number}</Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Approved; the advisor adds it to the RO.</p>
+                )}
+                <Button asChild variant="outline"><Link href={`/jobs/${ro.id}?tab=notes`}><WrenchIcon /> Open the RO</Link></Button>
+              </CardContent>
+            </Card>
+          )}
+          {isAdmin && accepted && !supplement && (
             <Card>
               <CardHeader>
                 <CardTitle>Next</CardTitle>

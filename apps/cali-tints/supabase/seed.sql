@@ -62,3 +62,7 @@ on conflict (dealership_id, service_id) do nothing;
 -- Retail defaults (0038): settings, hours, bays/lifts, the shop menu with placeholder prices. Idempotent.
 select public.seed_retail_defaults('00000000-0000-4000-8000-000000000001');
 select public.seed_automation_defaults('00000000-0000-4000-8000-000000000001');
+-- 0044: one placeholder labor rate per company (the owner sets the real one in Settings → Shop menu).
+insert into public.labor_rates (company_id, name, rate, is_default, sort_order)
+select c.id, 'Shop rate', 120, true, 10 from public.companies c
+where not exists (select 1 from public.labor_rates lr where lr.company_id = c.id);
