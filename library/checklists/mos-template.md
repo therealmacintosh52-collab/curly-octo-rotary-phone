@@ -12,3 +12,5 @@ Owner: qa · Created 2026-10-12 from T-012 (T-010 templates, round 1). Re-verify
 9. Audit walk: need a real public listing from WebSearch (not invented). Stopwatch per section; section budgets must add to 15 min INCLUDING the fill-in step. If WebSearch is unavailable mark UNVERIFIED and log a tooling incident; do not substitute invented data.
 10. Compliance: STOP line on every cold DM/text/script; "no/stop/silence = never contact again" must not be contradicted by a follow-up line; TCPA/DNC/CAN-SPAM/CA ARL reads carry "verify with a professional"; qa never rules on them.
 11. Line count under 120 per handoff; placeholders: grep REPLACE-ME (none allowed); [BRACKETS] are intentional owner fill-ins.
+
+(added T-014) Time claims: add up EVERY artefact the owner must produce before send (owner copy AND client copy, header, lights), not only the table. Report arithmetic = lookups + typed chars / 125 + navigation; state the range. A repair that adds a new artefact (e.g. line-form client copy) must re-run the time sum.

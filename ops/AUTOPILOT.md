@@ -18,5 +18,7 @@ Then run the session loop in CLAUDE.md in order: read ops/STATE.md, open rows of
 
 Autonomy rules: decide everything that is not a hard gate yourself and log it as D-###. Stop and record an A-### only for: spending money, creating accounts, entering payment info, publishing anything, contacting anyone, adding agents beyond 8, changing the income target or constraints, or a CRITICAL incident. Never send, post, buy, or publish. Check ops/DECISIONS.md for owner answers to A-### rows before acting; an unanswered approval stays unanswered. Keep each session under roughly 8 agent calls and use the cheapest adequate model per task (D-002). If an experiment is past its time cap with no owner report, mark it stalled in TODAY.md and propose the replacement test.
 
+Owner's live board: follow ops/dashboard/README.md. Before deciding anything, read the board's `approvals` and `quests` collections with the ArtifactData tool (artifact URL in that README): a Yes/No there is the owner's answer to that A-###, a done quest is an owner report; log both. After scribe's STATE rewrite, write the board back (state, top-3 quests, approvals, one feed row).
+
 End: commit and push to the working branch with a clear message, then write the owner report in the Simple Mode layout from library/playbooks/growth-agency-mos-adapter.md §4 (7 lines: status, scoreboard from LEDGER/METRICS only, max 3 quests, Boss Battle, one verified tip, approvals and incidents, next action). The report is the notification the owner reads on their phone.
 ```

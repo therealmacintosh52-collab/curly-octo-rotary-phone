@@ -1,0 +1,247 @@
+<title>Growth Game Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: one phone-width column; score tiles in a wrapping grid; everything else stacked cards. */
+:root{
+  --bg:#f6f3ec; --panel:#ffffff; --ink:#1d1a26; --muted:#6b6577; --line:#e3ded2;
+  --accent:#c27a12; --accent-ink:#ffffff; --coin:#f0b429;
+  --good:#2f8f5b; --warn:#d49b0a; --bad:#c43d3d; --hold:#8a8498;
+  --display:"Chakra Petch","Trebuchet MS",sans-serif; --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#171523; --panel:#211e30; --ink:#f1edf7; --muted:#a39db3; --line:#332f45;
+  --accent:#f0b429; --accent-ink:#1d1a26; --coin:#f0b429;
+  --good:#4fc184; --warn:#f0b429; --bad:#ef6b6b; --hold:#8a8498; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#171523; --panel:#211e30; --ink:#f1edf7; --muted:#a39db3; --line:#332f45;
+  --accent:#f0b429; --accent-ink:#1d1a26; --coin:#f0b429;
+  --good:#4fc184; --warn:#f0b429; --bad:#ef6b6b; --hold:#8a8498; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;padding-inline:16px;padding-block:12px 40px}
+.wrap{max-width:560px;margin:0 auto;display:grid;gap:14px}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:1.5rem;letter-spacing:.02em}
+h2{font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.status{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-family:var(--display);font-size:.95rem}
+.status span{white-space:nowrap}
+.rank{background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:2px 10px;font-weight:700}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.tile{background:var(--bg);border-radius:10px;padding:10px;min-width:0}
+.tile .v{font-family:var(--display);font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.tile .l{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.tile .s{font-size:.72rem;color:var(--muted)}
+.quest{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.quest:first-of-type{border-top:0}
+.num{font-family:var(--display);font-weight:700;font-size:1.2rem;color:var(--accent);width:1.4em}
+.q-title{font-weight:700}
+.q-meta{font-size:.8rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.q-why{font-size:.9rem;margin-top:4px}
+details{margin-top:4px;font-size:.9rem}
+summary{cursor:pointer;color:var(--accent);font-weight:700}
+details ol{padding-left:1.2em;margin:6px 0}
+.asset{font-size:.8rem;color:var(--muted);word-break:break-all}
+button{font-family:var(--display);font-weight:700;font-size:.9rem;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-offset:2px}
+.quest.done{opacity:.6}
+.quest.done .q-title{text-decoration:line-through}
+.undo{background:none;color:var(--muted);padding:4px 8px;font-size:.8rem}
+.bar{height:14px;border-radius:999px;background:var(--bg);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.boss{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.boss b{font-family:var(--display);font-variant-numeric:tabular-nums}
+.ap{display:grid;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
+.ap:first-of-type{border-top:0}
+.ap-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:2px 8px;font-weight:700;background:var(--line);color:var(--ink)}
+.pill.open{background:var(--warn);color:#1d1a26}
+.pill.yes{background:var(--good);color:#fff}
+.pill.no{background:var(--bad);color:#fff}
+.pill.hold{background:var(--hold);color:#fff}
+.ap-id{font-family:var(--display);font-weight:700}
+.ap-item{font-size:.95rem}
+.ap-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ap-actions .no{background:var(--bad);color:#fff}
+.ap-actions input{flex:1 1 140px;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;background:var(--bg);color:var(--ink)}
+.feed li{padding:6px 0;border-top:1px solid var(--line);font-size:.92rem;display:grid;grid-template-columns:auto 1fr;gap:8px}
+.feed li:first-child{border-top:0}
+.feed ul{list-style:none;margin:0;padding:0}
+.k{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding-top:3px;white-space:nowrap}
+.tip{font-size:.95rem}
+.tag{font-size:.72rem;color:var(--muted)}
+.foot{font-size:.8rem;color:var(--muted);text-align:center}
+.empty{color:var(--muted);font-size:.92rem}
+.err{color:var(--bad);font-size:.85rem}
+@media (prefers-reduced-motion: reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <h1>Growth Game Board</h1>
+    <div class="status" id="status">
+      <span id="st-mode">Owner</span>·<span id="st-phase">Phase —</span>·<span id="st-level">Level —</span>·<span id="st-xp">XP —</span>·<span id="st-streak">Streak —</span>
+      <span class="rank" id="st-rank">Rookie</span>
+    </div>
+    <p id="offline" class="err" hidden>The live store is not reachable in this view. Open the page signed in to see today's numbers.</p>
+    <p id="dberr" class="err" hidden></p>
+  </div>
+
+  <div class="card">
+    <h2>Scoreboard</h2>
+    <div class="tiles" id="tiles">
+      <div class="tile"><div class="v" id="t-rev">—</div><div class="l">Revenue</div><div class="s">confirmed only</div></div>
+      <div class="tile"><div class="v" id="t-burn">—</div><div class="l">Monthly bleed</div><div class="s" id="t-burn-s">subscriptions</div></div>
+      <div class="tile"><div class="v" id="t-pitch">—</div><div class="l">Pitches made</div><div class="s">you report them</div></div>
+      <div class="tile"><div class="v" id="t-clients">—</div><div class="l">Paying clients</div><div class="s">auditor confirmed</div></div>
+      <div class="tile"><div class="v" id="t-appr">—</div><div class="l">Waiting on you</div><div class="s">yes / no below</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Today's quests</h2>
+    <div id="quests"><p class="empty">Quests appear here after the team's next run. Tap <b>Done</b> when you finish one; XP is credited on the next run.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Boss battle</h2>
+    <div class="boss"><span id="boss-goal">This week's goal arrives with the next run.</span><b id="boss-count">0/0</b></div>
+    <div class="bar"><i id="boss-bar"></i></div>
+  </div>
+
+  <div class="card">
+    <h2>Your yes / no</h2>
+    <p class="empty" style="margin:0 0 6px">Anything that spends money, contacts someone, publishes, or creates an account waits here until you tap. Nothing is sent by the team.</p>
+    <div id="approvals"><p class="empty">Nothing is waiting on you.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Tip</h2>
+    <p class="tip" id="tip">—</p>
+    <div class="tag" id="tip-tag"></div>
+  </div>
+
+  <div class="card feed">
+    <h2>What moved</h2>
+    <ul id="feed"><li><span class="k">—</span><span class="empty">The team logs each run here.</span></li></ul>
+  </div>
+
+  <div class="foot" id="foot">Updated —</div>
+</div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const RANKS=[["Empire Builder",12000],["Agency Owner",6000],["Closer",3000],["Operator",1500],["Hustler",500],["Rookie",0]];
+  let db=null, canWrite=true, state=null, quests=[], approvals=[], feed=[];
+  const busy=new Set();
+
+  function rank(xp){ for(const [n,t] of RANKS){ if(xp>=t) return n; } return "Rookie"; }
+  function money(n){ if(n==null||n==="") return "—"; const v=Number(n); if(Number.isNaN(v)) return String(n); return "$"+v.toLocaleString(undefined,{maximumFractionDigits:0}); }
+  function when(iso){ try{ const d=new Date(iso); if(Number.isNaN(d.getTime())) return "—"; return d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }catch(e){ return "—"; } }
+  function el(tag,cls,text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
+  function showErr(e){ const p=$("#dberr"); p.textContent="Live data paused ("+(e&&e.code?e.code:"unavailable")+"). Reopen the page to reconnect."; p.hidden=false; }
+
+  function totalXp(){ let xp=Number(state&&state.xp||0); for(const q of quests){ if(q.status==="done"&&!q.credited) xp+=Number(q.xp||0); } return xp; }
+
+  function renderState(){
+    const s=state||{};
+    $("#st-mode").textContent=s.mode||"Owner";
+    $("#st-phase").textContent="Phase "+(s.phase!=null?s.phase:"—")+(s.gate?" · Gate "+s.gate:"");
+    $("#st-level").textContent="Level "+(s.level!=null?s.level:"—");
+    const xp=totalXp(); $("#st-xp").textContent="XP "+xp; $("#st-rank").textContent=rank(xp);
+    $("#st-streak").textContent="Streak "+(s.streak!=null?s.streak:0)+"🔥";
+    $("#t-rev").textContent=money(s.revenueConfirmed!=null?s.revenueConfirmed:0);
+    $("#t-burn").textContent=money(s.burnMonthly!=null?s.burnMonthly:"—");
+    $("#t-burn-s").textContent=s.burnNote||"subscriptions";
+    $("#t-pitch").textContent=s.pitches!=null?s.pitches:0;
+    $("#t-clients").textContent=s.clients!=null?s.clients:0;
+    $("#t-appr").textContent=approvals.filter(a=>a.status==="open").length;
+    $("#boss-goal").textContent=s.bossGoal||"This week's goal arrives with the next run.";
+    const d=Number(s.bossDone||0), t=Number(s.bossTotal||0);
+    $("#boss-count").textContent=d+"/"+t; $("#boss-bar").style.width=(t>0?Math.min(100,100*d/t):0)+"%";
+    $("#tip").textContent=s.tip||"—"; $("#tip-tag").textContent=s.tipTag||"";
+    $("#foot").textContent=(s.updatedAt?"Updated "+when(s.updatedAt):"Not updated yet")+(s.session?" · run #"+s.session:"")+" · The team runs on a schedule; your taps are picked up on the next run.";
+  }
+
+  function renderQuests(){
+    const box=$("#quests"); box.textContent="";
+    if(!quests.length){ box.appendChild(el("p","empty","Quests appear here after the team's next run.")); return; }
+    quests.forEach((q,i)=>{
+      const row=el("div","quest"+(q.status==="done"?" done":""));
+      row.appendChild(el("div","num",String(i+1)));
+      const mid=el("div"); mid.style.minWidth="0";
+      mid.appendChild(el("div","q-title",q.title||"Untitled quest"));
+      const meta=el("div","q-meta"); meta.appendChild(el("span",null,(q.minutes!=null?q.minutes:"?")+" min")); meta.appendChild(el("span",null,"+"+(q.xp!=null?q.xp:0)+" XP")); if(q.expected) meta.appendChild(el("span",null,q.expected)); mid.appendChild(meta);
+      if(q.why) mid.appendChild(el("div","q-why",q.why));
+      if(Array.isArray(q.steps)&&q.steps.length){ const d=el("details"); d.appendChild(el("summary",null,"Steps")); const ol=el("ol"); q.steps.forEach(s=>ol.appendChild(el("li",null,String(s)))); d.appendChild(ol); if(q.asset) d.appendChild(el("div","asset","Asset: "+q.asset)); mid.appendChild(d); }
+      row.appendChild(mid);
+      const act=el("div");
+      if(q.status==="done"){ const u=el("button","undo","Undo"); u.disabled=!canWrite||busy.has(q.id); u.onclick=()=>setQuest(q.id,"open"); act.appendChild(u); }
+      else { const b=el("button",null,"Done"); b.disabled=!canWrite||busy.has(q.id); b.onclick=()=>setQuest(q.id,"done"); act.appendChild(b); }
+      row.appendChild(act); box.appendChild(row);
+    });
+  }
+
+  async function setQuest(id,status){
+    if(!db||busy.has(id)) return; busy.add(id); renderQuests();
+    try{ await db.doc("quests/"+id).update({status, doneAt: status==="done"?new Date().toISOString():null}); }
+    catch(e){ showErr(e); if(e&&e.code==="invalid_argument"){ canWrite=false; } }
+    busy.delete(id); renderQuests();
+  }
+
+  function renderApprovals(){
+    const box=$("#approvals"); box.textContent="";
+    const order={open:0,hold:1,yes:2,no:3};
+    const list=approvals.slice().sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||String(a.id).localeCompare(String(b.id)));
+    if(!list.length){ box.appendChild(el("p","empty","Nothing is waiting on you.")); return; }
+    list.forEach(a=>{
+      const row=el("div","ap");
+      const head=el("div","ap-head"); head.appendChild(el("span","ap-id",a.id)); head.appendChild(el("span","pill "+(a.status||"open"),a.status==="hold"?"on hold":(a.status||"open"))); if(a.scope) head.appendChild(el("span","tag",a.scope)); row.appendChild(head);
+      row.appendChild(el("div","ap-item",a.item||""));
+      if(a.why) row.appendChild(el("div","tag",a.why));
+      if(a.status==="open"||a.status==="hold"){
+        const act=el("div","ap-actions");
+        const note=el("input"); note.id="note-"+a.id; note.placeholder="Optional note (e.g. your name, a number)"; note.value=a.note||"";
+        const y=el("button",null,"Yes"); const n=el("button","no","No");
+        const dis=!canWrite||busy.has(a.id)||a.status==="hold"; y.disabled=dis; n.disabled=dis;
+        y.onclick=()=>answer(a.id,"yes",note.value); n.onclick=()=>answer(a.id,"no",note.value);
+        act.appendChild(y); act.appendChild(n); act.appendChild(note); row.appendChild(act);
+        if(a.status==="hold") row.appendChild(el("div","tag","Held by the team until the legal re-check passes. Nothing to tap."));
+      } else {
+        row.appendChild(el("div","tag","Answered "+(a.answeredAt?when(a.answeredAt):"")+(a.note?" · "+a.note:"")));
+      }
+      box.appendChild(row);
+    });
+  }
+
+  async function answer(id,status,note){
+    if(!db||busy.has(id)) return; busy.add(id); renderApprovals();
+    try{ await db.doc("approvals/"+id).update({status, note:note||"", answeredAt:new Date().toISOString()}); }
+    catch(e){ showErr(e); if(e&&e.code==="invalid_argument"){ canWrite=false; } }
+    busy.delete(id); renderApprovals(); renderState();
+  }
+
+  function renderFeed(){
+    const ul=$("#feed"); ul.textContent="";
+    if(!feed.length){ const li=el("li"); li.appendChild(el("span","k","—")); li.appendChild(el("span","empty","The team logs each run here.")); ul.appendChild(li); return; }
+    feed.forEach(f=>{ const li=el("li"); li.appendChild(el("span","k",f.kind||"moved")); li.appendChild(el("span",null,f.text||"")); ul.appendChild(li); });
+  }
+
+  async function boot(){
+    renderState(); renderQuests(); renderApprovals(); renderFeed();
+    if(!(window.claude&&window.claude.use)){ $("#offline").hidden=false; return; }
+    try{
+      const user=await claude.use("user");
+      if(user){ const cw=await user.can("data.write"); if(cw===false) canWrite=false; }
+    }catch(e){}
+    db=await claude.use("db");
+    if(!db){ $("#offline").hidden=false; return; }
+    db.doc("board/state").onSnapshot(s=>{ state=s.exists?s.data():null; renderState(); }, showErr);
+    db.collection("quests").orderBy("order").onSnapshot(s=>{ quests=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderQuests(); renderState(); }, showErr);
+    db.collection("approvals").onSnapshot(s=>{ approvals=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderApprovals(); renderState(); }, showErr);
+    db.collection("feed").orderBy("ts","desc").limit(10).onSnapshot(s=>{ feed=s.docs.map(d=>d.data()); renderFeed(); }, showErr);
+  }
+  boot();
+})();
+</script>
