@@ -1,8 +1,9 @@
 # Agency niche, local pricing and name-check cache, 2026-10-12 (scout, T-009)
 
 Stale for reuse 2026-11-11 (re-verify); stale entirely 2027-04-12. Companion to `income-lanes-2026-10-12.md` and `lane-a-ideas-2026-10-12.md` (reuse E1a-E1c GBP setup prices from the latter).
+Attempt 2 (2026-10-12): only T1 and V1 tags changed (see below).
 
-**Evidence-handling note.** 36 WebSearch calls, all 2026-10-12. The tool returns summarized blocks, not page text; no page was opened. VERIFIED here = the summary tied the quoted wording to a URL that was in the result list. Where a number appeared without a clear URL, or the page is a vendor/lead-gen page of unknown quality, the tag says so. Counts from lead-data vendors (Orbital, Smartscraper) are vendor estimates, not government counts. No official count (Census CBP, CSLB, BAR) was found for any niche.
+**Evidence-handling note.** 36 WebSearch calls, all 2026-10-12 (plus 1 in attempt 2 for V1c). The tool returns summarized blocks, not page text; no page was opened. VERIFIED here = the summary tied the quoted wording to a URL that was in the result list. Where a number appeared without a clear URL, or the page is a vendor/lead-gen page of unknown quality, the tag says so. Counts from lead-data vendors (Orbital, Smartscraper) are vendor estimates, not government counts. No official count (Census CBP, CSLB, BAR) was found for any niche.
 
 Tag format: VERIFIED(url, date, "snippet") or UNVERIFIED(reason). All dates 2026-10-12.
 
@@ -11,6 +12,7 @@ Tag format: VERIFIED(url, date, "snippet") or UNVERIFIED(reason). All dates 2026
 |---|---|---|---|
 | V1 | HVAC | 636 active HVAC companies, 81 multi-location, ~555 single-location | VERIFIED(https://withorbital.com/data/hvac/sacramento-ca, 2026-10-12, "636 active HVAC companies"; vendor estimate) |
 | V1b | HVAC | 691 HVAC contractors, data updated April 1, 2026 | VERIFIED(https://rentechdigital.com/smartscraper/b2b-database/united-states/california/leads-list-of-hvac-contractors-in-sacramento, 2026-10-12, "691 HVAC contractors"; paid lead list) |
+| V1c | HVAC | Orbital publishes a Sacramento HVAC lead list (100 companies shown, last updated Jan 5, 2026; full export on request). Who buys it is not stated. Saturation of HVAC with marketers is NOT evidenced by V1. | VERIFIED(https://www.withorbital.com/lead-lists/hvac-sacramento, 2026-10-12, "Orbital maintains a Sacramento list of 100 HVAC companies and contractors"); buyer identity UNVERIFIED; "Sell to HVAC" page https://www.withorbital.com/sell-to-verticals/sell-to-hvac listed in results, not read |
 | V2 | Roofing | 254 active roofing companies | VERIFIED(https://withorbital.com/data/roofing/sacramento-ca, 2026-10-12, "254 active roofing companies in Sacramento"; vendor estimate) |
 | V3 | Med spa | 287 active (another page 285; 92% single-location; 82 based in the city itself) | VERIFIED(https://www.withorbital.com/data/med-spa/sacramento-ca/, 2026-10-12, "287 active med spas"; vendor estimate) |
 | V4 | Dental | 1,945 active practices, 1,574 single-location | VERIFIED(https://withorbital.com/data/dental/sacramento-ca, 2026-10-12, "1,945 active dental practices"; vendor estimate) |
@@ -24,7 +26,7 @@ Tag format: VERIFIED(url, date, "snippet") or UNVERIFIED(reason). All dates 2026
 ## 2. Ticket-size evidence ($300+ jobs)
 | # | Niche | Claim | Tag |
 |---|---|---|---|
-| T1 | HVAC | Full replacement $14,000-$20,000+ (Bonney, May 2026); other sources $5,800-$23,000 | VERIFIED(https://www.bonney.com/blog/install-new-hvac-system-in-sacramento-2026-breakdown/, 2026-10-12, "$14,000 to $16,000+" basic swap); contractor marketing |
+| T1 | HVAC | Basic system swap "$14,000 to $16,000+" (Bonney, May 2026). Upper end "$20,000+" and other sources' "$5,800-$23,000" were seen in the same search but are not tied to a URL | VERIFIED(https://www.bonney.com/blog/install-new-hvac-system-in-sacramento-2026-breakdown/, 2026-10-12, "$14,000 to $16,000+" basic swap) for $14,000-$16,000+ only; contractor marketing. UNVERIFIED for $20,000+ and $5,800-$23,000. Ticket score 10 unchanged (any of these is above $5,000) |
 | T2 | Roofing | Asphalt replacement $12,000-$22,000 on a typical Sacramento home | VERIFIED(https://new-era-roofing.lovable.app/guides/sacramento-roof-cost/, 2026-10-12, "$12,000 to $22,000"); contractor guide |
 | T3 | Plumbing | Water heater replacement about $1,200-$3,500 installed | UNVERIFIED(summary flagged the Sacramento guides as "templated"; URL not attributable) |
 | T4 | Window tint | Sacramento sedan ceramic $400-$850+, carbon $250-$500, dyed $150-$300; a 2026 guide puts full-car average ~$320 | UNVERIFIED(single blog-style page, URL not tied; other pages look auto-generated) |
@@ -60,7 +62,7 @@ Tag format: VERIFIED(url, date, "snippet") or UNVERIFIED(reason). All dates 2026
 | B6 | Other Vincent-named marketers exist (Vincent Brand Go, Austin TX; freelancers on Malt) | VERIFIED(https://agencies.semrush.com/fr/vincent-brand-go/, 2026-10-12); different names |
 
 ## 5. Not searched (left UNKNOWN)
-Dental/med-spa/landscaping job tickets; Sacramento plumbing, tint, lash/nail, landscaping, pressure-washing counts; CA Secretary of State bizfile and USPTO live lookups; domain availability; fictitious-business-name (DBA) filing rules; owner's own pricing history with Cali Tints / Phil's Auto.
+Dental/med-spa/landscaping/pressure-washing job tickets; Sacramento plumbing, tint, lash/nail, landscaping, pressure-washing counts; CA Secretary of State bizfile and USPTO live lookups; domain availability; fictitious-business-name (DBA) filing rules; owner's own pricing history with Cali Tints / Phil's Auto; who buys Orbital's HVAC lead list; whether HVAC owners ask for result guarantees.
 
-## 6. Searches used (36)
-Local SEO price Sacramento x3 · GBP mgmt price · name checks x7 · niche counts (HVAC, plumbing x4, roofing, med spa, landscaping, tint, auto repair x3, dental, nail, salons, detailing) · ticket sizes (HVAC, roof, tint, water heater, auto repair bill, lash) · Blue Frog.
+## 6. Searches used (36 + 1)
+Local SEO price Sacramento x3 · GBP mgmt price · name checks x7 · niche counts (HVAC, plumbing x4, roofing, med spa, landscaping, tint, auto repair x3, dental, nail, salons, detailing) · ticket sizes (HVAC, roof, tint, water heater, auto repair bill, lash) · Blue Frog. Attempt 2: "withorbital.com lead lists HVAC Sacramento" (V1c).

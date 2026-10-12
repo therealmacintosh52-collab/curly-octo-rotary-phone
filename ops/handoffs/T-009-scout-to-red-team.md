@@ -2,8 +2,18 @@
 
 **Status:** DELIVERED
 **Task:** Growth-agency niche shortlist (Sacramento / Elk Grove), local competitor pricing for the MOS offer ladder, brand-name conflict check for "Vincent Growth" (Lane A, MOS stream, D-017)
-**Attempt:** 1 of 3
-**Cost:** ~330k tokens in / ~14k out (estimate), ~40 min wall · model sonnet (36 WebSearch calls)
+**Attempt:** 2 of 3 (attempt 1 REJECTED under D-007; fixes listed in "Attempt 2 fixes" below)
+**Cost:** ~330k tokens in / ~14k out (estimate), ~40 min wall · model sonnet (36 WebSearch calls). Attempt 2 adds 1 WebSearch (U3) and 1 Grep (U5), small.
+
+## Attempt 2 fixes (red-team fix list U1-U5, plus non-blocking N1, N2)
+Only the lines below changed; table, scores, prices and name check are untouched.
+- **U1 (l.39):** "the most marketer-saturated one here" is now "possibly heavily targeted by vendors (UNVERIFIED, scout judgment; V1 gives a company count, not saturation)".
+- **U2 (l.39):** "which is exactly what HVAC owners ask for" is now "HVAC owners may ask for guarantees (UNVERIFIED, no buyer-behaviour evidence gathered)".
+- **U3 (l.39):** replaced the V1 citation. New text: Orbital publishes a Sacramento HVAC lead list. VERIFIED(https://www.withorbital.com/lead-lists/hvac-sacramento, 2026-10-12, search summary: "Orbital maintains a Sacramento list of 100 HVAC companies and contractors, last updated January 5, 2026... full list with decision-maker emails and mobile numbers requires an export request"). The same results list a "Sell to HVAC" page (https://www.withorbital.com/sell-to-verticals/sell-to-hvac), which I did not read. Who buys the list is UNVERIFIED, so "vendors targeting these 636 firms" was dropped. V1 still backs only the 636 count.
+- **U4 (l.41):** the word "only" is deleted. The table was right and the sentence was wrong, so I changed the sentence and no score. New text: top pick scores 8.4 on the visible formula; the owner reference site is Phil's Auto (spec build, payment UNKNOWN); the auto ticket score of 8 rests on T5 (average repair visit $838), which is UNVERIFIED; tint has Familiarity 10 and Ticket 6 ($300-$800 band, T4, also UNVERIFIED), so the auto lead is not shown to rest on ticket size.
+- **U5 (l.73):** now tagged VERIFIED(`.claude/agents/scout.md:4`, "tools: Read, Grep, Glob, WebSearch, Write"), so scout can only rewrite a file in full, not append.
+- **N2 (l.40):** math added: $500 retainer / ~$320 average job (T4, UNVERIFIED) = 1.6 jobs of revenue before the shop's own cost of doing the work, so break-even is above 1.6 extra jobs a month. "Several" is deleted.
+- **N1 (cache T1):** claim now matches the quote ("$14,000 to $16,000+" basic swap, VERIFIED); the "$14,000-$20,000+" upper end and "$5,800-$23,000" are tagged UNVERIFIED. Score unaffected (10 either way). Handoff l.34 reworded to match.
 
 ## What was done
 Read PROTOCOL 1 and 3, CONTEXT, MOS (niche selection, offer ladder), both research caches, IDEAS rows I-001, I-003, I-009, I-018. Scored 10 niches on the five MOS criteria with a visible formula. Collected 8 local price points plus 5 national anchors. Ran the name check. Wrote the cache. All searches 2026-10-12.
@@ -31,14 +41,14 @@ Scoring rules (set before scoring): Volume uses a VERIFIED vendor count (1,000+ 
 
 Evidence behind the numbers (full tags in cache):
 - Volume: HVAC 636 (Orbital) / 691 (Smartscraper, April 2026); roofing 254; med spa 287; dental 1,945; collision "over 150" (directory estimate). All vendor estimates, no government count. Plumbing, tint, general auto repair, lash/nail, landscaping, pressure washing: NO count found, UNVERIFIED, capped at 6.
-- Ticket: HVAC $14,000-$20,000+ VERIFIED (Bonney, contractor page); roofing $12,000-$22,000 VERIFIED (contractor guide); tint ceramic $400-$850+ and average ~$320 UNVERIFIED; average auto repair visit $838 UNVERIFIED (URL not attributable); lash full set ~$129 VERIFIED (Lash Lounge) so a lash job is under $300.
+- Ticket: HVAC basic swap "$14,000 to $16,000+" VERIFIED (Bonney, contractor page; the $20,000+ upper end and other sources' $5,800-$23,000 are UNVERIFIED); roofing $12,000-$22,000 VERIFIED (contractor guide); tint ceramic $400-$850+ and average ~$320 UNVERIFIED; average auto repair visit $838 UNVERIFIED (URL not attributable); lash full set ~$129 VERIFIED (Lash Lounge) so a lash job is under $300.
 - Sensitivity: plumbing (7.4) is within judgment noise of #3 tint (7.6). If tint volume were 6 instead of 5 it ties at 7.8 with HVAC. The top 3 order below #1 is not robust.
 
 ## 2. Top 3 and the single biggest reason each could be wrong
 1. **Auto repair / fleet / collision, 8.4.** Wrong if: Phil's Auto is only a spec build and Lodi is not Sacramento, so the owner has zero paid proof (CONTEXT: client payment UNKNOWN). A pitch built on "see my work" collapses to "I built a site on spec," and a shop's repeat-customer base may leave little room for GBP-driven lift (UNVERIFIED).
-2. **HVAC, 7.8.** Wrong if: the niche is the most marketer-saturated one here (Orbital itself sells lead lists to vendors targeting these 636 firms, VERIFIED V1), the owner has no reference work, and MOS risk rules forbid result guarantees, which is exactly what HVAC owners ask for. Seasonal demand also unverified.
-3. **Window tint / detailing, 7.6.** Wrong if: a ~$320 average job (UNVERIFIED) cannot carry a $500+/mo retainer, because the shop needs several extra jobs a month just to break even (retainer ROI sentence in MOS CLIENT REPORT would be weak). Shop count unknown, so the pool may be small (7 shops named in one snapshot).
-Top recommendation (one line): **Auto repair / fleet shops in Elk Grove and south Sacramento, because it is the only niche with an owner reference site and a $300+ typical ticket; biggest reason it could be wrong is that Phil's Auto may never have paid, leaving no usable case study.** Honest note: the data cannot separate ranks 2-4 and no niche has verified buyer willingness to pay. Lash/nail ranked 9th because the typical job is under $300 (VERIFIED), which conflicts with Lane A idea targeting; lash/nail fits the MOS "free audit" proof step, not a retainer.
+2. **HVAC, 7.8.** Wrong if: the niche is possibly heavily targeted by vendors (UNVERIFIED, scout judgment; V1 gives a company count, not saturation; Orbital publishes a Sacramento HVAC lead list, VERIFIED(https://www.withorbital.com/lead-lists/hvac-sacramento, 2026-10-12, "Orbital maintains a Sacramento list of 100 HVAC companies and contractors"), but who buys it is UNVERIFIED), the owner has no reference work, and MOS risk rules forbid result guarantees while HVAC owners may ask for them (UNVERIFIED, no buyer-behaviour evidence gathered). Seasonal demand also unverified.
+3. **Window tint / detailing, 7.6.** Wrong if: a ~$320 average job (UNVERIFIED) cannot carry a $500+/mo retainer: $500 / ~$320 = 1.6 jobs of revenue before the shop's own cost of doing the work, so break-even is above 1.6 extra jobs a month (UNVERIFIED, derived from T4); the retainer ROI sentence in MOS CLIENT REPORT would be weak. Shop count unknown, so the pool may be small (7 shops named in one snapshot).
+Top recommendation (one line): **Auto repair / fleet shops in Elk Grove and south Sacramento, because it scores highest (8.4) on the visible formula and the owner has a finished reference site there (Phil's Auto, a spec build; the auto ticket score of 8 rests on T5, which is UNVERIFIED, and tint scores Familiarity 10 / Ticket 6 on an equally UNVERIFIED T4); biggest reason it could be wrong is that Phil's Auto may never have paid, leaving no usable case study.** Honest note: the data cannot separate ranks 2-4 and no niche has verified buyer willingness to pay. Lash/nail ranked 9th because the typical job is under $300 (VERIFIED), which conflicts with Lane A idea targeting; lash/nail fits the MOS "free audit" proof step, not a retainer.
 
 ## 3. Local pricing for the MOS offer ladder (cache section 3)
 | # | Source | Price | Date | Tag |
@@ -70,7 +80,7 @@ Findings: **Zero Sacramento-area price points are verifiably under 6 months old.
 
 ## Open risks
 - **Input contract gap (red-team/scribe):** T-009 has no row in `ops/TASKS.md` yet (last row is T-008), so acceptance criteria are taken from the Orchestrator's task message, not the file. Scribe should add the row.
-- **Daily duty not done (Orchestrator):** the 10 new ideas for `ops/IDEAS.md` were not added this session. The task named no ideas deliverable and scout has no append tool for that file (only full rewrite, which risks corrupting red-team verdict columns). Schedule a separate T-task or grant an append path.
+- **Daily duty not done (Orchestrator):** the 10 new ideas for `ops/IDEAS.md` were not added this session. The task named no ideas deliverable, and scout can only rewrite that file in full, not append (VERIFIED(`.claude/agents/scout.md:4`, "tools: Read, Grep, Glob, WebSearch, Write")); a full rewrite risks corrupting red-team verdict columns. Schedule a separate T-task or grant an append path.
 - Stale pricing means the ladder cannot be calibrated from search. Real calibration needs the owner's free audits (MOS days 4-10) and approval-gated conversations.
 - If the name check turns up a registry conflict, "Vincent Growth" must be dropped before any publishing or invoicing (owner hard gates).
 - Nothing was contacted, created, or spent.
