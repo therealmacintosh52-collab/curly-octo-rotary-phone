@@ -97,11 +97,26 @@ const dull = (img) => img.modulate({ saturation: 0.55, brightness: 0.92 }).linea
 const satin = (img) => img.modulate({ saturation: 0.35 }).linear(0.5, 10).blur(0.7);
 const glossier = (img) => img.linear(1.06, -5);
 const purple = (img) => img.modulate({ brightness: 0.5, saturation: 0.45 }).tint({ r: 96, g: 70, b: 122 });
+// The frame's factory glass is already dark and reflective, so "before tint"
+// is brightened and cooled to read as clear glass; the film then has
+// somewhere to go.
+const clearGlass = (img) => img.linear(1.7, 45).modulate({ saturation: 0.6 }).tint({ r: 205, g: 222, b: 238 });
 
 console.log('compare images →', path.relative(ROOT, OUT));
 
-// 1. Window tinting: factory glass → 5% across every window (owner's call).
-await save(base, 'window-tinting-before');
+// 0. The scroll story's start frame: the car crop with clear glass. The
+//    overlays in TintStory.astro take it to 5% as the page scrolls.
+{
+  const STORY = M.story_crop;                       // { left, top, width, height }
+  const clear = await maskedVariant(base, clearGlass, GLASS, [], 1.0);
+  const crop = await sharp(clear).extract(STORY).png().toBuffer();
+  await sharp(crop).jpeg({ quality: 82, mozjpeg: true }).toFile(path.join(ROOT, 'public/assets/img/tint-story.jpg'));
+  await sharp(crop).webp({ quality: 76 }).toFile(path.join(ROOT, 'public/assets/img/tint-story.webp'));
+  console.log('   tint-story (clear glass, cropped)');
+}
+
+// 1. Window tinting: clear glass → 5% across every window (owner's call).
+await save(await maskedVariant(base, clearGlass, GLASS, [], 1.0), 'window-tinting-before');
 await save(await maskedVariant(base, tinted(0.07), GLASS), 'window-tinting-after');
 
 // 2. Tint removal: purple, bubbled film → factory glass.

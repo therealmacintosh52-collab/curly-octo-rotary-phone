@@ -234,7 +234,7 @@ if (!prefersReduced) {
   const reveals = document.querySelectorAll<HTMLElement>('.js-reveal');
   const fine = window.matchMedia('(pointer: fine)').matches;
 
-  if (reveals.length || fine) {
+  if (reveals.length || fine || document.querySelector('[data-tint-story], [data-compare], .sec-head')) {
     const boot = async () => {
       try {
         const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([
@@ -251,40 +251,66 @@ if (!prefersReduced) {
           gsap.ticker.lagSmoothing(0);
         }
 
-        // Only hide things once we know we can animate them back in.
+        // Reveal more than the hand-tagged blocks: section heads, page heads,
+        // split columns, panels, the difference lists and the glance card. Only
+        // outermost candidates, so nothing animates twice. Tagged before
+        // has-motion goes on, so they are hidden and shown in one pass.
+        const more = document.querySelectorAll<HTMLElement>(
+          '.sec-head, .page-head > .wrap, .split > *, .panel, .diff, .glance, .review, .faq, .table-scroll');
+        more.forEach((el) => {
+          if (el.closest('.js-reveal') || el.closest('[data-tint-story], [data-stagger]')) return;
+          el.classList.add('js-reveal');
+        });
         document.documentElement.classList.add('has-motion');
 
-        reveals.forEach((el) => {
+        document.querySelectorAll<HTMLElement>('.js-reveal').forEach((el) => {
+          if (el.closest('[data-stagger]')) return;
           gsap.to(el, {
-            opacity: 1, y: 0, duration: 0.75, ease: 'expo.out',
+            opacity: 1, y: 0, duration: 0.8, ease: 'expo.out',
             scrollTrigger: { trigger: el, start: 'top 88%', once: true },
           });
         });
 
-        // Before/after sliders: wipe from "before" to "after" as the block
-        // crosses the viewport, until the visitor grabs the handle.
+        // Stat band: the numbers count up the first time the band is seen.
+        document.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
+          const target = Number(el.dataset.count);
+          if (!Number.isFinite(target)) return;
+          const decimals = (el.dataset.count!.split('.')[1] || '').length;
+          const o = { v: 0 };
+          gsap.to(o, {
+            v: target, duration: 1.4, ease: 'power2.out',
+            onUpdate: () => { el.textContent = o.v.toFixed(decimals); },
+            scrollTrigger: { trigger: el, start: 'top 92%', once: true },
+          });
+        });
+
+        // Before/after sliders: wipe "before" away as the block climbs the
+        // viewport, finishing when it reaches the middle. The visitor's hand
+        // wins: once the handle is touched the scroll leaves it alone.
         document.querySelectorAll<HTMLElement>('[data-compare]').forEach((fig) => {
           const range = fig.querySelector<HTMLInputElement>('[data-compare-range]');
+          // Start fully on "before" so the wipe has the whole width to travel.
+          if (!fig.dataset.touched) { fig.style.setProperty('--pos', '100%'); if (range) range.value = '100'; }
           ScrollTrigger.create({
-            trigger: fig, start: 'top 90%', end: 'bottom 30%', scrub: 0.4,
+            trigger: fig, start: 'top 85%', end: 'center 45%', scrub: 0.3,
             onUpdate: (st) => {
               if (fig.dataset.touched) return;
-              const pos = 100 - st.progress * 86;          // 100 → 14
+              const pos = 100 - st.progress * 100;         // 100 → 0
               fig.style.setProperty('--pos', `${pos}%`);
               if (range) range.value = String(pos);
+              if (st.progress >= 0.999) fig.dataset.done = '1';
             },
           });
         });
 
-        // Tint story: pin the section and scrub the film onto the glass.
+        // Tint story: pin the section and sweep the film across the glass.
         const story = document.querySelector<HTMLElement>('[data-tint-story]');
         if (story) {
-          const car = story.querySelector<HTMLElement>('.story__car')!;
           const pin = story.querySelector<HTMLElement>('[data-story-pin]')!;
           const vlts = story.querySelectorAll<HTMLElement>('[data-vlt]');
           const steps = story.querySelectorAll<HTMLElement>('[data-step]');
           const paint = (p: number) => {
-            car.style.setProperty('--tint', (p * 0.93).toFixed(3));
+            story.style.setProperty('--p', p.toFixed(4));
             const vlt = Math.round(100 - p * 95);
             vlts.forEach((el) => { el.textContent = String(vlt); });
             const on = p < 0.34 ? 0 : p < 0.72 ? 1 : 2;
@@ -292,19 +318,20 @@ if (!prefersReduced) {
           };
           paint(0);
           ScrollTrigger.create({
-            trigger: story, start: 'top top', end: '+=160%', pin: pin, scrub: 0.5,
+            trigger: story, start: 'top top', end: '+=200%', pin: pin, scrub: 0.4,
             anticipatePin: 1,
             onUpdate: (st) => paint(st.progress),
           });
         }
 
-        // Staggered groups: children of a grid reveal in sequence.
-        document.querySelectorAll<HTMLElement>('[data-stagger]').forEach((group) => {
+        // Staggered groups: children of a grid or checklist reveal in sequence.
+        document.querySelectorAll<HTMLElement>('[data-stagger], .checklist').forEach((group) => {
           const kids = Array.from(group.children) as HTMLElement[];
+          if (!kids.length) return;
           kids.forEach((k) => k.classList.add('js-reveal'));
           gsap.set(kids, { opacity: 0, y: 18 });
           gsap.to(kids, {
-            opacity: 1, y: 0, duration: 0.7, ease: 'expo.out', stagger: 0.07,
+            opacity: 1, y: 0, duration: 0.7, ease: 'expo.out', stagger: 0.08,
             scrollTrigger: { trigger: group, start: 'top 85%', once: true },
           });
         });
