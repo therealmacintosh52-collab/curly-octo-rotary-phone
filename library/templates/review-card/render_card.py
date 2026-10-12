@@ -186,8 +186,13 @@ def chrome(binary, args, url):
 def render(binary, html_path, pdf_path, png_path):
     url = "file://" + html_path
     chrome(binary, ["--no-pdf-header-footer", f"--print-to-pdf={pdf_path}"], url)
-    chrome(binary, [f"--force-device-scale-factor={DPI_SCALE}", "--window-size=816,1056",
+    # Window taller than the page: headless Chromium loses ~0.9 in of the requested
+    # height to window chrome, which clipped the bottom card row (qa D3). The shot is
+    # cropped back to exactly the letter page below; ink_check then proves nothing is lost.
+    chrome(binary, [f"--force-device-scale-factor={DPI_SCALE}", "--window-size=816,1300",
                     f"--screenshot={png_path}"], url)
+    shot = Image.open(png_path)
+    shot.crop((0, 0, round(8.5 * PX), round(11 * PX))).save(png_path)
     for p in (pdf_path, png_path):
         if not os.path.exists(p) or os.path.getsize(p) == 0:
             die(f"render produced no file: {p}", 4)
@@ -213,6 +218,36 @@ def qr_mismatches(img, box_in, mx):
             v = g.getpixel((int(left + (c + 0.5) * step), int(top + (r + 0.5) * step)))
             bad += (v < 128) != want
     return bad
+
+
+def ink_bounds(img):
+    """Bounding box (inches) of everything that is not near-white."""
+    g = img.convert("L").point(lambda v: 255 if v < 250 else 0)
+    b = g.getbbox()
+    return tuple(v / PX for v in b) if b else None
+
+
+# Lowest ink we must see even without a PDF raster to compare with (inches):
+# the last card row's cut line ends at 10.5; the sign's link line starts at 9.1.
+MIN_INK_BOTTOM = {"card-sheet": 10.45, "sign": 9.2}
+
+
+def ink_check(png_img, pdf_img, name):
+    """D3: the PNG must hold the whole page. Compare ink bounds with the PDF raster
+    (the PDF is complete) and with a fixed floor. Returns a list of errors."""
+    b = ink_bounds(png_img)
+    if b is None:
+        return [f"{name}.png is blank"]
+    errs = []
+    if b[3] < MIN_INK_BOTTOM[name]:
+        errs.append(f"{name}.png ink ends at {b[3]:.2f} in, expected at least "
+                    f"{MIN_INK_BOTTOM[name]} in: bottom of the page is clipped")
+    if pdf_img is not None:
+        pb = ink_bounds(pdf_img)
+        if pb is None or any(abs(x - y) > 0.03 for x, y in zip(b, pb)):
+            errs.append(f"{name}.png ink bounds {tuple(round(v, 2) for v in b)} differ from "
+                        f"PDF raster {tuple(round(v, 2) for v in pb) if pb else None}")
+    return errs
 
 
 def card_boxes():
@@ -278,6 +313,8 @@ def main(argv):
         sheet = Image.open(os.path.join(out, "card-sheet.png"))
         sign = Image.open(os.path.join(out, "sign.png"))
         errs += verify(sheet, sign, mx, "PNG")
+        errs += ink_check(sheet, None, "card-sheet") if not shutil.which("pdftoppm") else []
+        errs += ink_check(sign, None, "sign") if not shutil.which("pdftoppm") else []
         (x, y), _ = next(card_boxes())
         sheet.crop(tuple(int(v * PX) for v in (x, y, x + CARD_W, y + CARD_H))).save(
             os.path.join(out, "card.png"))
@@ -285,8 +322,13 @@ def main(argv):
             for name in files:
                 subprocess.run(["pdftoppm", "-r", "300", "-png", "-singlefile",
                                 os.path.join(out, f"{name}.pdf"), os.path.join(tmp, name)], check=True)
-            errs += verify(Image.open(os.path.join(tmp, "card-sheet.png")),
-                           Image.open(os.path.join(tmp, "sign.png")), mx, "PDF")
+            pdf_sheet = Image.open(os.path.join(tmp, "card-sheet.png"))
+            pdf_sign = Image.open(os.path.join(tmp, "sign.png"))
+            errs += verify(pdf_sheet, pdf_sign, mx, "PDF")
+            errs += ink_check(sheet, pdf_sheet, "card-sheet")
+            errs += ink_check(sign, pdf_sign, "sign")
+            for nm, im in (("card-sheet", sheet), ("sign", sign)):
+                print(f"ink bounds {nm}.png (in): {tuple(round(v, 2) for v in ink_bounds(im))}")
             print("PDF raster check: done (pdftoppm, 300 dpi)")
         else:
             print("PDF raster check: SKIPPED (pdftoppm not installed); PNG check still ran")
