@@ -189,6 +189,139 @@ export type RetailCatalog = {
   tax_rate: number;
 };
 
+// ---------------------------------------------------------------------------
+// Estimates (0039)
+// ---------------------------------------------------------------------------
+export type EstimateStatus = "draft" | "sent" | "viewed" | "accepted" | "declined" | "expired";
+export type EstimateTier = "good" | "better" | "best" | "single";
+
+export type EstimateLineView = {
+  id: string;
+  service_id: string | null;
+  name: string;
+  benefit_text: string | null;
+  qty: number;
+  taxable: boolean;
+  duration_minutes: number;
+  /** Null unless owner/admin (or the customer's own public view). */
+  unit_price: number | null;
+  line_total: number | null;
+  modifiers: { code: string; label: string; kind?: "percent" | "flat"; amount?: number }[];
+};
+export type EstimateAddonView = EstimateLineView & { default_on: boolean; customer_approved: boolean | null };
+export type EstimateOptionView = {
+  id: string;
+  tier: EstimateTier;
+  name: string;
+  description: string | null;
+  recommended: boolean;
+  sort_order: number;
+  duration_minutes: number;
+  subtotal: number | null;
+  tax: number | null;
+  total: number | null;
+  lines: EstimateLineView[];
+};
+export type EstimateAuthorizationView = {
+  id: string;
+  authorized_at: string;
+  name: string;
+  method: "online" | "in_person" | "phone" | "email";
+  by_staff: string | null;
+  selected_option_id: string | null;
+  approved_line_ids: string[];
+  signature_path: string | null;
+  pay_choice: "deposit" | "at_shop" | null;
+  total: number | null;
+};
+
+/** The estimates table row as the admin client reads it (public pages validate tokens through it; staff use the RPCs). */
+export type EstimateRow = {
+  id: string;
+  company_id: string;
+  display_number: string;
+  customer_id: string;
+  vehicle_id: string | null;
+  size_class: VehicleSize;
+  status: EstimateStatus;
+  token: string;
+  expires_at: string | null;
+  job_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** estimate_detail() / estimate_by_token(): one estimate, read top to bottom. */
+export type EstimateView = {
+  id: string;
+  display_number: string;
+  status: EstimateStatus;
+  size_class: VehicleSize;
+  expires_at: string | null;
+  po_number: string | null;
+  internal_notes: string | null;
+  customer_notes: string | null;
+  selected_option_id: string | null;
+  sent_at: string | null;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  view_count: number;
+  accepted_at: string | null;
+  declined_at: string | null;
+  decline_reason: string | null;
+  job_id: string | null;
+  created_at: string;
+  updated_at: string;
+  /** Only on the public view. */
+  token: string | null;
+  subtotal: number | null;
+  tax_rate: number | null;
+  tax: number | null;
+  total: number | null;
+  deposit_required: number | null;
+  customer: { id: string; display_name: string | null; first_name: string; phone: string | null; email: string | null };
+  vehicle: { id: string; name: string | null; color: string | null; plate: string | null; size_class: VehicleSize } | null;
+  options: EstimateOptionView[];
+  addons: EstimateAddonView[];
+  authorizations: EstimateAuthorizationView[];
+  company: { name: string; phone: string | null; email: string | null; address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; postal_code: string | null; logo_path: string | null; timezone: string };
+  policy: { policy_text: string | null; deposit_kind: "percent" | "flat" | "none"; deposit_value: number; deposit_refundable: boolean; signature_required: boolean; cancel_hours: number } | null;
+  public_money: boolean;
+};
+
+export type EstimateListRow = {
+  id: string;
+  display_number: string;
+  status: EstimateStatus;
+  created_at: string;
+  expires_at: string | null;
+  sent_at: string | null;
+  last_viewed_at: string | null;
+  accepted_at: string | null;
+  job_id: string | null;
+  customer_id: string;
+  customer: string | null;
+  vehicle: string | null;
+  size_class: VehicleSize;
+  options: number;
+  total: number | null;
+};
+export type EstimateListResult = { count: number; rows: EstimateListRow[] };
+
+/** What the builder sends to create_estimate / update_estimate. */
+export type EstimateLineInput = { service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[] };
+export type EstimatePayload = {
+  customer_id?: string;
+  vehicle_id?: string | null;
+  size_class?: VehicleSize;
+  expires_at?: string | null;
+  po_number?: string | null;
+  internal_notes?: string | null;
+  customer_notes?: string | null;
+  options?: { tier: EstimateTier; name: string; description?: string | null; recommended?: boolean; lines: EstimateLineInput[] }[];
+  addons?: (EstimateLineInput & { default_on?: boolean })[];
+};
+
 /** quote_total(): a retail quote priced by size. */
 export type QuoteResult = {
   size_class: VehicleSize;
@@ -754,6 +887,7 @@ export type CustomerTimeline = {
     paid_amount: number | null;
     deleted_at: string | null;
   }[];
+  estimates?: { id: string; display_number: string; status: EstimateStatus; created_at: string; expires_at: string | null; vehicle: string | null; total: number | null; job_id: string | null }[];
   stats: { visits: number; last_visit: string | null; lifetime_spend: number | null };
 };
 
@@ -783,6 +917,7 @@ export type Database = {
       business_hours: Table<BusinessHour>;
       blackout_days: Table<BlackoutDay>;
       time_off: Table<TimeOff>;
+      estimates: Table<EstimateRow>;
       jobs: Table<Job>;
       job_services: Table<JobService>;
       job_photos: Table<JobPhoto>;
@@ -816,6 +951,19 @@ export type Database = {
       customer_timeline: { Args: { p_id: string }; Returns: CustomerTimeline };
       save_vehicle: { Args: { p: VehiclePayload }; Returns: Vehicle };
       retail_catalog: { Args: Record<string, never>; Returns: RetailCatalog };
+      create_estimate: { Args: { p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; token: string; total: number; deposit_required: number } };
+      update_estimate: { Args: { p_id: string; p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; total: number } };
+      send_estimate: { Args: { p_id: string }; Returns: { token: string; expires_at: string; display_number: string } };
+      estimate_link: { Args: { p_id: string }; Returns: string };
+      mark_estimate_accepted: { Args: { p_id: string; p_option: string; p_line_ids?: string[]; p_name?: string | null; p_method?: string }; Returns: { id: string; status: EstimateStatus } };
+      decline_estimate: { Args: { p_id: string; p_reason?: string | null }; Returns: { id: string; status: EstimateStatus } };
+      convert_estimate_to_job: { Args: { p_id: string; p?: { dealership_id?: string; tag_number?: string; performed_at?: string; detailer_id?: string; notes?: string } }; Returns: Job };
+      estimate_detail: { Args: { p_id: string }; Returns: EstimateView };
+      estimates_filtered: { Args: { p_q?: string | null; p_status?: string; p_customer?: string | null; p_limit?: number; p_offset?: number }; Returns: EstimateListResult };
+      estimate_by_token: { Args: { p_token: string }; Returns: EstimateView };
+      estimate_mark_viewed: { Args: { p_token: string }; Returns: undefined };
+      estimate_respond: { Args: { p_token: string; p: { decision?: "accept" | "decline"; option_id?: string; approved_line_ids?: string[]; name?: string; signature_path?: string | null; pay_choice?: "deposit" | "at_shop"; ip?: string; user_agent?: string; reason?: string } }; Returns: { status: "accepted" | "declined"; total?: number; deposit_required?: number; display_number?: string } };
+      expire_estimates: { Args: Record<string, never>; Returns: number };
       quote_total: { Args: { p_size: VehicleSize; p_lines: { service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[] }[] }; Returns: QuoteResult };
       add_odometer: { Args: { p_vehicle: string; p_reading: number; p_read_at?: string | null; p_job?: string | null }; Returns: OdometerReading };
       is_member: { Args: Record<string, never>; Returns: boolean };

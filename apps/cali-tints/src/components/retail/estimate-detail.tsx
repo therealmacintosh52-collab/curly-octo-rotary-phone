@@ -1,0 +1,475 @@
+"use client";
+
+import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeftIcon, CheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon } from "lucide-react";
+import { toast } from "sonner";
+import type { EstimateView } from "@/lib/db/types";
+import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
+import { useSession } from "@/components/app/session-provider";
+import { formatDate, formatDateTime } from "@/lib/dates";
+import { formatMoney, formatTaxRate } from "@/lib/money";
+import { detectPlatform, smsHref } from "@/lib/retail/phone";
+import { SIZE_LABEL } from "@/lib/retail/size-class";
+import { Page } from "@/components/app/page-header";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { EstimateStatusBadge } from "./estimate-status-badge";
+
+const money = (n: number | null | undefined) => (n === null || n === undefined ? null : formatMoney(n));
+
+/**
+ * One estimate for the staff: where it stands, the options with their lines,
+ * the add-ons, the customer's approval with the signature. Owner and admin
+ * send it, record an approval taken in person or by phone, decline it, turn
+ * it into the job. Managers and detailers see everything but the money.
+ */
+export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; showMoney: boolean; publicUrl: string | null }) {
+  const router = useRouter();
+  const { canPrices, demo } = useSession();
+  const [pending, start] = useTransition();
+  const [sentUrl, setSentUrl] = useState<string | null>(e.status === "draft" ? null : publicUrl);
+  const [accepting, setAccepting] = useState(false);
+  const [declining, setDeclining] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const [platform, setPlatform] = useState<"ios" | "android" | "unknown">("unknown");
+  useEffect(() => {
+    const t = setTimeout(() => setPlatform(detectPlatform(navigator.userAgent)), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  const open = e.status === "draft" || e.status === "sent" || e.status === "viewed";
+  const accepted = e.status === "accepted";
+  const auth = e.authorizations[0] ?? null;
+  const chosen = e.options.find((o) => o.id === e.selected_option_id) ?? null;
+  const customerName = e.customer.display_name ?? e.customer.first_name;
+  const url = sentUrl ?? publicUrl ?? "";
+  const smsBody = `Hi ${e.customer.first_name || "there"}, here is your estimate${e.vehicle?.name ? ` for the ${e.vehicle.name}` : ""} from ${e.company.name}: ${url}`;
+
+  function send(via: "email" | "link") {
+    start(async () => {
+      if (demo) {
+        setSentUrl(publicUrl);
+        toast.success(via === "email" ? "Emailed to the customer" : "Link ready", { description: "Guest preview — nothing was sent" });
+        return;
+      }
+      const r = await sendEstimateAction(e.id, via);
+      if (!r.ok) return void toast.error(r.error);
+      setSentUrl(r.data.url);
+      if (via === "email") toast[r.data.emailed ? "success" : "warning"](r.data.emailed ? `Emailed to ${e.customer.email}` : "Marked sent; the email did not go out", { description: r.data.emailed ? undefined : r.data.note ?? undefined });
+      else toast.success("Link ready. Text it or copy it.");
+      router.refresh();
+    });
+  }
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Could not copy; long-press the link instead");
+    }
+  }
+  function decline(reason: string) {
+    start(async () => {
+      if (demo) {
+        toast.success("Declined", { description: "Guest preview — nothing changed" });
+        setDeclining(false);
+        return;
+      }
+      const r = await declineEstimateAction(e.id, reason);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success("Declined");
+      setDeclining(false);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Page>
+      <Link href="/retail/estimates" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeftIcon className="size-4" /> Estimates
+      </Link>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-title tracking-wide">{e.display_number}</h1>
+            <EstimateStatusBadge status={e.status} />
+            {e.job_id && (
+              <Badge variant="info" asChild>
+                <Link href={`/jobs/${e.job_id}`}>Job created</Link>
+              </Badge>
+            )}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <Link href={`/retail/customers/${e.customer.id}`} className="font-medium text-foreground hover:text-primary" data-testid="estimate-customer">{customerName}</Link>
+            {e.vehicle && <span>{[e.vehicle.name, e.vehicle.color].filter(Boolean).join(" · ")}</span>}
+            <Badge variant="outline">{SIZE_LABEL[e.size_class]}</Badge>
+            <span>Written {formatDate(e.created_at)}</span>
+            {e.expires_at && open && <span>· good until {formatDate(e.expires_at)}</span>}
+          </div>
+        </div>
+        {canPrices && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {open && (
+              <Button asChild variant="outline">
+                <Link href={`/retail/estimates/${e.id}/edit`}>
+                  <PencilIcon /> Edit
+                </Link>
+              </Button>
+            )}
+            {showMoney && (
+              <Button asChild variant="outline">
+                <a href={`/api/estimates/${e.id}/pdf`} data-testid="estimate-pdf">
+                  <FileDownIcon /> PDF
+                </a>
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          {e.options.map((o) => {
+            const isChosen = chosen?.id === o.id;
+            return (
+              <Card key={o.id} className={cn(isChosen && "border-primary", !accepted && o.recommended && "border-primary/50")} data-testid="estimate-option">
+                <CardHeader className="flex-row items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="flex flex-wrap items-center gap-2">
+                      {o.name}
+                      {isChosen && <Badge variant="success"><CheckIcon /> Chosen</Badge>}
+                      {!accepted && o.recommended && e.options.length > 1 && <Badge variant="outline"><StarIcon /> Recommended</Badge>}
+                    </CardTitle>
+                    {o.description && <p className="mt-1 text-sm text-muted-foreground">{o.description}</p>}
+                  </div>
+                  {showMoney && <div className="shrink-0 text-lg font-semibold tabular-nums">{money(o.total)}</div>}
+                </CardHeader>
+                <CardContent>
+                  <ul className="divide-y divide-border text-sm">
+                    {o.lines.map((l) => (
+                      <li key={l.id} className="flex items-start justify-between gap-3 py-2">
+                        <div className="min-w-0">
+                          <div className="font-medium">{l.name}{l.qty !== 1 ? ` × ${l.qty}` : ""}</div>
+                          {l.benefit_text && <div className="text-caption text-subtle">{l.benefit_text}</div>}
+                          {l.modifiers.length > 0 && <div className="text-caption text-warning">{l.modifiers.map((m) => m.label).join(", ")}</div>}
+                        </div>
+                        {showMoney && <span className="shrink-0 tabular-nums">{money(l.line_total)}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-2 text-caption text-subtle">About {Math.round((o.duration_minutes / 60) * 10) / 10} h of work</div>
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {e.addons.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{accepted ? "Add-ons" : "Add-ons offered"}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y divide-border text-sm" data-testid="estimate-addons">
+                  {e.addons.map((a) => (
+                    <li key={a.id} className="flex items-center justify-between gap-3 py-2">
+                      <div className="min-w-0">
+                        <div className="font-medium">{a.name}</div>
+                        {a.benefit_text && <div className="text-caption text-subtle">{a.benefit_text}</div>}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {accepted ? <Badge variant={a.customer_approved ? "success" : "muted"}>{a.customer_approved ? "Yes" : "No"}</Badge> : a.default_on ? <Badge variant="outline">On by default</Badge> : null}
+                        {showMoney && <span className="w-16 text-right tabular-nums">{money(a.line_total)}</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {(e.customer_notes || e.internal_notes) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 text-sm">
+                {e.customer_notes && <div><div className="text-caption text-muted-foreground">To the customer</div><p className="whitespace-pre-wrap">{e.customer_notes}</p></div>}
+                {e.internal_notes && <div><div className="text-caption text-muted-foreground">Staff only</div><p className="whitespace-pre-wrap">{e.internal_notes}</p></div>}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-4">
+          {showMoney && (
+            <Card data-testid="estimate-money">
+              <CardContent className="grid gap-1.5 pt-5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">{accepted ? "Subtotal" : e.options.length > 1 ? "Subtotal (recommended)" : "Subtotal"}</span><span className="tabular-nums">{money(e.subtotal)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(e.tax_rate ?? 0))})</span><span className="tabular-nums">{money(e.tax)}</span></div>
+                <div className="flex justify-between border-t border-border pt-2 text-base font-semibold"><span>Total</span><span className="tabular-nums" data-testid="estimate-total">{money(e.total)}</span></div>
+                {(e.deposit_required ?? 0) > 0 && <div className="flex justify-between text-caption text-subtle"><span>Deposit to book</span><span className="tabular-nums">{money(e.deposit_required)}</span></div>}
+                {e.po_number && <div className="flex justify-between text-caption text-subtle"><span>PO</span><span>{e.po_number}</span></div>}
+              </CardContent>
+            </Card>
+          )}
+
+          {canPrices && open && (
+            <Card data-testid="estimate-send">
+              <CardHeader>
+                <CardTitle>{e.status === "draft" ? "Send it" : "Sent"}</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {e.status === "draft" && <p className="text-caption text-subtle">The customer opens a link, picks an option, signs and approves. Nothing goes out until you tap.</p>}
+                {url && e.status !== "draft" && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-caption">
+                    <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 truncate" data-testid="estimate-link">{url}</span>
+                    <button type="button" onClick={copy} className="ml-auto shrink-0 text-muted-foreground hover:text-foreground" aria-label="Copy link"><CopyIcon className="size-4" /></button>
+                  </div>
+                )}
+                <Button onClick={() => send("email")} loading={pending} disabled={!e.customer.email} data-testid="send-email">
+                  <MailIcon /> {e.status === "draft" ? "Email the link" : "Email it again"}
+                </Button>
+                {!e.customer.email && <p className="text-caption text-subtle">No email on file: text the link instead.</p>}
+                {e.status === "draft" ? (
+                  <Button variant="outline" onClick={() => send("link")} loading={pending} data-testid="send-link">
+                    <SendIcon /> Mark sent, give me the link
+                  </Button>
+                ) : (
+                  <>
+                    {e.customer.phone && (
+                      <Button asChild variant="outline">
+                        <a href={smsHref(e.customer.phone, smsBody, platform) ?? "#"} data-testid="text-link">
+                          <MessageSquareTextIcon /> Text the link
+                        </a>
+                      </Button>
+                    )}
+                    <Button variant="outline" onClick={copy}>
+                      <CopyIcon /> Copy the link
+                    </Button>
+                  </>
+                )}
+                {e.status !== "draft" && (
+                  <p className="text-caption text-subtle">
+                    Sent {formatDateTime(e.sent_at)}{e.view_count ? ` · opened ${e.view_count}× · last ${formatDateTime(e.last_viewed_at)}` : " · not opened yet"}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {canPrices && open && (
+            <Card>
+              <CardHeader>
+                <CardTitle>They answered in person?</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                <Button variant="secondary" onClick={() => setAccepting(true)} data-testid="mark-accepted">
+                  <CheckIcon /> Mark approved
+                </Button>
+                <Button variant="ghost" onClick={() => setDeclining(true)} data-testid="mark-declined">
+                  <ThumbsDownIcon /> Declined
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {auth && (
+            <Card data-testid="estimate-authorization">
+              <CardHeader>
+                <CardTitle>{accepted ? "Approved" : "Answer"}</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-sm">
+                <div className="font-medium">{auth.name}</div>
+                <div className="text-caption text-subtle">{formatDateTime(auth.authorized_at)} · {auth.method === "online" ? "signed online" : `in ${auth.method.replace("_", " ")}`}{auth.pay_choice ? ` · ${auth.pay_choice === "deposit" ? "pays the deposit online" : "pays at the shop"}` : ""}</div>
+                {auth.signature_path && <Badge variant="success"><PencilIcon /> Signature on file{showMoney ? " · on the PDF" : ""}</Badge>}
+                {showMoney && auth.total !== null && <div className="text-caption text-subtle">Approved total {money(auth.total)}</div>}
+              </CardContent>
+            </Card>
+          )}
+          {e.status === "declined" && (
+            <Card>
+              <CardContent className="pt-5 text-sm">
+                <div className="font-medium">Declined {formatDateTime(e.declined_at)}</div>
+                {e.decline_reason && <p className="mt-1 text-muted-foreground">{e.decline_reason}</p>}
+              </CardContent>
+            </Card>
+          )}
+
+          {canPrices && accepted && !e.job_id && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Next</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                <Button onClick={() => setConverting(true)} data-testid="convert-job">
+                  <WrenchIcon /> Create the job
+                </Button>
+                <p className="text-caption text-subtle">The chosen option and add-ons become the job&apos;s services at these prices. Booking a time comes next.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {canPrices && <MarkAcceptedDialog e={e} open={accepting} onOpenChange={setAccepting} />}
+      <DeclineDialog open={declining} onOpenChange={setDeclining} onDecline={decline} pending={pending} />
+      <ConvertDialog e={e} open={converting} onOpenChange={setConverting} />
+    </Page>
+  );
+}
+
+/** Staff record an approval given at the counter, on the phone or by email. */
+function MarkAcceptedDialog({ e, open, onOpenChange }: { e: EstimateView; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [pending, start] = useTransition();
+  const [optionId, setOptionId] = useState(e.options.find((o) => o.recommended)?.id ?? e.options[0]?.id ?? "");
+  const [lines, setLines] = useState<string[]>(e.addons.filter((a) => a.default_on).map((a) => a.id));
+  const [name, setName] = useState(e.customer.display_name ?? "");
+  const [method, setMethod] = useState<"in_person" | "phone" | "email">("in_person");
+  function submit() {
+    start(async () => {
+      if (demo) {
+        toast.success("Marked approved", { description: "Guest preview — nothing changed" });
+        onOpenChange(false);
+        return;
+      }
+      const r = await markEstimateAcceptedAction(e.id, optionId, lines, name, method);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success("Approved");
+      onOpenChange(false);
+      router.refresh();
+    });
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mark {e.display_number} approved</DialogTitle>
+          <DialogDescription>For an approval you took in person, on the phone or by email. It is recorded under your name.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          {e.options.length > 1 && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="acc-option">Option they chose</Label>
+              <Select value={optionId} onValueChange={setOptionId}>
+                <SelectTrigger id="acc-option"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {e.options.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.name}{o.total !== null ? ` · ${formatMoney(o.total)}` : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {e.addons.length > 0 && (
+            <div className="grid gap-1.5">
+              <Label>Add-ons they want</Label>
+              {e.addons.map((a) => (
+                <label key={a.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={lines.includes(a.id)} onCheckedChange={(v) => setLines((prev) => (v ? [...prev, a.id] : prev.filter((x) => x !== a.id)))} /> {a.name}{a.line_total !== null ? <span className="text-muted-foreground"> · {formatMoney(a.line_total)}</span> : null}
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="grid gap-1.5">
+            <Label htmlFor="acc-name">Who approved</Label>
+            <Input id="acc-name" value={name} onChange={(ev) => setName(ev.target.value)} maxLength={120} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="acc-method">How</Label>
+            <Select value={method} onValueChange={(v) => setMethod(v as typeof method)}>
+              <SelectTrigger id="acc-method"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="in_person">In person</SelectItem>
+                <SelectItem value="phone">On the phone</SelectItem>
+                <SelectItem value="email">By email</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={submit} loading={pending} disabled={!optionId} data-testid="mark-accepted-confirm">Record the approval</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeclineDialog({ open, onOpenChange, onDecline, pending }: { open: boolean; onOpenChange: (o: boolean) => void; onDecline: (reason: string) => void; pending: boolean }) {
+  const [reason, setReason] = useState("");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>They said no</DialogTitle>
+          <DialogDescription>Optional: why. It stays on the estimate for next time.</DialogDescription>
+        </DialogHeader>
+        <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Too much right now, going elsewhere, just looking…" className="min-h-20" maxLength={300} />
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={() => onDecline(reason)} loading={pending}>Mark declined</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Approved → the retail job, at the snapshot prices. */
+function ConvertDialog({ e, open, onOpenChange }: { e: EstimateView; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [pending, start] = useTransition();
+  const [tag, setTag] = useState("");
+  const [notes, setNotes] = useState("");
+  function submit() {
+    start(async () => {
+      if (demo) {
+        toast.success("Job created", { description: "Guest preview — nothing changed" });
+        onOpenChange(false);
+        return;
+      }
+      const r = await convertEstimateAction(e.id, { tag_number: tag, notes });
+      if (!r.ok) return void toast.error(r.error);
+      toast.success("Job created");
+      onOpenChange(false);
+      router.push(`/jobs/${r.data.jobId}`);
+    });
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create the job for {e.display_number}</DialogTitle>
+          <DialogDescription>Logged today at the shop with the approved services. Photos and the rest are added on the job.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor="cv-tag">Tag (optional)</Label>
+            <Input id="cv-tag" value={tag} onChange={(ev) => setTag(ev.target.value)} placeholder={`Defaults to ${e.display_number.replace("EST", "E")}`} maxLength={40} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="cv-notes">Notes for the job</Label>
+            <Textarea id="cv-notes" value={notes} onChange={(ev) => setNotes(ev.target.value)} className="min-h-16" placeholder={e.customer_notes ?? ""} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={submit} loading={pending} data-testid="convert-confirm">Create job</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -3,10 +3,11 @@
 import { usePathname } from "next/navigation";
 import { Segmented } from "@/components/ui/segmented";
 
-/** The retail area's sections. Calendar and Estimates arrive with the next slices. */
+/** The retail area's sections. Calendar arrives with the booking slice. */
 const ITEMS = [
   { value: "/retail", label: "Today", href: "/retail" },
   { value: "/retail/customers", label: "Customers", href: "/retail/customers" },
+  { value: "/retail/estimates", label: "Estimates", href: "/retail/estimates" },
 ];
 
 export function RetailNav() {

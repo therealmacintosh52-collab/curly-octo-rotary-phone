@@ -27,7 +27,7 @@ export interface PickedCustomer {
   id: string;
   name: string;
   phone: string | null;
-  vehicles: Pick<Vehicle, "id" | "year" | "make" | "model" | "color" | "vin" | "plate">[];
+  vehicles: (Pick<Vehicle, "id" | "year" | "make" | "model" | "color" | "vin" | "plate"> & { size_class?: Vehicle["size_class"] })[];
 }
 
 export interface CustomerPick {
@@ -114,7 +114,7 @@ export function CustomerPicker({
       }
       const r = await saveVehicleAction({ customer_id: c.id, vin: carDraft.vin || null, year: carDraft.year ? Number(carDraft.year) : null, make: carDraft.make || null, model: carDraft.model || null, color: carDraft.color || null });
       if (!r.ok) return void toast.error(r.error);
-      const v = { id: r.data.id, year: r.data.year, make: r.data.make, model: r.data.model, color: r.data.color, vin: r.data.vin, plate: r.data.plate };
+      const v = { id: r.data.id, year: r.data.year, make: r.data.make, model: r.data.model, color: r.data.color, vin: r.data.vin, plate: r.data.plate, size_class: r.data.size_class };
       onChange({ customer: { ...c, vehicles: [...c.vehicles, v] }, vehicleId: v.id });
       toast.success("Vehicle added to the customer");
     });

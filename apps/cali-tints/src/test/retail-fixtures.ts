@@ -162,6 +162,7 @@ export function customerTimelineFixture(id: string, owner: boolean): CustomerTim
         return { ...v, odometer: v.id === V1 ? { reading: 48210, read_at: ago(0, 2.5) } : v.id === V3 ? { reading: 61400, read_at: ago(20) } : null, visits: vj.length, last_visit: vj[0]?.performed_at ?? null };
       }),
     jobs,
+    estimates: customerEstimatesFixture(c.id, owner),
     stats: { visits: jobs.length, last_visit: jobs[0]?.performed_at ?? null, lifetime_spend: owner ? jobs.reduce((s, j) => s + (j.paid_amount ?? 0), 0) : null },
   };
 }
@@ -180,7 +181,7 @@ export function pickedCustomersFixture(): PickedCustomer[] {
     id: c.id,
     name: c.display_name ?? c.phone ?? "Customer",
     phone: c.phone,
-    vehicles: vehiclesFixture.filter((v) => v.customer_id === c.id && !v.archived_at).map((v) => ({ id: v.id, year: v.year, make: v.make, model: v.model, color: v.color, vin: v.vin, plate: v.plate })),
+    vehicles: vehiclesFixture.filter((v) => v.customer_id === c.id && !v.archived_at).map((v) => ({ id: v.id, year: v.year, make: v.make, model: v.model, color: v.color, vin: v.vin, plate: v.plate, size_class: v.size_class })),
   }));
 }
 
@@ -286,3 +287,154 @@ export function retailCatalogFixture(owner: boolean): RetailCatalog {
 }
 
 export const SIZE_LABEL_FIXTURE: Record<VehicleSize, string> = { compact: "Compact", sedan: "Sedan", suv_truck: "SUV / truck", xl: "XL" };
+
+// ---------------------------------------------------------------------------
+// 0039: estimates. Three of them: sent with three options (Ana), approved and
+// signed (Luis), a draft (Dana). Prices are the sedan/compact/XL seed prices.
+// ---------------------------------------------------------------------------
+import type { EstimateListResult, EstimateListRow, EstimateStatus, EstimateView } from "@/lib/db/types";
+
+const E1 = "90000000-0000-4000-8000-000000000001";
+const E2 = "90000000-0000-4000-8000-000000000002";
+const E3 = "90000000-0000-4000-8000-000000000003";
+export const ESTIMATE_IDS = { ana: E1, luis: E2, dana: E3 };
+/** The public link of Ana's estimate in the demo (any other token is a 404). */
+export const ESTIMATE_TOKEN = "demo-estimate-token-ana-camry-0001";
+
+type L = { id: string; svc: number | "other"; name?: string; qty?: number; price: number; modifiers?: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; taxable?: boolean };
+const seedName = (i: number) => RETAIL_SEED[i][0];
+const seedBenefit = (i: number) => RETAIL_SEED[i][1];
+const seedMinutes = (i: number) => RETAIL_SEED[i][2];
+const line = (money: boolean, l: L) => {
+  const total = l.price * (l.qty ?? 1) + (l.modifiers ?? []).reduce((s, m) => s + m.amount, 0);
+  return {
+    id: l.id,
+    service_id: l.svc === "other" ? "s8" : RETAIL_SERVICE_ID(l.svc),
+    name: l.name ?? (l.svc === "other" ? "Other" : seedName(l.svc)),
+    benefit_text: l.svc === "other" ? null : seedBenefit(l.svc),
+    qty: l.qty ?? 1,
+    taxable: l.taxable ?? false,
+    duration_minutes: l.svc === "other" ? 60 : seedMinutes(l.svc),
+    unit_price: money ? l.price : null,
+    line_total: money ? total : null,
+    modifiers: (l.modifiers ?? []).map((m) => (money ? m : { code: m.code, label: m.label })),
+  };
+};
+const sum = (ls: ReturnType<typeof line>[]) => ls.reduce((s, l) => s + (l.line_total ?? 0), 0);
+
+const COMPANY = { name: "Cali Tints", phone: "(916) 555-0110", email: "mike@calitints.example", address_line1: "2900 Fulton Ave", address_line2: null, city: "Sacramento", state: "CA", postal_code: "95821", logo_path: null, timezone: "America/Los_Angeles" };
+const POLICY = { policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", deposit_kind: "percent" as const, deposit_value: 20, deposit_refundable: false, signature_required: true, cancel_hours: 24 };
+
+function build(money: boolean, pub: boolean, base: { id: string; n: number; status: EstimateStatus; customer: Customer; vehicle: Vehicle; options: { id: string; tier: EstimateView["options"][number]["tier"]; name: string; description: string | null; recommended: boolean; lines: L[] }[]; addons: (L & { default_on: boolean; customer_approved: boolean | null })[]; selected?: string; created: string; expires: string; sent?: string | null; viewed?: { first: string; last: string; count: number }; accepted?: string | null; auth?: EstimateView["authorizations"][number] | null; customer_notes?: string | null; internal_notes?: string | null; po?: string | null }): EstimateView {
+  const options = base.options.map((o) => {
+    const lines = o.lines.map((l) => line(true, l));
+    const subtotal = sum(lines);
+    return { id: o.id, tier: o.tier, name: o.name, description: o.description, recommended: o.recommended, sort_order: 0, duration_minutes: lines.reduce((s, l) => s + l.duration_minutes, 0), subtotal: money ? subtotal : null, tax: money ? 0 : null, total: money ? subtotal : null, lines: o.lines.map((l) => line(money, l)) };
+  });
+  const addons = base.addons.map((a) => ({ ...line(money, a), default_on: a.default_on, customer_approved: a.customer_approved }));
+  const headlineId = base.selected ?? base.options.find((o) => o.recommended)?.id ?? base.options[0].id;
+  const headline = base.options.find((o) => o.id === headlineId)!;
+  const accepted = base.status === "accepted";
+  const subtotal = sum(headline.lines.map((l) => line(true, l))) + base.addons.filter((a) => (accepted ? a.customer_approved : a.default_on)).reduce((s, a) => s + (line(true, a).line_total ?? 0), 0);
+  return {
+    id: base.id,
+    display_number: `EST-${String(base.n).padStart(6, "0")}`,
+    status: base.status,
+    size_class: base.vehicle.size_class,
+    expires_at: base.expires,
+    po_number: base.po ?? null,
+    internal_notes: pub ? null : (base.internal_notes ?? null),
+    customer_notes: base.customer_notes ?? null,
+    selected_option_id: base.selected ?? null,
+    sent_at: base.sent ?? null,
+    first_viewed_at: base.viewed?.first ?? null,
+    last_viewed_at: base.viewed?.last ?? null,
+    view_count: base.viewed?.count ?? 0,
+    accepted_at: base.accepted ?? null,
+    declined_at: null,
+    decline_reason: null,
+    job_id: null,
+    created_at: base.created,
+    updated_at: base.created,
+    token: pub ? ESTIMATE_TOKEN : null,
+    subtotal: money ? subtotal : null,
+    tax_rate: money ? 0 : null,
+    tax: money ? 0 : null,
+    total: money ? subtotal : null,
+    deposit_required: money ? Math.round(subtotal * 20) / 100 : null,
+    customer: { id: base.customer.id, display_name: pub ? base.customer.first_name : base.customer.display_name, first_name: base.customer.first_name, phone: pub ? null : base.customer.phone, email: pub ? null : base.customer.email },
+    vehicle: { id: base.vehicle.id, name: vehicleName(base.vehicle), color: base.vehicle.color, plate: pub ? null : base.vehicle.plate, size_class: base.vehicle.size_class },
+    options,
+    addons,
+    authorizations: base.auth ? [{ ...base.auth, total: money ? subtotal : null }] : [],
+    company: COMPANY,
+    policy: POLICY,
+    public_money: pub,
+  };
+}
+
+const cust = (id: string) => customersFixture.find((c) => c.id === id)!;
+const veh = (id: string) => vehiclesFixture.find((v) => v.id === id)!;
+
+function estimateBase(id: string) {
+  switch (id) {
+    case E1:
+      return {
+        id: E1, n: 1, status: "viewed" as EstimateStatus, customer: cust(C1), vehicle: veh(V1),
+        options: [
+          { id: "o1-good", tier: "good" as const, name: "Good", description: "The full detail, inside and out", recommended: false, lines: [{ id: "l1", svc: 0, price: 200 }] },
+          { id: "o1-better", tier: "better" as const, name: "Better", description: "Adds the clay bar so the paint feels like glass", recommended: true, lines: [{ id: "l2", svc: 0, price: 200 }, { id: "l3", svc: 3, price: 70 }] },
+          { id: "o1-best", tier: "best" as const, name: "Best", description: "Everything, plus a single-stage polish for the swirls", recommended: false, lines: [{ id: "l4", svc: 0, price: 200 }, { id: "l5", svc: 3, price: 70 }, { id: "l6", svc: 1, price: 400 }] },
+        ],
+        addons: [{ id: "a1", svc: 5, price: 60, default_on: true, customer_approved: null }, { id: "a2", svc: 8, price: 35, default_on: false, customer_approved: null }],
+        created: ago(1, 3), expires: new Date(Date.now() + 13 * 86400000).toISOString(), sent: ago(1, 2), viewed: { first: ago(0, 20), last: ago(0, 4), count: 3 },
+        customer_notes: "Light swirls on the hood and trunk; the Best option takes most of them out.", internal_notes: "Rear bumper scratch noted on intake photos.", po: null,
+      };
+    case E2:
+      return {
+        id: E2, n: 2, status: "accepted" as EstimateStatus, customer: cust(C5), vehicle: veh(V6),
+        options: [{ id: "o2-single", tier: "single" as const, name: "Paint correction", description: null, recommended: true, lines: [{ id: "l7", svc: 1, price: 350 }, { id: "l8", svc: 6, price: 50 }] }],
+        addons: [{ id: "a3", svc: 7, price: 15, default_on: true, customer_approved: true }],
+        selected: "o2-single", created: ago(4), expires: new Date(Date.now() + 10 * 86400000).toISOString(), sent: ago(4), viewed: { first: ago(3, 20), last: ago(3, 19), count: 1 }, accepted: ago(3, 19),
+        auth: { id: "au1", authorized_at: ago(3, 19), name: "Luis Ortega", method: "online" as const, by_staff: null, selected_option_id: "o2-single", approved_line_ids: ["a3"], signature_path: "c1/estimates/e2/sig.png", pay_choice: "at_shop" as const, total: null },
+        customer_notes: null, internal_notes: null, po: null,
+      };
+    case E3:
+      return {
+        id: E3, n: 3, status: "draft" as EstimateStatus, customer: cust(C4), vehicle: veh(V5),
+        options: [{ id: "o3-single", tier: "single" as const, name: "Quote", description: null, recommended: true, lines: [{ id: "l9", svc: 0, price: 290, modifiers: [{ code: "pet_hair", label: "Pet hair", kind: "flat" as const, amount: 40 }] }, { id: "l10", svc: "other" as const, name: "Seat extraction, third row", price: 45 }] }],
+        addons: [],
+        created: ago(0, 1), expires: new Date(Date.now() + 14 * 86400000).toISOString(), customer_notes: "Pet hair in the back; the extraction gets the third row.", internal_notes: null, po: null,
+      };
+    default:
+      return null;
+  }
+}
+
+export function estimateViewFixture(id: string, money: boolean): EstimateView | null {
+  const b = estimateBase(id);
+  return b ? build(money, false, b) : null;
+}
+
+export function estimatePublicFixture(token: string): EstimateView | null {
+  if (token !== ESTIMATE_TOKEN) return null;
+  return build(true, true, estimateBase(E1)!);
+}
+
+export function estimateListFixture(money: boolean, q = "", status = "open"): EstimateListResult {
+  const t = q.trim().toLowerCase();
+  const rows: EstimateListRow[] = [E3, E1, E2]
+    .map((id) => estimateViewFixture(id, money)!)
+    .filter((e) => (status === "all" ? true : status === "open" ? ["draft", "sent", "viewed"].includes(e.status) : e.status === status))
+    .filter((e) => !t || e.display_number.toLowerCase().includes(t) || (e.customer.display_name ?? "").toLowerCase().includes(t) || (e.vehicle?.name ?? "").toLowerCase().includes(t))
+    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total }));
+  return { count: rows.length, rows };
+}
+
+/** The customer page's estimates list. */
+export function customerEstimatesFixture(customerId: string, money: boolean): NonNullable<CustomerTimeline["estimates"]> {
+  return [E3, E1, E2]
+    .map((id) => estimateViewFixture(id, money)!)
+    .filter((e) => e.customer.id === customerId)
+    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, created_at: e.created_at, expires_at: e.expires_at, vehicle: e.vehicle?.name ?? null, total: e.total, job_id: e.job_id }));
+}

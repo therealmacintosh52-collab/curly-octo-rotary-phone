@@ -1,0 +1,130 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { getSession } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import type { EstimatePayload, EstimateStatus } from "@/lib/db/types";
+import { appUrl, sendRetailEmail } from "@/lib/retail/email";
+import { formatDate } from "@/lib/dates";
+import { errorMessage } from "@/lib/utils";
+
+export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
+
+const lineSchema = z.object({
+  service_id: z.uuid(),
+  qty: z.number().positive().max(99).optional(),
+  label: z.string().trim().max(120).nullable().optional(),
+  price: z.number().min(0).max(100000).nullable().optional(),
+  modifiers: z.array(z.string().trim().max(40)).max(10).optional(),
+});
+const payloadSchema = z.object({
+  customer_id: z.uuid().optional(),
+  vehicle_id: z.uuid().nullable().optional(),
+  size_class: z.enum(["compact", "sedan", "suv_truck", "xl"]).optional(),
+  expires_at: z.string().nullable().optional(),
+  po_number: z.string().trim().max(40).nullable().optional(),
+  internal_notes: z.string().trim().max(4000).nullable().optional(),
+  customer_notes: z.string().trim().max(4000).nullable().optional(),
+  options: z
+    .array(z.object({ tier: z.enum(["good", "better", "best", "single"]), name: z.string().trim().min(1).max(60), description: z.string().trim().max(300).nullable().optional(), recommended: z.boolean().optional(), lines: z.array(lineSchema).min(1).max(30) }))
+    .min(1)
+    .max(3)
+    .optional(),
+  addons: z.array(lineSchema.extend({ default_on: z.boolean().optional() })).max(20).optional(),
+});
+
+function revalidate(id?: string, customerId?: string | null) {
+  revalidatePath("/retail/estimates");
+  revalidatePath("/retail");
+  if (id) revalidatePath(`/retail/estimates/${id}`);
+  if (customerId) revalidatePath(`/retail/customers/${customerId}`);
+}
+
+export async function createEstimateAction(input: EstimatePayload): Promise<ActionResult<{ id: string; display_number: string }>> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner or an admin writes estimates" };
+  const parsed = payloadSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  if (!parsed.data.customer_id) return { ok: false, error: "Pick the customer" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_estimate", { p: parsed.data });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(data.id, parsed.data.customer_id);
+  return { ok: true, data: { id: data.id, display_number: data.display_number } };
+}
+
+export async function updateEstimateAction(id: string, input: EstimatePayload): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner or an admin writes estimates" };
+  const parsed = payloadSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_estimate", { p_id: id, p: parsed.data });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(id);
+  return { ok: true, data: undefined };
+}
+
+/** Mark sent and email the link (when the customer has an email and email is configured). Returns the public URL either way. */
+export async function sendEstimateAction(id: string, via: "email" | "link"): Promise<ActionResult<{ url: string; emailed: boolean; note: string | null }>> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner or an admin sends estimates" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("send_estimate", { p_id: id });
+  if (error) return { ok: false, error: errorMessage(error) };
+  const base = appUrl() ?? "";
+  const url = `${base}/e/${data.token}`;
+  let emailed = false;
+  let note: string | null = null;
+  if (via === "email") {
+    const { data: e } = await supabase.rpc("estimate_detail", { p_id: id });
+    const { data: rs } = await supabase.from("retail_settings").select("email_templates").eq("company_id", session.company.id).maybeSingle();
+    const r = await sendRetailEmail({
+      to: e?.customer.email,
+      key: "estimate_sent",
+      templates: rs?.email_templates ?? null,
+      vars: { first_name: e?.customer.first_name || e?.customer.display_name || "there", vehicle: e?.vehicle?.name ?? "your car", estimate_url: url, expires: data.expires_at ? formatDate(data.expires_at) : "", company: session.company.name },
+      companyName: session.company.name,
+      replyTo: session.company.email,
+      refId: id,
+    });
+    emailed = r.ok;
+    if (!r.ok) note = r.error;
+  }
+  revalidate(id);
+  return { ok: true, data: { url, emailed, note } };
+}
+
+export async function markEstimateAcceptedAction(id: string, optionId: string, lineIds: string[], name: string, method: "in_person" | "phone" | "email"): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner or an admin records an approval" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_estimate_accepted", { p_id: id, p_option: optionId, p_line_ids: lineIds, p_name: name.trim() || null, p_method: method });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(id);
+  return { ok: true, data: undefined };
+}
+
+export async function declineEstimateAction(id: string, reason: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner or an admin declines an estimate" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("decline_estimate", { p_id: id, p_reason: reason.trim() || null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(id);
+  return { ok: true, data: undefined };
+}
+
+export async function convertEstimateAction(id: string, input: { tag_number?: string; performed_at?: string; notes?: string }): Promise<ActionResult<{ jobId: string }>> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner or an admin converts an estimate" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("convert_estimate_to_job", { p_id: id, p: { tag_number: input.tag_number?.trim() || undefined, performed_at: input.performed_at || undefined, notes: input.notes?.trim() || undefined } });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(id);
+  revalidatePath("/jobs");
+  return { ok: true, data: { jobId: data.id } };
+}
+
+export type EstimateStatusFilter = "all" | "open" | EstimateStatus;

@@ -39,6 +39,8 @@ const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
   ["/jobs", "/dev/preview/job"],
   ["/retail/customers/new", "/dev/preview/retail/customer-new"],
   ["/retail/customers", "/dev/preview/retail/customers", true],
+  ["/retail/estimates/new", "/dev/preview/retail/estimate-new"],
+  ["/retail/estimates", "/dev/preview/retail/estimates", true],
   ["/retail", "/dev/preview/retail", true],
   ["/invoices/new", "/dev/preview/invoices"],
   ["/invoices", "/dev/preview/invoices", true],
@@ -62,6 +64,11 @@ export function demoRewriteTarget(pathname: string): string | null {
   if (cust && cust[1] !== "new") return `/dev/preview/retail/customer/${cust[1]}`;
   const veh = pathname.match(/^\/retail\/vehicles\/([^/]+)$/);
   if (veh) return `/dev/preview/retail/vehicle/${veh[1]}`;
+  const est = pathname.match(/^\/retail\/estimates\/([^/]+)(\/edit)?$/);
+  if (est && est[1] !== "new") return `/dev/preview/retail/estimate/${est[1]}${est[2] ?? ""}`;
+  // The customer's public page: the guest demo opens the fixture twin without a database.
+  const pub = pathname.match(/^\/e\/([^/]+)(\/done)?$/);
+  if (pub) return `/dev/preview/retail/estimate-public/${pub[1]}${pub[2] ?? ""}`;
   for (const [prefix, target, exact] of DEMO_REWRITES) {
     if (pathname === prefix) return target;
     if (!exact && prefix !== "/" && pathname.startsWith(prefix + "/")) return target;

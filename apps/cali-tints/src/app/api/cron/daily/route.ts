@@ -13,7 +13,7 @@ export const maxDuration = 300;
  * month that has ended (one invoice per dealership), email each new invoice
  * to the dealership when the company wants that, then QuickBooks: send the
  * invoices that are not there yet and record the payments it has seen.
- * Idempotent.
+ * Retail estimates past their date expire. Idempotent.
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -23,6 +23,9 @@ export async function GET(req: Request) {
   const db = createAdminClient();
   const { data: companies, error } = await db.from("companies").select("id, name");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Retail: sent estimates past their date expire (one statement for every company).
+  const { data: expired, error: expireError } = await db.rpc("expire_estimates");
 
   const out: Record<string, unknown>[] = [];
   for (const c of companies ?? []) {
@@ -34,5 +37,5 @@ export async function GET(req: Request) {
       out.push({ company: c.name, error: errorMessage(err) });
     }
   }
-  return NextResponse.json({ ok: true, ran_at: new Date().toISOString(), companies: out });
+  return NextResponse.json({ ok: true, ran_at: new Date().toISOString(), estimatesExpired: expireError ? expireError.message : expired, companies: out });
 }

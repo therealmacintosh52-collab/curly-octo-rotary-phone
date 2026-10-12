@@ -291,3 +291,171 @@ begin
   get diagnostics n = row_count; assert n = 0, '0038: manager cannot edit booking policy';
 end $$;
 select pg_temp.logout();
+
+-- =============================================================================
+-- 0039: estimates
+-- =============================================================================
+create or replace function pg_temp.anon() returns void language sql as $$
+  select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, false);
+  select set_config('role', 'anon', false);
+$$;
+
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare
+  v_ana uuid := (select v from r_ids where k = 'cust_ana'); v_mazda uuid := (select v from r_ids where k = 'veh_mazda');
+  v_full uuid; v_clay uuid; v_tire uuid; v_other uuid; e public.estimates; d jsonb; s jsonb; f jsonb; n int;
+begin
+  select id into v_full from public.services where name = 'Full detail';
+  select id into v_clay from public.services where name = 'Clay bar';
+  select id into v_tire from public.services where name = 'Tire shine';
+  select id into v_other from public.services where name = 'Other';
+  update public.companies set tax_rate = 0.0875 where id = public.current_company_id();
+
+  e := public.create_estimate(jsonb_build_object(
+    'customer_id', v_ana, 'vehicle_id', v_mazda, 'po_number', 'PO-7', 'internal_notes', 'secret', 'customer_notes', 'Thanks for coming in',
+    'options', jsonb_build_array(
+      jsonb_build_object('tier', 'good', 'name', 'Good', 'lines', jsonb_build_array(jsonb_build_object('service_id', v_full))),
+      jsonb_build_object('tier', 'better', 'name', 'Better', 'recommended', true, 'lines', jsonb_build_array(jsonb_build_object('service_id', v_full), jsonb_build_object('service_id', v_clay, 'modifiers', jsonb_build_array('pet_hair'))))
+    ),
+    'addons', jsonb_build_array(jsonb_build_object('service_id', v_tire, 'default_on', true), jsonb_build_object('service_id', v_other, 'label', 'Headlight resto', 'price', 45))));
+  assert e.display_number = 'EST-000001' and e.status = 'draft' and e.size_class = 'sedan' and length(e.token) >= 30, '0039: estimate created: ' || e.display_number;
+  -- headline = recommended option (210 + 70 + 40 pet hair = 320) + default-on add-ons (15) = 335, no tax (labor)
+  assert e.subtotal = 335 and e.tax = 0 and e.total = 335 and e.deposit_required = 67, '0039: headline total and deposit: ' || e.total || ' / ' || e.deposit_required;
+  assert (select count(*) from public.estimate_options where estimate_id = e.id) = 2 and (select count(*) from public.estimate_lines where estimate_id = e.id) = 5, '0039: options and lines stored';
+  insert into r_ids values ('est1', e.id);
+
+  d := public.estimate_detail(e.id);
+  assert (d ->> 'internal_notes') = 'secret' and (d -> 'options' -> 1 ->> 'total')::numeric = 320 and (d -> 'customer' ->> 'phone') is not null, '0039: owner detail with money and notes';
+  f := public.estimates_filtered(p_q => 'Lopez');
+  assert (f ->> 'count')::int = 1 and (f -> 'rows' -> 0 ->> 'total')::numeric = 335, '0039: list finds by customer, money for the owner';
+
+  -- edit: back to draft, re-priced
+  e := public.update_estimate(e.id, jsonb_build_object('options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Just the detail', 'lines', jsonb_build_array(jsonb_build_object('service_id', v_full))))));
+  assert e.total = 210 and (select count(*) from public.estimate_options where estimate_id = e.id) = 1 and (select count(*) from public.estimate_lines where estimate_id = e.id) = 1, '0039: edit replaces options';
+  e := public.update_estimate(e.id, jsonb_build_object(
+    'options', jsonb_build_array(
+      jsonb_build_object('tier', 'good', 'name', 'Good', 'lines', jsonb_build_array(jsonb_build_object('service_id', v_full))),
+      jsonb_build_object('tier', 'better', 'name', 'Better', 'recommended', true, 'lines', jsonb_build_array(jsonb_build_object('service_id', v_full), jsonb_build_object('service_id', v_clay)))),
+    'addons', jsonb_build_array(jsonb_build_object('service_id', v_tire, 'default_on', true), jsonb_build_object('service_id', v_other, 'label', 'Headlight resto', 'price', 45))));
+  assert e.total = 295, '0039: re-priced: ' || e.total;
+
+  s := public.send_estimate(e.id);
+  assert (s ->> 'token') = e.token and (select status from public.estimates where id = e.id) = 'sent', '0039: sent';
+  assert public.estimate_link(e.id) = e.token, '0039: owner reads the link';
+end $$;
+
+-- A manager reads the estimate without money; cannot write.
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'est1'); d jsonb; f jsonb; n int;
+begin
+  d := public.estimate_detail(v_est);
+  assert (d -> 'total') = 'null'::jsonb and (d -> 'options' -> 0 -> 'total') = 'null'::jsonb and (d -> 'options' -> 0 -> 'lines' -> 0 -> 'unit_price') = 'null'::jsonb, '0039: manager sees no money';
+  assert (d ->> 'display_number') = 'EST-000001' and jsonb_array_length(d -> 'options') = 2, '0039: manager sees the estimate itself';
+  f := public.estimates_filtered();
+  assert (f -> 'rows' -> 0 -> 'total') = 'null'::jsonb, '0039: list hides money';
+  begin
+    perform public.send_estimate(v_est);
+    raise exception 'expected owner/admin only';
+  exception when sqlstate '42501' then null; end;
+  begin
+    perform public.estimate_link(v_est);
+    raise exception 'expected link hidden from a manager';
+  exception when sqlstate '42501' then null; end;
+  begin
+    select count(*) into n from public.estimates where total > 0;
+    raise exception 'expected money column unreadable';
+  exception when sqlstate '42501' then null; end;
+end $$;
+
+-- The customer: by token, as anon. Sees their quote with prices, not the shop's notes or other customers.
+select pg_temp.logout();
+create temp table r_tok as select token from public.estimates where display_number = 'EST-000001';
+grant select on r_tok to anon;
+select pg_temp.anon();
+do $$
+declare v_token text := (select token from r_tok); d jsonb; r jsonb; n int; v_opt uuid; v_addon uuid;
+begin
+  begin
+    select count(*) into n from public.estimates;
+    raise exception 'expected no table access for anon';
+  exception when sqlstate '42501' then null; end;
+  begin
+    perform public.estimate_by_token('nope');
+    raise exception 'expected not found';
+  exception when sqlstate 'P0002' then null; end;
+
+  d := public.estimate_by_token(v_token);
+  assert (d ->> 'display_number') = 'EST-000001' and (d -> 'internal_notes') = 'null'::jsonb and (d -> 'customer' ->> 'display_name') = 'Ana' and (d -> 'customer' -> 'phone') = 'null'::jsonb, '0039: public view hides notes and contact';
+  assert (d -> 'options' -> 1 ->> 'total')::numeric = 280 and (d -> 'addons' -> 1 ->> 'line_total')::numeric = 45 and (d -> 'policy' ->> 'deposit_value')::numeric = 20, '0039: public view carries the prices and policy';
+  perform public.estimate_mark_viewed(v_token);
+  perform public.estimate_mark_viewed(v_token);
+
+  select (o ->> 'id')::uuid into v_opt from jsonb_array_elements(d -> 'options') o where o ->> 'tier' = 'better';
+  select (a ->> 'id')::uuid into v_addon from jsonb_array_elements(d -> 'addons') a where a ->> 'name' = 'Headlight resto';
+  begin
+    perform public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'name', 'Ana Lopez'));
+    raise exception 'expected signature required';
+  exception when sqlstate '22023' then null; end;
+  begin
+    perform public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'name', 'Ana Lopez', 'signature_path', 'somewhere/else.png'));
+    raise exception 'expected bad signature path';
+  exception when sqlstate '22023' then null; end;
+  r := public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'approved_line_ids', jsonb_build_array(v_addon), 'name', 'Ana Lopez',
+         'signature_path', '00000000-0000-4000-8000-000000000001/estimates/' || (d ->> 'id') || '/sig.png', 'pay_choice', 'deposit', 'ip', '1.2.3.4'));
+  -- Better (280) + Headlight resto (45) = 325; tire shine was default-on but not approved
+  assert (r ->> 'status') = 'accepted' and (r ->> 'total')::numeric = 325 and (r ->> 'deposit_required')::numeric = 65, '0039: accepted with the chosen option and add-on: ' || r::text;
+  begin
+    perform public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'name', 'again', 'signature_path', 'x'));
+    raise exception 'expected already answered';
+  exception when sqlstate 'P0001' then null; end;
+end $$;
+select pg_temp.logout();
+
+-- Owner: the authorization is recorded, viewed counts moved, and the estimate becomes a job at the snapshot prices.
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'est1'); d jsonb; j public.jobs; n int; e public.estimates; t jsonb;
+begin
+  d := public.estimate_detail(v_est);
+  assert (d ->> 'status') = 'accepted' and (d ->> 'view_count')::int = 2 and (d ->> 'first_viewed_at') is not null, '0039: viewed and accepted';
+  assert jsonb_array_length(d -> 'authorizations') = 1 and (d -> 'authorizations' -> 0 ->> 'method') = 'online' and (d -> 'authorizations' -> 0 ->> 'pay_choice') = 'deposit' and (d -> 'authorizations' -> 0 ->> 'total')::numeric = 325, '0039: authorization recorded';
+  j := public.convert_estimate_to_job(v_est, jsonb_build_object('performed_at', now()));
+  assert j.customer_id = (select v from r_ids where k = 'cust_ana') and j.vehicle_id = (select v from r_ids where k = 'veh_mazda') and j.tag_number = 'E-000001' and j.notes = 'Thanks for coming in', '0039: job from the estimate: ' || j.tag_number;
+  select count(*) into n from public.job_services where job_id = j.id; assert n = 3, '0039: three lines on the job (full, clay, headlight): ' || n;
+  assert (select sum(p.price) from public.job_service_prices_v p where p.job_id = j.id) = 325, '0039: job priced at the snapshot';
+  assert (select label from public.job_services where job_id = j.id and service_id = (select id from public.services where name = 'Other')) = 'Headlight resto', '0039: Other keeps its label';
+  assert (select job_id from public.estimates where id = v_est) = j.id, '0039: estimate linked to the job';
+  assert (public.convert_estimate_to_job(v_est)).id = j.id, '0039: converting twice returns the same job';
+  -- cannot edit or re-send an accepted estimate
+  begin
+    perform public.update_estimate(v_est, jsonb_build_object('po_number', 'x'));
+    raise exception 'expected locked';
+  exception when sqlstate 'P0001' then null; end;
+  -- staff-recorded acceptance on a second estimate, and the timeline shows both
+  e := public.create_estimate(jsonb_build_object('customer_id', (select v from r_ids where k = 'cust_ana'),
+         'options', jsonb_build_array(jsonb_build_object('name', 'Clay', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select id from public.services where name = 'Clay bar')))))));
+  assert e.size_class = 'sedan' and e.total = 70, '0039: no vehicle → sedan';
+  e := public.mark_estimate_accepted(e.id, (select id from public.estimate_options where estimate_id = e.id), '{}', 'Ana on the phone', 'phone');
+  assert e.status = 'accepted' and (select method from public.estimate_authorizations where estimate_id = e.id) = 'phone', '0039: staff approval';
+  t := public.customer_timeline((select v from r_ids where k = 'cust_ana'));
+  assert jsonb_array_length(t -> 'estimates') = 2 and (t -> 'estimates' -> 0 ->> 'total')::numeric = 70, '0039: timeline lists estimates';
+  -- decline + expiry
+  e := public.create_estimate(jsonb_build_object('customer_id', (select v from r_ids where k = 'cust_ana'), 'expires_at', now() - interval '1 day',
+         'options', jsonb_build_array(jsonb_build_object('name', 'Old', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select id from public.services where name = 'Clay bar')))))));
+  perform public.send_estimate(e.id);
+  assert (select expires_at from public.estimates where id = e.id) > now(), '0039: sending an expired draft extends it';
+  insert into r_ids values ('est_old', e.id);
+  update public.companies set tax_rate = 0 where id = public.current_company_id();
+end $$;
+select pg_temp.logout();
+update public.estimates set expires_at = now() - interval '1 hour' where id = (select v from r_ids where k = 'est_old');
+select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);
+do $$
+declare n int;
+begin
+  n := public.expire_estimates();
+  assert n = 1, '0039: one expired: ' || n;
+end $$;
+select set_config('request.jwt.claims', '', false);

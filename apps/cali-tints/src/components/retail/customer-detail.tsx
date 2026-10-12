@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, CarFrontIcon, MailIcon, MergeIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, CarFrontIcon, FileTextIcon, MailIcon, MergeIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomerListRow, CustomerTimeline, Vehicle } from "@/lib/db/types";
 import { archiveCustomerAction, mergeCustomersAction, searchCustomersAction } from "@/app/(app)/retail/actions";
@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CustomerForm, SOURCE_LABEL } from "./customer-form";
+import { EstimateStatusBadge } from "./estimate-status-badge";
 import { VehicleForm } from "./vehicle-form";
 import { ContactButtons } from "./text-customer-button";
 
@@ -32,8 +33,9 @@ const vehicleName = (v: { year: number | null; make: string | null; model: strin
  */
 export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; showMoney: boolean }) {
   const { customer: c, vehicles, jobs, stats } = data;
-  const { isAdmin, demo } = useSession();
+  const { isAdmin, canPrices, demo } = useSession();
   const router = useRouter();
+  const estimates = data.estimates ?? [];
   const [editing, setEditing] = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
   const [merging, setMerging] = useState(false);
@@ -95,6 +97,13 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
               <PlusIcon /> New job
             </Link>
           </Button>
+          {canPrices && (
+            <Button asChild variant="secondary">
+              <Link href={`/retail/estimates/new?customer=${c.id}${vehicles.filter((v) => !v.archived_at).length === 1 ? `&vehicle=${vehicles.find((v) => !v.archived_at)!.id}` : ""}`} data-testid="customer-new-estimate">
+                <FileTextIcon /> New estimate
+              </Link>
+            </Button>
+          )}
           {isAdmin && (
             <>
               <Button variant="outline" onClick={() => setEditing(true)} data-testid="customer-edit">
@@ -154,6 +163,34 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
               )}
             </CardContent>
           </Card>
+
+          {estimates.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileTextIcon className="size-4 text-primary" /> Estimates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y divide-border text-sm" data-testid="customer-estimates">
+                  {estimates.map((es) => (
+                    <li key={es.id} className="py-2.5">
+                      <Link href={`/retail/estimates/${es.id}`} className="flex items-center justify-between gap-3 hover:text-primary">
+                        <div className="min-w-0">
+                          <div className="font-medium"><span className="tracking-wide">{es.display_number}</span> · {formatDate(es.created_at)}</div>
+                          <div className="truncate text-caption text-subtle">{[es.vehicle, es.expires_at && (es.status === "sent" || es.status === "viewed" || es.status === "draft") ? `good until ${formatDate(es.expires_at)}` : null].filter(Boolean).join(" · ")}</div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <EstimateStatusBadge status={es.status} />
+                          {showMoney && es.total !== null && <div className="mt-1 text-caption tabular-nums text-muted-foreground">{formatMoney(es.total)}</div>}
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
