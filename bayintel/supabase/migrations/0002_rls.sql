@@ -22,6 +22,7 @@ alter table public.subscriptions enable row level security;
 
 -- profiles: public read (display name + reputation show on fixes), self/admin write
 create policy profiles_select on public.profiles for select to authenticated using (true);
+create policy profiles_insert_self on public.profiles for insert to authenticated with check (id = auth.uid() and role <> 'admin');
 create policy profiles_update_self on public.profiles for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid() and (role = (select role from public.profiles p where p.id = auth.uid()) or public.is_admin() or role <> 'admin'));
 create policy profiles_update_admin on public.profiles for update to authenticated using (public.is_admin()) with check (public.is_admin());

@@ -2,10 +2,12 @@
 begin;
 insert into auth.users (id, email, raw_user_meta_data) values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"display_name":"Alice","role":"technician"}'),
-  ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"display_name":"Bob"}');
+  ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"display_name":"Bob"}'),
+  ('33333333-3333-3333-3333-333333333333', 'mallory@example.com', '{"display_name":"Mallory","role":"admin"}');
 
 do $$ begin
-  if (select count(*) from public.profiles) <> 2 then raise exception 'profile trigger failed'; end if;
+  if (select count(*) from public.profiles) <> 3 then raise exception 'profile trigger failed'; end if;
+  if (select role from public.profiles where id = '33333333-3333-3333-3333-333333333333') <> 'diy' then raise exception 'admin self-assignment must be blocked'; end if;
   if (select role from public.profiles where id = '11111111-1111-1111-1111-111111111111') <> 'technician' then raise exception 'role from metadata failed'; end if;
 end $$;
 

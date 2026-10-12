@@ -39,6 +39,13 @@ export async function getProfile() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  return data;
+  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  if (data) return data;
+  // Self-heal if the auth trigger did not run (e.g. users created before the migration).
+  const { data: created } = await supabase
+    .from("profiles")
+    .insert({ id: user.id, display_name: (user.user_metadata?.display_name as string) || user.email?.split("@")[0] || "Tech" })
+    .select("*")
+    .maybeSingle();
+  return created;
 }

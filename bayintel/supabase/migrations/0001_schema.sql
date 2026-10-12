@@ -349,7 +349,9 @@ begin
   values (
     new.id,
     coalesce(nullif(new.raw_user_meta_data ->> 'display_name', ''), split_part(coalesce(new.email, 'tech'), '@', 1)),
-    coalesce((new.raw_user_meta_data ->> 'role')::public.user_role, 'diy')
+    -- Only self-service roles can be chosen at signup; admin is granted manually (see README).
+    case when (new.raw_user_meta_data ->> 'role') in ('diy', 'technician', 'shop_owner')
+         then (new.raw_user_meta_data ->> 'role')::public.user_role else 'diy' end
   )
   on conflict (id) do nothing;
   return new;
