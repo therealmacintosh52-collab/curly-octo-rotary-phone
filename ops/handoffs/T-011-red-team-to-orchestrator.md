@@ -1,8 +1,8 @@
 # T-011 — red-team → orchestrator
 
-**Status:** REJECTED (input fails D-007). The gate analysis below is complete; the re-gate checks only tags and contract fixes.
+**Status:** Attempt 1 REJECTED (D-007). Attempt 2 re-gate (end of file): PASS-WITH-CONDITIONS.
 **Task:** T-011 single gate for the Growth Agency first run (adapter §6): niche, offer-ladder prices, one-page agreement, name
-**Attempt:** 1 of 3
+**Attempt:** 2 of 3 (attempt-1 text below is unchanged; the re-gate is appended at the end)
 **Cost:** ~220k in / ~24k out tokens (estimate), ~35 min wall · model opus · 17 WebSearch calls, all 2026-10-12 (Mon)
 
 ## What was done
@@ -107,3 +107,40 @@ Top-3 failure modes (indicator -> kill):
 
 ## QUALITY SCORE: 4
 Full sweep and dated legal evidence; every condition can be tested. Not 5: the legal sources are search summaries (statute text for §17538.41 is current only to 2016), and the owner-time figures are estimates until a stopwatch is used.
+
+## Attempt 2 re-gate (2026-10-12)
+**Cost:** ~130k in / ~14k out tokens (estimate), ~30 min wall · model opus · 13 WebSearch calls 2026-10-12 (result summaries, no page opened) · 0 contacts, $0
+**(1) T-009 a2: ACCEPTED, 4/5.** U1–U5 fixed as asked (l.49 U1–U3; l.51 U4, "only" gone, T4/T5 tagged; l.83 U5); N1 l.44, N2 l.50 done. Full sweep: 0 untagged claims that feed a decision; l.19 "8 local + 5 national" matches cache P1–P8/N1–N5. Carried as UNVERIFIED, non-blocking, predating a1 (my FP-08 misses): l.68 "$450 is below every local build price seen" contradicts P6 "$125 budget build" (cache l.45); l.82 "no TASKS.md row" has no tag.
+**(2) T-010 a3: ACCEPTED on tags, 4/5.** Agreement l.14/16/17/18/20/23/26/27 carry M7/M8/M2/M1/M4/M5/M3/M6 word for word; M9 done (l.37, l.41, l.47–48; audit l.67). U6 (l.17), U8 (l.20–24) and U9 (l.47) are fixed. Four lines of live copy still fail: audit l.70 is a cold first-touch text (C3; growth flagged it); audit l.63 busy branch texts without a yes (C3); audit l.58 and l.63 "[AGENCY NAME]" break C7; report l.48 example "Ask 3 happy customers" contradicts the rule on the same line, agreement clause 8 and E8 (FP-10). My a1 sweep missed the last two (FP-08).
+**(3) C11 ruling, T-013 kit / A-015.** New evidence (2026-10-12):
+| # | Finding | Tag · source · quote |
+|---|---|---|
+| E14 | The FTC TSR misrepresentation ban covers B2B calls from 2024-05-16 | VERIFIED (2024 rule; no later change seen) federalregister.gov/documents/2024/04/16/2024-07180 · "only the prohibition on misrepresentations" |
+| E15 | Business landlines are mostly outside TCPA DNC; 9th Cir. (Chennette) presumes mixed-use numbers on the registry are residential | UNVERIFIED (vendor-blog summaries, quote not tied to one URL) |
+| E16 | A TCPA DNC private suit needs "more than one telephone call within any 12-month period"; 7th Cir. 2026-07-14: texts are not calls for that suit | VERIFIED kirkland.com/publications/kirkland-alert/2026/07/seventh-circuit-holds-text-messages-are-not-calls-under-the-tcpa |
+| E17 | FCC 2015: a one-time reply text to a consumer's request is lawful if it carries "only the information requested" | UNVERIFIED (2015; law-firm summaries, quote not tied to one URL) |
+| E18 | CA §17592: a telephone solicitor calls "a California telephone number" to offer goods or services; the DNC list = CA numbers on the FTC registry; §17593 allows small-claims suits | VERIFIED codes.findlaw.com/ca/business-and-professions-code/bpc-sect-17592 (current 2026-01-01); business-number scope UNVERIFIED |
+| E19 | §17538.41: still only a 2016 copy; exception = existing relationship + opt-out; AB 1865 (2025–26) would bar texts 9 pm–9 am | VERIFIED calmatters.digitaldemocracy.org/bills/ca_202520260ab1865; current statute text UNVERIFIED |
+| E20 | Elk Grove EGMC ch. 4.04: solicitation license from the Chief of Police; the purpose names "door-to-door solicitation, including appointments arranged through cold calling residents". Sacramento City ch. 5.36 solicitor permit; posted signs bind | VERIFIED codepublishing.com/CA/ElkGrove/html/ElkGrove04/ElkGrove0404.html (definitions and exemptions not seen; B2B reach UNVERIFIED) · Sacramento: aggregator only, UNVERIFIED |
+| E21 | 16 CCR 3371: ads "clearly show the name and address listed on the" BAR certificate (current to 2024-12-27); 3351.7.3: internet ads show name, BAR number and phone (mobile repair) | VERIFIED regulations.justia.com/states/california/title-16/division-33/chapter-1/article-9/section-3371; law.cornell.edu/regulations/california/16-CCR-3351.7.3 |
+- **(a) Live call by hand to the number on the Maps card: LAWFUL, with residual risk.** With no autodialer and no recording, TCPA §227(b) does not apply. DNC protects residential lines (E15), but an owner's cell on the registry may count as residential, and §17592 names any CA number on the registry (E18). One dial per number keeps the federal private-suit trigger unmet (E16). The kit's voicemail retry (l.19) breaks that.
+- **(b) Walk-in: no TCPA, DNC or §17538.41 reach. City law applies:** Elk Grove licenses door-to-door and cold-call solicitation, and Sacramento City likely needs a permit (E20). Whether either reaches B2B visits is UNVERIFIED, so walk-ins HOLD in each jurisdiction until that is answered.
+- **(c) One text after a logged spoken yes: ALLOWED, with risk.** The text is an ad under §17538.41 unless the call creates an "existing relationship" (UNVERIFIED). E17 supports one reply that carries only the requested details; the kit's (c) texts fit. **A professional must confirm:** the current §17538.41 text and whether a requested reply is exempt; §17592's reach to business-listed cell numbers; EGMC 4.02.021/4.04.015, Sacramento 5.36 and county rules for B2B visits and calls; whether voice consent counts under E17.
+- **D-029/C8: the kit's A4 section is NOT compliant.** The opener (l.18), walk-in (l.23) and text (l.35) omit the BAR rule, which appears only in T-013's Open risks; `founding-site-offer-2026-10-13.md` still targets studios.
+```
+VERDICT (attempt 2): PASS-WITH-CONDITIONS. Rulings (1)-(4), C2-C10, K1-K4 stand; C1 met; C11 ruled above. Nothing is used until qa re-checks the named lines.
+ A-015 + T-013 kit: PASS-WITH-CONDITIONS (C12-C18, C20) · Agreement: PASS-WITH-CONDITIONS (C5) · Audit + Report: PASS-WITH-CONDITIONS (C19)
+ C12 One dial per number per 12 months; a second dial only at a time the person named. Delete the kit's voicemail retry, l.19 (E16)
+ C13 If the answerer says "personal phone", "how did you get my number" or "don't call": apologize, log never contact, and apply K4 (E15, E18)
+ C14 No walk-in in Elk Grove until the owner logs the answer to "does EGMC 4.04 cover B2B visits or calls?" (ask at the A-010 license desk); same for Sacramento City 5.36 and county. Obey No Soliciting signs; leave when asked. If calls are covered, stop calls too (E20)
+ C15 Text only per kit (b): log the spoken yes first; one text within 1 h, carrying only the requested details, the name and STOP; no second text unless they reply. A-015 records that the owner accepts the open §17538.41 risk until a professional answers (E17, E19)
+ C16 A-015 names a count per offer, each at least that card's n. 10 cannot cover A2 5 + A3 3 + A4 3 + A6 5 = 16. Default: A6 5 + A2 5; A4 only as a swap for a no-website shop; A3 parked. scribe re-cards A2/A3/A4: "after one personal text" -> "after one live call or walk-in"; H72 runs from the first call
+ C17 A4 for auto shops: kit l.18/l.23/l.35 and the founding-site kit add "the site shows the shop's name and address exactly as on its BAR registration, its ARD number and phone; no prices unless the shop gives them in writing"; the A4 build acceptance criteria repeat this (E21, C8)
+ C18 State only what was seen (kit l.11): the TSR ban on misrepresentation reaches these calls (E14)
+ C19 Audit: delete l.70. l.63 busy branch -> "No problem. Would it be okay if I text it to you? One text; reply STOP to opt out." (text only on a logged yes). l.58/l.63 "[AGENCY NAME]" -> owner legal name. Report l.48 -> "Ask your next 3 customers, every one, for a Google review today." Then qa runs the C6 diff
+ C20 The audit delivery call (audit §4) is added to A-015's named scripts, or EXP-A6 gets its own A-###
+Kill: K5 any C13 event or complaint -> stop all channels, open an incident · K6 a city says B2B solicitation needs a permit -> stop that channel there; any permit fee is an A-### · K7 each card's own H72 threshold, counted on its allocated n only
+```
+**Open risks:** system-qc logs my FP-08 misses (T-009 l.68/l.82; audit l.58/l.63/l.70; report l.48). Applying C19 is condition work, not a 4th T-010 attempt; the Orchestrator rules on that. FP-12 and FP-13 appended to `library/failure-patterns.md`.
+**Self-check:** [x] full sweep of both inputs · [x] C11 a/b/c ruled, each with a source or UNVERIFIED · [x] math shown (C16) · [x] verdict matches the rulings · [x] FPs appended · [x] under 150 lines · [x] cost line · [x] no hard-gate action taken
+**QUALITY SCORE: 4.** Every C11 leg has a dated source and an explicit residual risk, and each condition is a line edit or a number that can be checked. Not 5: the statutes are search summaries (§17538.41 is still a 2016 copy), and the city-code exemptions were not seen.

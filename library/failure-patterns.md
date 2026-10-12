@@ -56,3 +56,13 @@ Each entry: pattern · where it happened · leading indicator · the fix that is
 - Where: T-009 l.41 (`ops/handoffs/T-009-scout-to-red-team.md`) calls auto repair "the only niche with an owner reference site and a $300+ typical ticket". The same handoff's table gives tint Familiarity 10 and Ticket 6 ($300–$800), and the auto ticket rests on an UNVERIFIED source (cache T5). The superlative carried the go decision. Rejected under D-007 (`ops/handoffs/T-009-red-team-to-scout.md` U4).
 - Indicator: "only", "most", "exactly", "best" or "proven" in a recommendation or summary line, with no tag and no row in the table that states it.
 - Fix required: every superlative in a recommendation is tagged and checked against the table it summarizes, or deleted. Red-team reads the recommendation line against the table before reading anything else.
+
+## FP-12 Contact cap smaller than the tests it must feed
+- Where: A-015 (`ops/DECISIONS.md`) caps first contact at 10 shops. The EXP-A2/A3/A4 cards (`ops/EXPERIMENTS.md` l.10–12) and the EXP-A6 card (T-011) need 5 + 3 + 3 + 5 = 16 contacts to read their own thresholds. No per-test split was given. Found in the T-011 attempt-2 re-gate (C16).
+- Indicator: one approval cap N, several tests drawing from it, no per-test allocation, and the sum of the cards' sample sizes is above N.
+- Fix required: the approval names a count per test, each at least that card's n. Tests that do not fit are parked, not shrunk. A kill threshold read on a smaller n than its card states is void.
+
+## FP-13 City ordinance skipped when changing to in-person or phone selling
+- Where: T-011 attempt 1 (C3) and T-013 moved first contact from texts to walk-ins and calls on a state and federal legal read only. Elk Grove EGMC ch. 4.04 requires a solicitation license from the Chief of Police for door-to-door and cold-call solicitation (codepublishing.com/CA/ElkGrove/html/ElkGrove04/ElkGrove0404.html, search summary 2026-10-12), and Sacramento City ch. 5.36 likely requires a solicitor permit (aggregator only, UNVERIFIED). Found in the T-011 attempt-2 re-gate (C14).
+- Indicator: a legal row for door-to-door, walk-in or phone selling that names no city or county code for each jurisdiction on the route.
+- Fix required: every channel change re-runs the legal row at city and county level for each jurisdiction. If the answer is unknown, that channel holds in that jurisdiction until it is answered and logged.
