@@ -120,6 +120,15 @@
   }
 }
 
+/* Recharts: colors via CSS so theme tokens apply inside SVG. */
+.chart-bar path,
+.chart-bar .recharts-rectangle {
+  fill: var(--primary);
+}
+.chart-grid line {
+  stroke: var(--border);
+}
+
 @media print {
   .no-print {
     display: none !important;

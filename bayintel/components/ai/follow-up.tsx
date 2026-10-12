@@ -32,7 +32,7 @@ export function FollowUp({ sessionId, symptoms, codes, mileage }: { sessionId: s
     }
   }
   return (
-    <div className="sticky bottom-16 space-y-2 rounded-xl border border-border bg-card p-3 md:bottom-4">
+    <div className="space-y-2 rounded-xl border border-border bg-card p-3 md:bottom-4">
       <Textarea value={text} onChange={(e) => setText(e.target.value)} className="min-h-16" placeholder="Report a test result or ask a follow-up (e.g. 'smoke test found no leaks, trims still +20%')" />
       {error && <p className="text-xs text-destructive">{error}</p>}
       <Button className="w-full" disabled={busy || !text.trim()} onClick={send}>

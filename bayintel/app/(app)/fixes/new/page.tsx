@@ -16,7 +16,7 @@ export default async function NewFixPage({ searchParams }: { searchParams: Promi
   if (v) Object.assign(initial, { vehicle_id: v.id, year: v.year, make: v.make, model: v.model, engine: v.engine, mileage: v.mileage });
 
   // One tap from a completed repair order: prefill everything we know.
-  if (sp.ro) {
+  if (sp.ro && /^[0-9a-f-]{36}$/i.test(sp.ro)) {
     const { data: ro } = await supabase.from("repair_orders").select("*, vehicles(*)").eq("id", sp.ro).maybeSingle();
     if (ro) {
       const veh = ro.vehicles;

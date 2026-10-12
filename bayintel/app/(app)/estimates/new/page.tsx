@@ -15,7 +15,7 @@ export default async function NewEstimatePage({ searchParams }: { searchParams: 
   const vehicles = (garage ?? []).map((v) => ({ id: v.id, label: `${v.nickname ? v.nickname + " · " : ""}${v.year} ${v.make} ${v.model}`, year: v.year, make: v.make, model: v.model }));
   const initial: EstimateFormInitial = { vehicle_id: sp.vehicle ?? null, labor_rate: Number(shop?.labor_rate ?? 120), tax_rate: Number(shop?.tax_rate ?? 0.0825) };
 
-  if (sp.ro) {
+  if (sp.ro && /^[0-9a-f-]{36}$/i.test(sp.ro)) {
     const { data: ro } = await supabase.from("repair_orders").select("id, vehicle_id, customer_name, concern, correction, labor_hours, parts").eq("id", sp.ro).maybeSingle();
     if (ro) {
       const parts = (ro.parts as { name: string; part_number: string | null; quantity: number; unit_price: number | null }[]) ?? [];

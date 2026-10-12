@@ -9,11 +9,18 @@ create table auth.users (
   raw_user_meta_data jsonb default '{}'::jsonb,
   created_at timestamptz default now()
 );
+-- PostgREST >= 9 exposes claims as one JSON setting; the legacy per-claim settings are kept for the smoke test.
 create function auth.uid() returns uuid language sql stable as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+  select coalesce(
+    nullif(current_setting('request.jwt.claims', true), '')::json ->> 'sub',
+    nullif(current_setting('request.jwt.claim.sub', true), '')
+  )::uuid
 $$;
 create function auth.role() returns text language sql stable as $$
-  select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon')
+  select coalesce(
+    nullif(current_setting('request.jwt.claims', true), '')::json ->> 'role',
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    'anon')
 $$;
 create schema storage;
 create table storage.buckets (id text primary key, name text, public boolean default false);

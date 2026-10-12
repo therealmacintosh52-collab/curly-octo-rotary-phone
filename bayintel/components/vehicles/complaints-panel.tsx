@@ -15,7 +15,7 @@ export function ComplaintTrendChart({ data }: { data: TrendPoint[] }) {
       <div className="h-44 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -24 }} barCategoryGap="20%">
-            <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="2 4" />
+            <CartesianGrid vertical={false} strokeDasharray="2 4" className="chart-grid" />
             <XAxis dataKey="year" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
             <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip
@@ -24,7 +24,8 @@ export function ComplaintTrendChart({ data }: { data: TrendPoint[] }) {
               labelStyle={{ color: "var(--muted-foreground)" }}
               formatter={(v) => [v, "complaints"]}
             />
-            <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+            {/* Fill comes from CSS (.chart-bar) because SVG presentation attributes cannot resolve CSS variables in Chromium. */}
+            <Bar dataKey="count" className="chart-bar" radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
