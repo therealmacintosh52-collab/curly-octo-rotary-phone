@@ -184,21 +184,47 @@ def loudnorm_filter(measured: Optional[dict], target_i: float, target_tp: float)
             f":offset={vals['offset']:.2f}:linear=true")
 
 
+def _correct_loudness(job_dir: Path, rel: str, target_i: float, target_tp: float, audio_kbps: int, sample_rate: int,
+                      tolerance: float = 0.6) -> float:
+    """Measure the rendered file; if integrated loudness misses the target by more than `tolerance`
+    LU, re-mux with a static gain (never pushing the true peak past target_tp). Returns the gain used."""
+    m = measure_loudness(rel, 0.0, 10**6, target_i, target_tp, cwd=job_dir)
+    try:
+        cur_i, cur_tp = float(m["input_i"]), float(m["input_tp"])
+    except (TypeError, KeyError, ValueError):
+        return 0.0
+    if not (math.isfinite(cur_i) and math.isfinite(cur_tp)) or cur_i < -60:
+        return 0.0
+    gain = target_i - cur_i
+    gain = min(gain, target_tp - cur_tp)          # headroom: don't clip to reach the target
+    if abs(gain) <= tolerance:
+        return 0.0
+    tmp = rel[:-4] + ".tmp.mp4"
+    ff.run(["ffmpeg", "-y", "-v", "error", "-i", rel, "-c:v", "copy", "-af", f"volume={gain:.2f}dB",
+            "-c:a", "aac", "-b:a", f"{audio_kbps}k", "-ar", str(sample_rate), "-movflags", "+faststart", tmp], cwd=job_dir)
+    (job_dir / tmp).replace(job_dir / rel)
+    return round(gain, 2)
+
+
 # ----------------------------------------------------------------------------- render
 
 def render_clip(job_dir: str | Path, *, idx: int, start: float, end: float, src_media: dict,
                 captions_ass: Optional[str], reframe: str = "auto", cfg: dict | None = None,
                 progress: ProgressFn = _noop, source: str = "source.mp4", suffix: str | None = None,
-                face_hint: Optional[dict] = None) -> dict:
-    """Render clips/clip_NN[_suffix].mp4 (+ cover jpg). Paths returned are relative to job_dir.
+                face_hint: Optional[dict] = None, folder: str | None = None, profile: dict | None = None) -> dict:
+    """Render clips/[folder/]clip_NN[_suffix].mp4 (+ cover jpg). Paths returned are relative to job_dir.
+    `profile` (spec.profile_for / universal_profile) drives fps, bitrate, audio, loudness and file-size cap.
     `face_hint` is a previous render's `reframe` dict for an overlapping range, reused to skip detection."""
     job_dir = Path(job_dir)
     d = (cfg or settings.load_config("platforms"))["defaults"]
-    out_w, out_h, fps = int(d["width"]), int(d["height"]), int(d["fps"])
+    r = {**d.get("render", {}), **((profile or {}).get("render") or {})}
+    out_w, out_h = int(r.get("width", d.get("width", 1080))), int(r.get("height", d.get("height", 1920)))
+    fps = min(int(r.get("fps", d.get("fps", 30))), int(r.get("fps_max", 60)))
     dur = end - start
     stem = f"clip_{idx + 1:02d}" + (f"_{suffix}" if suffix else "")
-    (job_dir / "clips").mkdir(exist_ok=True)
-    out_rel, cover_rel = f"clips/{stem}.mp4", f"clips/{stem}_cover.jpg"
+    sub = f"clips/{folder}/" if folder else "clips/"
+    (job_dir / sub).mkdir(parents=True, exist_ok=True)
+    out_rel, cover_rel = f"{sub}{stem}.mp4", f"{sub}{stem}_cover.jpg"
     src_w, src_h = int(src_media["width"]), int(src_media["height"])
     has_audio = bool(src_media.get("has_audio"))
 
@@ -220,25 +246,50 @@ def render_clip(job_dir: str | Path, *, idx: int, start: float, end: float, src_
     if captions_ass:
         vf += f",subtitles={captions_ass}"  # relative path, ffmpeg runs with cwd=job_dir
 
-    # 2. loudness (two-pass)
+    # 2. loudness (two-pass) to the platform's target
+    lufs, tp = float(r.get("loudness_lufs", -14.0)), float(r.get("true_peak_dbtp", -1.0))
     af = None
     if has_audio:
         progress(0.08, f"clip {idx + 1}: measuring loudness")
-        measured = measure_loudness(source, start, dur, float(d["loudness_lufs"]), float(d["true_peak_dbtp"]), cwd=job_dir)
-        af = loudnorm_filter(measured, float(d["loudness_lufs"]), float(d["true_peak_dbtp"]))
+        measured = measure_loudness(source, start, dur, lufs, tp, cwd=job_dir)
+        af = loudnorm_filter(measured, lufs, tp)
 
-    # 3. encode
-    cmd = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.3f}", "-i", source, "-t", f"{dur:.3f}",
-           "-vf", vf, "-r", str(fps), "-c:v", "libx264", "-preset", str(d.get("render_preset", "veryfast")),
-           "-crf", str(d.get("render_crf", 20)), "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
-    if has_audio:
-        cmd += ["-af", af, "-c:a", "aac", "-b:a", str(d.get("audio_bitrate", "192k")), "-ar", "48000"]
-    else:
-        cmd += ["-an"]
-    cmd += [out_rel]
+    # 3. encode (CRF with a platform bitrate ceiling; retried at a fixed bitrate if over the size cap)
+    maxrate = float(r.get("video_maxrate_mbps", 10))
+    max_mb = float(r.get("max_file_mb", 10**6))
+
+    def encode(video_args: list[str]) -> None:
+        cmd = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.3f}", "-i", source, "-t", f"{dur:.3f}",
+               "-vf", vf, "-r", str(fps), "-c:v", "libx264", "-preset", str(d.get("render_preset", "veryfast")),
+               *video_args, "-profile:v", str(r.get("h264_profile", "high")), "-level", str(r.get("h264_level", "4.1")),
+               "-pix_fmt", str(r.get("pix_fmt", "yuv420p")), "-movflags", "+faststart"]
+        if has_audio:
+            cmd += ["-af", af, "-c:a", "aac", "-b:a", f"{int(r.get('audio_bitrate_kbps', 192))}k",
+                    "-ar", str(int(r.get("audio_sample_rate", 48000)))]
+        else:
+            cmd += ["-an"]
+        cmd += [out_rel]
+        ff.run_with_progress(cmd, total_seconds=dur, cwd=job_dir,
+                             on_progress=lambda f: progress(0.12 + 0.80 * f, f"clip {idx + 1}: encoding {int(f * 100)}%"))
+
     progress(0.12, f"clip {idx + 1}: encoding")
-    ff.run_with_progress(cmd, total_seconds=dur, cwd=job_dir,
-                         on_progress=lambda f: progress(0.12 + 0.80 * f, f"clip {idx + 1}: encoding {int(f * 100)}%"))
+    encode(["-crf", str(r.get("crf", d.get("render_crf", 20))), "-maxrate", f"{maxrate:.1f}M", "-bufsize", f"{2 * maxrate:.1f}M"])
+    size_mb = (job_dir / out_rel).stat().st_size / 1048576
+    if size_mb > max_mb:
+        audio_kbps = int(r.get("audio_bitrate_kbps", 192)) if has_audio else 0
+        target_kbps = max(500, int((max_mb * 8192 * 0.92) / max(0.1, dur)) - audio_kbps)
+        log.info("clip %s is %.1f MB over the %.0f MB cap; re-encoding at %d kbps", stem, size_mb, max_mb, target_kbps)
+        progress(0.12, f"clip {idx + 1}: shrinking to fit {max_mb:.0f} MB")
+        encode(["-b:v", f"{target_kbps}k", "-maxrate", f"{target_kbps}k", "-bufsize", f"{2 * target_kbps}k"])
+
+    # 3b. verify integrated loudness on the finished file and apply the exact remaining gain
+    #     (audio-only pass, video stream copied). loudnorm's second pass can land a couple of LU
+    #     off on pulsing or very dynamic audio; platforms expect the target to be met.
+    corrected_db = 0.0
+    if has_audio:
+        progress(0.92, f"clip {idx + 1}: checking loudness")
+        corrected_db = _correct_loudness(job_dir, out_rel, lufs, tp, int(r.get("audio_bitrate_kbps", 192)),
+                                         int(r.get("audio_sample_rate", 48000)))
 
     # 4. cover frame from the rendered clip
     progress(0.94, f"clip {idx + 1}: cover frame")
@@ -248,5 +299,7 @@ def render_clip(job_dir: str | Path, *, idx: int, start: float, end: float, src_
     info = ff.probe(job_dir / out_rel)
     progress(1.0, f"clip {idx + 1}: done")
     return {"video_path": out_rel, "cover_path": cover_rel, "duration": info.duration,
-            "width": info.width, "height": info.height,
-            "reframe": {"mode": mode, "requested": reframe, "face": face, "cx": cx}, "loudnorm": af}
+            "width": info.width, "height": info.height, "size_mb": round(info.size_bytes / 1048576, 2),
+            "reframe": {"mode": mode, "requested": reframe, "face": face, "cx": cx}, "loudnorm": af,
+            "loudness_correction_db": corrected_db,
+            "profile": {"fps": fps, "maxrate_mbps": maxrate, "max_file_mb": max_mb, "loudness_lufs": lufs}}

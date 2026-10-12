@@ -16,6 +16,7 @@ from typing import Optional
 
 from .. import settings
 from . import llm as llm_mod
+from . import spec as spec_mod
 from .score import STOPWORDS, _content_tokens
 
 log = logging.getLogger("clipforge.copy")
@@ -160,4 +161,10 @@ def generate_copy(clip: dict, *, platforms: list[str], keywords: list[str], vide
                         "source": "llm",
                     })
                     out[p] = merged
+    for p in platforms:
+        check = spec_mod.check_copy(out[p], p, pconf)
+        out[p]["spec"] = check
+        if not check["ok"]:
+            out[p]["fits"] = False
+            out[p]["fit_note"] = "; ".join(f"{c['name']} {c['value']} > {c['limit']}" for c in check["checks"] if not c["ok"]) or out[p].get("fit_note")
     return out

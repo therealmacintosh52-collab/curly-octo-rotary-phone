@@ -68,15 +68,19 @@ def _esc(text: str) -> str:
 
 
 def build_ass(words: list[dict], clip_duration: float, *, width: int = 1080, height: int = 1920,
-              cfg: dict | None = None) -> str:
-    """ASS document: one Dialogue event per spoken word, showing its whole line with that word popped."""
+              cfg: dict | None = None, profile: dict | None = None) -> str:
+    """ASS document: one Dialogue event per spoken word, showing its whole line with that word popped.
+    `profile` (see spec.profile_for) sets the platform's safe zone and font size."""
     d = (cfg or settings.load_config("platforms"))["defaults"]
+    safe = (profile or {}).get("safe_zone") or d.get("safe_zone", {})
     font = d.get("caption_font", "DejaVu Sans")
-    size = int(d.get("caption_font_size", 66))
+    size = int((profile or {}).get("caption_font_size") or d.get("caption_font_size", 66))
     primary = _ass_colour(d.get("caption_colour", "FFFFFF"))
     hi = d.get("caption_highlight_colour", "FFE11A")
     outline = int(d.get("caption_outline_px", 4))
-    margin_v = int(height * float(d.get("caption_safe_bottom_pct", 0.22)))
+    margin_v = int(height * float(safe.get("bottom_pct", 0.22))) + 10   # sit just above the platform's UI strip
+    margin_l = int(width * float(safe.get("left_pct", 0.06)))
+    margin_r = int(width * float(safe.get("right_pct", 0.12)))
     upper = bool(d.get("caption_uppercase", False))
     lines = chunk_words(words, int(d.get("caption_max_words_per_line", 4)), float(d.get("caption_max_line_seconds", 2.4)))
 
@@ -89,7 +93,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Cap,{font},{size},{primary},{primary},&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,{outline},1,2,70,70,{margin_v},1
+Style: Cap,{font},{size},{primary},{primary},&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,{outline},1,2,{margin_l},{margin_r},{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -122,14 +126,16 @@ def build_srt(words: list[dict], cfg: dict | None = None) -> str:
 
 
 def write_captions(job_dir: str | Path, clip_idx: int, words_all: list[dict], start: float, end: float,
-                   cfg: dict | None = None, suffix: str | None = None) -> dict:
-    """Write captions/clip_NN[_suffix].ass and .srt; returns relative paths and the clip's word list."""
+                   cfg: dict | None = None, suffix: str | None = None, folder: str | None = None,
+                   profile: dict | None = None) -> dict:
+    """Write captions/[folder/]clip_NN[_suffix].ass and .srt; returns relative paths and the word list."""
     job_dir = Path(job_dir)
-    cap_dir = job_dir / "captions"
-    cap_dir.mkdir(exist_ok=True)
+    cap_dir = job_dir / "captions" / (folder or "")
+    cap_dir.mkdir(parents=True, exist_ok=True)
     words = words_in_range(words_all, start, end)
     stem = f"clip_{clip_idx + 1:02d}" + (f"_{suffix}" if suffix else "")
-    ass_rel, srt_rel = f"captions/{stem}.ass", f"captions/{stem}.srt"
-    (job_dir / ass_rel).write_text(build_ass(words, end - start, cfg=cfg), encoding="utf-8")
+    sub = f"captions/{folder}/" if folder else "captions/"
+    ass_rel, srt_rel = f"{sub}{stem}.ass", f"{sub}{stem}.srt"
+    (job_dir / ass_rel).write_text(build_ass(words, end - start, cfg=cfg, profile=profile), encoding="utf-8")
     (job_dir / srt_rel).write_text(build_srt(words, cfg=cfg), encoding="utf-8")
     return {"ass": ass_rel, "srt": srt_rel, "n_words": len(words), "words": words}

@@ -18,11 +18,18 @@ machine at http://localhost:8000. Nothing is uploaded anywhere.
    algorithm rewards (`ideal_range` in `platforms.json`). A pick inside the window is shared;
    otherwise it is trimmed to the best-scoring run of whole sentences that keeps the hook, or
    extended with neighbouring sentences. Set `fit_mode` to `limits` to enforce only the caps.
-6. Renders each distinct cut as a 1080×1920 clip: face-centred crop (YuNet / Haar via OpenCV,
-   centre crop fallback, or full-frame-over-blur), word-highlighted burned-in captions, loudness
-   normalised to -14 LUFS, plus a cover frame and an SRT file.
-7. Writes per-platform titles, captions, hashtags and keywords for that platform's cut, and a
-   posting schedule.
+6. Renders every platform's cut to that platform's own spec: its safe zones for the burned-in
+   captions (each app's UI covers different parts of the frame), frame rate, bitrate ceiling,
+   H.264 profile, audio bitrate, loudness target (measured on the finished file and corrected to
+   within 0.6 LU), and file-size cap (re-encoded if exceeded). Face-centred crop (YuNet / Haar via
+   OpenCV, centre crop fallback, or full-frame-over-blur), word-highlighted captions, cover frame
+   and SRT. Two platforms share a file only when both their cut and their spec are identical; set
+   `placement` to `universal` in `platforms.json` to get one file per cut built to the strictest
+   spec of all selected platforms instead. Every file is probed afterwards and the checks
+   (resolution, codecs, fps, duration, size, bitrate, loudness) are shown per platform.
+7. Writes per-platform titles, captions, hashtags and keywords for that platform's cut, checks
+   them against the platform's limits (title and caption length, hook visible before the fold,
+   hashtag count, #Shorts tag), and builds a posting schedule.
 8. Thumbs up/down on clips teaches the scorer what you like for the next job.
 
 ## Requirements
@@ -78,10 +85,11 @@ jobs/<job_id>/
   analysis.json       shot cuts, energy curve, sentences
   candidates.json     every candidate window
   scores.json         features, heuristic/LLM scores, selection
-  clips/clip_NN.mp4             master cut, 1080x1920
-  clips/clip_NN_<platform>.mp4  platform-specific cut (only when it differs from the master)
-  clips/clip_NN[_platform]_cover.jpg
-  captions/clip_NN[_platform].ass / .srt
+  clips/<platform>/clip_NN.mp4        built for that platform (its cut + its spec)
+  clips/universal/clip_NN.mp4         one file that passes every selected platform's spec
+  clips/<a>+<b>/clip_NN.mp4           a file two platforms share (same cut, same spec)
+  clips/<folder>/clip_NN_cover.jpg
+  captions/<folder>/clip_NN.ass / .srt
 ```
 
 Job and clip metadata (scores, copy, schedule, feedback) live in `jobs/clipforge.db` (SQLite).
@@ -104,7 +112,8 @@ The UI's "Clean up old jobs" button and `POST /api/cleanup?days=N` do the same.
 | `POST` | `/api/jobs/{id}/run`, `/cancel` | re-run / cancel |
 | `DELETE` | `/api/jobs/{id}` | delete job and files |
 | `GET` | `/api/jobs/{id}/files/{path}` | any file in the job folder |
-| `GET` | `/api/jobs/{id}/export.zip`, `/export.json`, `/schedule.ics` | bundles |
+| `GET` | `/api/jobs/{id}/export.zip[?platform=tiktok]` | all platforms grouped by folder, or one platform's pack (files, cover, SRT, copy.txt with spec checks, .ics) |
+| `GET` | `/api/jobs/{id}/export.json`, `/schedule.ics` | metadata and calendar |
 | `GET` / `PATCH` | `/api/clips/{id}` | read / edit copy or trim (`start_s`, `end_s`) |
 | `POST` | `/api/clips/{id}/rerender?reframe=auto|center|blur` | re-render one clip |
 | `POST` | `/api/clips/{id}/feedback` | `{"rating": 1|0|-1, "note": "..."}` |
