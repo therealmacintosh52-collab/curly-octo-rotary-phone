@@ -1,21 +1,21 @@
 <title>Growth Game Board</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
-/* Layout: one phone-width column; score tiles in a wrapping grid; everything else stacked cards. */
+/* Layout: one phone-width column. The team sits right under the header as avatar tiles; the chain is a horizontal pipeline; the rest are stacked cards. */
 :root{
   --bg:#f6f3ec; --panel:#ffffff; --ink:#1d1a26; --muted:#6b6577; --line:#e3ded2;
   --accent:#c27a12; --accent-ink:#ffffff; --coin:#f0b429;
-  --good:#2f8f5b; --warn:#d49b0a; --bad:#c43d3d; --hold:#8a8498;
+  --good:#2f8f5b; --warn:#d49b0a; --bad:#c43d3d; --hold:#8a8498; --glow:rgba(240,180,41,.55);
   --display:"Chakra Petch","Trebuchet MS",sans-serif; --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#171523; --panel:#211e30; --ink:#f1edf7; --muted:#a39db3; --line:#332f45;
   --accent:#f0b429; --accent-ink:#1d1a26; --coin:#f0b429;
-  --good:#4fc184; --warn:#f0b429; --bad:#ef6b6b; --hold:#8a8498; color-scheme:dark } }
+  --good:#4fc184; --warn:#f0b429; --bad:#ef6b6b; --hold:#8a8498; --glow:rgba(240,180,41,.6); color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#171523; --panel:#211e30; --ink:#f1edf7; --muted:#a39db3; --line:#332f45;
   --accent:#f0b429; --accent-ink:#1d1a26; --coin:#f0b429;
-  --good:#4fc184; --warn:#f0b429; --bad:#ef6b6b; --hold:#8a8498; color-scheme:dark }
+  --good:#4fc184; --warn:#f0b429; --bad:#ef6b6b; --hold:#8a8498; --glow:rgba(240,180,41,.6); color-scheme:dark }
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;padding-inline:16px;padding-block:12px 40px}
 .wrap{max-width:560px;margin:0 auto;display:grid;gap:14px}
@@ -23,9 +23,56 @@ h1,h2{font-family:var(--display);margin:0;text-wrap:balance}
 h1{font-size:1.5rem;letter-spacing:.02em}
 h2{font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
-.status{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-family:var(--display);font-size:.95rem}
+.live{display:inline-flex;align-items:center;gap:6px;font-family:var(--display);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.live i{width:9px;height:9px;border-radius:50%;background:var(--good);display:inline-block;animation:pulse 1.4s infinite}
+.live.off i{background:var(--hold);animation:none}
+.status{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-family:var(--display);font-size:.95rem;margin-top:6px}
 .status span{white-space:nowrap}
 .rank{background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:2px 10px;font-weight:700}
+
+/* Team */
+.orch{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:8px 0 12px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.orch .av{width:48px;height:48px}
+.orch .on{font-family:var(--display);font-weight:700}
+.orch .ol{font-size:.88rem;color:var(--muted)}
+.team{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 6px}
+@media (max-width:380px){.team{grid-template-columns:repeat(3,1fr)}}
+.member{display:grid;justify-items:center;text-align:center;gap:4px;min-width:0}
+.av{width:56px;height:56px;border-radius:50%;background:var(--bg);border:3px solid var(--line);display:grid;place-items:center;font-size:1.5rem;position:relative;transition:box-shadow .3s,border-color .3s}
+.av .b{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:50%;background:var(--hold);border:2px solid var(--panel);display:grid;place-items:center;font-size:.7rem;color:#fff;font-family:var(--display);font-weight:700}
+.member.working .av{border-color:var(--warn);box-shadow:0 0 0 0 var(--glow);animation:ring 1.4s infinite}
+.member.working .av .b{background:var(--warn);color:#1d1a26}
+.member.done .av{border-color:var(--good)}
+.member.done .av .b{background:var(--good)}
+.member.blocked .av,.member.rejected .av{border-color:var(--bad)}
+.member.blocked .av .b,.member.rejected .av .b{background:var(--bad)}
+.member.idle{opacity:.6}
+.member .nm{font-family:var(--display);font-weight:700;font-size:.82rem;line-height:1.1}
+.member .st{font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.member.working .st{color:var(--warn);font-weight:700}
+.member .tk{font-size:.74rem;color:var(--muted);line-height:1.2;max-width:120px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+@keyframes ring{0%{box-shadow:0 0 0 0 var(--glow)}70%{box-shadow:0 0 0 12px rgba(240,180,41,0)}100%{box-shadow:0 0 0 0 rgba(240,180,41,0)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+
+/* Pipeline */
+.task{padding:10px 0;border-top:1px solid var(--line)}
+.task:first-of-type{border-top:0}
+.task .tt{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.task .tid{font-family:var(--display);font-weight:700}
+.task .tn{font-size:.95rem}
+.pipe{display:flex;align-items:center;gap:0;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch}
+.node{display:grid;justify-items:center;gap:3px;flex:none;width:58px}
+.node .c{width:34px;height:34px;border-radius:50%;background:var(--bg);border:2px solid var(--line);display:grid;place-items:center;font-size:1rem}
+.node .l{font-size:.6rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.node.pass .c{background:var(--good);border-color:var(--good)}
+.node.now .c{background:var(--warn);border-color:var(--warn);animation:ring 1.4s infinite}
+.node.now .l{color:var(--warn);font-weight:700}
+.node.fail .c{background:var(--bad);border-color:var(--bad)}
+.arrow{flex:none;width:14px;height:2px;background:var(--line);margin-bottom:14px}
+.arrow.pass{background:var(--good)}
+.task .tr{font-size:.8rem;color:var(--muted)}
+
+/* Scoreboard, quests, boss, approvals, feed */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
 .tile{background:var(--bg);border-radius:10px;padding:10px;min-width:0}
 .tile .v{font-family:var(--display);font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
@@ -43,7 +90,7 @@ details ol{padding-left:1.2em;margin:6px 0}
 .asset{font-size:.8rem;color:var(--muted);word-break:break-all}
 button{font-family:var(--display);font-weight:700;font-size:.9rem;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
 button:disabled{opacity:.5;cursor:default}
-button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-offset:2px}
+button:focus-visible{outline:3px solid var(--coin);outline-offset:2px}
 .quest.done{opacity:.6}
 .quest.done .q-title{text-decoration:line-through}
 .undo{background:none;color:var(--muted);padding:4px 8px;font-size:.8rem}
@@ -64,50 +111,45 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
 .ap-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .ap-actions .no{background:var(--bad);color:#fff}
 .ap-actions input{flex:1 1 140px;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;background:var(--bg);color:var(--ink)}
+.feed ul{list-style:none;margin:0;padding:0}
 .feed li{padding:6px 0;border-top:1px solid var(--line);font-size:.92rem;display:grid;grid-template-columns:auto 1fr;gap:8px}
 .feed li:first-child{border-top:0}
-.feed ul{list-style:none;margin:0;padding:0}
 .k{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding-top:3px;white-space:nowrap}
 .tip{font-size:.95rem}
 .tag{font-size:.72rem;color:var(--muted)}
 .foot{font-size:.8rem;color:var(--muted);text-align:center}
 .empty{color:var(--muted);font-size:.92rem}
 .err{color:var(--bad);font-size:.85rem}
-.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.agent{background:var(--bg);border-radius:10px;padding:10px;min-width:0;display:grid;gap:4px}
-.agent .n{font-family:var(--display);font-weight:700;display:flex;justify-content:space-between;gap:6px;align-items:center}
-.agent .h{font-size:.72rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
-.agent .t{font-size:.85rem}
-.agent .r{font-size:.78rem;color:var(--muted)}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--hold);flex:none}
-.dot.working{background:var(--warn);animation:pulse 1.2s infinite}
-.dot.done{background:var(--good)}
-.dot.blocked{background:var(--bad)}
-.dot.rejected{background:var(--bad)}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
-.task{display:grid;gap:4px;padding:10px 0;border-top:1px solid var(--line)}
-.task:first-of-type{border-top:0}
-.task .tt{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
-.task .tid{font-family:var(--display);font-weight:700}
-.task .tn{font-size:.95rem}
-.chain{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
-.step{font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;border-radius:6px;padding:2px 7px;background:var(--line);color:var(--muted);white-space:nowrap}
-.step.pass{background:var(--good);color:#fff}
-.step.now{background:var(--warn);color:#1d1a26;animation:pulse 1.2s infinite}
-.step.fail{background:var(--bad);color:#fff}
-.task .tr{font-size:.8rem;color:var(--muted)}
-@media (prefers-reduced-motion: reduce){.bar i{transition:none}.dot.working,.step.now{animation:none}}
+@media (prefers-reduced-motion: reduce){.bar i{transition:none}.member.working .av,.node.now .c,.live i{animation:none}}
 </style>
 
 <div class="wrap">
   <div class="card">
-    <h1>Growth Game Board</h1>
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+      <h1>Growth Game Board</h1>
+      <span class="live off" id="live"><i></i><span id="live-t">connecting</span></span>
+    </div>
     <div class="status" id="status">
       <span id="st-mode">Owner</span>·<span id="st-phase">Phase —</span>·<span id="st-level">Level —</span>·<span id="st-xp">XP —</span>·<span id="st-streak">Streak —</span>
       <span class="rank" id="st-rank">Rookie</span>
     </div>
     <p id="offline" class="err" hidden>The live store is not reachable in this view. Open the page signed in to see today's numbers.</p>
     <p id="dberr" class="err" hidden></p>
+  </div>
+
+  <div class="card">
+    <h2>The team</h2>
+    <div class="orch">
+      <div class="av" style="width:48px;height:48px;font-size:1.3rem">🎛️</div>
+      <div><div class="on">Orchestrator</div><div class="ol" id="orch-line">—</div></div>
+    </div>
+    <div class="team" id="agents"></div>
+  </div>
+
+  <div class="card">
+    <h2>Work in the chain</h2>
+    <p class="empty" style="margin:0 0 4px">Each job moves left to right through the gates. Nothing reaches a customer before the quality check.</p>
+    <div id="tasks"><p class="empty">Jobs appear here while the team runs.</p></div>
   </div>
 
   <div class="card">
@@ -139,18 +181,6 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
   </div>
 
   <div class="card">
-    <h2>The team</h2>
-    <p class="empty" id="orch-line" style="margin:0 0 8px">Orchestrator: —</p>
-    <div class="agents" id="agents"><p class="empty">Agent status appears here while the team runs.</p></div>
-  </div>
-
-  <div class="card">
-    <h2>Work in the chain</h2>
-    <p class="empty" style="margin:0 0 6px">Every piece of work passes gates: research → legal check → build → quality check → ready for you. Nothing reaches a customer before the quality gate.</p>
-    <div id="tasks"><p class="empty">Tasks appear here while the team runs.</p></div>
-  </div>
-
-  <div class="card">
     <h2>Tip</h2>
     <p class="tip" id="tip">—</p>
     <div class="tag" id="tip-tag"></div>
@@ -168,15 +198,17 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
 (function(){
   const $=s=>document.querySelector(s);
   const RANKS=[["Empire Builder",12000],["Agency Owner",6000],["Closer",3000],["Operator",1500],["Hustler",500],["Rookie",0]];
-  let db=null, canWrite=true, state=null, quests=[], approvals=[], feed=[];
+  const AGENTS=[["scout","🔭","Research"],["red-team","🛡️","Legal + money gate"],["builder","🔨","Builds"],["qa","🔍","Quality gate"],["growth","📣","Scripts + outreach"],["auditor","💰","Counts dollars"],["system-qc","🩺","Watchdog"],["scribe","📒","Records"]];
+  const STEPS=[["scout","🔭"],["red-team","🛡️"],["builder","🔨"],["qa","🔍"],["growth","📣"],["owner","🫵"],["auditor","💰"]];
+  let db=null, canWrite=true, state=null, quests=[], approvals=[], feed=[], agents=[], tasks=[];
   const busy=new Set();
 
   function rank(xp){ for(const [n,t] of RANKS){ if(xp>=t) return n; } return "Rookie"; }
   function money(n){ if(n==null||n==="") return "—"; const v=Number(n); if(Number.isNaN(v)) return String(n); return "$"+v.toLocaleString(undefined,{maximumFractionDigits:0}); }
   function when(iso){ try{ const d=new Date(iso); if(Number.isNaN(d.getTime())) return "—"; return d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }catch(e){ return "—"; } }
   function el(tag,cls,text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
-  function showErr(e){ const p=$("#dberr"); p.textContent="Live data paused ("+(e&&e.code?e.code:"unavailable")+"). Reopen the page to reconnect."; p.hidden=false; }
-
+  function showErr(e){ const p=$("#dberr"); p.textContent="Live data paused ("+(e&&e.code?e.code:"unavailable")+"). Reopen the page to reconnect."; p.hidden=false; setLive(false,"paused"); }
+  function setLive(on,label){ const l=$("#live"); l.className="live"+(on?"":" off"); $("#live-t").textContent=label; }
   function totalXp(){ let xp=Number(state&&state.xp||0); for(const q of quests){ if(q.status==="done"&&!q.credited) xp+=Number(q.xp||0); } return xp; }
 
   function renderState(){
@@ -196,7 +228,45 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
     const d=Number(s.bossDone||0), t=Number(s.bossTotal||0);
     $("#boss-count").textContent=d+"/"+t; $("#boss-bar").style.width=(t>0?Math.min(100,100*d/t):0)+"%";
     $("#tip").textContent=s.tip||"—"; $("#tip-tag").textContent=s.tipTag||"";
+    $("#orch-line").textContent=s.orchestrator||"—";
     $("#foot").textContent=(s.updatedAt?"Updated "+when(s.updatedAt):"Not updated yet")+(s.session?" · run #"+s.session:"")+" · The team runs on a schedule; your taps are picked up on the next run.";
+  }
+
+  function renderAgents(){
+    const box=$("#agents"); box.textContent="";
+    const byId={}; agents.forEach(a=>{ byId[a.id]=a; });
+    AGENTS.forEach(([id,icon,hat])=>{
+      const a=byId[id]||{status:"idle"};
+      const st=a.status||"idle";
+      const m=el("div","member "+st);
+      const av=el("div","av",icon); const b=el("span","b",st==="working"?"…":st==="done"?"✓":st==="blocked"||st==="rejected"?"!":"·"); av.appendChild(b); m.appendChild(av);
+      m.appendChild(el("div","nm",id));
+      m.appendChild(el("div","st",st==="working"?"working":st==="done"?"done":st==="blocked"?"blocked":st==="rejected"?"redo":"idle"));
+      m.appendChild(el("div","tk",a.task||hat));
+      m.title=(a.hat||hat)+(a.result?" · "+a.result:"")+(a.score!=null?" · score "+a.score+"/5":"");
+      box.appendChild(m);
+    });
+  }
+
+  function renderTasks(){
+    const box=$("#tasks"); box.textContent="";
+    if(!tasks.length){ box.appendChild(el("p","empty","Jobs appear here while the team runs.")); return; }
+    const order={working:0,blocked:1,rejected:2,ready:3,done:4};
+    tasks.slice().sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||String(b.id).localeCompare(String(a.id))).slice(0,6).forEach(t=>{
+      const c=el("div","task");
+      const tt=el("div","tt"); tt.appendChild(el("span","tid",t.id)); tt.appendChild(el("span","pill "+(t.status==="done"||t.status==="ready"?"yes":t.status==="working"?"open":t.status==="blocked"||t.status==="rejected"?"no":""),t.status==="ready"?"ready for you":(t.status||""))); c.appendChild(tt);
+      c.appendChild(el("div","tn",t.title||""));
+      const pipe=el("div","pipe");
+      const passed=Array.isArray(t.passed)?t.passed:[]; const failed=Array.isArray(t.failed)?t.failed:[];
+      STEPS.forEach(([sname,icon],i)=>{
+        if(i>0){ const ar=el("span","arrow"+(passed.includes(STEPS[i-1][0])?" pass":"")); pipe.appendChild(ar); }
+        let cls="node"; if(passed.includes(sname)) cls+=" pass"; else if(failed.includes(sname)) cls+=" fail"; else if(t.now===sname) cls+=" now";
+        const n=el("div",cls); n.appendChild(el("div","c",icon)); n.appendChild(el("div","l",sname==="owner"?"you":sname)); pipe.appendChild(n);
+      });
+      c.appendChild(pipe);
+      if(t.note) c.appendChild(el("div","tr",t.note));
+      box.appendChild(c);
+    });
   }
 
   function renderQuests(){
@@ -257,44 +327,6 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
     busy.delete(id); renderApprovals(); renderState();
   }
 
-  const AGENT_ORDER=["scout","red-team","builder","qa","growth","auditor","system-qc","scribe"];
-  const STEPS=["scout","red-team","builder","qa","growth","owner","auditor"];
-  let agents=[], tasks=[];
-
-  function renderAgents(){
-    const box=$("#agents"); box.textContent="";
-    const s=state||{};
-    $("#orch-line").textContent="Orchestrator: "+(s.orchestrator||"—");
-    if(!agents.length){ box.appendChild(el("p","empty","Agent status appears here while the team runs.")); return; }
-    const sorted=agents.slice().sort((a,b)=>AGENT_ORDER.indexOf(a.id)-AGENT_ORDER.indexOf(b.id));
-    sorted.forEach(a=>{
-      const c=el("div","agent");
-      const n=el("div","n"); n.appendChild(el("span",null,a.id)); n.appendChild(el("i","dot "+(a.status||"idle"))); c.appendChild(n);
-      c.appendChild(el("div","h",a.hat||""));
-      c.appendChild(el("div","t",(a.status==="working"?"Now: ":"Last: ")+(a.task||"—")));
-      const r=[]; if(a.result) r.push(a.result); if(a.score!=null) r.push("score "+a.score+"/5"); if(a.updatedAt) r.push(when(a.updatedAt));
-      c.appendChild(el("div","r",r.join(" · ")));
-      box.appendChild(c);
-    });
-  }
-
-  function renderTasks(){
-    const box=$("#tasks"); box.textContent="";
-    if(!tasks.length){ box.appendChild(el("p","empty","Tasks appear here while the team runs.")); return; }
-    const order={working:0,blocked:1,rejected:2,ready:3,done:4};
-    tasks.slice().sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||String(b.id).localeCompare(String(a.id))).slice(0,8).forEach(t=>{
-      const c=el("div","task");
-      const tt=el("div","tt"); tt.appendChild(el("span","tid",t.id)); tt.appendChild(el("span","pill "+(t.status==="done"||t.status==="ready"?"yes":t.status==="working"?"open":t.status==="blocked"||t.status==="rejected"?"no":""),t.status||"")); c.appendChild(tt);
-      c.appendChild(el("div","tn",t.title||""));
-      const ch=el("div","chain");
-      const passed=Array.isArray(t.passed)?t.passed:[]; const failed=Array.isArray(t.failed)?t.failed:[];
-      STEPS.forEach(sname=>{ let cls="step"; if(passed.includes(sname)) cls+=" pass"; else if(failed.includes(sname)) cls+=" fail"; else if(t.now===sname) cls+=" now"; ch.appendChild(el("span",cls,sname)); });
-      c.appendChild(ch);
-      if(t.note) c.appendChild(el("div","tr",t.note));
-      box.appendChild(c);
-    });
-  }
-
   function renderFeed(){
     const ul=$("#feed"); ul.textContent="";
     if(!feed.length){ const li=el("li"); li.appendChild(el("span","k","—")); li.appendChild(el("span","empty","The team logs each run here.")); ul.appendChild(li); return; }
@@ -302,15 +334,13 @@ button:focus-visible,.undo:focus-visible{outline:3px solid var(--coin);outline-o
   }
 
   async function boot(){
-    renderState(); renderQuests(); renderApprovals(); renderFeed(); renderAgents(); renderTasks();
-    if(!(window.claude&&window.claude.use)){ $("#offline").hidden=false; return; }
-    try{
-      const user=await claude.use("user");
-      if(user){ const cw=await user.can("data.write"); if(cw===false) canWrite=false; }
-    }catch(e){}
+    renderState(); renderAgents(); renderTasks(); renderQuests(); renderApprovals(); renderFeed();
+    if(!(window.claude&&window.claude.use)){ $("#offline").hidden=false; setLive(false,"offline"); return; }
+    try{ const user=await claude.use("user"); if(user){ const cw=await user.can("data.write"); if(cw===false) canWrite=false; } }catch(e){}
     db=await claude.use("db");
-    if(!db){ $("#offline").hidden=false; return; }
-    db.doc("board/state").onSnapshot(s=>{ state=s.exists?s.data():null; renderState(); renderAgents(); }, showErr);
+    if(!db){ $("#offline").hidden=false; setLive(false,"offline"); return; }
+    setLive(true,"live");
+    db.doc("board/state").onSnapshot(s=>{ state=s.exists?s.data():null; renderState(); }, showErr);
     db.collection("agents").onSnapshot(s=>{ agents=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderAgents(); }, showErr);
     db.collection("tasks").onSnapshot(s=>{ tasks=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderTasks(); }, showErr);
     db.collection("quests").orderBy("order").onSnapshot(s=>{ quests=s.docs.map(d=>Object.assign({id:d.id},d.data())); renderQuests(); renderState(); }, showErr);
