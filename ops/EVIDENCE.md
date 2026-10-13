@@ -1,6 +1,8 @@
 # EVIDENCE — index of every VERIFIED claim (scribe copies from handoffs; system-qc spot-audits 20% per session)
 
-| E-### | date seen | claim | url / file | quoted snippet | source handoff | status (VERIFIED / FAILED-AUDIT / STALE) |
+Status: VERIFIED / FAILED-AUDIT / STALE. UNQUOTED = failed tag lint (D-018: date, quoted snippet and primary source must all be present); flagged CONFLICT in ops/handoffs/S2b-scribe-to-orchestrator.md.
+
+| E-### | date seen | claim | url / file | quoted snippet | source handoff | status (VERIFIED / FAILED-AUDIT / STALE / UNQUOTED) |
 |---|---|---|---|---|---|---|
 | E-001 | 2026-10-12 | Jun $29 billed | zendrop:get_billing_subscription_invoices | invoices[id=933872] `"status":"billed"` | ops/handoffs/T-003-auditor-to-orchestrator.md | VERIFIED |
 | E-002 | 2026-10-12 | Jul $29 billed | zendrop:get_billing_subscription_invoices | invoices[id=969442] `"status":"billed"` | ops/handoffs/T-003-auditor-to-orchestrator.md | VERIFIED |
@@ -35,3 +37,28 @@
 | E-031 | 2026-10-12 | EGPD Community Exchange Zone, 8400 Laguna Palms Way | https://elkgrove.gov/community-safety-programs-and-services/community-exchange-zone | "front parking lot of the police department at 8400 Laguna Palms Way" (articles are years old; owner confirms status) | ops/handoffs/T-007-growth-to-orchestrator.md | VERIFIED (handoff note: status may be stale) |
 | E-032 | 2026-10-12 | Occasional-sale rule, bought-to-resell needs permit | https://www.cdtfa.ca.gov/formspubs/pub107 | "per T-006 L1/L1b" (no quote in handoff) | ops/handoffs/T-007-growth-to-orchestrator.md | VERIFIED |
 | E-033 | 2026-10-12 | Prospect names in the site and AI-search lists | library/research/income-lanes-2026-10-12.md rows 1-10 and line 99 | none quoted (tag in handoff: VERIFIED as listings; has-website UNKNOWN) | ops/handoffs/T-007-growth-to-orchestrator.md | VERIFIED (listings only; has-website UNKNOWN) |
+| E-034 | 2026-10-12 | Oct 9 $29 invoice pending (id 1119155) | zendrop:get_billing_subscription_invoices | invoices[id=1119155] "status":"pending" | ops/handoffs/T-003b-auditor-to-orchestrator.md | VERIFIED |
+| E-035 | 2026-10-12 | Lifetime revenue zero (live read) | zendrop:get_orders_performance | "grossRevenue":{"value":0} | ops/handoffs/T-003b-auditor-to-orchestrator.md | VERIFIED |
+| E-036 | 2026-10-12 | Sacramento IKEA assembly customer price from $52 | https://www.taskrabbit.com/locations/sacramento/assemble-ikea-furniture | "Prices begin at a $52" | ops/handoffs/T-008-scout-to-red-team.md | VERIFIED |
+| E-037 | 2026-10-12 | Sacramento furniture removal $59-$119 | https://dropcurb.com/cost/furniture-removal/sacramento-ca | "$59 to $119" | ops/handoffs/T-008-scout-to-red-team.md | VERIFIED |
+| E-038 | 2026-10-12 | Elk Grove license covers businesses operating or conducting business within city limits (L8) | https://www.elkgrove.gov/departments-and-divisions/business-license | "operating or conducting business within the City limits" (search-summary wording) | ops/handoffs/T-008-red-team-to-scout.md | VERIFIED |
+| E-039 | 2026-10-12 | WebSearch returns about 9-10 links per call (L13) | WebSearch tool output (Links arrays, 5 calls) | none quoted; counts "10, 9, 9, 10, 9 entries" | ops/handoffs/T-008-red-team-to-scout.md | UNQUOTED |
+| E-040 | 2026-10-12 | Tasker registration fee varies by location (S1) | https://joingerald.com/learn/work--income/taskers-guide | "the fee varies by location" (search-summary wording) | ops/handoffs/T-009-red-team-to-growth.md | VERIFIED |
+| E-041 | not stated | WebSearch returned 9, 9, 9 links (S8) | WebSearch Links arrays | none quoted; counts "9, 9, 9" | ops/handoffs/T-009-red-team-to-growth.md | UNQUOTED |
+| E-042 | 2026-10-12 | GBP description limit 750 characters | library/outreach/gbp-pack-offer-2026-10-13.md | "750-character limit" (growth, brightlocal.com URL) | ops/handoffs/T-010-builder-to-qa.md | VERIFIED |
+| E-043 | not stated | Pack excludes Q&A (T-010 #2) | ops/handoffs/T-006-red-team-to-growth.md l.22 | "Pack leaves out Q&A items" | ops/handoffs/T-010-builder-to-qa.md | UNQUOTED |
+| E-044 | not stated | Card wording A/B/C plus banned list (T-010 #3) | library/outreach/review-card-kit-2026-10-13.md | "Card text, three variants" | ops/handoffs/T-010-builder-to-qa.md | UNQUOTED |
+| E-045 | not stated | Standards reused from blueprint (T-010 #4) | blueprint/MASTER-BLUEPRINT.md l.25; l.27; l.200 | "Lighthouse mobile ≥ 90 performance"; "`robots.txt` allowlist for AI crawlers, `llms.txt`"; "NAP identical on every listing" | ops/handoffs/T-010-builder-to-qa.md | UNQUOTED |
+| E-046 | not stated | Chromium path (T-010 #5) | sites/cali-tints/scripts/og-images.mjs | "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" | ops/handoffs/T-010-builder-to-qa.md | UNQUOTED |
+| E-047 | not stated | Old bug caught: window 1056 render exits 4 (T-010b #1) | scratchpad run (no repo path) | "ink ends at 10.12 in" | ops/handoffs/T-010b-builder-to-qa.md | UNQUOTED |
+| E-048 | not stated | Fixed SAMPLE: card-sheet.png ink equals PDF raster (T-010b #2) | render output + image (no path given) | none quoted; ink (0.75,0.5,7.75,10.5) in | ops/handoffs/T-010b-builder-to-qa.md | UNQUOTED |
+| E-049 | not stated | Links of 90/100/104/108/112/120 chars fit under B (T-010b #3) | fit check (no path given) | "ok" x18 | ops/handoffs/T-010b-builder-to-qa.md | UNQUOTED |
+| E-050 | 2026-10-12 | 750 limit enforced at the boundary (T-011 #1) | my run (no path given) | none quoted; desc 750/751/760, exit 0/1/1 | ops/handoffs/T-011-qa-to-growth.md | UNQUOTED |
+| E-051 | not stated | Card text equals growth variants (T-011 #2) | `review-card-kit-2026-10-13.md` l.20-22 | "Your honest review helps other customers decide" | ops/handoffs/T-011-qa-to-growth.md | UNQUOTED |
+| E-052 | not stated | Blueprint lines cite support points (T-011 #3) | blueprint/MASTER-BLUEPRINT.md l.25; l.200 | "Lighthouse mobile ≥ 90 performance"; "NAP identical on every listing" | ops/handoffs/T-011-qa-to-growth.md | UNQUOTED |
+| E-053 | 2026-10-12 | Project Catalog title max 75 characters | https://www.upwork.com/resources/how-to-create-project-catalog-service | "the maximum length of a title is 75 characters" (search-result text, page not opened) | ops/handoffs/T-012-growth-to-orchestrator.md | VERIFIED |
+| E-054 | 2026-10-12 | Up to 3 tiers (Starter, Standard, Advanced) | https://support.upwork.com/hc/en-us/articles/360057397533 | "up to three tiers (Starter, Standard, Advanced)" | ops/handoffs/T-012-growth-to-orchestrator.md | VERIFIED |
+| E-055 | not stated | Seller tiers for a comparable AI audit run $25 to $99 (T-012 #5) | library/research/lane-a-ideas-2026-10-12.md l.23 | "Tiers run from $25 to $99" | ops/handoffs/T-012-growth-to-orchestrator.md | UNQUOTED |
+| E-056 | 2026-10-12 | Tasker may set a higher minimum only with the client's written OK | https://support.taskrabbit.com/hc/en-gb/articles/4402705319949-Can-I-Set-a-Two-Hour-Minimum-for-Tasks | "as long as you first confirm this with your Client and the Client agrees within the task's chat thread in writing" | ops/handoffs/T-012-growth-to-orchestrator.md | VERIFIED |
+| E-057 | not stated | Customers pay ~$35/h for assembly in Sacramento (T-012 #7) | library/research/what-works-2026-10-12.md W6 | "average around $35 per hour" | ops/handoffs/T-012-growth-to-orchestrator.md | UNQUOTED |
+| E-058 | not stated | QA fixes D1/D3/D4 confirmed; --no-desc still bypasses 750 check (T-012 #12) | ops/handoffs/T-011b-qa-to-growth.md l.17-31 | none quoted (source is a handoff, not a primary source) | ops/handoffs/T-012-growth-to-orchestrator.md | UNQUOTED |
