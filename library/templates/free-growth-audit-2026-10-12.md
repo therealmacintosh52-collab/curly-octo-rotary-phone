@@ -43,7 +43,7 @@ Reviews: 🟢 count near competitors and newest review under 30 days, replies on
 ## 2b. Fill the one-pager (3 min, type only the bracketed parts). Budget: 1 + 10 + 3 = 14 min to ready-to-send; delivery (§4, 3 min) is separate.
 Cap to hold the 3 minutes (HYPOTHESIS, qa estimate 125 typed characters/min, UNVERIFIED): each "one phrase" at most 5 words, each fix at most 40 characters, about 375 characters typed in total.
 
-## 3. One-page result (fill on phone; send as text or screenshot)
+## 3. One-page result (fill on phone; a text or screenshot goes out only after the business asked for it on the call or in person, C3)
 ```
 GROWTH AUDIT — [Business], [City] — [date]
 (Based only on public info I saw on [date]. Not a guarantee of results.)
