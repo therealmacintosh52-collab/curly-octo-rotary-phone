@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, GaugeIcon, PencilIcon, PlusIcon, ScanSearchIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, GaugeIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { OdometerReading, Vehicle } from "@/lib/db/types";
 import { addOdometerAction, saveVehicleAction } from "@/app/(app)/retail/actions";
@@ -92,11 +92,6 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
           </Button>
           <Button variant="outline" onClick={() => setEditing(true)} data-testid="vehicle-edit">
             <PencilIcon /> Edit
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/intel/vehicles/${v.id}`} data-testid="vehicle-intel">
-              <ScanSearchIcon /> Intel
-            </Link>
           </Button>
           {isAdmin && (
             <Button variant="ghost" onClick={toggleArchive} loading={pending}>

@@ -1151,58 +1151,7 @@ export type Vehicle = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  /** Intel (0045): what the VIN decode knows. */
-  engine?: string | null;
-  specs?: Record<string, string>;
-  specs_source?: string | null;
 };
-
-/** A seeded generic trouble-code definition (0045). */
-export type DtcCode = { code: string; description: string; system: string; category: string; is_generic: boolean; common_causes: string[]; safety_flag: "brakes" | "srs" | "steering" | "ev_high_voltage" | null };
-export type ProviderCacheRow = { cache_key: string; provider: string; payload: unknown; fetched_at: string; expires_at: string };
-export type IntelLookup = { id: string; company_id: string; user_id: string | null; kind: "code" | "vin"; query: string; created_at: string };
-export type RecentLookup = { kind: "code" | "vin"; query: string; at: string };
-
-/** The shop's fix library (0046). */
-export type FixSummary = {
-  id: string;
-  title: string;
-  year: number;
-  make: string;
-  model: string;
-  engine: string | null;
-  mileage: number | null;
-  root_cause: string;
-  labor_hours: number | null;
-  confirm_count: number;
-  deny_count: number;
-  net_score: number;
-  version: number;
-  created_at: string;
-  /** Written by the signed-in user (the app never shows who else). */
-  is_mine: boolean;
-  codes: string[];
-};
-export type RankedFix = FixSummary & { rank_score: number; match_level: "exact" | "same_year" | "near_year"; matched_codes: string[] };
-export type FixTest = { test: string; result: string };
-export type FixPart = { id: string; name: string; part_number: string | null; brand: string | null; quantity: number; /** Only for whoever may price. */ unit_price: number | null };
-export type FixDetail = FixSummary & {
-  vehicle_id: string | null;
-  job_id: string | null;
-  symptoms: string;
-  freeze_frame_notes: string | null;
-  tests: FixTest[];
-  fix_description: string;
-  can_edit: boolean;
-  can_delete: boolean;
-  my_vote: "fixed" | "not_fixed" | null;
-  parts: FixPart[];
-  media: { id: string; storage_path: string; caption: string | null; url?: string | null }[];
-  notes: { verdict: "fixed" | "not_fixed"; note: string; created_at: string }[];
-  revisions: { version: number; change_note: string | null; created_at: string }[];
-};
-/** What fix_estimate_lines() hands the estimate builder. */
-export type FixEstimateLines = { fix_id: string; title: string; lines: { line_type: "labor" | "part"; label: string; hours?: number; rate?: number | null; part_number?: string | null; qty?: number; price?: number | null }[] };
 
 export type OdometerReading = {
   id: string;
@@ -1304,9 +1253,6 @@ export type Database = {
       invoice_payments: Table<InvoicePayment>;
       invoice_submissions: Table<InvoiceSubmission>;
       vin_cache: Table<VinCache>;
-      dtc_codes: Table<DtcCode>;
-      provider_cache: Table<ProviderCacheRow>;
-      intel_lookups: Table<IntelLookup>;
       quickbooks_connections: Table<QuickBooksConnection>;
       quickbooks_month_invoices: Table<QuickBooksMonthInvoice>;
       audit_log: Table<AuditLog>;
@@ -1355,21 +1301,6 @@ export type Database = {
       customers_filtered: { Args: { p_q?: string | null; p_archived?: boolean; p_limit?: number; p_offset?: number }; Returns: CustomerListResult };
       customer_timeline: { Args: { p_id: string }; Returns: CustomerTimeline };
       save_vehicle: { Args: { p: VehiclePayload }; Returns: Vehicle };
-      dtc_definitions: { Args: { p_codes: string[] }; Returns: DtcCode[] };
-      log_intel_lookup: { Args: { p_kind: "code" | "vin"; p_query: string }; Returns: undefined };
-      recent_intel_lookups: { Args: { p_limit?: number }; Returns: RecentLookup[] };
-      save_fix: { Args: { p: Record<string, unknown> }; Returns: FixDetail };
-      delete_fix: { Args: { p_id: string }; Returns: { id: string; paths: string[] } };
-      add_fix_media: { Args: { p_fix: string; p_paths: string[] }; Returns: FixDetail };
-      remove_fix_media: { Args: { p_media: string }; Returns: { id: string; path: string } };
-      confirm_fix: { Args: { p_id: string; p_verdict: "fixed" | "not_fixed"; p_note?: string | null }; Returns: FixDetail };
-      unconfirm_fix: { Args: { p_id: string }; Returns: FixDetail };
-      fix_detail: { Args: { p_id: string }; Returns: FixDetail | null };
-      fixes_filtered: { Args: { p_q?: string | null; p_codes?: string[] | null; p_mine?: boolean; p_limit?: number; p_offset?: number }; Returns: FixSummary[] };
-      rank_fixes: { Args: { p_make: string; p_model: string; p_year: number; p_engine?: string | null; p_codes?: string[] | null; p_limit?: number }; Returns: RankedFix[] };
-      fixes_for_codes: { Args: { p_codes: string[]; p_limit?: number }; Returns: FixSummary[] };
-      fix_estimate_lines: { Args: { p_id: string }; Returns: FixEstimateLines };
-      set_vehicle_specs: { Args: { p_id: string; p_engine: string | null; p_specs: Record<string, string>; p_source?: string }; Returns: undefined };
       retail_catalog: { Args: Record<string, never>; Returns: RetailCatalog };
       create_estimate: { Args: { p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; token: string; total: number; deposit_required: number; customer_id: string; job_id: string | null; kind: "quote" | "supplement" } };
       update_estimate: { Args: { p_id: string; p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; total: number } };

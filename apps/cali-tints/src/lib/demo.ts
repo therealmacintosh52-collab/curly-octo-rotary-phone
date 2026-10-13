@@ -44,11 +44,6 @@ const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
   ["/retail/calendar", "/dev/preview/retail/calendar"],
   ["/book", "/dev/preview/retail/book", true],
   ["/retail", "/dev/preview/retail", true],
-  ["/intel/fixes/new", "/dev/preview/intel/fixes/new", true],
-  ["/intel/fixes", "/dev/preview/intel/fixes", true],
-  ["/intel/dtc", "/dev/preview/intel/dtc", true],
-  ["/intel/garage", "/dev/preview/intel/garage", true],
-  ["/intel", "/dev/preview/intel", true],
   ["/invoices/new", "/dev/preview/invoices"],
   ["/invoices", "/dev/preview/invoices", true],
   ["/invoices", "/dev/preview/invoice"],
@@ -71,10 +66,6 @@ export function demoRewriteTarget(pathname: string): string | null {
   if (cust && cust[1] !== "new") return `/dev/preview/retail/customer/${cust[1]}`;
   const veh = pathname.match(/^\/retail\/vehicles\/([^/]+)$/);
   if (veh) return `/dev/preview/retail/vehicle/${veh[1]}`;
-  const fx = pathname.match(/^\/intel\/fixes\/([^/]+)(\/edit)?$/);
-  if (fx && fx[1] !== "new") return `/dev/preview/intel/fixes/${fx[1]}${fx[2] ?? ""}`;
-  const iv = pathname.match(/^\/intel\/vehicles\/([^/]+)$/);
-  if (iv) return `/dev/preview/intel/vehicle/${iv[1]}`;
   const est = pathname.match(/^\/retail\/estimates\/([^/]+)(\/edit)?$/);
   if (est && est[1] !== "new") return `/dev/preview/retail/estimate/${est[1]}${est[2] ?? ""}`;
   const appt = pathname.match(/^\/retail\/appointments\/([^/]+)$/);

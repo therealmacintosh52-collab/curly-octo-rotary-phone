@@ -13,7 +13,6 @@ import { StaggerItem } from "@/components/motion/primitives";
 import { StatList, StatTile } from "./stat-tile";
 import { HorizontalBars } from "./charts-lazy";
 import { RangePicker } from "./range-picker";
-import { IntelCard } from "@/components/intel/intel-card";
 
 export interface DashboardRange {
   preset: RangePreset | "custom";
@@ -254,7 +253,6 @@ export function Dashboard({
       </div>
 
       {/* The shop's side, apart from the dealership numbers above. */}
-      <IntelCard className="mt-6" eyebrow="The shop · apart from the dealership work" />
     </Page>
   );
 }

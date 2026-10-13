@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArchiveIcon, ArrowLeftIcon, CameraIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, ScanSearchIcon, XIcon } from "lucide-react";
+import { ArchiveIcon, ArrowLeftIcon, CameraIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
 import type { JobEstimate, JobFinding, PriceListRow } from "@/lib/db/types";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { Page } from "@/components/app/page-header";
@@ -199,11 +199,6 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
                     job.vin ? (
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-mono">{job.vin}</span>
-                        {retail && (
-                          <Link href={job.vehicle ? `/intel/vehicles/${job.vehicle.id}` : `/intel/garage?vin=${job.vin}`} className="inline-flex items-center gap-1 text-caption font-medium text-primary hover:underline" data-testid="job-intel">
-                            <ScanSearchIcon className="size-3.5" /> Intel
-                          </Link>
-                        )}
                       </span>
                     ) : (
                       "—"

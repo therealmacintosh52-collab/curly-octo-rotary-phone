@@ -10,7 +10,6 @@ import { StaggerItem } from "@/components/motion/primitives";
 import { StatList, StatTile } from "./stat-tile";
 import { DailyBarsChart } from "./charts-lazy";
 import { LiveDate, LiveGreeting } from "./live-greeting";
-import { IntelCard } from "@/components/intel/intel-card";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -96,7 +95,6 @@ export function TeamDashboard({ stats, today, who }: { stats: TeamStats; today: 
       <p className="mt-3 px-1 text-caption text-subtle">Best day this month: {bestDay(stats)}</p>
 
       {/* The shop's side, apart from the dealership numbers above. */}
-      <IntelCard className="mt-6" eyebrow="The shop · apart from the dealership work" />
     </Page>
   );
 }

@@ -10,7 +10,6 @@ import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IntelCard } from "@/components/intel/intel-card";
 
 export interface RetailTodayCar {
   id: string;
@@ -77,8 +76,6 @@ export function RetailToday({ data, shopName, tz }: { data: RetailTodayData; sho
           <MoneyTile label="Collected this week" value={formatMoney(data.money.collected_week)} hint="deposits and counter payments" />
         </div>
       )}
-
-      <IntelCard className="mt-6" eyebrow={shopName} />
 
       {(data.texts?.length ?? 0) > 0 && <TextQueue rows={data.texts ?? []} />}
 

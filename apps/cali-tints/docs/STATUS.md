@@ -25,7 +25,6 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 | 19 | Voice AI | Not started | — | Design + cost first |
 | 20 | Visual selling | Not started | — | SVG diagram shared with Module 5 |
 | 21 | Platform | Not started | — | Multi-location (`company_id` is already everywhere), API keys, CSV import |
-| — | Intel (BayIntel, native) | **Partial** (codes with safety flags and causes, NHTSA recalls / complaints / specs on the shop's cars, the garage; the shop's own **fix library** with votes, history, photos and an estimate from a fix) | `0045`, `0046` | The AI assistant behind a flag (`0047`) |
 
 ## Verified on every commit
 
