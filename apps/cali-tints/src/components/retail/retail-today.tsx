@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDaysIcon, CarFrontIcon, ClockIcon, PlusIcon, UsersIcon, WalletIcon } from "lucide-react";
+import { CalendarDaysIcon, CarFrontIcon, ClockIcon, FileTextIcon, UsersIcon, WalletIcon } from "lucide-react";
 import type { CalendarItem, RetailMoneySummary, TextQueueRow } from "@/lib/db/types";
 import { TextQueue } from "./text-queue";
 import { formatMoney } from "@/lib/money";
@@ -60,11 +60,13 @@ export function RetailToday({ data, shopName, tz }: { data: RetailTodayData; sho
                 <UsersIcon /> New customer
               </Link>
             </Button>
-            <Button asChild>
-              <Link href="/jobs/new">
-                <PlusIcon /> New job
-              </Link>
-            </Button>
+            {data.money && (
+              <Button asChild>
+                <Link href="/retail/estimates/new" data-testid="retail-new-estimate">
+                  <FileTextIcon /> New estimate
+                </Link>
+              </Button>
+            )}
           </>
         }
       />

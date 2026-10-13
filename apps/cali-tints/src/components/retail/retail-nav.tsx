@@ -10,7 +10,7 @@ const ITEMS = [
   { value: "/retail/calendar", label: "Calendar", href: "/retail/calendar" },
   { value: "/retail/customers", label: "Customers", href: "/retail/customers" },
   { value: "/retail/estimates", label: "Estimates", href: "/retail/estimates" },
-  { value: "/retail/jobs", label: "Jobs", href: "/retail/jobs" },
+  { value: "/retail/jobs", label: "Work", href: "/retail/jobs" },
   { value: "/retail/invoices", label: "Invoices", href: "/retail/invoices" },
 ];
 

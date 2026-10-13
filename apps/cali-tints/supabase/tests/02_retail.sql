@@ -14,6 +14,9 @@ language sql security definer as $$
   select price from public.job_services where job_id = p_job and (p_service is null or service_id = p_service) limit 1;
 $$;
 
+-- Retail work normally starts from an estimate (0048); these tests log retail jobs directly on purpose.
+select set_config('app.allow_retail_job', 'on', false);
+
 create temp table r_ids (k text primary key, v uuid);
 grant all on r_ids to authenticated;
 
@@ -1227,8 +1230,8 @@ begin
   assert (select customer_approved from public.estimate_lines where estimate_id = v_est and line_type = 'part') = false
      and (select customer_approved from public.estimate_lines where estimate_id = v_est and line_type = 'labor') = true, '0044: the answer is on the lines';
   assert (select status from public.job_findings where id = (select v from r_ids where k = 'finding_pads2')) = 'approved', '0044: the finding is approved';
-  -- the advisor puts the approved work on the RO
-  select count(*) into n from public.job_services where job_id = v_job; assert n = 1, '0044: one line before';
+  -- the approval put the approved work on the RO by itself (0048); the staff button is only a fallback and changes nothing
+  select count(*) into n from public.job_services where job_id = v_job; assert n = 5, '0048: the approval applied the supplement: ' || n;
   j := public.convert_estimate_to_job(v_est);
   assert j.id = v_job, '0044: a supplement lands on its RO';
   select count(*) into n from public.job_services where job_id = v_job; assert n = 5, '0044: full detail kept once, labor, fee, sublet, supplies added: ' || n;
@@ -1321,3 +1324,87 @@ begin
   begin perform public.retail_dashboard(); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
 end $$;
 select pg_temp.logout();
+
+-- 0048: a retail customer starts with an estimate; approving it makes the invoice --
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+drop table if exists e48; create temp table e48 (k text primary key, v text);
+grant all on e48 to authenticated, anon;
+do $$
+declare e public.estimates; s jsonb; v_ana uuid := (select v from r_ids where k = 'cust_ana'); v_mazda uuid := (select v from r_ids where k = 'veh_mazda');
+begin
+  -- the plain job log no longer takes the shop's location (the tests above set the escape hatch; clear it here)
+  perform set_config('app.allow_retail_job', 'off', false);
+  begin
+    perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000103', 'tag_number', 'NOPE-1',
+      'services', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))));
+    raise exception 'expected the retail location to be refused';
+  exception when sqlstate 'P0001' then
+    assert sqlerrm like 'Retail work starts from an estimate%', '0048: refusal text: ' || sqlerrm;
+  end;
+  -- dealership jobs are untouched
+  perform public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000101', 'tag_number', 'D48-1', 'color', 'Red', 'year', 2024, 'make', 'Mercedes-Benz', 'model', 'GLE 450',
+    'services', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))));
+  e := public.create_estimate(jsonb_build_object('customer_id', v_ana, 'vehicle_id', v_mazda, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', jsonb_build_array(
+         jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')),
+         jsonb_build_object('service_id', (select v from r_ids where k = 'svc_other'), 'label', 'Buff the hood', 'price', 90))))));
+  insert into e48 values ('est', e.id::text), ('total', e.total::text);
+  assert e.job_id is null, '0048: a draft estimate has no job';
+  s := public.send_estimate(e.id);
+  insert into e48 values ('token', public.estimate_link(e.id));
+  assert (select count(*) from public.jobs where tag_number = replace(e.display_number, 'EST-', 'E-')) = 0, '0048: nothing exists before approval';
+end $$;
+select pg_temp.logout();
+select pg_temp.anon();
+do $$
+declare v_token text := (select v from e48 where k = 'token'); d jsonb; r jsonb; v_opt uuid;
+begin
+  d := public.estimate_by_token(v_token);
+  v_opt := (d -> 'options' -> 0 ->> 'id')::uuid;
+  r := public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'name', 'Ana Lopez', 'pay_choice', 'at_shop',
+         'signature_path', '00000000-0000-4000-8000-000000000001/estimates/' || (d ->> 'id') || '/sig.png'));
+  assert r ->> 'status' = 'accepted', '0048: approved';
+  begin
+    perform public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'name', 'again', 'signature_path', '00000000-0000-4000-8000-000000000001/estimates/' || (d ->> 'id') || '/sig.png'));
+    raise exception 'expected already answered';
+  exception when sqlstate 'P0001' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from e48 where k = 'est')::uuid; j public.jobs; ed jsonb; e public.estimates; n int; l jsonb; d jsonb; v_cust uuid;
+begin
+  ed := public.estimate_detail(v_est);
+  assert (ed ->> 'job_id') is not null and (ed ->> 'applied_at') is not null, '0048: approval created the job and applied it';
+  v_cust := (ed -> 'customer' ->> 'id')::uuid;
+  select * into j from public.jobs where id = (ed ->> 'job_id')::uuid;
+  assert j.ro_number like 'RO-%' and j.retail_invoice_number ~ '^RI-[0-9]{6}$' and j.customer_id = v_cust and j.vehicle_id = (ed -> 'vehicle' ->> 'id')::uuid and j.invoice_id is null, '0048: RO and RI numbers, the customer and car, no dealership invoice';
+  assert (select count(*) from public.job_services where job_id = j.id) = 2, '0048: both approved lines are on it';
+  assert (ed -> 'job' ->> 'invoice_number') = j.retail_invoice_number, '0048: the estimate carries its invoice number';
+  assert (public.retail_charge(j.id) ->> 'subtotal')::numeric = (ed ->> 'subtotal')::numeric, '0048: at the quoted prices';
+  assert (public.retail_charge(j.id) ->> 'total')::numeric = (ed ->> 'total')::numeric, '0048: the invoice total is the estimate total';
+  assert (select count(*) from public.jobs where customer_id = v_cust and tag_number = replace(ed ->> 'display_number', 'EST-', 'E-')) = 1, '0048: exactly one job';
+  assert (public.convert_estimate_to_job(v_est)).id = j.id and (select count(*) from public.job_services where job_id = j.id) = 2, '0048: the fallback button changes nothing';
+  l := public.retail_invoices_filtered(j.retail_invoice_number, 'all');
+  assert jsonb_array_length(l -> 'rows') = 1 and (l -> 'rows' -> 0 ->> 'status') = 'unpaid' and (l -> 'rows' -> 0 ->> 'customer') is not null, '0048: it shows in Retail → Invoices as unpaid';
+  d := public.retail_invoice_detail(j.id);
+  assert jsonb_array_length(d -> 'lines') = 2 and (d ->> 'invoice_number') = j.retail_invoice_number, '0048: the invoice page';
+  assert j.detailer_id = '10000000-0000-4000-8000-000000000001', '0048: the owner holds it until reassigned';
+  -- a declined estimate creates nothing
+  n := (select count(*) from public.jobs);
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'No', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))))));
+  perform public.send_estimate(e.id);
+  perform public.decline_estimate(e.id, 'too much');
+  assert (select count(*) from public.jobs) = n, '0048: a declined estimate creates no job';
+  -- staff recording the approval (in person) makes the invoice too
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Yes', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))))));
+  perform public.send_estimate(e.id);
+  e := public.mark_estimate_accepted(e.id, (select (o ->> 'id')::uuid from jsonb_array_elements(public.estimate_detail(e.id) -> 'options') o limit 1), '{}', 'Ana at the counter', 'in_person');
+  assert (public.estimate_detail(e.id) ->> 'job_id') is not null, '0048: a counter approval makes the invoice too';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$ begin
+  begin perform public.retail_invoices_filtered(null, 'all'); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();
+select set_config('app.allow_retail_job', 'on', false);

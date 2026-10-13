@@ -5,7 +5,6 @@ import Link from "next/link";
 import { JobForm } from "@/components/jobs/job-form";
 import type { Company, Dealership, Profile } from "@/lib/db/types";
 import { priceListFixture } from "@/test/fixtures";
-import { pickedCustomersFixture, retailPriceListFixture } from "@/test/retail-fixtures";
 
 /**
  * Fixture preview of New job (guest demo in production). `?as=detailer`
@@ -95,29 +94,6 @@ export default async function DevPreviewPage(props: PageProps<"/dev/preview">) {
       created_at: "",
       updated_at: "",
     },
-    {
-      id: "d3",
-      company_id: company.id,
-      name: "Cali Tint · Fulton Ave",
-      address_line1: "Fulton Ave",
-      address_line2: null,
-      city: "Sacramento",
-      state: "CA",
-      postal_code: "95825",
-      contact_name: null,
-      contact_phone: null,
-      ap_contact_name: null,
-      ap_emails: [],
-      submission_method: "paper",
-      invoice_mode: "batch",
-      payment_terms: null,
-      tax_rate: null,
-      active: true,
-      quickbooks_customer_id: null,
-      retail: true,
-      created_at: "",
-      updated_at: "",
-    },
   ];
   const list = priceListFixture(false); // no prices on a job, whoever is logging it
 
@@ -127,12 +103,12 @@ export default async function DevPreviewPage(props: PageProps<"/dev/preview">) {
         <AppShell>
           <JobForm
             dealerships={dealerships}
-            priceLists={{ d1: list, d2: list, d3: retailPriceListFixture() }}
+            priceLists={{ d1: list, d2: list }}
             detailers={[
               { id: profile.id, full_name: profile.full_name },
               { id: "u2", full_name: "Victor" },
             ]}
-            recentJobs={[]} retailCustomers={pickedCustomersFixture()} />
+            recentJobs={[]} />
           <p className="pb-28 text-center text-caption text-muted-foreground">
             Guest preview ·{" "}
             {asDetailer ? (

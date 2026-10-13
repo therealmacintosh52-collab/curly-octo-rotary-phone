@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlusIcon, SearchIcon } from "lucide-react";
+import { FileTextIcon, SearchIcon } from "lucide-react";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
@@ -15,7 +15,7 @@ import { toDateInput } from "@/lib/dates";
 /** Fixture preview of Retail → Jobs: the shop's repair orders, apart from the dealership Jobs tab. */
 export default async function DevRetailJobsPreview(props: PageProps<"/dev/preview/retail/jobs">) {
   const sp = await props.searchParams;
-  const { session, isAdmin } = previewSession(sp);
+  const { session, isAdmin, canPrices } = previewSession(sp);
   const q = typeof sp.q === "string" ? sp.q.trim().toUpperCase() : "";
   const rows = jobListFixture().filter((r) => r.retail && !r.deleted && (isAdmin || r.detailer_id === "u5") && (!q || [r.tag, r.ro_number, r.retail_invoice_number, r.vehicle, r.customer].some((v) => (v ?? "").toUpperCase().includes(q))));
   return (
@@ -27,14 +27,16 @@ export default async function DevRetailJobsPreview(props: PageProps<"/dev/previe
           </div>
           <Page>
             <PageHeader
-              title={isAdmin ? "Retail jobs" : "My retail jobs"}
-              description={`${rows.length} ${rows.length === 1 ? "repair order" : "repair orders"}${q ? ` matching “${q}”` : ""}`}
+              title={isAdmin ? "Work" : "My work"}
+              description={`${rows.length} ${rows.length === 1 ? "repair order" : "repair orders"}${q ? ` matching “${q}”` : ""} · they start from an approved estimate`}
               actions={
-                <Button asChild>
-                  <Link href="/jobs/new">
-                    <PlusIcon /> New job
-                  </Link>
-                </Button>
+                canPrices ? (
+                  <Button asChild>
+                    <Link href="/retail/estimates/new">
+                      <FileTextIcon /> New estimate
+                    </Link>
+                  </Button>
+                ) : undefined
               }
             />
             <div className="mt-5 flex flex-col gap-4">

@@ -19,6 +19,10 @@ const V6 = "70000000-0000-4000-8000-000000000006";
 export const RETAIL_CUSTOMER_IDS = { ana: C1, marcus: C2, priya: C3, dana: C4, luis: C5 };
 export const RETAIL_VEHICLE_IDS = { camry: V1, model3: V2, f150: V3, mini: V4, odyssey: V5, civic: V6 };
 
+const RI_OLD_UNPAID = "40000000-0000-4000-8000-000000000990";
+const RI_OLD_VOID = "40000000-0000-4000-8000-000000000991";
+const RI_LUIS = "40000000-0000-4000-8000-000000000993";
+
 const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86400000 - hours * 3600000).toISOString();
 
 const base = (over: Partial<Customer>): Customer => withDerived({
@@ -428,6 +432,7 @@ function estimateBase(id: string) {
     case E2:
       return {
         id: E2, n: 2, status: "accepted" as EstimateStatus, customer: cust(C5), vehicle: veh(V6),
+        job: { id: RI_LUIS, ro_number: "RO-000043", invoice_number: "RI-000043", tag_number: "E-000002", performed_at: ago(3, 19), paid_at: null, odometer: null },
         options: [{ id: "o2-single", tier: "single" as const, name: "Paint correction", description: null, recommended: true, lines: [{ id: "l7", svc: 1, price: 350 }, { id: "l8", svc: 6, price: 50 }] }],
         addons: [{ id: "a3", svc: 7, price: 15, default_on: true, customer_approved: true }],
         selected: "o2-single", created: ago(4), expires: new Date(Date.now() + 10 * 86400000).toISOString(), sent: ago(4), viewed: { first: ago(3, 20), last: ago(3, 19), count: 1 }, accepted: ago(3, 19),
@@ -742,8 +747,6 @@ export function fromLastTimeFixture(jobId: string): JobFinding[] {
 // ---------------------------------------------------------------------------
 import type { RetailDashboard, RetailInvoiceDetail, RetailInvoiceList, RetailInvoiceRow } from "@/lib/db/types";
 
-const RI_OLD_UNPAID = "40000000-0000-4000-8000-000000000990";
-const RI_OLD_VOID = "40000000-0000-4000-8000-000000000991";
 
 function retailInvoiceRows(): RetailInvoiceRow[] {
   const r101 = JOBS[C1][0];
@@ -751,6 +754,7 @@ function retailInvoiceRows(): RetailInvoiceRow[] {
   return [
     { id: r102.id, number: "RI-000042", ro_number: "RO-000042", tag: "R-102", performed_at: ago(0, 1), customer_id: C2, customer: "Marcus Reed", vehicle: "2022 Tesla Model 3", status: "partial", total: 200, deposit_paid: 40, paid: 0, balance: 160, paid_at: null },
     { id: r101.id, number: "RI-000041", ro_number: "RO-000041", tag: "R-101", performed_at: ago(0, 3), customer_id: C1, customer: "Ana Lopez", vehicle: "2019 Toyota Camry", status: "paid", total: 240, deposit_paid: 48, paid: 192, balance: 0, paid_at: r101.paid_at },
+    { id: RI_LUIS, number: "RI-000043", ro_number: "RO-000043", tag: "E-000002", performed_at: ago(3, 19), customer_id: C5, customer: "Luis Ortega", vehicle: "2018 Honda Civic", status: "unpaid", total: 415, deposit_paid: 0, paid: 0, balance: 415, paid_at: null },
     { id: RI_OLD_UNPAID, number: "RI-000040", ro_number: "RO-000040", tag: "R-099", performed_at: ago(3), customer_id: C3, customer: "Priya Nair", vehicle: "2020 Honda Odyssey", status: "unpaid", total: 130, deposit_paid: 0, paid: 0, balance: 130, paid_at: null },
     { id: RI_OLD_VOID, number: "RI-000039", ro_number: "RO-000039", tag: "R-098", performed_at: ago(6), customer_id: C4, customer: "Dana Whitaker", vehicle: "2018 Ford F-150", status: "void", total: 90, deposit_paid: 0, paid: 0, balance: 90, paid_at: null },
   ];
@@ -791,6 +795,6 @@ export function retailDashboardFixture(money: boolean): RetailDashboard {
     month: { cars: 14 },
     open_jobs: 3,
     appointments_today: 3,
-    money: money ? { collected_week: 1385, collected_month: 2960, unpaid_invoices: 2, unpaid_total: 290, deposits_outstanding: 66 } : null,
+    money: money ? { collected_week: 1385, collected_month: 2960, unpaid_invoices: 3, unpaid_total: 705, deposits_outstanding: 66 } : null,
   };
 }

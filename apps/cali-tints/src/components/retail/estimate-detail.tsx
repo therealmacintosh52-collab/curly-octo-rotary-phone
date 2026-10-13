@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateView } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
@@ -40,7 +40,6 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
   const [sentUrl, setSentUrl] = useState<string | null>(e.status === "draft" ? null : publicUrl);
   const [accepting, setAccepting] = useState(false);
   const [declining, setDeclining] = useState(false);
-  const [converting, setConverting] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "unknown">("unknown");
   useEffect(() => {
     const t = setTimeout(() => setPlatform(detectPlatform(navigator.userAgent)), 0);
@@ -63,6 +62,15 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
       const r = await convertEstimateAction(e.id, {});
       if (!r.ok) return void toast.error(r.error);
       toast.success(`Approved work added to ${ro.ro_number ?? ro.tag_number}`);
+      router.refresh();
+    });
+  }
+  function createInvoice() {
+    startApply(async () => {
+      if (demo) return void toast.success("Invoice created", { description: "Guest preview — nothing changed" });
+      const r = await convertEstimateAction(e.id, {});
+      if (!r.ok) return void toast.error(r.error);
+      toast.success("Invoice created");
       router.refresh();
     });
   }
@@ -379,6 +387,31 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
               </CardContent>
             </Card>
           )}
+          {accepted && !supplement && (
+            <Card data-testid="estimate-invoice">
+              <CardHeader>
+                <CardTitle>Invoice</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {ro ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">Approved and signed: {ro.invoice_number ?? ro.ro_number ?? ro.tag_number} was created with the approved lines. Payment is collected at the counter, never through QuickBooks.</p>
+                    {canPrices && ro.invoice_number && (
+                      <Button asChild data-testid="estimate-open-invoice"><Link href={`/retail/invoices/${ro.id}`}><FileTextIcon /> Open the invoice {ro.invoice_number}</Link></Button>
+                    )}
+                    <Button asChild variant="outline"><Link href={`/jobs/${ro.id}?tab=notes`}><WrenchIcon /> Open the work</Link></Button>
+                  </>
+                ) : canPrices ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">Approved, but the invoice could not be created (is a retail location set up in Settings → Dealerships?).</p>
+                    <Button onClick={createInvoice} loading={applying} data-testid="create-invoice"><FileTextIcon /> Create the invoice</Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Approved; the advisor creates the invoice.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
           {isAdmin && accepted && !supplement && (
             <Card>
               <CardHeader>
@@ -388,12 +421,7 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
                 <Button asChild data-testid="schedule-estimate">
                   <Link href={`/retail/calendar?estimate=${e.id}`}><CalendarPlusIcon /> Schedule it</Link>
                 </Button>
-                {canPrices && !e.job_id && (
-                  <Button variant="outline" onClick={() => setConverting(true)} data-testid="convert-job">
-                    <WrenchIcon /> Create the job now
-                  </Button>
-                )}
-                <p className="text-caption text-subtle">Pick a time on the calendar; checking the car in opens the job with the approved lines at these prices.</p>
+                <p className="text-caption text-subtle">Pick a time on the calendar; the invoice and the work are already open.</p>
               </CardContent>
             </Card>
           )}
@@ -402,7 +430,6 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
 
       {canPrices && <MarkAcceptedDialog e={e} open={accepting} onOpenChange={setAccepting} />}
       <DeclineDialog open={declining} onOpenChange={setDeclining} onDecline={decline} pending={pending} />
-      <ConvertDialog e={e} open={converting} onOpenChange={setConverting} />
     </Page>
   );
 }
@@ -499,53 +526,6 @@ function DeclineDialog({ open, onOpenChange, onDecline, pending }: { open: boole
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button variant="destructive" onClick={() => onDecline(reason)} loading={pending}>Mark declined</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/** Approved → the retail job, at the snapshot prices. */
-function ConvertDialog({ e, open, onOpenChange }: { e: EstimateView; open: boolean; onOpenChange: (o: boolean) => void }) {
-  const router = useRouter();
-  const { demo } = useSession();
-  const [pending, start] = useTransition();
-  const [tag, setTag] = useState("");
-  const [notes, setNotes] = useState("");
-  function submit() {
-    start(async () => {
-      if (demo) {
-        toast.success("Job created", { description: "Guest preview — nothing changed" });
-        onOpenChange(false);
-        return;
-      }
-      const r = await convertEstimateAction(e.id, { tag_number: tag, notes });
-      if (!r.ok) return void toast.error(r.error);
-      toast.success("Job created");
-      onOpenChange(false);
-      router.push(`/jobs/${r.data.jobId}`);
-    });
-  }
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create the job for {e.display_number}</DialogTitle>
-          <DialogDescription>Logged today at the shop with the approved services. Photos and the rest are added on the job.</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-3">
-          <div className="grid gap-1.5">
-            <Label htmlFor="cv-tag">Tag (optional)</Label>
-            <Input id="cv-tag" value={tag} onChange={(ev) => setTag(ev.target.value)} placeholder={`Defaults to ${e.display_number.replace("EST", "E")}`} maxLength={40} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="cv-notes">Notes for the job</Label>
-            <Textarea id="cv-notes" value={notes} onChange={(ev) => setNotes(ev.target.value)} className="min-h-16" placeholder={e.customer_notes ?? ""} />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} loading={pending} data-testid="convert-confirm">Create job</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

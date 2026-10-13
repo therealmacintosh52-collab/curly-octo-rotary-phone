@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, GaugeIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, GaugeIcon, FileTextIcon, PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { OdometerReading, Vehicle } from "@/lib/db/types";
 import { addOdometerAction, saveVehicleAction } from "@/app/(app)/retail/actions";
@@ -30,7 +30,7 @@ export interface VehicleDetailData {
 /** One car's history: what it is, the mileage over time, every visit. */
 export function VehicleDetail({ data }: { data: VehicleDetailData }) {
   const { vehicle: v, customer, odometer, jobs } = data;
-  const { isAdmin, demo } = useSession();
+  const { isAdmin, canPrices, demo } = useSession();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [logging, setLogging] = useState(false);
@@ -82,11 +82,13 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
           <div className="mt-1 text-sm text-muted-foreground">{[v.trim, v.color, v.plate ? `Plate ${v.plate}` : null, v.vin ? <span key="vin" className="font-mono">{v.vin}</span> : null].filter(Boolean).map((x, i) => (i ? <span key={i}> · {x}</span> : <span key={i}>{x}</span>))}</div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button asChild>
-            <Link href={`/jobs/new?customer=${customer.id}&vehicle=${v.id}`}>
-              <PlusIcon /> New job
-            </Link>
-          </Button>
+          {canPrices && (
+            <Button asChild>
+              <Link href={`/retail/estimates/new?customer=${customer.id}&vehicle=${v.id}`} data-testid="vehicle-new-estimate">
+                <FileTextIcon /> New estimate
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setLogging(true)} data-testid="odometer-add">
             <GaugeIcon /> Log mileage
           </Button>

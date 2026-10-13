@@ -31,10 +31,10 @@ describe("receipt pdf", () => {
 describe("retail invoice fixtures", () => {
   it("keep paid and void out of the to-collect list and total it up", () => {
     const open = retailInvoiceListFixture("", "open");
-    expect(open.rows.map((r) => r.status).sort()).toEqual(["partial", "unpaid"]);
-    expect(open.unpaid_total).toBe(290);
+    expect(open.rows.map((r) => r.status).sort()).toEqual(["partial", "unpaid", "unpaid"]);
+    expect(open.unpaid_total).toBe(705);
     expect(retailInvoiceListFixture("", "paid").rows).toHaveLength(1);
     expect(retailInvoiceListFixture("ana", "all").rows[0].number).toBe("RI-000041");
-    expect(new Set(retailInvoiceListFixture("", "all").rows.map((r) => r.number)).size).toBe(4);
+    expect(new Set(retailInvoiceListFixture("", "all").rows.map((r) => r.number)).size).toBe(5);
   });
 });

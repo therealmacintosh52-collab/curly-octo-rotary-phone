@@ -104,13 +104,8 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button asChild variant="default">
-            <Link href={`/jobs/new?customer=${c.id}`}>
-              <PlusIcon /> New job
-            </Link>
-          </Button>
           {canPrices && (
-            <Button asChild variant="secondary">
+            <Button asChild variant="default">
               <Link href={`/retail/estimates/new?customer=${c.id}${vehicles.filter((v) => !v.archived_at).length === 1 ? `&vehicle=${vehicles.find((v) => !v.archived_at)!.id}` : ""}`} data-testid="customer-new-estimate">
                 <FileTextIcon /> New estimate
               </Link>

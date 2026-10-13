@@ -3,7 +3,6 @@ import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { PriceListRow } from "@/lib/db/types";
 import { withoutPrices } from "@/lib/jobs/price-list";
-import { loadPickerCustomers } from "@/lib/retail/pick";
 import { JobForm } from "@/components/jobs/job-form";
 import type { RecentJob } from "@/lib/offline/db";
 import { isoDaysAgo } from "@/lib/dates";
@@ -15,14 +14,14 @@ export const metadata: Metadata = { title: "New job" };
  * instantly; the client caches it in IndexedDB so the form also works from
  * the service-worker cache with no signal.
  */
-export default async function NewJobPage(props: PageProps<"/jobs/new">) {
-  const sp = await props.searchParams;
+export default async function NewJobPage() {
   const session = await getSession();
   const supabase = await createClient();
 
   const since = isoDaysAgo(7);
   const [{ data: dealerships }, { data: detailers }, { data: recent }] = await Promise.all([
-    supabase.from("dealerships").select("*").eq("active", true).order("name"),
+    // Dealerships only: retail customers start with an estimate (Retail → Estimates), not a job.
+    supabase.from("dealerships").select("*").eq("active", true).eq("retail", false).order("name"),
     session.isAdmin
       ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name")
       : Promise.resolve({ data: [{ id: session.profile.id, full_name: session.profile.full_name }] }),
@@ -53,8 +52,5 @@ export default async function NewJobPage(props: PageProps<"/jobs/new">) {
     model: j.model,
   }));
 
-  // Retail: recent customers with their cars for the picker, and a customer/vehicle handed over from their page.
-  const { recent: retailCustomers, initialPick } = await loadPickerCustomers(supabase, sp);
-
-  return <JobForm dealerships={dealerships ?? []} priceLists={priceLists} detailers={detailers ?? []} recentJobs={recentJobs} retailCustomers={retailCustomers} initialPick={initialPick} />;
+  return <JobForm dealerships={dealerships ?? []} priceLists={priceLists} detailers={detailers ?? []} recentJobs={recentJobs} />;
 }

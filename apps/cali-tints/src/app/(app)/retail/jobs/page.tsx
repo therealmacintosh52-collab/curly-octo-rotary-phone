@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, SearchIcon } from "lucide-react";
+import { FileTextIcon, SearchIcon } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { JobListResult } from "@/lib/db/types";
@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { JobList } from "@/components/jobs/job-list";
 
-export const metadata: Metadata = { title: "Retail jobs" };
+export const metadata: Metadata = { title: "Retail work" };
 
 /**
- * The shop's own repair orders, newest first under day headers. Apart from the
+ * The shop's own work: repair orders (each one an invoice) that came from an approved estimate or a booked appointment, newest first. Apart from the
  * dealerships' Jobs tab: a retail car never shows up there. An admin sees every
  * RO, a detailer their own.
  */
@@ -32,14 +32,16 @@ export default async function RetailJobsPage(props: PageProps<"/retail/jobs">) {
   return (
     <Page>
       <PageHeader
-        title={session.isAdmin ? "Retail jobs" : "My retail jobs"}
-        description={`${result.count.toLocaleString()} ${result.count === 1 ? "repair order" : "repair orders"}${q ? ` matching “${q}”` : ""}`}
+        title={session.isAdmin ? "Work" : "My work"}
+        description={`${result.count.toLocaleString()} ${result.count === 1 ? "repair order" : "repair orders"}${q ? ` matching “${q}”` : ""} · they start from an approved estimate`}
         actions={
-          <Button asChild>
-            <Link href="/jobs/new">
-              <PlusIcon /> New job
-            </Link>
-          </Button>
+          session.canPrices ? (
+            <Button asChild>
+              <Link href="/retail/estimates/new">
+                <FileTextIcon /> New estimate
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
       <div className="mt-5 flex flex-col gap-4">

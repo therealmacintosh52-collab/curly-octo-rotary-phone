@@ -313,7 +313,7 @@ export type EstimateView = {
   kind?: "quote" | "supplement";
   applied_at?: string | null;
   shop_supplies?: number | null;
-  job?: { id: string; ro_number: string | null; tag_number: string; performed_at: string; paid_at: string | null; odometer: number | null } | null;
+  job?: { id: string; ro_number: string | null; invoice_number?: string | null; tag_number: string; performed_at: string; paid_at: string | null; odometer: number | null } | null;
   /** The findings this estimate quotes (media URLs signed by the page). */
   findings?: JobFinding[];
   subtotal: number | null;

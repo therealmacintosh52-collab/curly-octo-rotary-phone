@@ -927,6 +927,8 @@ end $$;
 select pg_temp.logout();
 
 -- 0034: the shop. Retail jobs are never invoiced; they are paid at the counter.
+-- (Retail work starts from an estimate since 0048; this test logs one directly on purpose.)
+select set_config('app.allow_retail_job', 'on', false);
 select pg_temp.login('10000000-0000-4000-8000-000000000002');
 do $$
 declare j public.jobs; c jsonb;
