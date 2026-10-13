@@ -197,7 +197,7 @@ export function retailTodayFixture(money = false): RetailTodayData {
     unpaid: [car(r102, "Marcus Reed")],
     leads: items.filter((a) => a.status === "lead"),
     holds: items.filter((a) => a.status === "hold"),
-    appointments: items.filter((a) => a.status !== "lead" && a.status !== "hold" && a.status !== "cancelled").filter((a) => a.starts_at.slice(0, 10) === new Date().toISOString().slice(0, 10)),
+    appointments: items.filter((a) => a.status !== "lead" && a.status !== "hold" && a.status !== "cancelled").filter((a) => a.starts_at.slice(0, 10) === at(0, 12).slice(0, 10)), // the shop's day, as at() builds it
     money: money ? { deposits_outstanding: { count: 1, amount: 66 }, deposits_week: 143, collected_week: 383, pending_links: 1 } : null,
   };
 }
@@ -517,9 +517,11 @@ const TZ = "America/Los_Angeles";
 
 /** An instant for today (or +days) at a Pacific wall-clock hour. Good enough for a preview; the database does the real maths. */
 function at(days: number, hour: number, minute = 0): string {
-  const now = new Date();
-  const offset = Number(new Intl.DateTimeFormat("en-US", { timeZone: TZ, timeZoneName: "shortOffset" }).formatToParts(now).find((p) => p.type === "timeZoneName")?.value.replace(/GMT|UTC/, "") || "-7");
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days, hour - offset, minute));
+  // "Today" is the shop's calendar day, not the UTC one: after 5 pm Pacific the UTC date is already tomorrow.
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: TZ, year: "numeric", month: "numeric", day: "numeric", timeZoneName: "shortOffset" }).formatToParts(new Date());
+  const part = (t: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === t)?.value ?? "";
+  const offset = Number(part("timeZoneName").replace(/GMT|UTC/, "") || "-7");
+  const d = new Date(Date.UTC(Number(part("year")), Number(part("month")) - 1, Number(part("day")) + days, hour - offset, minute));
   return d.toISOString();
 }
 const plus = (iso: string, minutes: number) => new Date(new Date(iso).getTime() + minutes * 60000).toISOString();

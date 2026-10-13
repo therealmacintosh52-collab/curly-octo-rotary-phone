@@ -10,6 +10,7 @@ import { StaggerItem } from "@/components/motion/primitives";
 import { StatTile } from "./stat-tile";
 import { DailyBarsChart } from "./charts-lazy";
 import { LiveDate, LiveGreeting } from "./live-greeting";
+import { IntelCard } from "@/components/intel/intel-card";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -100,6 +101,9 @@ export function DetailerDashboard({ stats, today, who }: { stats: DetailerStats;
           <DailyBarsChart data={stats.by_day.map((d) => ({ day: d.day, value: d.cars, count: d.cars }))} start={stats.range.start} end={stats.range.end || today} />
         </CardContent>
       </Card>
+
+      {/* The shop's side, apart from the dealership cars above. */}
+      <IntelCard className="mt-6" eyebrow="The shop · apart from the dealership work" />
     </Page>
   );
 }
