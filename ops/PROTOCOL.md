@@ -17,7 +17,7 @@ Escalation = write the ask into the APPROVALS block of `ops/STATE.md` via the sc
 
 ## 3. Handoffs
 - Every unit of work ends in `ops/handoffs/<taskID>-<from>-to-<to>.md` using `ops/handoffs/TEMPLATE.md`.
-- Sender runs its self-check checklist and writes a QUALITY SCORE 1–5 with reasons.
+- Sender runs its self-check checklist and writes a QUALITY SCORE 1–5 with reasons. A REJECTED attempt is kept as `<taskID>-<from>-to-<to>-a1.md`; the resubmission takes the plain name. Every handoff records `Completed (UTC)`.
 - Receiver validates against its INPUT CONTRACT first. Bad input → write `REJECTED` with specific fixes into a reply handoff (`<taskID>-<receiver>-to-<sender>.md`), never build on it.
 - A receiver's independent score below 4 returns the work with specific fixes.
 - Gates: red-team PASS before build; qa PASS before anything is shown to a customer or published; auditor confirmation before any dollar counts as income.
@@ -43,7 +43,7 @@ Circuit breakers: max 3 fix attempts per task, then stop and escalate with diagn
 | File / dir | Sole writer |
 |---|---|
 | `ops/CONTEXT.md`, `ops/DECISIONS.md`, `ops/PROTOCOL.md`, `ops/dashboard/*`, `.claude/agents/*` | Orchestrator |
-| `ops/TASKS.md`, `ops/LOG.md`, `ops/STATE.md`, `ops/EVIDENCE.md` | scribe |
+| `ops/TASKS.md`, `ops/LOG.md`, `ops/STATE.md`, `ops/EVIDENCE.md`; plus only the `red-team verdict` and `status` columns of `ops/IDEAS.md` | scribe |
 | `ops/LEDGER.md` | auditor |
 | `ops/INCIDENTS.md`, `ops/METRICS.md` | system-qc |
 | `library/research/`, `ops/IDEAS.md` | scout |

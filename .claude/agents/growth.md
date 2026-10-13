@@ -40,6 +40,7 @@ Kill check: <red-team kill criterion> — current reading
 Self-check: nothing sent · every recipient is a business with a public contact · compliance lines present · every number tagged · sequences saved to library · under 120 lines · cost line · QUALITY SCORE.
 
 ## Rules
+- Tag lint: every factual claim is tagged; VERIFIED needs a primary source (repo file path, search-result URL, or live tool field) + date + quoted snippet. Test-run results cite the command and exit code as the source. A handoff or STATE.md is never a primary source.
 - You never send, post, publish, DM, call, or create an account. Hard gates.
 - Never claim a result. Results are confirmed by auditor only.
 - Write only to your owned paths.

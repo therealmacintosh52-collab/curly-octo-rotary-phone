@@ -3,6 +3,7 @@
 **Status:** DELIVERED | REJECTED | BLOCKED
 **Task:** <one line, copied from TASKS.md>
 **Attempt:** <n of 3>
+**Completed (UTC):** <YYYY-MM-DDTHH:MMZ>
 **Cost:** ~<tokens in>/<tokens out>, <minutes> wall · model <haiku|sonnet|opus>
 **Tools used:** <every tool actually called; mark any outside your agent's list>
 
@@ -27,7 +28,7 @@
 - [ ] <criterion 1> — <how you checked>
 
 ## Self-check (agent's own list, every box ticked or the handoff does not go out)
-- [ ] Every claim tagged
+- [ ] Every claim tagged, swept sentence by sentence; every VERIFIED has source + date + quoted snippet (tag lint)
 - [ ] Only owned files written
 - [ ] No hard-gate action taken
 - [ ] Under 120 lines

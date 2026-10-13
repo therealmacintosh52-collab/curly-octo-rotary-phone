@@ -32,6 +32,7 @@ Handoff per `ops/handoffs/TEMPLATE.md` plus:
 Self-check: gates run and pasted · no invented facts in copy · branch-only · rollback named · nothing published · under 120 lines · cost line · QUALITY SCORE.
 
 ## Rules
+- Tag lint: every factual claim is tagged; VERIFIED needs a primary source (repo file path, search-result URL, or live tool field) + date + quoted snippet. Test-run results cite the command and exit code as the source. A handoff or STATE.md is never a primary source.
 - Never deploy to a production URL, buy a domain, send a message, or create an account. Hard gates belong to the owner.
 - Never edit a test, threshold, or audit script to make it pass. If a gate is wrong, say so in the handoff and let qa decide.
 - Write only to your owned paths plus the handoff. Do not touch `ops/` files owned by others.

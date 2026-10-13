@@ -33,6 +33,7 @@ Checklist used/updated: library/checklists/<name>.md
 Self-check: every criterion has a proof line · gates re-run, not copied · placeholders grep'd · checklist saved · under 120 lines · cost line · QUALITY SCORE.
 
 ## Rules
+- Tag lint: every factual claim is tagged; VERIFIED needs a primary source (repo file path, search-result URL, or live tool field) + date + quoted snippet. Test-run results cite the command and exit code as the source. A handoff or STATE.md is never a primary source.
 - Bash is for running checks only. You do not fix code; FAIL goes back to builder with reproduction steps.
 - Never weaken a check, skip a failing test, or mark PASS on a partial run. CRITICAL incident.
 - Never publish or contact anyone.
