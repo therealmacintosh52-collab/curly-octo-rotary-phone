@@ -101,3 +101,36 @@ describe("trouble codes", () => {
     expect(vinModelYear("not a vin")).toBeNull();
   });
 });
+
+import { fixSchema } from "./fix-schema";
+import { estimateLinesFromFix, fixCodesFromText, fixCarName, matchLabel } from "./fixes";
+
+describe("fix library", () => {
+  const base = { title: "Misfire on cold start", year: "2019", make: "Toyota", model: "Camry", symptoms: "Shakes at idle when cold", root_cause: "Worn plugs", fix_description: "Replaced the plugs and coils" };
+  it("validates a fix like the database does", () => {
+    const ok = fixSchema.parse({ ...base, codes: ["P0300"], parts: [{ name: "Plug", quantity: "4", unit_price: "11.5" }], labor_hours: "1.5" });
+    expect(ok.year).toBe(2019);
+    expect(ok.parts[0]).toMatchObject({ quantity: 4, unit_price: 11.5, part_number: null });
+    expect(ok.labor_hours).toBe(1.5);
+    expect(fixSchema.safeParse({ ...base, title: "short" }).success).toBe(false);
+    expect(fixSchema.safeParse({ ...base, codes: ["X1234"] }).success).toBe(false);
+    expect(fixSchema.safeParse({ ...base, year: "1900" }).success).toBe(false);
+    expect(fixSchema.safeParse({ ...base, codes: Array.from({ length: 21 }, (_, i) => `P${String(i).padStart(4, "0")}`) }).success).toBe(false);
+  });
+  it("finds trouble codes in free text", () => {
+    expect(fixCodesFromText("Rear pads, then p0300 and P0301; also u0100 (P0300 again) and P03000")).toEqual(["P0300", "P0301", "U0100"]);
+    expect(fixCodesFromText("no codes here")).toEqual([]);
+  });
+  it("turns a fix into estimate lines: labor first, then the parts", () => {
+    const lines = estimateLinesFromFix({ fix_id: "f", title: "Plugs", lines: [{ line_type: "labor", label: "Plugs", hours: 1.5, rate: 120 }, { line_type: "part", label: "Spark plug", part_number: "SP-4", qty: 4, price: 11.5 }, { line_type: "part", label: "Coil boot", qty: 2, price: null }] });
+    expect(lines.map((l) => l.line_type)).toEqual(["labor", "part", "part"]);
+    expect(lines[0]).toMatchObject({ label: "Plugs", hours: 1.5, rate: null });
+    expect(lines[1]).toMatchObject({ part_number: "SP-4", qty: 4, price: 11.5 });
+    expect(lines[2].price).toBeNull();
+  });
+  it("labels", () => {
+    expect(matchLabel("exact")).toBeNull();
+    expect(matchLabel("near_year")).toBe("nearby year");
+    expect(fixCarName({ year: 2019, make: "Toyota", model: "Camry", engine: "2.5L I4" })).toBe("2019 Toyota Camry · 2.5L I4");
+  });
+});

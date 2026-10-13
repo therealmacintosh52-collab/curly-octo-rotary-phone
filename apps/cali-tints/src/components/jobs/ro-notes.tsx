@@ -163,6 +163,11 @@ export function RoNotes(p: RoNotesProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {f.kind === "finding" && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/intel/fixes/new?job=${p.jobId}&finding=${f.id}`} data-testid="finding-log-fix">Write it down as a fix</Link>
+                            </DropdownMenuItem>
+                          )}
                           {f.status !== "done" && <DropdownMenuItem onSelect={() => setStatus(f, "done")}>Mark done</DropdownMenuItem>}
                           {f.kind === "finding" && f.status === "open" && <DropdownMenuItem onSelect={() => setStatus(f, "declined")}>Customer declined</DropdownMenuItem>}
                           {(f.status === "done" || f.status === "declined") && <DropdownMenuItem onSelect={() => setStatus(f, "open")}>Reopen</DropdownMenuItem>}

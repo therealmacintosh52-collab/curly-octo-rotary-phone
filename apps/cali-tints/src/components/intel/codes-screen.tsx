@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BookOpenTextIcon, CarFrontIcon } from "lucide-react";
-import type { DtcCode, RecentLookup } from "@/lib/db/types";
+import type { DtcCode, FixSummary, RecentLookup } from "@/lib/db/types";
 import type { Complaint, NhtsaBundle } from "@/lib/intel/types";
 import { inferDtcSystem } from "@/lib/intel/dtc";
 import { relatedComplaints } from "@/lib/intel/complaints";
@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DtcLookup, type VehicleOption } from "./dtc-lookup";
 import { DtcDefinition } from "./dtc-definition";
 import { ComplaintList } from "./complaints-panel";
+import { FixCard } from "./fix-card";
 
 export interface CodesScreenData {
   codes: string[];
@@ -19,13 +20,15 @@ export interface CodesScreenData {
   vehicle: { id: string; name: string } | null;
   /** Recalls and complaints for the picked car (only when codes and a car were given). */
   nhtsa: NhtsaBundle | null;
+  /** The shop's fixes for these codes (ranked for the car when one is picked). */
+  fixes: FixSummary[];
   recent: RecentLookup[];
 }
 
 /**
  * Codes: look up trouble codes. Each code gets its definition, the safety
  * note and the usual causes; with a car picked, the NHTSA owner complaints
- * that touch the same system. The shop's fixes join in the next commit.
+ * that touch the same system, and the shop's own fixes for the code.
  */
 export function CodesScreen({ data }: { data: CodesScreenData }) {
   const { codes, definitions, vehicle, nhtsa } = data;
@@ -39,7 +42,7 @@ export function CodesScreen({ data }: { data: CodesScreenData }) {
       {codes.length === 0 && (
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <Legend />
-          <EmptyState icon={CarFrontIcon} title="Pick a car to go further" description="With a car, a code shows the complaints owners filed on that system and, soon, the shop's own fixes ranked for it." action={<Button asChild variant="outline"><Link href="/intel/garage">Open the garage</Link></Button>} />
+          <EmptyState icon={CarFrontIcon} title="Pick a car to go further" description="With a car, a code shows the complaints owners filed on that system and the shop's own fixes ranked for that car." action={<Button asChild variant="outline"><Link href="/intel/garage">Open the garage</Link></Button>} />
         </div>
       )}
 
@@ -53,6 +56,16 @@ export function CodesScreen({ data }: { data: CodesScreenData }) {
             return (
               <section key={code} className="space-y-3">
                 <DtcDefinition code={code} row={row} inferred={inferred} />
+                <h2 className="pt-1 text-label text-subtle">What the shop has already fixed{vehicle ? ` on a ${vehicle.name}` : ""} for {code}</h2>
+                {data.fixes.filter((f) => f.codes.includes(code)).length ? (
+                  <div className="space-y-3" data-testid="dtc-fixes">
+                    {data.fixes.filter((f) => f.codes.includes(code)).map((f) => (
+                      <FixCard key={f.id} fix={f} highlightCodes={[code]} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title={`No fix written down for ${code} yet`} action={<Button asChild variant="outline" size="sm"><Link href={`/intel/fixes/new?codes=${code}${vehicle ? `&vehicle=${vehicle.id}` : ""}`} data-testid="dtc-log-fix">Write one down</Link></Button>} />
+                )}
                 {vehicle && (
                   <>
                     <h2 className="pt-1 text-label text-subtle">

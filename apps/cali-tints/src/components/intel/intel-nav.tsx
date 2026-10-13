@@ -3,10 +3,11 @@
 import { usePathname } from "next/navigation";
 import { Segmented } from "@/components/ui/segmented";
 
-/** The Intel area's sections: Codes · Garage (Fixes and the Assistant follow). */
+/** The Intel area's sections: Codes · Garage · Fixes (the Assistant follows). */
 const ITEMS = [
   { value: "/intel", label: "Codes", href: "/intel" },
   { value: "/intel/garage", label: "Garage", href: "/intel/garage" },
+  { value: "/intel/fixes", label: "Fixes", href: "/intel/fixes" },
 ];
 
 export function IntelNav() {

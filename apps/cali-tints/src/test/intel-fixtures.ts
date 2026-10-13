@@ -1,4 +1,4 @@
-import type { DtcCode, RecentLookup } from "@/lib/db/types";
+import type { DtcCode, FixDetail, FixSummary, RankedFix, RecentLookup } from "@/lib/db/types";
 import type { Complaint, DecodedVehicle, NhtsaBundle, Recall } from "@/lib/intel/types";
 import type { CodesScreenData } from "@/components/intel/codes-screen";
 import type { GarageData } from "@/components/intel/garage";
@@ -6,6 +6,8 @@ import type { VehicleIntelData } from "@/components/intel/vehicle-intel";
 import type { GarageRow } from "@/lib/intel/data";
 import { parseDtcList } from "@/lib/intel/dtc";
 import { RETAIL_VEHICLE_IDS, customersFixture, vehiclesFixture } from "./retail-fixtures";
+
+const ago = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
 
 /*
   Intel fixtures for the guest demo and the previews. The code definitions
@@ -107,6 +109,7 @@ export function codesScreenFixture(sp: { codes?: string | string[]; vehicle?: st
     vehicles: garageRowsFixture().map((r) => ({ id: r.id, label: `${name(r)}${r.plate ? ` · ${r.plate}` : ""}${r.customer?.display_name ? ` · ${r.customer.display_name}` : ""}` })),
     vehicle: v ? { id: v.id, name: name(v) } : null,
     nhtsa: v && codes.length ? (bundles[v.id] ?? { recalls: [], complaints: [], errors: {} }) : null,
+    fixes: !codes.length ? [] : v ? rankedFixesFixture(v, codes) : fixesFixture().filter((f) => f.codes.some((c) => codes.includes(c))),
     recent: recentLookupsFixture(),
   };
 }
@@ -135,7 +138,81 @@ export function vehicleIntelFixture(id: string, tab?: string): VehicleIntelData 
     vehicle: { id: v.id, name: name(v), vin: v.vin, trim: v.trim, engine: d?.engine ?? null, color: v.color, plate: v.plate, customer: customerOf(v.customer_id), specs_source: d ? "NHTSA" : null },
     decoded: d,
     nhtsa: bundles[id] ?? { recalls: [], complaints: [], errors: {} },
+    fixes: rankedFixesFixture(v),
     jobs,
     tab,
   };
+}
+
+
+// ---------------------------------------------------------------------------
+// The shop's fix library: five fixes written by "the shop" for the demo cars.
+// ---------------------------------------------------------------------------
+export const FIX_IDS = { misfire: "a1000000-0000-4000-8000-000000000001", wheelSpeed: "a1000000-0000-4000-8000-000000000002", catalyst: "a1000000-0000-4000-8000-000000000003", touchscreen: "a1000000-0000-4000-8000-000000000004", pcv: "a1000000-0000-4000-8000-000000000005" } as const;
+
+type FixSeed = Omit<FixDetail, "can_edit" | "can_delete" | "media">;
+const SEEDS: FixSeed[] = [
+  {
+    id: FIX_IDS.misfire, title: "Cold-start misfire, worn plugs and oil-soaked coil boots", year: 2019, make: "Toyota", model: "Camry", engine: "2.5L I4", mileage: 61000, codes: ["P0171", "P0300"],
+    symptoms: "Shakes at idle when cold and the check engine light flashes on hard acceleration. Goes away after a few minutes.", freeze_frame_notes: "P0300 set at 640 rpm, coolant 52 F, short-term trim +9 %.", vehicle_id: RETAIL_VEHICLE_IDS.camry, job_id: null,
+    tests: [{ test: "Misfire counters on a cold start", result: "Cylinders 2 and 3 only" }, { test: "Pulled the coils", result: "Oil in the plug wells of 2 and 3" }],
+    root_cause: "Plugs worn past gap, and a leaking valve cover gasket was filling two wells with oil and soaking the coil boots.", fix_description: "Replaced the plugs, the two coil boots and the valve cover gasket. Cleared the codes and road tested cold and hot.",
+    labor_hours: 1.8, confirm_count: 2, deny_count: 0, net_score: 2, version: 2, created_at: ago(40), is_mine: false, my_vote: null,
+    parts: [{ id: "p1", name: "Spark plug", part_number: "SP-4", brand: null, quantity: 4, unit_price: 11.5 }, { id: "p2", name: "Coil boot", part_number: null, brand: null, quantity: 2, unit_price: 9 }, { id: "p3", name: "Valve cover gasket", part_number: "VCG-25", brand: null, quantity: 1, unit_price: 38 }],
+    notes: [{ verdict: "fixed", note: "Same thing on a 2020 at 48k.", created_at: ago(20) }], revisions: [{ version: 1, change_note: "Found why the boots were wet", created_at: ago(35) }],
+  },
+  {
+    id: FIX_IDS.wheelSpeed, title: "ABS light and soft pedal, left front wheel speed sensor", year: 2019, make: "Toyota", model: "Camry", engine: "2.5L I4", mileage: 26000, codes: ["C0035"],
+    symptoms: "ABS and traction lights on, pedal feels long on the first stop of the morning. Intermittent.", freeze_frame_notes: null, vehicle_id: null, job_id: null,
+    tests: [{ test: "Live data, wheel speeds on a drive", result: "Left front drops out above 25 mph" }, { test: "Sensor tip and tone ring", result: "Tip clean, tone ring packed with rust scale" }],
+    root_cause: "Rust scale on the hub tone ring starving the sensor of signal; the sensor itself tested good.", fix_description: "Cleaned and re-seated the sensor, replaced the hub bearing assembly (the tone ring is part of it), road tested with ABS active.",
+    labor_hours: 1.6, confirm_count: 1, deny_count: 0, net_score: 1, version: 1, created_at: ago(90), is_mine: true, my_vote: null,
+    parts: [{ id: "p4", name: "Front hub bearing assembly", part_number: "HB-513", brand: null, quantity: 1, unit_price: 118 }], notes: [], revisions: [],
+  },
+  {
+    id: FIX_IDS.catalyst, title: "P0420 at 60k, the downstream O2 sensor, not the converter", year: 2018, make: "Toyota", model: "Camry", engine: "2.5L I4", mileage: 60300, codes: ["P0420"],
+    symptoms: "Check engine light with P0420 and nothing else wrong; runs perfectly.", freeze_frame_notes: "Closed loop, trims within 3 %, no misfire history.", vehicle_id: null, job_id: null,
+    tests: [{ test: "Upstream vs downstream O2 waveforms", result: "Downstream lazy, slow to cross, flat after a snap throttle" }, { test: "Exhaust leak check before the sensor", result: "None" }],
+    root_cause: "Slow downstream oxygen sensor reading like a tired catalyst.", fix_description: "Replaced the downstream sensor, cleared the code and ran the monitor to completion. No return in 600 miles.",
+    labor_hours: 0.7, confirm_count: 3, deny_count: 0, net_score: 3, version: 1, created_at: ago(120), is_mine: false, my_vote: "fixed",
+    parts: [{ id: "p5", name: "Downstream O2 sensor", part_number: "O2-D4", brand: null, quantity: 1, unit_price: 74 }], notes: [], revisions: [],
+  },
+  {
+    id: FIX_IDS.touchscreen, title: "Touchscreen reboot loop while driving", year: 2022, make: "Tesla", model: "Model 3", engine: null, mileage: 22000, codes: [],
+    symptoms: "The center screen goes black and restarts, sometimes twice in a drive. Speed and turn signal sounds drop out until it comes back.", freeze_frame_notes: null, vehicle_id: RETAIL_VEHICLE_IDS.model3, job_id: null,
+    tests: [{ test: "Two-button reset", result: "Fixed it for a day, came back" }], root_cause: "Failing storage on the media control unit.", fix_description: "Sent to the manufacturer's service center for an MCU replacement under the extended warranty. Not a shop repair.",
+    labor_hours: null, confirm_count: 0, deny_count: 0, net_score: 0, version: 1, created_at: ago(14), is_mine: true, my_vote: null, parts: [], notes: [], revisions: [],
+  },
+  {
+    id: FIX_IDS.pcv, title: "Lean both banks, cracked PCV elbow", year: 2021, make: "Ford", model: "F-150", engine: "5.0L V8", mileage: 64000, codes: ["P0171", "P0174"],
+    symptoms: "Lean codes on both banks, a slight hunting idle and a hiss under the hood at idle.", freeze_frame_notes: "Long-term trims +22 % / +19 % at idle, normal above 2500 rpm.", vehicle_id: RETAIL_VEHICLE_IDS.f150, job_id: null,
+    tests: [{ test: "Smoke test on the intake", result: "Smoke from the PCV elbow at the valve cover" }, { test: "Fuel pressure", result: "Normal and steady" }],
+    root_cause: "Cracked PCV hose elbow letting unmetered air in at idle.", fix_description: "Replaced the PCV hose assembly. Trims back within 3 % after a 20 mile drive cycle.",
+    labor_hours: 0.5, confirm_count: 1, deny_count: 0, net_score: 1, version: 1, created_at: ago(60), is_mine: false, my_vote: null,
+    parts: [{ id: "p6", name: "PCV hose assembly", part_number: "PCV-21", brand: null, quantity: 1, unit_price: 38 }], notes: [], revisions: [],
+  },
+];
+
+const summary = (f: FixSeed): FixSummary => ({ id: f.id, title: f.title, year: f.year, make: f.make, model: f.model, engine: f.engine, mileage: f.mileage, root_cause: f.root_cause, labor_hours: f.labor_hours, confirm_count: f.confirm_count, deny_count: f.deny_count, net_score: f.net_score, version: f.version, created_at: f.created_at, is_mine: f.is_mine, codes: f.codes });
+
+export const fixesFixture = (): FixSummary[] => SEEDS.map(summary);
+
+export function fixDetailFixture(id: string, canPrices: boolean): FixDetail | null {
+  const f = SEEDS.find((x) => x.id === id);
+  if (!f) return null;
+  return { ...f, can_edit: f.is_mine || canPrices, can_delete: canPrices, media: [], parts: f.parts.map((p) => ({ ...p, unit_price: canPrices ? p.unit_price : null })) };
+}
+
+export function fixesListFixture(sp: { q?: string | string[]; codes?: string | string[]; mine?: string | string[] }): FixSummary[] {
+  const q = typeof sp.q === "string" ? sp.q.toLowerCase() : "";
+  const codes = typeof sp.codes === "string" ? sp.codes.toUpperCase().split(/[\s,]+/).filter(Boolean) : [];
+  return SEEDS.filter((f) => (!q || [f.title, f.symptoms, f.root_cause, f.fix_description].some((t) => t.toLowerCase().includes(q))) && (!codes.length || codes.some((c) => f.codes.includes(c))) && (sp.mine !== "1" || f.is_mine)).map(summary);
+}
+
+/** The shop's fixes for a demo car: same make and model within three model years. */
+export function rankedFixesFixture(car: { year: number | null; make: string | null; model: string | null }, codes?: string[]): RankedFix[] {
+  if (!car.year || !car.make || !car.model) return [];
+  return SEEDS.filter((f) => f.make.toLowerCase() === car.make!.toLowerCase() && f.model.toLowerCase() === car.model!.toLowerCase() && Math.abs(f.year - car.year!) <= 3 && (!codes?.length || f.codes.some((c) => codes.includes(c))))
+    .map((f) => ({ ...summary(f), rank_score: f.net_score * 10 + f.confirm_count + (f.year === car.year ? 5 : 0), match_level: (f.year === car.year ? "exact" : "near_year") as RankedFix["match_level"], matched_codes: f.codes.filter((c) => codes?.includes(c)) }))
+    .sort((a, b) => b.rank_score - a.rank_score);
 }

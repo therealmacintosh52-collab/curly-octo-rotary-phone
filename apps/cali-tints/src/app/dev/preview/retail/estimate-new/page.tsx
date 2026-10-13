@@ -6,6 +6,8 @@ import { EstimateBuilder } from "@/components/retail/estimate-builder";
 import type { CustomerPick } from "@/components/retail/customer-picker";
 import { jobFindingsFixture, pickedCustomersFixture, retailCatalogFixture, RETAIL_JOB_CUSTOMER } from "@/test/retail-fixtures";
 import { linesFromFindings } from "@/lib/estimates/from-findings";
+import { estimateLinesFromFix } from "@/lib/intel/fixes";
+import { fixDetailFixture } from "@/test/intel-fixtures";
 import { previewSession } from "@/test/preview-session";
 
 /** Fixture preview of the estimate builder (owner/admin). `?customer=&vehicle=` arrives from a customer's page. */
@@ -18,6 +20,10 @@ export default async function DevEstimateNewPreview(props: PageProps<"/dev/previ
   const catalog = retailCatalogFixture(canPrices);
   const picked = job ? recent.find((c) => c.id === job.id) : typeof sp.customer === "string" ? recent.find((c) => c.id === sp.customer) : undefined;
   const initialPick: CustomerPick | null = picked ? { customer: picked, vehicleId: typeof sp.vehicle === "string" && picked.vehicles.some((v) => v.id === sp.vehicle) ? sp.vehicle : picked.vehicles.length === 1 ? picked.vehicles[0].id : null } : null;
+  const fix = typeof sp.fix === "string" ? fixDetailFixture(sp.fix, true) : null;
+  const fromFix = fix ? estimateLinesFromFix({ fix_id: fix.id, title: fix.title, lines: [...(fix.labor_hours ? [{ line_type: "labor" as const, label: fix.title, hours: fix.labor_hours, rate: 120 }] : []), ...fix.parts.map((p) => ({ line_type: "part" as const, label: p.name, part_number: p.part_number, qty: p.quantity, price: p.unit_price }))] }) : [];
+  const lines = [...(jobId ? linesFromFindings(jobFindingsFixture(jobId), typeof sp.findings === "string" ? sp.findings.split(",") : [], catalog) : []), ...fromFix];
+  const initialLines = lines.length ? lines : undefined;
   return (
     <SessionProvider value={session}>
       <SyncProvider>
@@ -25,7 +31,7 @@ export default async function DevEstimateNewPreview(props: PageProps<"/dev/previ
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
             <RetailNav />
           </div>
-          <EstimateBuilder catalog={catalog} recent={recent} initialPick={initialPick} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={jobId ? linesFromFindings(jobFindingsFixture(jobId), typeof sp.findings === "string" ? sp.findings.split(",") : [], catalog) : undefined} />
+          <EstimateBuilder catalog={catalog} recent={recent} initialPick={initialPick} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={initialLines} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

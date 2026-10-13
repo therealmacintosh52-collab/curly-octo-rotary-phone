@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ActivityIcon, ArrowLeftIcon, CarFrontIcon, HistoryIcon } from "lucide-react";
+import { ActivityIcon, ArrowLeftIcon, CarFrontIcon, HistoryIcon, LightbulbIcon } from "lucide-react";
 import type { NhtsaBundle, DecodedVehicle } from "@/lib/intel/types";
+import type { RankedFix } from "@/lib/db/types";
 import { groupByComponent, trendByYear } from "@/lib/intel/complaints";
 import { Page } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -11,11 +12,14 @@ import { formatDate } from "@/lib/dates";
 import { SourceBadge } from "./source-badge";
 import { RecallsList } from "./recalls-list";
 import { ComplaintGroups, ComplaintTrendChart } from "./complaints-panel";
+import { FixCard } from "./fix-card";
 
 export interface VehicleIntelData {
   vehicle: { id: string; name: string; vin: string | null; trim: string | null; engine: string | null; color: string | null; plate: string | null; customer: { id: string; display_name: string | null } | null; specs_source: string | null };
   decoded: DecodedVehicle | null;
   nhtsa: NhtsaBundle;
+  /** The shop's fixes for this car, best first. */
+  fixes: RankedFix[];
   /** This app's jobs on the car (the history tab). */
   jobs: { id: string; performed_at: string; tag: string; ro_number: string | null; services: string[]; paid_at: string | null }[];
   tab?: string;
@@ -23,11 +27,11 @@ export interface VehicleIntelData {
 
 /**
  * One car's intelligence: decoded specs, NHTSA recalls and complaints (with
- * the per-year trend and component groups), the shop's history on it. The
- * fixes tab arrives with the fix library.
+ * the per-year trend and component groups), the shop's own fixes for it, the
+ * shop's history on it.
  */
 export function VehicleIntel({ data }: { data: VehicleIntelData }) {
-  const { vehicle: v, decoded, nhtsa, jobs } = data;
+  const { vehicle: v, decoded, nhtsa, jobs, fixes } = data;
   const groups = groupByComponent(nhtsa.complaints);
   const trend = trendByYear(nhtsa.complaints);
   const specEntries = Object.entries(decoded?.specs ?? {});
@@ -65,9 +69,10 @@ export function VehicleIntel({ data }: { data: VehicleIntelData }) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-2 sm:max-w-md">
+      <div className="mt-5 grid grid-cols-2 gap-2 sm:max-w-xl sm:grid-cols-4">
         <Stat label="Recalls" value={nhtsa.errors.recalls ? "—" : nhtsa.recalls.length} tone={nhtsa.recalls.length ? "warn" : "ok"} testId="intel-stat-recalls" />
         <Stat label="Complaints" value={nhtsa.errors.complaints ? "—" : nhtsa.complaints.length} testId="intel-stat-complaints" />
+        <Stat label="Shop fixes" value={fixes.length} testId="intel-stat-fixes" />
         <Stat label="Visits here" value={jobs.length} />
       </div>
 
@@ -76,6 +81,7 @@ export function VehicleIntel({ data }: { data: VehicleIntelData }) {
           <TabsTrigger value="specs">Specs</TabsTrigger>
           <TabsTrigger value="recalls" data-testid="intel-tab-recalls">Recalls{nhtsa.recalls.length ? ` (${nhtsa.recalls.length})` : ""}</TabsTrigger>
           <TabsTrigger value="complaints" data-testid="intel-tab-complaints">Complaints{nhtsa.complaints.length ? ` (${nhtsa.complaints.length})` : ""}</TabsTrigger>
+          <TabsTrigger value="fixes" data-testid="intel-tab-fixes">Fixes{fixes.length ? ` (${fixes.length})` : ""}</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
@@ -119,6 +125,21 @@ export function VehicleIntel({ data }: { data: VehicleIntelData }) {
               <ComplaintGroups groups={groups} total={nhtsa.complaints.length} />
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="fixes" className="space-y-3">
+          {fixes.length ? (
+            <div className="space-y-3" data-testid="intel-car-fixes">
+              {fixes.map((f) => (
+                <FixCard key={f.id} fix={f} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon={LightbulbIcon} title="Nothing written down for this car yet" description="Fixes for the same make and model within three model years show up here." />
+          )}
+          <Button asChild variant="outline" className="w-full">
+            <Link href={`/intel/fixes/new?vehicle=${v.id}`} data-testid="intel-car-newfix">Write down a fix for this car</Link>
+          </Button>
         </TabsContent>
 
         <TabsContent value="history">
