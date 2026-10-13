@@ -1,5 +1,6 @@
 # Upwork Project Catalog listings: $99 GBP pack + $49 AI-search check · EXP-B1 · 2026-10-14
 Re-verify before reuse after 2026-11-13. Drafted by growth (T-012). Nothing is published by agents. Delivery kits: `library/templates/gbp-pack/`, `library/templates/ai-search-check/` (QA PASS, T-011/T-011b). Lane B.
+Updated 2026-10-14 (T-012b, QA T-014 fix 2): Listing 2 description no longer contains square-bracket text.
 
 ## COMPLIANCE: confirm before you publish anything
 - [ ] Step D pre-gate PASSED (growth reads your 6 screenshots against red-team's fixed cut-off: >=2 of 6 show >=10 reviews or >=1 order in queue). No pass = do not create the account (C9).
@@ -68,7 +69,7 @@ AI-assisted, human-reviewed: drafted with AI help, every line read by a person b
 ```
 I check your public website the way AI assistants and search tools see it, then send a one-page report with fixes in priority order.
 
-The report scores 12 points (0, 1 or 2 each): share-preview title and description, whether your first screen says what you do and where, FAQs, robots.txt access for AI crawlers, llms.txt, structured data, mobile speed, Google profile completeness, recent reviews, matching name/address/phone, and one page per main service. You also get your score band, the top 3 fixes, and one dated AI-assistant answer to "best [your trade] in [your city]" for context.
+The report scores 12 points (0, 1 or 2 each): share-preview title and description, whether your first screen says what you do and where, FAQs, robots.txt access for AI crawlers, llms.txt, structured data, mobile speed, Google profile completeness, recent reviews, matching name/address/phone, and one page per main service. You also get your score band, the top 3 fixes, and one dated AI-assistant answer to a local "best in town" style question for your trade and city, for context.
 
 I report observed facts only. No ranking, AI-citation, traffic or lead promises: one AI answer is a snapshot of one day, not a ranking. Bands come from my own rubric. I look at public pages only and never need a login.
 

@@ -19,7 +19,7 @@ Rules: brand + model first, no ALL CAPS, no price or "must go" in the title, no 
 [Brand Model]. [Condition: like new / good / fair]. [Key specs in one line].
 Includes: [what comes with it]. Flaws: [honest list, or "none that I can see"].
 From a smoke-free home. [If true; delete if not.]
-Price: $[PRICE]. Local pickup only in Elk Grove. Cash at a public meetup.
+Price: $[PRICE]. Local pickup only in Elk Grove. Cash at a public meetup, or Zelle only after it shows in my balance.
 Message me through the app with a day and time that work.
 ```
 
