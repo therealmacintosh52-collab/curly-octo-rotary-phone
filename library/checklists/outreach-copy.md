@@ -36,3 +36,10 @@ Scratch dir for extracted blocks, never the repo.
 check_deliverable.py on a non-kit file fails closed on the missing DESC markers (expected). Its placeholder and SAMPLE
 FAILs are expected on owner-facing checklists. Report only wording-rule FAILs; inspect each by hand (false positives seen:
 "reviews" near "order" in a pre-gate line; "SAMPLE report" in a Do-not line).
+
+## 8. Re-check recipe (added T-014b)
+- Extract each fence with a short python script into the scratchpad (record open/close line numbers and len()); do not rely on grep line numbers of the whole file.
+- C7 order test: inside the SAME fence, line of "Terms:" < line of the payment link. Every fence that carries a price or link needs its own Terms line.
+- Every [FILL] token used inside the Terms must also appear in the file's fill checklist (grep each distinct [..] token against the checklist line).
+- Size claims in notes ("375", "~850/1,000") are re-counted with len(); report drift (T-014b: Upwork notes say ~850/~1,000, actual 820/1010).
+- Lint run on a fence: expected FAILs are no-DESC-markers, bracket placeholders, and "sample" in the sample-builds label; report only the rest. Keep the scratch dir clean of older runs.
