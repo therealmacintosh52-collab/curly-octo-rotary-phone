@@ -27,6 +27,7 @@ type JobRow = {
   delete_reason: string | null;
   quickbooks_doc_number: string | null;
   ro_number: string | null;
+  retail_invoice_number: string | null;
   paid_at: string | null;
   paid_amount: number | null;
   payment_method: "clover" | "cash" | "check" | "other" | null;
@@ -53,7 +54,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .from("jobs")
     .select(
       // No prices on a job: job_services.price stays unread (column privileges); the lines carry only name, label and the Needs-a-price flag.
-      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, ro_number, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), customer:customers(id, display_name), vehicle:vehicles(id, year, make, model), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, service:services(name))",
+      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, ro_number, retail_invoice_number, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), customer:customers(id, display_name), vehicle:vehicles(id, year, make, model), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, service:services(name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -107,6 +108,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       quickbooks_doc_number: job.quickbooks_doc_number,
       retail,
       ro_number: job.ro_number,
+      retail_invoice_number: job.retail_invoice_number,
       payment: { paid_at: job.paid_at, paid_amount: job.paid_amount === null ? null : Number(job.paid_amount), payment_method: job.payment_method, payment_ref: job.payment_ref },
       deleted_at: job.deleted_at,
       deleted_reason: job.delete_reason,

@@ -948,7 +948,7 @@ begin
     perform public.retail_charge(j.id);
     raise exception 'expected already paid';
   exception when sqlstate 'P0001' then null; end;
-  assert (public.jobs_filtered(p_q => 'RET1') -> 'rows' -> 0 ->> 'retail')::boolean and (public.jobs_filtered(p_q => 'RET1') -> 'rows' -> 0 ->> 'paid_at') is not null, '0034: the list knows retail and paid';
+  assert (public.jobs_filtered(p_q => 'RET1', p_scope => 'retail') -> 'rows' -> 0 ->> 'retail')::boolean and (public.jobs_filtered(p_q => 'RET1', p_scope => 'retail') -> 'rows' -> 0 ->> 'paid_at') is not null, '0034: the list knows retail and paid';
 end $$;
 select pg_temp.logout();
 select set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);

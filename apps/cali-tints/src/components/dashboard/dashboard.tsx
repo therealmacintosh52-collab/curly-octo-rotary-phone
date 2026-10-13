@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertTriangleIcon, PlusIcon, WalletIcon } from "lucide-react";
-import type { DashboardStats } from "@/lib/db/types";
+import type { DashboardStats, RetailDashboard } from "@/lib/db/types";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatDateOnly, presetRange, RANGE_PRESETS, type RangePreset } from "@/lib/dates";
 import { greetingFor } from "@/lib/greeting";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StaggerItem } from "@/components/motion/primitives";
 import { StatList, StatTile } from "./stat-tile";
+import { RetailBlock } from "./retail-block";
 import { HorizontalBars } from "./charts-lazy";
 import { RangePicker } from "./range-picker";
 
@@ -91,6 +92,7 @@ export function Dashboard({
   today,
   who,
   breakdown,
+  retail = null,
 }: {
   stats: DashboardStats;
   range: DashboardRange;
@@ -100,6 +102,8 @@ export function Dashboard({
   who: { name: string; tz: string };
   /** The month the breakdown shows, with its own stats (by service, by day). */
   breakdown: ReturnType<typeof resolveBreakdownMonth> & { stats: Pick<DashboardStats, "by_service" | "by_day"> };
+  /** The shop's own side (Retail), shown in a block of its own below the dealerships. */
+  retail?: RetailDashboard | null;
 }) {
   const rangeLabel = range.preset === "all" ? "All time" : `${formatDateOnly(range.start, "MMM d")} – ${formatDateOnly(range.end, "MMM d, yyyy")}`;
   const week = presetRange("this_week");
@@ -114,6 +118,7 @@ export function Dashboard({
       <PageHeader
         eyebrow={<LiveDate initial={formatDate(new Date(), "EEEE, MMMM d")} />}
         title={<LiveGreeting name={who.name} tz={who.tz} initial={greetingFor(who.name, who.tz).replace(/\.$/, "")} />}
+        description="The dealerships: their cars, invoices and money. Retail has its own block at the bottom."
         actions={
           <Button asChild>
             <Link href="/jobs/new">
@@ -252,7 +257,7 @@ export function Dashboard({
         </Card>
       </div>
 
-      {/* The shop's side, apart from the dealership numbers above. */}
+      <RetailBlock data={retail} />
     </Page>
   );
 }

@@ -25,7 +25,6 @@ const SERVICES = [
 const DEALERSHIPS = [
   { id: "d1", name: "Mercedes-Benz of El Dorado Hills" },
   { id: "d2", name: "Mercedes-Benz of Sacramento" },
-  { id: "d3", name: "Cali Tint · Fulton Ave" },
 ];
 const DETAILERS = [
   { id: "u2", full_name: "Victor" },
@@ -54,6 +53,7 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
   const filters = resolveJobFilters(typed, today);
   const q = filters.q?.toUpperCase();
   const rows = jobListFixture().filter((r) => {
+    if (r.retail) return false; // retail repair orders live under Retail → Jobs
     if (!isAdmin && r.detailer_id !== "u5") return false;
     const st = filters.status;
     if (st === "all" && r.deleted) return false;

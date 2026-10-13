@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PlusIcon } from "lucide-react";
-import type { TeamStats } from "@/lib/db/types";
+import type { RetailDashboard, TeamStats } from "@/lib/db/types";
 import { addDaysYmd, formatDate, formatDateOnly, presetRange } from "@/lib/dates";
 import { greetingFor } from "@/lib/greeting";
 import { Page, PageHeader } from "@/components/app/page-header";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StaggerItem } from "@/components/motion/primitives";
 import { StatList, StatTile } from "./stat-tile";
+import { RetailBlock } from "./retail-block";
 import { DailyBarsChart } from "./charts-lazy";
 import { LiveDate, LiveGreeting } from "./live-greeting";
 
@@ -20,7 +21,7 @@ const shortVehicle = (v: string | null) => v?.replace(/^(\d{4} )?Mercedes-Benz /
  * What an admin or manager sees: the whole team's day, counts only. No
  * money anywhere; that is the owner's dashboard.
  */
-export function TeamDashboard({ stats, today, who }: { stats: TeamStats; today: string; who: { name: string; tz: string } }) {
+export function TeamDashboard({ stats, today, who, retail = null }: { stats: TeamStats; today: string; who: { name: string; tz: string }; retail?: RetailDashboard | null }) {
   const week = presetRange("this_week");
   const month = presetRange("this_month");
 
@@ -29,7 +30,7 @@ export function TeamDashboard({ stats, today, who }: { stats: TeamStats; today: 
       <PageHeader
         eyebrow={<LiveDate initial={formatDate(new Date(), "EEEE, MMMM d")} />}
         title={<LiveGreeting name={who.name} tz={who.tz} initial={greetingFor(who.name, who.tz).replace(/\.$/, "")} />}
-        description="The team's cars. Every number opens the jobs behind it."
+        description="The dealerships' cars. Every number opens the jobs behind it. Retail has its own block at the bottom."
         actions={
           <Button asChild>
             <Link href="/jobs/new">
@@ -94,7 +95,7 @@ export function TeamDashboard({ stats, today, who }: { stats: TeamStats; today: 
       </Card>
       <p className="mt-3 px-1 text-caption text-subtle">Best day this month: {bestDay(stats)}</p>
 
-      {/* The shop's side, apart from the dealership numbers above. */}
+      <RetailBlock data={retail} />
     </Page>
   );
 }

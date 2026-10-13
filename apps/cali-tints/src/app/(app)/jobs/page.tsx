@@ -35,7 +35,7 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
   const [{ data: list, error }, { data: services }, { data: dealerships }, { data: detailers }, { data: flaggedRows }] = await Promise.all([
     supabase.rpc("jobs_filtered", needsPriceOnly ? { ...jobFilterArgs(filters), p_limit: 500, p_offset: 0 } : jobFilterArgs(filters)),
     supabase.from("services").select("id, name").is("line_kind", null).order("sort_order"),
-    supabase.from("dealerships").select("id, name").order("name"),
+    supabase.from("dealerships").select("id, name").eq("retail", false).order("name"),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
     session.canPrices ? supabase.from("job_service_prices_v").select("job_id").eq("needs_price", true).is("invoice_id", null).is("deleted_at", null) : Promise.resolve({ data: [] as { job_id: string }[] }),
   ]);

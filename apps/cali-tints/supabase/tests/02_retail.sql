@@ -91,11 +91,11 @@ begin
   insert into r_ids values ('job_r200', j.id);
 
   -- the Jobs list carries the customer and finds them by phone
-  f := public.jobs_filtered(p_q => 'R-200');
+  f := public.jobs_filtered(p_q => 'R-200', p_scope => 'all');
   assert (f -> 'rows' -> 0 ->> 'customer') = 'Ana Lopez' and (f -> 'rows' -> 0 ->> 'customer_id') = c.id::text, '0037: jobs list shows the customer';
-  f := public.jobs_filtered(p_q => '555-0100');
+  f := public.jobs_filtered(p_q => '555-0100', p_scope => 'all');
   assert (f ->> 'count')::int >= 1, '0037: jobs search by phone';
-  f := public.jobs_filtered(p_q => 'Lopez');
+  f := public.jobs_filtered(p_q => 'Lopez', p_scope => 'all');
   assert (f ->> 'count')::int >= 1, '0037: jobs search by name';
 
   -- the customer list and timeline: no money for a detailer
@@ -1124,7 +1124,7 @@ begin
   tl := public.customer_timeline((select v from r_ids where k = 'cust_ana'));
   assert (select (x ->> 'open_findings')::int from jsonb_array_elements(tl -> 'vehicles') x where (x ->> 'id')::uuid = (select v from r_ids where k = 'veh_mazda')) = 1, '0043: timeline counts open findings';
   assert (select x ->> 'ro_number' from jsonb_array_elements(tl -> 'jobs') x where (x ->> 'id')::uuid = (select v from r_ids where k = 'job_det')) like 'RO-%', '0043: timeline carries the RO number';
-  assert (select x ->> 'ro_number' from jsonb_array_elements(public.jobs_filtered(null, null, null, null, null, null, 'all', 50, 0) -> 'rows') x where (x ->> 'id')::uuid = (select v from r_ids where k = 'job_det')) like 'RO-%', '0043: the jobs list carries the RO number';
+  assert (select x ->> 'ro_number' from jsonb_array_elements(public.jobs_filtered(null, null, null, null, null, null, 'all', 50, 0, 'all') -> 'rows') x where (x ->> 'id')::uuid = (select v from r_ids where k = 'job_det')) like 'RO-%', '0043: the jobs list carries the RO number';
   f := public.update_finding((select v from r_ids where k = 'finding_pads'), jsonb_build_object('status', 'declined'));
   assert (f ->> 'status') = 'declined', '0043: declined stays on the vehicle';
   assert jsonb_array_length(public.vehicle_open_findings((select v from r_ids where k = 'veh_mazda'), (select v from r_ids where k = 'job_adv'))) = 1, '0043: declined still resurfaces';
@@ -1252,5 +1252,72 @@ begin
   assert jsonb_array_length(public.retail_catalog() -> 'labor_rates') = 1, '0044: the catalog carries the labor rates';
   update public.retail_settings set shop_supplies_pct = 0, shop_supplies_cap = null where company_id = public.current_company_id();
   update public.companies set tax_rate = 0 where id = public.current_company_id();
+end $$;
+select pg_temp.logout();
+
+-- 0047: retail's own invoices, apart from the dealership side -----------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job_det'); n int; l jsonb; d jsonb; first_no text;
+begin
+  -- numbers: every retail job has RI-…, no dealership job has one, all distinct
+  select count(*) into n from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where dd.retail and j.retail_invoice_number is null;
+  assert n = 0, '0047: every retail job has an invoice number: ' || n;
+  select count(*) into n from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where not dd.retail and j.retail_invoice_number is not null;
+  assert n = 0, '0047: no dealership job has a retail invoice number';
+  assert (select count(*) from public.jobs where retail_invoice_number is not null and retail_invoice_number !~ '^RI-[0-9]{6}$') = 0, '0047: RI format';
+  assert (select count(*) - count(distinct retail_invoice_number) from public.jobs where retail_invoice_number is not null) = 0, '0047: numbers are unique';
+  -- never on a dealership invoice
+  assert (select count(*) from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where dd.retail and j.invoice_id is not null) = 0, '0047: no retail job is on a monthly invoice';
+  -- the lists are apart
+  assert (select count(*) from jsonb_array_elements(public.jobs_filtered(p_status => 'all') -> 'rows') x where (x ->> 'retail')::boolean) = 0, '0047: the dealership Jobs list holds no retail car';
+  assert (select count(*) from jsonb_array_elements(public.jobs_filtered(p_status => 'all', p_scope => 'retail') -> 'rows') x where not (x ->> 'retail')::boolean) = 0
+     and (public.jobs_filtered(p_status => 'all', p_scope => 'retail') ->> 'count')::int > 0, '0047: the retail scope holds retail cars only';
+  assert (public.jobs_filtered(p_status => 'all', p_scope => 'all') ->> 'count')::int = (public.jobs_filtered(p_status => 'all') ->> 'count')::int + (public.jobs_filtered(p_status => 'all', p_scope => 'retail') ->> 'count')::int, '0047: all = dealer + retail';
+  -- the owner's list and page
+  l := public.retail_invoices_filtered(null, 'all');
+  assert (l ->> 'count')::int = (select count(*) from public.jobs where retail_invoice_number is not null) and (l -> 'rows' -> 0 ->> 'number') like 'RI-%', '0047: the list: ' || (l ->> 'count');
+  assert (select count(*) from jsonb_array_elements(l -> 'rows') x where x ->> 'status' not in ('unpaid', 'partial', 'paid', 'void')) = 0, '0047: statuses';
+  assert (select x ->> 'status' from jsonb_array_elements(l -> 'rows') x where (x ->> 'id')::uuid = v_job) in ('unpaid', 'partial'), '0047: the open repair order is an open invoice';
+  assert exists (select 1 from jsonb_array_elements(public.retail_invoices_filtered(null, 'open') -> 'rows') x where (x ->> 'id')::uuid = v_job), '0047: open filter';
+  assert not exists (select 1 from jsonb_array_elements(public.retail_invoices_filtered(null, 'paid') -> 'rows') x where (x ->> 'id')::uuid = v_job), '0047: paid filter excludes it';
+  first_no := (select retail_invoice_number from public.jobs where id = v_job);
+  assert jsonb_array_length(public.retail_invoices_filtered(first_no, 'all') -> 'rows') = 1, '0047: search by number';
+  d := public.retail_invoice_detail(v_job);
+  assert (d ->> 'invoice_number') = first_no and (d ->> 'ro_number') like 'RO-%' and jsonb_array_length(d -> 'lines') > 0 and (d -> 'company' ->> 'name') is not null, '0047: the page carries numbers, lines, the shop';
+  -- a dealership job is not an invoice here
+  begin
+    perform public.retail_invoice_detail((select j.id from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where not dd.retail limit 1));
+    raise exception 'expected dealership job refused';
+  exception when sqlstate 'P0002' then null; end;
+  -- dashboards: dealership money and counts leave retail out; the retail block has its own money
+  assert (public.dashboard_stats('2000-01-01', '2100-01-01') -> 'income' ->> 'jobs')::int
+       = (select count(*) from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where not dd.retail and j.deleted_at is null), '0047: dashboard_stats counts dealership cars only';
+  d := public.retail_dashboard();
+  assert (d -> 'money' ->> 'unpaid_invoices')::int >= 1 and (d -> 'money' ->> 'unpaid_total')::numeric > 0 and (d -> 'month' ->> 'cars') is not null, '0047: the retail dashboard block: ' || d::text;
+end $$;
+select pg_temp.logout();
+
+-- the advisor opens retail invoices; manager and detailer do not (counts only on the dashboard)
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+begin
+  assert (public.retail_invoices_filtered(null, 'all') ->> 'count')::int > 0 and (public.retail_dashboard() -> 'money') <> 'null'::jsonb, '0047: advisor sees retail invoices and money';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job_det');
+begin
+  begin perform public.retail_invoices_filtered(null, 'all'); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+  begin perform public.retail_invoice_detail(v_job); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+  assert public.retail_dashboard() -> 'money' = 'null'::jsonb and (public.retail_dashboard() -> 'month' ->> 'cars') is not null, '0047: a manager sees retail counts, no money';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  begin perform public.retail_invoices_filtered(null, 'all'); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+  begin perform public.retail_dashboard(); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
 end $$;
 select pg_temp.logout();

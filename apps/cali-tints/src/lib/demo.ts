@@ -42,6 +42,8 @@ const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
   ["/retail/estimates/new", "/dev/preview/retail/estimate-new"],
   ["/retail/estimates", "/dev/preview/retail/estimates", true],
   ["/retail/calendar", "/dev/preview/retail/calendar"],
+  ["/retail/invoices", "/dev/preview/retail/invoices", true],
+  ["/retail/jobs", "/dev/preview/retail/jobs", true],
   ["/book", "/dev/preview/retail/book", true],
   ["/retail", "/dev/preview/retail", true],
   ["/invoices/new", "/dev/preview/invoices"],
@@ -66,6 +68,8 @@ export function demoRewriteTarget(pathname: string): string | null {
   if (cust && cust[1] !== "new") return `/dev/preview/retail/customer/${cust[1]}`;
   const veh = pathname.match(/^\/retail\/vehicles\/([^/]+)$/);
   if (veh) return `/dev/preview/retail/vehicle/${veh[1]}`;
+  const rinv = pathname.match(/^\/retail\/invoices\/([^/]+)$/);
+  if (rinv) return `/dev/preview/retail/invoice/${rinv[1]}`;
   const est = pathname.match(/^\/retail\/estimates\/([^/]+)(\/edit)?$/);
   if (est && est[1] !== "new") return `/dev/preview/retail/estimate/${est[1]}${est[2] ?? ""}`;
   const appt = pathname.match(/^\/retail\/appointments\/([^/]+)$/);

@@ -631,7 +631,7 @@ export function receiptFixture(token: string, money: boolean): ReceiptView | nul
   const r101 = JOBS[C1][0];
   const c = cust(C1);
   return {
-    id: r101.id, tag: "R-101", performed_at: r101.performed_at, paid_at: r101.paid_at, payment_method: "clover", vehicle: "2019 Toyota Camry", color: "Silver",
+    id: r101.id, tag: "R-101", invoice_number: "RI-000041", ro_number: "RO-000041", performed_at: r101.performed_at, paid_at: r101.paid_at, payment_method: "clover", vehicle: "2019 Toyota Camry", color: "Silver",
     customer: { id: c.id, display_name: money ? c.display_name : c.first_name, first_name: c.first_name, email: money ? c.email : null, phone: money ? c.phone : null },
     lines: [{ name: "Full detail", price: 200 }, { name: "Pet hair", price: 40 }],
     subtotal: 240, tax: 0, total: 240, deposit_paid: 48, paid: 192, balance: 0, tax_rate: 0,
@@ -734,4 +734,63 @@ export function jobFindingsFixture(jobId: string): JobFinding[] {
 export function fromLastTimeFixture(jobId: string): JobFinding[] {
   if (jobId !== JOB_R102) return [];
   return [finding({ id: FINDING_IDS.chip, job_id: "40000000-0000-4000-8000-000000000905", severity: "soon", title: "Rock chip on the hood, primer showing", recommended_service_id: null, recommended_service: null, status: "declined", job_ro_number: "RO-000017", job_performed_at: ago(45), created_at: ago(45), updated_at: ago(45) })];
+}
+
+
+// ---------------------------------------------------------------------------
+// 0047: retail's own invoices (RI-…): two of today's repair orders and two older ones.
+// ---------------------------------------------------------------------------
+import type { RetailDashboard, RetailInvoiceDetail, RetailInvoiceList, RetailInvoiceRow } from "@/lib/db/types";
+
+const RI_OLD_UNPAID = "40000000-0000-4000-8000-000000000990";
+const RI_OLD_VOID = "40000000-0000-4000-8000-000000000991";
+
+function retailInvoiceRows(): RetailInvoiceRow[] {
+  const r101 = JOBS[C1][0];
+  const r102 = JOBS[C2][0];
+  return [
+    { id: r102.id, number: "RI-000042", ro_number: "RO-000042", tag: "R-102", performed_at: ago(0, 1), customer_id: C2, customer: "Marcus Reed", vehicle: "2022 Tesla Model 3", status: "partial", total: 200, deposit_paid: 40, paid: 0, balance: 160, paid_at: null },
+    { id: r101.id, number: "RI-000041", ro_number: "RO-000041", tag: "R-101", performed_at: ago(0, 3), customer_id: C1, customer: "Ana Lopez", vehicle: "2019 Toyota Camry", status: "paid", total: 240, deposit_paid: 48, paid: 192, balance: 0, paid_at: r101.paid_at },
+    { id: RI_OLD_UNPAID, number: "RI-000040", ro_number: "RO-000040", tag: "R-099", performed_at: ago(3), customer_id: C3, customer: "Priya Nair", vehicle: "2020 Honda Odyssey", status: "unpaid", total: 130, deposit_paid: 0, paid: 0, balance: 130, paid_at: null },
+    { id: RI_OLD_VOID, number: "RI-000039", ro_number: "RO-000039", tag: "R-098", performed_at: ago(6), customer_id: C4, customer: "Dana Whitaker", vehicle: "2018 Ford F-150", status: "void", total: 90, deposit_paid: 0, paid: 0, balance: 90, paid_at: null },
+  ];
+}
+
+export function retailInvoiceListFixture(q = "", status = "open"): RetailInvoiceList {
+  const all = retailInvoiceRows();
+  const needle = q.trim().toLowerCase();
+  const rows = all.filter((r) => {
+    if (status === "open" && !(r.status === "unpaid" || r.status === "partial")) return false;
+    if (status !== "open" && status !== "all" && r.status !== status) return false;
+    return !needle || [r.number, r.ro_number, r.tag, r.customer, r.vehicle].some((v) => (v ?? "").toLowerCase().includes(needle));
+  });
+  return { count: rows.length, unpaid_total: all.filter((r) => r.status === "unpaid" || r.status === "partial").reduce((n, r) => n + r.balance, 0), rows };
+}
+
+export function retailInvoiceDetailFixture(id: string): RetailInvoiceDetail | null {
+  const row = retailInvoiceRows().find((r) => r.id === id);
+  if (!row) return null;
+  const r101 = JOBS[C1][0];
+  const paid = row.status === "paid";
+  const base = receiptFixture(RECEIPT_TOKEN, true)!;
+  const lines = paid ? base.lines : row.id === JOBS[C2][0].id ? [{ name: "Full detail", price: 200 }] : [{ name: row.status === "void" ? "Trim restore" : "Water spot removal", price: row.total }];
+  return {
+    ...base,
+    id: row.id, job_id: row.id, tag: row.tag, invoice_number: row.number, ro_number: row.ro_number, performed_at: row.performed_at,
+    paid_at: row.paid_at, payment_method: paid ? "clover" : null, vehicle: row.vehicle, color: paid ? "Silver" : "Red",
+    customer: { id: row.customer_id ?? "", display_name: row.customer, first_name: (row.customer ?? "").split(" ")[0], email: null, phone: null },
+    lines, subtotal: row.total, tax: 0, total: row.total, deposit_paid: row.deposit_paid, paid: row.paid, balance: row.balance, status: row.status, deleted: row.status === "void",
+    payments: paid ? base.payments : row.deposit_paid > 0 ? [{ kind: "deposit", method: "cash", amount: row.deposit_paid, paid_at: ago(1), provider_ref: null }] : [],
+    signed_name: paid ? "Ana Lopez" : null, signed_at: paid ? r101.paid_at : null, has_signature: paid, token: null,
+  };
+}
+
+export function retailDashboardFixture(money: boolean): RetailDashboard {
+  return {
+    today: { cars: 2 },
+    month: { cars: 14 },
+    open_jobs: 3,
+    appointments_today: 3,
+    money: money ? { collected_week: 1385, collected_month: 2960, unpaid_invoices: 2, unpaid_total: 290, deposits_outstanding: 66 } : null,
+  };
 }

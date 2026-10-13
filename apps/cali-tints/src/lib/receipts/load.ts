@@ -23,5 +23,5 @@ export async function receiptAssets(db: SupabaseClient<Database>, r: ReceiptView
 
 export function receiptFileStem(r: ReceiptView): string {
   const who = (r.customer?.display_name ?? r.customer?.first_name ?? "customer").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase();
-  return `receipt-${r.tag.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${who || "customer"}`;
+  return `${r.invoice_number ? r.invoice_number.toLowerCase() : "receipt"}-${r.tag.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${who || "customer"}`;
 }

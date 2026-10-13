@@ -43,6 +43,7 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
               quickbooks_doc_number: row.quickbooks_doc_number ?? null,
               retail: !!row.retail,
               ro_number: row.ro_number ?? null,
+              retail_invoice_number: row.retail_invoice_number ?? null,
               payment: { paid_at: row.paid_at ?? null, paid_amount: row.paid_at ? 200 : null, payment_method: row.paid_at ? ("clover" as const) : null, payment_ref: row.paid_at ? "K7Q2M3" : null },
               deleted_at: row.deleted ? row.performed_at : null,
               deleted_reason: row.deleted ? "Logged twice" : null,

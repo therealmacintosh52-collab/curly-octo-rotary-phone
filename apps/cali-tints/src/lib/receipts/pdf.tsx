@@ -38,9 +38,12 @@ const METHOD: Record<string, string> = { clover_online: "Card online", clover_fl
 
 /** Letter-size receipt: the lines, the deposit, the balance paid, every payment, the signature at pickup. */
 export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: ReceiptView; logoDataUri: string | null; signatureDataUri: string | null }) {
+  // A retail job is its own invoice (RI-…); the same page is the receipt once it is paid.
+  const isInvoice = !!r.invoice_number;
+  const heading = isInvoice ? "INVOICE" : "RECEIPT";
   const logoSrc = logoDataUri ?? `data:image/png;base64,${LOGO_PNG_BASE64}`;
   return (
-    <Document title={`Receipt ${r.tag} — ${r.company.name}`} author={r.company.name} subject="Receipt">
+    <Document title={`${isInvoice ? "Invoice" : "Receipt"} ${r.invoice_number ?? r.tag} — ${r.company.name}`} author={r.company.name} subject={isInvoice ? "Invoice" : "Receipt"}>
       <Page size="LETTER" style={s.page}>
         <View style={s.header}>
           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
@@ -55,8 +58,10 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
             </View>
           </View>
           <View>
-            <Text style={s.title}>RECEIPT</Text>
+            <Text style={s.title}>{heading}</Text>
             <View style={{ marginTop: 8 }}>
+              {r.invoice_number ? <View style={s.metaRow}><Text style={s.metaKey}>Invoice</Text><Text style={s.metaVal}>{r.invoice_number}</Text></View> : null}
+              {r.ro_number ? <View style={s.metaRow}><Text style={s.metaKey}>RO</Text><Text style={s.metaVal}>{r.ro_number}</Text></View> : null}
               <View style={s.metaRow}><Text style={s.metaKey}>Tag</Text><Text style={s.metaVal}>{r.tag}</Text></View>
               <View style={s.metaRow}><Text style={s.metaKey}>Date</Text><Text style={s.metaVal}>{format(new Date(r.paid_at ?? r.performed_at), "MMM d, yyyy")}</Text></View>
               {r.paid_at ? <View style={s.metaRow}><Text style={s.metaKey}>Paid</Text><Text style={s.metaVal}>{format(new Date(r.paid_at), "h:mm a")}</Text></View> : null}
@@ -93,7 +98,7 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
               <Text>{p.kind === "refund" ? "+" : "−"}{formatMoney(p.amount)}</Text>
             </View>
           ))}
-          <View style={s.totRow}><Text style={[s.totKey, { fontFamily: "Helvetica-Bold" }]}>Balance</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{formatMoney(r.balance)}</Text></View>
+          <View style={s.totRow}><Text style={[s.totKey, { fontFamily: "Helvetica-Bold" }]}>{isInvoice && !r.paid_at ? "Balance due" : "Balance"}</Text><Text style={{ fontFamily: "Helvetica-Bold" }}>{formatMoney(r.balance)}</Text></View>
         </View>
 
         {r.signed_name ? (

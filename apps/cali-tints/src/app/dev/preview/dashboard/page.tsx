@@ -9,6 +9,7 @@ import { NeedsPriceBanner } from "@/components/dashboard/needs-price-banner";
 import { toDateInput } from "@/lib/dates";
 import type { DashboardStats, DetailerStats, Profile, TeamStats } from "@/lib/db/types";
 import { invoiceBundleFixture } from "@/test/fixtures";
+import { retailDashboardFixture } from "@/test/retail-fixtures";
 
 /** Dev-only dashboard with fixture stats (guest preview in production). The range picker works; the sample numbers stay the same. */
 export default async function DevDashboardPreview(props: PageProps<"/dev/preview/dashboard">) {
@@ -90,7 +91,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
       <SessionProvider value={{ userId: manny.id, email: null, profile: manny, company, isAdmin: true, canSettings: true, canMoney: false, canPrices: true, demo: true }}>
         <SyncProvider>
           <AppShell>
-            <TeamDashboard stats={teamFixture(today)} today={today} who={{ name: manny.full_name, tz: company.timezone }} />
+            <TeamDashboard stats={teamFixture(today)} today={today} who={{ name: manny.full_name, tz: company.timezone }} retail={retailDashboardFixture(false)} />
             <p className="mt-8 text-center text-caption text-muted-foreground">
               Guest preview · this is what an admin or manager sees ·{" "}
               <Link href="/" className="text-primary underline-offset-4 hover:underline">
@@ -129,7 +130,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
       <SyncProvider>
         <AppShell>
           <NeedsPriceBanner count={1} />
-          <Dashboard stats={stats} range={range} today={today} who={{ name: profile.full_name, tz: company.timezone }} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} />
+          <Dashboard stats={stats} range={range} today={today} who={{ name: profile.full_name, tz: company.timezone }} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} retail={retailDashboardFixture(true)} />
           <p className="mt-8 text-center text-caption text-muted-foreground">
             Guest preview ·{" "}
             <Link href="/?as=team" className="text-primary underline-offset-4 hover:underline" data-testid="view-as-team">

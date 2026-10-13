@@ -26,6 +26,8 @@ export interface JobDetailProps {
     retail?: boolean;
     /** The repair order number of a retail job (0043). */
     ro_number?: string | null;
+    /** The retail invoice number (RI-…, 0047): the shop's own invoice, never on a dealership invoice or in QuickBooks. */
+    retail_invoice_number?: string | null;
     payment?: RetailPaymentInfo;
     deleted_at: string | null;
     deleted_reason: string | null;
@@ -191,6 +193,18 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
               <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
                 <Fact label={retail ? "Tag" : "Stock number"} value={<span className="text-base font-semibold tracking-wide">{job.tag_number}</span>} />
                 {retail && job.ro_number && <Fact label="Repair order" value={<span className="font-semibold tracking-wide" data-testid="job-ro">{job.ro_number}</span>} />}
+                {retail && job.retail_invoice_number && (
+                  <Fact
+                    label="Invoice"
+                    value={
+                      canSetAmount ? (
+                        <Link href={`/retail/invoices/${job.id}`} className="font-semibold tracking-wide text-primary hover:underline" data-testid="job-retail-invoice">{job.retail_invoice_number}</Link>
+                      ) : (
+                        <span className="font-semibold tracking-wide" data-testid="job-retail-invoice">{job.retail_invoice_number}</span>
+                      )
+                    }
+                  />
+                )}
                 <Fact label="Vehicle" value={vehicle(job) || "—"} />
                 <Fact label="Color" value={job.color ?? "—"} />
                 <Fact

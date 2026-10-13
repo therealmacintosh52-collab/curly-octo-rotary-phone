@@ -554,6 +554,8 @@ export type RetailCharge = {
 export type ReceiptView = {
   id: string;
   tag: string;
+  invoice_number?: string | null;
+  ro_number?: string | null;
   performed_at: string;
   paid_at: string | null;
   payment_method: "clover" | "cash" | "check" | "other" | null;
@@ -574,6 +576,34 @@ export type ReceiptView = {
   has_signature: boolean;
   token: string | null;
   company: { name: string; phone: string | null; email: string | null; address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; postal_code: string | null; logo_path: string | null; timezone: string };
+};
+/** Retail's own invoices (0047): one per retail job, numbered RI-…, never in QuickBooks. */
+export type RetailInvoiceStatus = "unpaid" | "partial" | "paid" | "void";
+export type RetailInvoiceRow = {
+  id: string;
+  number: string;
+  ro_number: string | null;
+  tag: string;
+  performed_at: string;
+  customer_id: string | null;
+  customer: string | null;
+  vehicle: string | null;
+  status: RetailInvoiceStatus;
+  total: number;
+  deposit_paid: number;
+  paid: number;
+  balance: number;
+  paid_at: string | null;
+};
+export type RetailInvoiceList = { count: number; unpaid_total: number; rows: RetailInvoiceRow[] };
+export type RetailInvoiceDetail = ReceiptView & { status: RetailInvoiceStatus; invoice_number: string; ro_number: string | null; job_id: string; deleted: boolean };
+/** The retail block of the dashboard; `money` is null unless the viewer may see money. */
+export type RetailDashboard = {
+  today: { cars: number };
+  month: { cars: number };
+  open_jobs: number;
+  appointments_today: number;
+  money: { collected_week: number; collected_month: number; unpaid_invoices: number; unpaid_total: number; deposits_outstanding: number } | null;
 };
 export type RetailMoneySummary = { deposits_outstanding: { count: number; amount: number }; deposits_week: number; collected_week: number; pending_links: number };
 
@@ -1053,6 +1083,7 @@ export type JobListRow = {
   vehicle_id?: string | null;
   /** Retail rows: the repair order number (0043). */
   ro_number?: string | null;
+  retail_invoice_number?: string | null;
   photo_count: number;
   deleted: boolean;
 };
@@ -1281,6 +1312,9 @@ export type Database = {
       receipt_link: { Args: { p_job_id: string }; Returns: string };
       receipt_signature_path: { Args: { p_job_id: string }; Returns: string | null };
       retail_money_summary: { Args: Record<string, never>; Returns: RetailMoneySummary };
+      retail_invoices_filtered: { Args: { p_q?: string | null; p_status?: string; p_limit?: number; p_offset?: number }; Returns: RetailInvoiceList };
+      retail_invoice_detail: { Args: { p_job_id: string }; Returns: RetailInvoiceDetail };
+      retail_dashboard: { Args: Record<string, never>; Returns: RetailDashboard };
       enqueue_due_runs: { Args: Record<string, never>; Returns: { derived: number; events: number; runs: number } };
       claim_runs: { Args: { p_limit?: number }; Returns: ClaimedRun[] };
       complete_run: { Args: { p_id: string; p_status: "sent" | "skipped" | "failed"; p_result?: string | null }; Returns: undefined };
@@ -1409,6 +1443,8 @@ export type Database = {
           p_status?: string;
           p_limit?: number;
           p_offset?: number;
+          /** dealer (default), retail or all. The dealership Jobs list never shows retail. */
+          p_scope?: "dealer" | "retail" | "all";
         };
         Returns: JobListResult;
       };
