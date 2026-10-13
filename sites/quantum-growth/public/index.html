@@ -545,6 +545,73 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .reveal .compare tbody tr:nth-child(6).rv-in{transition-delay:.275s}
 .reveal .compare tbody tr:nth-child(7).rv-in{transition-delay:.33s}
 .reveal .compare tbody tr:nth-child(n+8).rv-in{transition-delay:.385s}
+/* ---------- services ----------
+   Eighty-four items would undo the cut this page was given, so every one is on
+   the page but only four per card are showing: the rest sit behind a native
+   <details>, which needs no script and stays in the DOM for search engines and
+   screen readers. Hover changes colour only — the reveal owns transform on
+   these cards, and a hover transform would lose the cascade to it. */
+.svc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;align-items:start}
+.svc-grid:focus-visible{outline:2px solid var(--fire);outline-offset:6px;border-radius:var(--r)}
+.svc{background:rgba(255,255,255,.055);border:1px solid var(--rule-void);border-radius:var(--r-lg);
+  padding:20px 20px 16px;transition:border-color .18s ease,background .18s ease}
+.svc:hover{border-color:var(--fire);background:rgba(245,166,35,.08)}
+.svc-head{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+.svc-ico{width:42px;height:42px;border-radius:12px;background:var(--grad-fire);color:#1A0E03;
+  display:grid;place-items:center;flex:none;transition:transform .2s var(--ease)}
+.svc-ico .ico{width:21px;height:21px;stroke-width:2.3}
+.svc:hover .svc-ico{transform:translateY(-2px) rotate(-4deg)}
+.svc h3{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:1.22rem;
+  letter-spacing:.02em;line-height:1.05;margin:0}
+.svc-head p{margin:3px 0 0;font-size:.78rem;font-weight:700;line-height:1.3}
+.svc-n{margin-left:auto;align-self:flex-start;font-family:var(--display);font-size:1.5rem;
+  line-height:1;color:var(--fire);opacity:.9}
+.svc-top{list-style:none;padding:0;margin:0;display:grid;gap:9px}
+.svc-top li{position:relative;padding-left:20px;font-size:.88rem;font-weight:600;line-height:1.4;
+  color:var(--on-void)}
+.svc-top li::before{content:"";position:absolute;left:2px;top:.52em;width:7px;height:7px;
+  border-radius:50%;background:var(--grad-fire)}
+.svc details{margin-top:14px;border-top:1px solid var(--rule-void);padding-top:12px}
+.svc summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;
+  font-size:.78rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--fire);
+  border-radius:6px}
+.svc summary::-webkit-details-marker{display:none}
+.svc summary::after{content:"+";font-size:1.25rem;line-height:1;transition:transform .2s var(--ease)}
+.svc details[open] summary::after{transform:rotate(45deg)}
+.svc summary:focus-visible{outline:2px solid var(--fire);outline-offset:3px}
+.svc-rest{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+.svc-rest li{font-size:.76rem;font-weight:700;line-height:1.25;padding:6px 10px;border-radius:12px;
+  background:rgba(255,255,255,.07);border:1px solid var(--rule-void);color:var(--on-void)}
+.reveal .svc:nth-child(2).rv-in{transition-delay:.05s}
+.reveal .svc:nth-child(3).rv-in{transition-delay:.10s}
+.reveal .svc:nth-child(4).rv-in{transition-delay:.15s}
+.reveal .svc:nth-child(5).rv-in{transition-delay:.20s}
+.reveal .svc:nth-child(6).rv-in{transition-delay:.25s}
+.reveal .svc:nth-child(7).rv-in{transition-delay:.30s}
+.reveal .svc:nth-child(8).rv-in{transition-delay:.35s}
+@media(max-width:1100px){.svc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Align each row of cards: header, list and "+N more" line up across the row, so
+   the grid reads as a grid instead of four ragged columns. Opening one card grows
+   the shared footer track for its row, and the others simply gain empty space
+   under their own label. Browsers without subgrid keep the independent heights. */
+@supports (grid-template-rows:subgrid){
+  .svc-grid{align-items:stretch}
+  .svc{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:0}
+  .svc-top{align-self:start}
+  .svc details{align-self:start}
+}
+/* On a phone eight stacked cards would add about two screens to a page that was
+   just cut for length. A native scroll-snap row costs about 300px, lets the next
+   card peek so it reads as swipeable, and cannot cause page-level overflow. */
+@media(max-width:700px){
+  .svc-grid{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    margin:0 -22px;padding:4px 22px 18px;scroll-padding:0 22px}
+  .svc-grid::-webkit-scrollbar{display:none}
+  .svc-grid{align-items:flex-start}
+  .svc{display:block;flex:0 0 82%;scroll-snap-align:start}
+}
+
 /* ---------- ambient background ----------
    Three blurred blobs drifting on long, offset loops inside each dark block.
    No file, no request: the whole effect is a gradient and a transform, so it
@@ -620,7 +687,7 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
   /* Each dark block's glow slides as the block crosses the viewport. view()
      needs no JS and no listener; browsers without it simply get the ambient
      drift and nothing looks missing. */
-  .finale .aurora,.basic .aurora{animation:au-par linear both;
+  .finale .aurora,.basic .aurora,#services .aurora{animation:au-par linear both;
     animation-timeline:view();animation-range:cover 0% cover 100%}
   @keyframes au-par{from{transform:translate3d(0,-7%,0)}to{transform:translate3d(0,7%,0)}}
 }
@@ -744,7 +811,7 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
   if(pref==='off'){el.className+=' quiet';return;}
   if(!('IntersectionObserver' in w))return;
 
-  var sel=['.sec-head','.plan','.basic','.faq details','.rv'];
+  var sel=['.sec-head','.plan','.basic','.svc','.faq details','.rv'];
   var e='cubic-bezier(.22,1.2,.36,1)';
   var st=d.createElement('style');
   /* The visible rule is derived from the same list rather than written as a
@@ -764,7 +831,7 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
   w.__rv=sel;
 }catch(err){}})(document,window);
 </script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"ProfessionalService","@id":"https://replace-with-your-domain.com/#business","name":"Quantum Growth","url":"https://replace-with-your-domain.com/","description":"Websites, Google Business Profile management and local search for small local businesses. Nationwide, month to month, and you own everything.","telephone":"+19168682447","priceRange":"$$","image":"https://replace-with-your-domain.com/og.png","areaServed":{"@type":"Country","name":"United States"},"serviceType":["Website design","Local SEO","Google Business Profile management","Social media management","Marketing consulting","Web application development","Progressive web app development"],"hasOfferCatalog":{"@type":"OfferCatalog","name":"Plans and products","itemListElement":[{"@type":"Offer","name":"Basic Site","price":"599.00","priceCurrency":"USD"},{"@type":"Offer","name":"Starter","price":"79.00","priceCurrency":"USD"},{"@type":"Offer","name":"Local","price":"299.00","priceCurrency":"USD"},{"@type":"Offer","name":"Growth","price":"599.00","priceCurrency":"USD"},{"@type":"Offer","name":"Market Leader","price":"999.00","priceCurrency":"USD"},{"@type":"Offer","name":"Starter App","price":"699.99","priceCurrency":"USD"},{"@type":"Offer","name":"Business App","price":"999.00","priceCurrency":"USD"},{"@type":"Offer","name":"Custom App Build","price":"1499.99","priceCurrency":"USD"},{"@type":"Offer","name":"App Scoping Session","price":"499.00","priceCurrency":"USD"},{"@type":"Offer","name":"App Store and Google Play Listing","price":"499.00","priceCurrency":"USD"}]}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"ProfessionalService","@id":"https://replace-with-your-domain.com/#business","name":"Quantum Growth","url":"https://replace-with-your-domain.com/","description":"Websites, Google Business Profile management and local search for small local businesses. Nationwide, month to month, and you own everything.","telephone":"+19168682447","priceRange":"$$","image":"https://replace-with-your-domain.com/og.png","areaServed":{"@type":"Country","name":"United States"},"serviceType":["Website design","Local SEO","Google Business Profile management","Social media management","Marketing consulting","Web application development","Progressive web app development","E-commerce development","Reputation management","Paid advertising management","CRM and marketing automation setup","Review generation"],"hasOfferCatalog":{"@type":"OfferCatalog","name":"Plans and products","itemListElement":[{"@type":"Offer","name":"Basic Site","price":"599.00","priceCurrency":"USD"},{"@type":"Offer","name":"Starter","price":"79.00","priceCurrency":"USD"},{"@type":"Offer","name":"Local","price":"299.00","priceCurrency":"USD"},{"@type":"Offer","name":"Growth","price":"599.00","priceCurrency":"USD"},{"@type":"Offer","name":"Market Leader","price":"999.00","priceCurrency":"USD"},{"@type":"Offer","name":"Starter App","price":"699.99","priceCurrency":"USD"},{"@type":"Offer","name":"Business App","price":"999.00","priceCurrency":"USD"},{"@type":"Offer","name":"Custom App Build","price":"1499.99","priceCurrency":"USD"},{"@type":"Offer","name":"App Scoping Session","price":"499.00","priceCurrency":"USD"},{"@type":"Offer","name":"App Store and Google Play Listing","price":"499.00","priceCurrency":"USD"}]}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"I already have a website.","acceptedAnswer":{"@type":"Answer","text":"Most of our clients did. The website is not really what you are buying — being found is. If your current site works, keep it and take a plan that leaves it alone. We will tell you honestly if replacing it would not change anything."}},{"@type":"Question","name":"How do I know it's actually working?","acceptedAnswer":{"@type":"Answer","text":"Your monthly report is Google's own data — calls from your listing, direction requests, form submissions, reviews gained. You can log into your profile and verify every number yourself. We are not the source of the scoreboard."}},{"@type":"Question","name":"How long until I see something?","acceptedAnswer":{"@type":"Answer","text":"Profile work — photos, categories, posts, reviews — can move within weeks. Ranking for competitive searches takes months, and depends on how strong your competitors already are. Anyone promising page one in thirty days is either lying or about to do something that gets your listing suspended."}},{"@type":"Question","name":"Why are you cheaper than the company that cold-called me?","acceptedAnswer":{"@type":"Answer","text":"Because they are paying for a sales floor and you are not. A commissioned rep, a manager, a retention team and a marketing budget all sit inside that monthly price. We do not carry that cost, so we do not have to charge you for it."}}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Quantum Growth","url":"https://replace-with-your-domain.com/","publisher":{"@id":"https://replace-with-your-domain.com/#business"}}</script>
 </head>
@@ -783,7 +850,7 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
 <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></symbol>
 <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4v.2"/></symbol>
-</defs></svg>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol><symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol><symbol id="i-mega" viewBox="0 0 24 24"><path d="M3 10v4h4l8 4V6L7 10z"/><path d="M18.5 8.5a5 5 0 0 1 0 7"/></symbol><symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.2v5.6l4.6-2.8z"/></symbol></defs></svg>
 
 <!-- ======================= HEADER ======================= -->
 <header class="site-header">
@@ -798,6 +865,7 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
     </a>
     <nav class="nav" id="nav">
       <a href="#plans">Pricing</a>
+      <a href="#services">Services</a>
       <a href="#apps">Apps</a>
       <a href="#terms">Terms</a>
       <a href="#faq">FAQ</a>
@@ -1027,6 +1095,28 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
   </div>
 </section>
 
+<!-- ======================= SERVICES ======================= -->
+<section class="bg-void has-aur" id="services">
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="wrap">
+    <div class="sec-head rv">
+      <p class="eyebrow">Everything we do</p>
+      <h2>Everything your business needs, <span class="hl">handled in one place.</span></h2>
+      <p class="lede">Your plan covers the core. Everything else below is available too, and anything outside your plan is quoted before we start.</p>
+    </div>
+    <div class="svc-grid" role="region" aria-label="Services by category" tabindex="0">
+      <article class="svc"><div class="svc-head"><span class="svc-ico"><svg class="ico"><use href="#i-door"/></svg></span><div><h3>Websites</h3><p>Built properly, owned by you</p></div><span class="svc-n" aria-label="22 services">22</span></div><ul class="svc-top"><li>New website builds</li><li>Website redesigns</li><li>E-commerce stores (Shopify, WooCommerce)</li><li>Booking and scheduling integration</li></ul><details><summary>+18 more</summary><ul class="svc-rest"><li>Landing pages</li><li>Sales funnels</li><li>Online ordering</li><li>Membership and subscription sites</li><li>Client portals and intake forms</li><li>Quote and estimate request forms</li><li>Multi-location websites</li><li>Spanish or bilingual versions</li><li>Website hosting</li><li>Monthly maintenance and updates</li><li>Website speed optimization</li><li>Mobile optimization</li><li>Security, SSL, and malware cleanup</li><li>ADA accessibility fixes</li><li>Website migrations (Wix or Squarespace to a better platform)</li><li>Domain and business email setup</li><li>Website copywriting</li><li>Blog setup and blog content</li></ul></details></article>
+      <article class="svc"><div class="svc-head"><span class="svc-ico"><svg class="ico"><use href="#i-pin"/></svg></span><div><h3>Google Business Profile</h3><p>Where the calls come from</p></div><span class="svc-n" aria-label="13 services">13</span></div><ul class="svc-top"><li>Profile setup and verification</li><li>Profile optimization (categories, services, descriptions)</li><li>Weekly posts</li><li>Google Local Services Ads (LSA) setup</li></ul><details><summary>+9 more</summary><ul class="svc-rest"><li>Photo and video uploads</li><li>Q&amp;A management</li><li>Review generation</li><li>Review response management</li><li>Suspension recovery and reinstatement</li><li>Duplicate listing cleanup</li><li>Multi-location management</li><li>Map pack ranking</li><li>Profile insights reporting</li></ul></details></article>
+      <article class="svc"><div class="svc-head"><span class="svc-ico"><svg class="ico"><use href="#i-search"/></svg></span><div><h3>SEO</h3><p>Found when they search</p></div><span class="svc-n" aria-label="17 services">17</span></div><ul class="svc-top"><li>Local SEO</li><li>Technical SEO audits and fixes</li><li>AI search optimization (ChatGPT, Google AI Overviews, Perplexity)</li><li>Service and city landing pages</li></ul><details><summary>+13 more</summary><ul class="svc-rest"><li>On-page SEO</li><li>Keyword research</li><li>Content and blog writing for SEO</li><li>Backlink building</li><li>Citation building and cleanup</li><li>Directory listings (Yelp, BBB, Bing Places, Apple Maps, Nextdoor, Angi, Thumbtack)</li><li>Schema markup</li><li>Competitor analysis</li><li>Rank tracking and monthly reports</li><li>SEO audits</li><li>Voice search optimization</li><li>E-commerce and Shopify SEO</li><li>Penalty recovery</li></ul></details></article>
+      <article class="svc"><div class="svc-head"><span class="svc-ico"><svg class="ico"><use href="#i-phone"/></svg></span><div><h3>Apps</h3><p>Installs from a link</p></div><span class="svc-n" aria-label="9 services">9</span></div><ul class="svc-top"><li>Custom business apps</li><li>Booking apps</li><li>Loyalty and rewards apps</li><li>Progressive web apps (cheaper than native apps)</li></ul><details><summary>+5 more</summary><ul class="svc-rest"><li>Ordering apps</li><li>Membership apps</li><li>Internal tools (scheduling, job tracking, inventory)</li><li>Customer portals</li><li>App store setup and listing optimization</li></ul></details></article>
+      <article class="svc"><div class="svc-head"><span class="svc-ico"><svg class="ico"><use href="#i-star"/></svg></span><div><h3>Reputation</h3><p>Reviews that bring people in</p></div><span class="svc-n" aria-label="4 services">4</span></div><ul class="svc-top"><li>Review generation systems (QR codes, SMS, email requests)</li><li>Negative review response strategy</li><li>Review widgets on websites</li><li>Reputation monitoring</li></ul></article>
+      <article class="svc"><div class="svc-head"><span class="svc-ico"><svg class="ico"><use href="#i-bolt"/></svg></span><div><h3>Conversion</h3><p>Turn visits into calls</p></div><span class="svc-n" aria-label="11 services">11</span></div><ul class="svc-top"><li>Missed-call text-back</li><li>AI receptionist</li><li>Website chat and AI chatbots</li><li>CRM setup (GoHighLevel, HubSpot)</li></ul><details><summary>+7 more</summary><ul class="svc-rest"><li>Click-to-call and click-to-text buttons</li><li>Lead capture forms and popups</li><li>Automated follow-up (SMS and email)</li><li>Call tracking</li><li>Google Analytics and Search Console setup</li><li>Heatmaps and conversion optimization</li><li>Monthly performance reports</li></ul></details></article>
+      <article class="svc"><div class="svc-head"><span class="svc-ico"><svg class="ico"><use href="#i-mega"/></svg></span><div><h3>Paid traffic</h3><p>Traffic on demand</p></div><span class="svc-n" aria-label="4 services">4</span></div><ul class="svc-top"><li>Google Ads</li><li>Meta and Instagram ads</li><li>Retargeting ads</li><li>Landing pages built for ads</li></ul></article>
+      <article class="svc"><div class="svc-head"><span class="svc-ico"><svg class="ico"><use href="#i-film"/></svg></span><div><h3>Content</h3><p>Always something posted</p></div><span class="svc-n" aria-label="4 services">4</span></div><ul class="svc-top"><li>Social media posting</li><li>Short-form video for websites, your Google profile, and social</li><li>Professional photos</li><li>Email newsletters</li></ul></article>
+    </div>
+  </div>
+</section>
+
 <!-- ======================= TERMS ======================= -->
 <section class="bg-alt has-aur" id="terms">
   <div class="aurora tint" aria-hidden="true"><i></i><i></i><i></i><span class="mesh"></span></div>
@@ -1111,6 +1201,7 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
       </div>
       <nav class="foot-nav" aria-label="Footer">
         <a href="#plans">Pricing</a>
+        <a href="#services">Services</a>
         <a href="#apps">Apps</a>
         <a href="#terms">Terms</a>
         <a href="#faq">FAQ</a>
