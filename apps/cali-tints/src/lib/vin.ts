@@ -139,3 +139,11 @@ export function mapNhtsaRow(vin: string, row: NhtsaDecodeRow | undefined): VinDe
 
 export const NHTSA_DECODE_URL = (vin: string) =>
   `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`;
+
+/** The model year encoded at position 10 (letter at position 7 → 2010-2039, digit → 1980-2009). Null when the VIN is malformed or the code is unused. */
+export function vinModelYear(vin: string): number | null {
+  if (!isVinShape(vin)) return null;
+  const idx = "ABCDEFGHJKLMNPRSTVWXY123456789".indexOf(vin[9]);
+  if (idx < 0) return null;
+  return (/[A-Z]/.test(vin[6]) ? 2010 : 1980) + idx;
+}

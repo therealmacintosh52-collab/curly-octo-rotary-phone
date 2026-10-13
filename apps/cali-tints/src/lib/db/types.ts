@@ -1151,7 +1151,17 @@ export type Vehicle = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  /** Intel (0045): what the VIN decode knows. */
+  engine?: string | null;
+  specs?: Record<string, string>;
+  specs_source?: string | null;
 };
+
+/** A seeded generic trouble-code definition (0045). */
+export type DtcCode = { code: string; description: string; system: string; category: string; is_generic: boolean; common_causes: string[]; safety_flag: "brakes" | "srs" | "steering" | "ev_high_voltage" | null };
+export type ProviderCacheRow = { cache_key: string; provider: string; payload: unknown; fetched_at: string; expires_at: string };
+export type IntelLookup = { id: string; company_id: string; user_id: string | null; kind: "code" | "vin"; query: string; created_at: string };
+export type RecentLookup = { kind: "code" | "vin"; query: string; at: string };
 
 export type OdometerReading = {
   id: string;
@@ -1253,6 +1263,9 @@ export type Database = {
       invoice_payments: Table<InvoicePayment>;
       invoice_submissions: Table<InvoiceSubmission>;
       vin_cache: Table<VinCache>;
+      dtc_codes: Table<DtcCode>;
+      provider_cache: Table<ProviderCacheRow>;
+      intel_lookups: Table<IntelLookup>;
       quickbooks_connections: Table<QuickBooksConnection>;
       quickbooks_month_invoices: Table<QuickBooksMonthInvoice>;
       audit_log: Table<AuditLog>;
@@ -1301,6 +1314,10 @@ export type Database = {
       customers_filtered: { Args: { p_q?: string | null; p_archived?: boolean; p_limit?: number; p_offset?: number }; Returns: CustomerListResult };
       customer_timeline: { Args: { p_id: string }; Returns: CustomerTimeline };
       save_vehicle: { Args: { p: VehiclePayload }; Returns: Vehicle };
+      dtc_definitions: { Args: { p_codes: string[] }; Returns: DtcCode[] };
+      log_intel_lookup: { Args: { p_kind: "code" | "vin"; p_query: string }; Returns: undefined };
+      recent_intel_lookups: { Args: { p_limit?: number }; Returns: RecentLookup[] };
+      set_vehicle_specs: { Args: { p_id: string; p_engine: string | null; p_specs: Record<string, string>; p_source?: string }; Returns: undefined };
       retail_catalog: { Args: Record<string, never>; Returns: RetailCatalog };
       create_estimate: { Args: { p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; token: string; total: number; deposit_required: number; customer_id: string; job_id: string | null; kind: "quote" | "supplement" } };
       update_estimate: { Args: { p_id: string; p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; total: number } };

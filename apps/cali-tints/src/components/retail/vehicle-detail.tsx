@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, GaugeIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon, ArrowLeftIcon, GaugeIcon, PencilIcon, PlusIcon, ScanSearchIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { OdometerReading, Vehicle } from "@/lib/db/types";
 import { addOdometerAction, saveVehicleAction } from "@/app/(app)/retail/actions";
@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { VehicleForm } from "./vehicle-form";
-import { IntelLink } from "@/components/intel/intel-link";
 
 export interface VehicleDetailData {
   vehicle: Vehicle;
@@ -94,7 +93,11 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
           <Button variant="outline" onClick={() => setEditing(true)} data-testid="vehicle-edit">
             <PencilIcon /> Edit
           </Button>
-          <IntelLink vin={v.vin} label="BayIntel" size="default" testId="vehicle-intel" />
+          <Button asChild variant="outline">
+            <Link href={`/intel/vehicles/${v.id}`} data-testid="vehicle-intel">
+              <ScanSearchIcon /> Intel
+            </Link>
+          </Button>
           {isAdmin && (
             <Button variant="ghost" onClick={toggleArchive} loading={pending}>
               {archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />} {archived ? "Restore" : "Archive"}
