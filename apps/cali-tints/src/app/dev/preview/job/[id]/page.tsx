@@ -3,7 +3,7 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { jobListFixture, priceListFixture } from "@/test/fixtures";
-import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailCatalogFixture, retailChargeFixture, retailServicesFixture, roAuthorizationsFixture, roHeaderFixture, roReviewFixture, roWorkFixture, WIP_JOB_IDS } from "@/test/retail-fixtures";
+import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailCatalogFixture, retailChargeFixture, retailServicesFixture, roAuthorizationsFixture, roHeaderFixture, roReviewFixture, roWorkFixture, WIP_JOB_IDS, type PayStage } from "@/test/retail-fixtures";
 import { previewSession } from "@/test/preview-session";
 import { findingPricing } from "@/lib/retail/finding-quote";
 
@@ -11,8 +11,12 @@ import { findingPricing } from "@/lib/retail/finding-quote";
 export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/job/[id]">) {
   const { id } = await props.params;
   const rows = jobListFixture();
-  const row = rows.find((r) => r.id === id) ?? rows.find((r) => !r.invoice_id && !r.deleted) ?? rows[0];
+  const found = rows.find((r) => r.id === id) ?? rows.find((r) => !r.invoice_id && !r.deleted) ?? rows[0];
   const sp = await props.searchParams;
+  // ?pay=partial|paid|signed|closed walks the invoiced RO R-102 through the counter: part paid, paid, signed, picked up.
+  const payStage: PayStage = sp.pay === "partial" || sp.pay === "paid" || sp.pay === "signed" || sp.pay === "closed" ? sp.pay : "none";
+  const settled = found.retail && found.retail_invoice_number && found.tag === "R-102" && (payStage === "paid" || payStage === "signed" || payStage === "closed");
+  const row = settled ? { ...found, paid_at: new Date().toISOString() } : found;
   const { profile, isAdmin, canMoney, session } = previewSession(sp);
   const prices = Object.fromEntries(priceListFixture().map((s) => [s.name, s]));
   const [year, make, ...model] = (row.vehicle ?? "").split(" ");
@@ -77,7 +81,7 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
             ]}
             isAdmin={isAdmin}
             canSetAmount={isAdmin}
-            charge={row.retail ? retailChargeFixture(row.id, isAdmin) : null}
+            charge={row.retail ? retailChargeFixture(row.id, isAdmin, payStage) : null}
             canEdit={open && (isAdmin || row.detailer_id === "u5")}
             canDelete={open && isAdmin}
             canRestore={row.deleted && isAdmin}

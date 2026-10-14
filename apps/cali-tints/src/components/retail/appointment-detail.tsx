@@ -4,6 +4,7 @@ import { useCallback, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, BanknoteIcon, CalendarClockIcon, CheckIcon, CopyIcon, FileTextIcon, LinkIcon, LogInIcon, UndoIcon, UserXIcon, WrenchIcon, XIcon } from "lucide-react";
+import { paymentMethodLower } from "@/lib/retail/payment-labels";
 import { toast } from "sonner";
 import type { AppointmentStatus, AppointmentView, RetailPaymentMethod, Slot } from "@/lib/db/types";
 import { checkInAppointmentAction, depositLinkAction, findSlotsAction, recordDepositAtShopAction, refundPaymentAction, rescheduleAppointmentAction, setAppointmentStatusAction } from "@/app/(app)/retail/appointments/actions";
@@ -184,7 +185,7 @@ export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = fa
                     {a.payments.map((p) => (
                       <li key={p.id} className="flex items-center justify-between gap-3 py-2">
                         <div className="min-w-0">
-                          <div className="font-medium">{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Balance"} · {{ clover_online: "card online", clover_flex: "card on the Flex", cash: "cash", check: "check", other: "other" }[p.method]}</div>
+                          <div className="font-medium">{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Balance"} · {paymentMethodLower(p.method)}</div>
                           <div className="text-caption text-subtle">{p.status === "pending" ? "Link sent · not paid yet" : p.status === "failed" ? "Failed" : p.status === "cancelled" ? "Link expired" : p.paid_at ? formatDateTime(p.paid_at) : ""}{p.provider_ref ? ` · ${p.provider_ref}` : ""}{p.note ? ` · ${p.note}` : ""}</div>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">

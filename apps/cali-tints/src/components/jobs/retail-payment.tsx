@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BanknoteIcon, CheckCircle2Icon, CopyIcon, CreditCardIcon, FileDownIcon, PenLineIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -10,12 +10,13 @@ import { useSession } from "@/components/app/session-provider";
 import { payWithClover, useCloverBridge } from "@/lib/native/clover";
 import { formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
+import { paymentMethod } from "@/lib/retail/payment-labels";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SignaturePad, signatureBlob } from "@/components/retail/signature-pad";
 
 export interface RetailPaymentInfo {
@@ -25,15 +26,26 @@ export interface RetailPaymentInfo {
   payment_ref: string | null;
 }
 
-const METHOD_LABEL = { clover: "Card on the Clover", cash: "Cash", check: "Check", other: "Other" } as const;
-const LEDGER_METHOD: Record<string, string> = { clover_online: "card online", clover_flex: "card at the counter", cash: "cash", check: "check", other: "other" };
+/** The methods the counter takes, what the reference box asks for, and the word the server expects. */
+const METHODS = [
+  { value: "card", label: "Card", ask: "Last 4 digits or approval code" },
+  { value: "cash", label: "Cash", ask: "Note (optional)" },
+  { value: "check", label: "Check", ask: "Check number" },
+  { value: "zelle", label: "Zelle", ask: "Name or confirmation number" },
+  { value: "venmo", label: "Venmo", ask: "@handle or confirmation" },
+  { value: "other", label: "Other", ask: "How was it paid?" },
+] as const;
+type Method = (typeof METHODS)[number]["value"];
+
+/** Other parts of the screen ask this card to open a step (the button at the bottom of the job). */
+export const RO_EVENTS = { collect: "ro:collect", sign: "ro:sign" } as const;
 
 /**
- * A retail (walk-in) job is paid at the counter. The card shows the balance
- * (total minus the deposit already paid); inside the Clover app one tap opens
- * the device's payment screen for it; the owner or an admin can record cash
- * or a check. Once paid, the customer signs the receipt on the screen and the
- * receipt link / PDF are ready. Per-service prices never appear on a job.
+ * A retail (walk-in) job is paid at the counter, in as many payments as it
+ * takes (part card, part cash). The card shows what is owed, how each part was
+ * paid, and, once the balance is zero, the customer's signature for the car.
+ * Inside the Clover app one tap opens the device's payment screen; the owner,
+ * an admin or the advisor records cash, check, Zelle, Venmo or a card by hand.
  */
 export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }: { jobId: string; payment: RetailPaymentInfo; /** From retail_charge; null when unknown (demo without a charge). */ charge: RetailCharge | null; canRecordByHand: boolean; open: boolean }) {
   const router = useRouter();
@@ -64,6 +76,19 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
       }
     });
   }
+  // The button at the bottom of the job asks this card to open the payment or the signature step.
+  useEffect(() => {
+    const collect = () => (inClover ? collectOnClover() : canRecordByHand ? setManual(true) : toast("Open this job on the Clover Flex to take the card"));
+    const sign = () => setSigning(true);
+    window.addEventListener(RO_EVENTS.collect, collect);
+    window.addEventListener(RO_EVENTS.sign, sign);
+    return () => {
+      window.removeEventListener(RO_EVENTS.collect, collect);
+      window.removeEventListener(RO_EVENTS.sign, sign);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inClover, canRecordByHand, jobId, demo]);
+
   async function copyReceipt() {
     const r = await receiptLinkAction(jobId);
     if (!r.ok) return void toast.error(r.error);
@@ -75,42 +100,62 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
     }
   }
 
-  if (payment.paid_at) {
-    const needsSignature = !!charge && charge.signature_required && !charge.has_signature;
+  const paid = !!payment.paid_at;
+  const ledger = charge?.payments ?? [];
+  const received = ledger.filter((p) => p.kind === "balance").length;
+  const partial = !paid && !!charge && received > 0;
+  if (!paid && !open) return null;
+
+  const ledgerList = ledger.length > 0 && (
+    <div data-testid="retail-ledger">
+      <div className="mb-1 text-caption font-medium text-muted-foreground">How it was paid</div>
+      <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+        {ledger.map((p) => (
+          <li key={p.id} className="flex items-baseline justify-between gap-3 px-3 py-2" data-method={p.method}>
+            <div className="min-w-0">
+              <div className="font-medium">{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Payment"} · {paymentMethod(p.method)}</div>
+              <div className="text-caption text-subtle">
+                {[p.note, p.provider_ref ? `ref ${p.provider_ref}` : null, p.paid_at ? formatDateTime(p.paid_at) : null].filter(Boolean).join(" · ")}
+              </div>
+            </div>
+            {canPrices && p.amount !== null && <span className="shrink-0 font-semibold tabular-nums">{p.kind === "refund" ? "−" : ""}{formatMoney(p.amount)}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  if (paid) {
+    const needsSignature = !!charge && !!charge.signature_required && !charge.has_signature;
+    const pickedUp = !!charge?.picked_up_at;
     return (
       <Card data-testid="retail-payment">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CheckCircle2Icon className="size-4 text-success" /> Paid at the counter
+            <CheckCircle2Icon className="size-4 text-success" /> Paid{pickedUp ? " · picked up" : ""}
           </CardTitle>
           <CardDescription>
-            {METHOD_LABEL[payment.payment_method ?? "other"]} · {formatDateTime(payment.paid_at)}
-            {payment.paid_amount !== null ? ` · ${formatMoney(payment.paid_amount)}` : ""}
-            {payment.payment_ref ? ` · ref ${payment.payment_ref}` : ""}
+            {formatDateTime(payment.paid_at)}
+            {payment.paid_amount !== null && canPrices ? ` · ${formatMoney(payment.paid_amount)} in all` : ""}
+            {pickedUp ? ` · picked up ${formatDateTime(charge!.picked_up_at)}` : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          {charge && charge.payments.length > 0 && (
-            <ul className="text-caption text-subtle" data-testid="retail-ledger">
-              {charge.payments.map((p) => (
-                <li key={p.id}>{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Balance"} · {LEDGER_METHOD[p.method] ?? p.method}{canPrices && p.amount !== null ? ` · ${formatMoney(p.amount)}` : ""}{p.paid_at ? ` · ${formatDateTime(p.paid_at)}` : ""}</li>
-              ))}
-            </ul>
-          )}
+          {ledgerList}
           {charge?.receipt_signed_name ? (
-            <p className="text-sm" data-testid="receipt-signed">Receipt signed by <span className="font-medium">{charge.receipt_signed_name}</span>{charge.receipt_signed_at ? ` · ${formatDateTime(charge.receipt_signed_at)}` : ""}</p>
+            <p className="text-sm" data-testid="receipt-signed">Signed for the car by <span className="font-medium">{charge.receipt_signed_name}</span>{charge.receipt_signed_at ? ` · ${formatDateTime(charge.receipt_signed_at)}` : ""}</p>
           ) : needsSignature ? (
             <div className="rounded-lg border border-warning/40 bg-warning/8 p-3 text-sm">
-              <div className="font-medium">The customer signs the receipt at pickup.</div>
+              <div className="font-medium">Paid. Now the customer signs for the car.</div>
               <Button size="sm" className="mt-2" onClick={() => setSigning(true)} data-testid="sign-receipt">
-                <PenLineIcon /> Sign the receipt
+                <PenLineIcon /> Customer signs
               </Button>
             </div>
-          ) : (
+          ) : !pickedUp ? (
             <Button size="sm" variant="outline" className="justify-self-start" onClick={() => setSigning(true)} data-testid="sign-receipt">
               <PenLineIcon /> Add a signature
             </Button>
-          )}
+          ) : null}
           <div className="flex flex-wrap gap-2">
             {isAdmin && (
               <Button size="sm" variant="outline" onClick={copyReceipt} data-testid="receipt-link">
@@ -124,42 +169,43 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
             )}
           </div>
         </CardContent>
-        {signing && <SignDialog jobId={jobId} onClose={() => setSigning(false)} />}
+        {signing && <SignDialog jobId={jobId} paidAmount={payment.paid_amount} paidAt={payment.paid_at} showMoney={!!canPrices} onClose={() => setSigning(false)} />}
       </Card>
     );
   }
-
-  if (!open) return null;
 
   return (
     <Card data-testid="retail-payment">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CreditCardIcon className="size-4 text-primary" /> Collect at the counter
+          <CreditCardIcon className="size-4 text-primary" /> {partial ? "Part paid" : "Collect at the counter"}
         </CardTitle>
-        <CardDescription>{inClover ? "Opens this Clover's payment screen for the balance." : "Open this job on the Clover Flex to take the card; the owner or an admin can record cash or a check here."}</CardDescription>
+        <CardDescription>{inClover ? "Opens this Clover's payment screen for what is left." : "Open this job on the Clover Flex to take the card, or record how they paid below. Part card and part cash is fine."}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-wrap items-center gap-2">
+      <CardContent className="grid gap-3">
         {charge && (
-          <div className="mr-auto" data-testid="amount-due">
-            <div className="text-caption text-muted-foreground">{charge.deposit_paid > 0 ? "Balance to collect" : "Total to collect"}</div>
+          <div data-testid="amount-due">
+            <div className="text-caption text-muted-foreground">{partial ? "Left to collect" : charge.deposit_paid > 0 ? "Balance to collect" : "Total to collect"}</div>
             <div className="text-lg font-semibold tabular-nums">{formatMoney(charge.balance)}</div>
-            {charge.deposit_paid > 0 && <div className="text-caption text-subtle" data-testid="deposit-applied">{formatMoney(charge.total)} total · {formatMoney(charge.deposit_paid)} deposit paid</div>}
+            {(partial || charge.deposit_paid > 0) && <div className="text-caption text-subtle" data-testid="deposit-applied">{formatMoney(charge.total)} total{charge.deposit_paid > 0 ? ` · ${formatMoney(charge.deposit_paid)} deposit paid` : ""}{charge.paid > 0 ? ` · ${formatMoney(charge.paid)} paid so far` : ""}</div>}
           </div>
         )}
-        {inClover && (
-          <Button onClick={collectOnClover} loading={pending} data-testid="collect-on-clover">
-            <CreditCardIcon /> Collect on this Clover
-          </Button>
-        )}
-        {canRecordByHand && (
-          <Button variant="outline" onClick={() => setManual(true)} data-testid="record-by-hand">
-            <BanknoteIcon /> Record cash / check
-          </Button>
-        )}
+        {ledgerList}
+        <div className="flex flex-wrap gap-2">
+          {inClover && (
+            <Button onClick={collectOnClover} loading={pending} data-testid="collect-on-clover">
+              <CreditCardIcon /> Collect on this Clover
+            </Button>
+          )}
+          {canRecordByHand && (
+            <Button variant={inClover ? "outline" : "default"} onClick={() => setManual(true)} data-testid="record-by-hand">
+              <BanknoteIcon /> Record a payment
+            </Button>
+          )}
+        </div>
         {manual && (
-          <ManualDialog
-            suggested={charge?.balance ?? null}
+          <PayDialog
+            balance={charge?.balance ?? null}
             onClose={() => setManual(false)}
             onSave={(amount, method, reference) =>
               start(async () => {
@@ -182,8 +228,8 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
   );
 }
 
-/** The pickup signature: a name and a finger on the screen, saved under the job and printed on the receipt. */
-function SignDialog({ jobId, onClose }: { jobId: string; onClose: () => void }) {
+/** The customer signs for the car after paying: a name and a finger on the screen, kept with the job and printed on the invoice. */
+function SignDialog({ jobId, paidAmount, paidAt, showMoney, onClose }: { jobId: string; paidAmount: number | null; paidAt: string | null; showMoney: boolean; onClose: () => void }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -195,7 +241,7 @@ function SignDialog({ jobId, onClose }: { jobId: string; onClose: () => void }) 
     if (!hasInk) return void toast.error("Ask them to sign in the box");
     start(async () => {
       if (demo) {
-        toast.success("Receipt signed", { description: "Guest preview — nothing changed" });
+        toast.success("Signed", { description: "Guest preview — nothing changed" });
         onClose();
         return;
       }
@@ -208,17 +254,19 @@ function SignDialog({ jobId, onClose }: { jobId: string; onClose: () => void }) 
       if (!res.ok || !body.path) return void toast.error(body.error ?? "Could not save the signature");
       const r = await signReceiptAction(jobId, body.path, name);
       if (!r.ok) return void toast.error(r.error);
-      toast.success("Receipt signed");
+      toast.success("Signed");
       onClose();
       router.refresh();
     });
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Sign the receipt</DialogTitle>
-          <DialogDescription>Hand the phone to the customer: their name and a signature go on the receipt.</DialogDescription>
+          <DialogTitle>Customer signs for the car</DialogTitle>
+          <DialogDescription>
+            I received my vehicle, the work was done as described, and I paid{showMoney && paidAmount !== null ? ` ${formatMoney(paidAmount)}` : " in full"}{paidAt ? ` on ${formatDateTime(paidAt)}` : ""}.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <div className="grid gap-1.5">
@@ -238,47 +286,48 @@ function SignDialog({ jobId, onClose }: { jobId: string; onClose: () => void }) 
   );
 }
 
-function ManualDialog({ suggested, onClose, onSave }: { suggested: number | null; onClose: () => void; onSave: (amount: number, method: "cash" | "check" | "other", reference: string) => void }) {
-  const [amount, setAmount] = useState(suggested !== null ? String(suggested) : "");
-  const [method, setMethod] = useState<"cash" | "check" | "other">("cash");
+/** One payment by hand: how it was paid, how much (the rest stays open), and a reference. */
+function PayDialog({ balance, onClose, onSave }: { balance: number | null; onClose: () => void; onSave: (amount: number, method: Method, reference: string) => void }) {
+  const [amount, setAmount] = useState(balance !== null ? String(balance) : "");
+  const [method, setMethod] = useState<Method>("cash");
   const [reference, setReference] = useState("");
   const n = Number(amount);
+  const m = METHODS.find((x) => x.value === method)!;
+  const left = balance !== null && n > 0 ? Math.round((balance - n) * 100) / 100 : null;
+  const tooMuch = left !== null && left < 0;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" data-testid="pay-dialog">
         <DialogHeader>
-          <DialogTitle>Record a counter payment</DialogTitle>
-          <DialogDescription>Cash or a check taken for this car{suggested !== null ? ` (balance ${formatMoney(suggested)})` : ""}. Card payments go through the Clover.</DialogDescription>
+          <DialogTitle>Record a payment</DialogTitle>
+          <DialogDescription>How they paid{balance !== null ? ` (left to collect ${formatMoney(balance)})` : ""}. Part now and part later is fine.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <div className="grid gap-1.5">
+            <Label>Paid by</Label>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Paid by">
+              {METHODS.map((x) => (
+                <button key={x.value} type="button" role="radio" aria-checked={method === x.value} onClick={() => setMethod(x.value)} data-testid={`pay-method-${x.value}`} className={cn("min-h-11 rounded-lg border text-sm font-medium transition-colors", method === x.value ? "border-primary bg-accent-soft text-primary" : "border-border text-muted-foreground hover:text-foreground")}>
+                  {x.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-1.5">
             <Label htmlFor="rp-amount">Amount</Label>
-            <Input id="rp-amount" type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
+            <Input id="rp-amount" data-testid="pay-amount" type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={tooMuch} />
+            {tooMuch && <p className="text-caption text-destructive">That is more than what is left.</p>}
+            {left !== null && left > 0 && <p className="text-caption text-subtle" data-testid="pay-left">{formatMoney(left)} will still be left.</p>}
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="rp-method">Method</Label>
-            <Select value={method} onValueChange={(v) => setMethod(v as typeof method)}>
-              <SelectTrigger id="rp-method">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="check">Check</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="rp-ref">Reference (optional)</Label>
-            <Input id="rp-ref" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Check number" />
+            <Label htmlFor="rp-ref">{m.ask}</Label>
+            <Input id="rp-ref" data-testid="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={80} />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button disabled={!(n > 0)} onClick={() => onSave(n, method, reference.trim())}>
-            Record
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button disabled={!(n > 0) || tooMuch} onClick={() => onSave(n, method, reference.trim())} data-testid="pay-save">
+            Record {n > 0 ? formatMoney(n) : ""}
           </Button>
         </DialogFooter>
       </DialogContent>

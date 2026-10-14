@@ -710,9 +710,14 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
             </CardContent>
           </Card>
           <Button size="lg" onClick={save} loading={pending} data-testid="estimate-save">
-            {estimate ? "Save changes" : "Save draft"}
+            {estimate ? "Save estimate" : "Save draft"}
           </Button>
           <p className="text-center text-caption text-subtle">Nothing goes to the customer until you tap Send on the next screen.</p>
+          {ro && (
+            <Button asChild variant="outline" size="sm" data-testid="builder-open-job">
+              <Link href={`/jobs/${ro.id}`}>Open the job · {ro.ro_number ?? ro.tag_number}</Link>
+            </Button>
+          )}
           {estimate && estimate.status === "draft" && !estimate.sent_at && (
             <Button type="button" variant="ghost" size="sm" onClick={removeDraft} loading={pending} data-testid="estimate-delete-draft">
               <Trash2Icon /> Delete this draft

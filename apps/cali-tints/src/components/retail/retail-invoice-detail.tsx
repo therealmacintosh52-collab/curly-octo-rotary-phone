@@ -8,9 +8,10 @@ import { Page } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { RoLayout } from "@/components/jobs/ro-notes";
 import { RetailInvoiceStatusBadge } from "./retail-invoice-status-badge";
+import { PAYMENT_METHOD } from "@/lib/retail/payment-labels";
 import { InvoiceDocument } from "./invoice-document";
 
-const METHOD: Record<string, string> = { clover_online: "Card online", clover_flex: "Card at the counter", cash: "Cash", check: "Check", other: "Other" };
+const METHOD = PAYMENT_METHOD;
 
 /**
  * One retail invoice: the repair order's lines, tax, deposit, what was paid

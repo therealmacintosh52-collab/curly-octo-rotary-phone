@@ -9,6 +9,7 @@ import { formatAddress } from "@/lib/address";
 import { LOGO_PNG_BASE64 } from "@/lib/invoices/logo";
 import { FindingsPdfSection } from "@/lib/estimates/findings-pdf";
 import { taxLabel } from "@/components/retail/invoice-document";
+import { PAYMENT_METHOD } from "@/lib/retail/payment-labels";
 
 const accent = "#3f8f1f";
 const rule = "#d7dbde";
@@ -52,7 +53,7 @@ const x = StyleSheet.create({
   jobTotal: { textAlign: "right", fontFamily: "Helvetica-Bold", marginTop: 2 },
 });
 
-const METHOD: Record<string, string> = { clover_online: "Card online", clover_flex: "Card at the counter", cash: "Cash", check: "Check", other: "Other" };
+const METHOD = PAYMENT_METHOD;
 
 /** Letter-size receipt: the lines, the deposit, the balance paid, every payment, the signature at pickup. */
 export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: ReceiptView; logoDataUri: string | null; signatureDataUri: string | null }) {
@@ -195,7 +196,7 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
           <View style={s.totGrand}><Text>Total</Text><Text>{formatMoney(r.total)}</Text></View>
           {r.payments.map((p, i) => (
             <View key={i} style={s.totRow}>
-              <Text style={s.totKey}>{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Paid"} · {METHOD[p.method] ?? p.method}{p.paid_at ? ` · ${format(new Date(p.paid_at), "MMM d")}` : ""}</Text>
+              <Text style={s.totKey}>{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Paid"} · {METHOD[p.method] ?? p.method}{p.note ? ` (${p.note})` : ""}{p.paid_at ? ` · ${format(new Date(p.paid_at), "MMM d")}` : ""}</Text>
               <Text>{p.kind === "refund" ? "+" : "−"}{formatMoney(p.amount)}</Text>
             </View>
           ))}

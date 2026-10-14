@@ -87,7 +87,7 @@ export function RoWorkCard({ jobId, work, canComplete, canQc, unauthorized, invo
   }
 
   return (
-    <Card data-testid="ro-work">
+    <Card id="ro-work" className="scroll-mt-24" data-testid="ro-work">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <WrenchIcon className="size-4 text-primary" /> The work

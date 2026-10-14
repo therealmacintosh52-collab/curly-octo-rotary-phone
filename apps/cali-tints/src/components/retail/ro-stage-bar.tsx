@@ -2,7 +2,7 @@ import { CheckIcon } from "lucide-react";
 import { RO_STAGES, roStage, type RoStageInput } from "@/lib/retail/stage";
 import { cn } from "@/lib/utils";
 
-const SHORT: Record<string, string> = { estimate: "Estimate", in_progress: "In progress", invoice: "Invoice", closed: "Paid" };
+const SHORT: Record<string, string> = { estimate: "Estimate", in_progress: "In progress", invoice: "Invoice", closed: "Closed" };
 
 /**
  * Estimate → Work in progress → Invoice → Paid / Closed: one repair order, the
@@ -11,12 +11,14 @@ const SHORT: Record<string, string> = { estimate: "Estimate", in_progress: "In p
  */
 export function RoStageBar({ roNumber, className, ...input }: RoStageInput & { roNumber?: string | null; className?: string }) {
   const stage = roStage(input);
+  // Paid but still on the lot is the current step; "Close job · Picked up" is what ticks the last one.
+  const finished = stage.key === "closed" && input.pickedUpAt !== null;
   return (
     <div className={cn("rounded-xl border border-border bg-card px-3 py-3 sm:px-4", className)} data-testid="ro-stage" data-stage={stage.key}>
       <ol className="grid grid-cols-4 gap-1.5" aria-label="Repair order stage">
         {RO_STAGES.map((s, i) => {
-          const done = i < stage.index || (s.key === "closed" && stage.key === "closed");
-          const current = i === stage.index && !(s.key === "closed" && stage.key === "closed");
+          const done = i < stage.index || (s.key === "closed" && finished);
+          const current = i === stage.index && !done;
           return (
             <li key={s.key} className="grid gap-1.5" aria-current={current ? "step" : undefined} data-state={done ? "done" : current ? "current" : "todo"}>
               <span className={cn("h-1.5 rounded-full", done ? "bg-primary" : current ? "bg-primary/60" : "bg-border")} />

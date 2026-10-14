@@ -533,7 +533,7 @@ export type BookPayload = { customer_id?: string; vehicle_id?: string | null; es
 // ---------------------------------------------------------------------------
 export type PaymentKind = "deposit" | "balance" | "refund";
 export type PaymentStatus = "pending" | "paid" | "refunded" | "failed" | "cancelled";
-export type RetailPaymentMethod = "clover_online" | "clover_flex" | "cash" | "check" | "other";
+export type RetailPaymentMethod = "clover_online" | "clover_flex" | "cash" | "check" | "zelle" | "venmo" | "other";
 export type PaymentRow = {
   id: string;
   company_id: string;
@@ -573,6 +573,8 @@ export type RetailCharge = {
   amount: number;
   amount_cents: number;
   paid_at: string | null;
+  /** "Close job · Picked up" was pressed (0056). */
+  picked_up_at?: string | null;
   receipt_signed_at: string | null;
   receipt_signed_name: string | null;
   has_signature: boolean;
@@ -605,6 +607,8 @@ export type ReceiptView = {
   ro_number?: string | null;
   /** Set once the repair order is converted to the invoice (0052); the concern the customer gave. */
   invoiced_at?: string | null;
+  /** "Close job · Picked up" was pressed (0056). */
+  picked_up_at?: string | null;
   concern?: string | null;
   /** The invoice document (0055): named jobs with their lines, cause and correction; what was declined or only recommended; totals by kind; the authorization log. */
   jobs?: InvoiceJob[];
@@ -636,7 +640,7 @@ export type ReceiptView = {
   paid: number;
   balance: number;
   tax_rate: number;
-  payments: { kind: PaymentKind; method: RetailPaymentMethod; amount: number; paid_at: string | null; provider_ref: string | null }[];
+  payments: { kind: PaymentKind; method: RetailPaymentMethod; amount: number; paid_at: string | null; provider_ref: string | null; note?: string | null }[];
   signed_name: string | null;
   signed_at: string | null;
   has_signature: boolean;
@@ -1395,6 +1399,7 @@ export type Database = {
       record_deposit_at_shop: { Args: { p_appointment: string; p_method: RetailPaymentMethod; p_reference?: string | null; p_amount?: number | null }; Returns: AppointmentView };
       refund_payment: { Args: { p_id: string; p_amount: number; p_note?: string | null }; Returns: PaymentRow };
       expire_pending_payments: { Args: Record<string, never>; Returns: number };
+      close_ro: { Args: { p_job: string }; Returns: { job_id: string; picked_up_at: string } };
       sign_receipt: { Args: { p_job_id: string; p_signature_path: string; p_name: string }; Returns: { job_id: string; signed_at: string } };
       job_receipt: { Args: { p_job_id: string }; Returns: ReceiptView };
       receipt_by_token: { Args: { p_token: string }; Returns: ReceiptView };

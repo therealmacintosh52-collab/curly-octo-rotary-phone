@@ -18,6 +18,8 @@ export type RoStageInput = {
   lineCount?: number;
   invoicedAt?: string | null;
   paidAt?: string | null;
+  /** "Close job · Picked up" was pressed (0056). Left out by callers that do not track it. */
+  pickedUpAt?: string | null;
   /** An estimate or supplement is out with the customer. */
   waitingOnApproval?: boolean;
 };
@@ -31,7 +33,8 @@ export function roStage(i: RoStageInput): RoStage {
     return { key, index, label: RO_STAGES[index].label, sub };
   };
   if (i.hasJob && i.invoicedAt) {
-    return i.paidAt ? at("closed", "Paid") : at("invoice", "Waiting on payment");
+    if (!i.paidAt) return at("invoice", "Waiting on payment");
+    return at("closed", i.pickedUpAt ? "Picked up" : i.pickedUpAt === null ? "Paid · waiting for pickup" : "Paid");
   }
   if (i.hasJob && (i.lineCount ?? 1) > 0) {
     return at("in_progress", i.waitingOnApproval ? "Waiting on approval" : "Work approved");

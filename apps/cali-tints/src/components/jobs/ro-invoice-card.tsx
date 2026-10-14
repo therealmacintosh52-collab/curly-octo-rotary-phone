@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2Icon, CircleAlertIcon, FileTextIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+/** The button at the bottom of the job asks this card to open the convert step. */
+export const RO_CONVERT_EVENT = "ro:convert";
 
 const KIND: Record<RoAuthorization["kind"], string> = { initial: "Check-in authorization", estimate: "Estimate approved", change_order: "Change order approved" };
 const HOW: Record<RoAuthorization["method"], string> = { online: "on their phone", in_person: "in person", phone: "by phone", email: "by email" };
@@ -29,6 +32,11 @@ export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, 
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   // The server decides (ro_invoice_review); without a review the older checks still gate the button.
+  useEffect(() => {
+    const openIt = () => setOpen(true);
+    window.addEventListener(RO_CONVERT_EVENT, openIt);
+    return () => window.removeEventListener(RO_CONVERT_EVENT, openIt);
+  }, []);
   const blocked = review ? !review.ready : unauthorized > 0 || lineCount === 0;
   const checks: { ok: boolean; label: string }[] = review
     ? [

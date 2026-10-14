@@ -3,10 +3,11 @@ import type { InvoiceJob, ReceiptView } from "@/lib/db/types";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney, formatTaxRate } from "@/lib/money";
 import { formatAddress } from "@/lib/address";
+import { paymentMethodLower } from "@/lib/retail/payment-labels";
 import { cn } from "@/lib/utils";
 
 const TYPE_LABEL: Record<string, string> = { labor: "Labor", part: "Part", fee: "Fee", shop_supplies: "Fee", sublet: "Sublet", service: "Service" };
-const METHOD: Record<string, string> = { clover_online: "card online", clover_flex: "card on the Clover", cash: "cash", check: "check", other: "other" };
+const METHOD = { get: paymentMethodLower };
 const AUTH_KIND: Record<string, string> = { initial: "Diagnosis approved", estimate: "Work approved", change_order: "Change order approved" };
 const AUTH_HOW: Record<string, string> = { online: "link", in_person: "in person", phone: "phone or text", email: "email" };
 const PRIORITY: Record<string, string> = { safety: "safety", soon: "due soon", optional: "optional" };
@@ -156,7 +157,7 @@ export function InvoiceDocument({ r, children }: { r: ReceiptView; children?: Re
         <div className="mt-1 flex items-baseline justify-between border-t border-border pt-1 text-base font-semibold"><span>TOTAL</span><span className="tabular-nums" data-testid="doc-total">{formatMoney(r.total)}</span></div>
         {r.payments.map((p, k) => (
           <div key={k} className="flex justify-between text-muted-foreground">
-            <span>{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Paid"} · {METHOD[p.method] ?? p.method}{p.paid_at ? ` · ${formatDate(p.paid_at)}` : ""}</span>
+            <span>{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Paid"} · {METHOD.get(p.method)}{p.note ? ` (${p.note})` : ""}{p.paid_at ? ` · ${formatDate(p.paid_at)}` : ""}</span>
             <span className="tabular-nums">{p.kind === "refund" ? "+" : "−"}{formatMoney(p.amount)}</span>
           </div>
         ))}

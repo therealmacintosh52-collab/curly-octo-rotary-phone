@@ -670,12 +670,24 @@ export function publicCatalogFixture(): PublicCatalog {
 // ---------------------------------------------------------------------------
 export const RECEIPT_TOKEN = "demo-receipt-token-ana-camry-000001";
 
-export function retailChargeFixture(jobId: string, money: boolean): RetailCharge | null {
+/** The counter payment of the invoiced RO R-102 at each point: ?pay=partial|paid|signed|closed in the preview. */
+export type PayStage = "none" | "partial" | "paid" | "signed" | "closed";
+export function retailChargeFixture(jobId: string, money: boolean, stage: PayStage = "none"): RetailCharge | null {
   const r101 = JOBS[C1][0];
   const r102 = JOBS[C2][0];
   if (jobId === r101.id) {
     return { job_id: jobId, tag: "R-101", vehicle: "2019 Toyota Camry", subtotal: 240, tax: 0, total: 240, deposit_paid: 48, paid: 192, balance: 0, amount: 0, amount_cents: 0, paid_at: r101.paid_at, receipt_signed_at: r101.paid_at, receipt_signed_name: "Ana Lopez", has_signature: true, signature_required: true,
       payments: [{ id: "pay-101-d", kind: "deposit", status: "paid", method: "clover_online", paid_at: ago(2), provider_ref: "HC7Q2M", note: null, amount: money ? 48 : null }, { id: "pay-101-b", kind: "balance", status: "paid", method: "clover_flex", paid_at: r101.paid_at, provider_ref: "K7Q2M3", note: null, amount: money ? 192 : null }] };
+  }
+  if (jobId === r102.id && stage !== "none") {
+    const amt = (n: number) => (money ? n : null);
+    const part = { id: "pay-102-b1", kind: "balance" as const, status: "paid" as const, method: "cash" as const, paid_at: ago(0, 0.2), provider_ref: null, note: null, amount: amt(100) };
+    const rest = { id: "pay-102-b2", kind: "balance" as const, status: "paid" as const, method: "zelle" as const, paid_at: ago(0, 0.1), provider_ref: "Marcus R", note: null, amount: amt(60) };
+    const dep = { id: "pay-102-d", kind: "deposit" as const, status: "paid" as const, method: "cash" as const, paid_at: ago(1), provider_ref: null, note: null, amount: amt(40) };
+    const done = stage !== "partial";
+    return { job_id: jobId, tag: "R-102", vehicle: "2022 Tesla Model 3", subtotal: 200, tax: 0, total: 200, deposit_paid: 40, paid: done ? 160 : 100, balance: done ? 0 : 60, amount: done ? 0 : 60, amount_cents: done ? 0 : 6000, paid_at: done ? ago(0, 0.1) : null,
+      picked_up_at: stage === "closed" ? ago(0, 0.02) : null, receipt_signed_at: stage === "signed" || stage === "closed" ? ago(0, 0.05) : null, receipt_signed_name: stage === "signed" || stage === "closed" ? "Marcus Reed" : null, has_signature: stage === "signed" || stage === "closed", signature_required: true,
+      payments: done ? [dep, part, rest] : [dep, part] };
   }
   if (jobId === r102.id) {
     return { job_id: jobId, tag: "R-102", vehicle: "2022 Tesla Model 3", subtotal: 200, tax: 0, total: 200, deposit_paid: 40, paid: 0, balance: 160, amount: 160, amount_cents: 16000, paid_at: null, receipt_signed_at: null, receipt_signed_name: null, has_signature: false, signature_required: true,
@@ -811,7 +823,7 @@ export function invoiceDocFixture(staff: boolean): ReceiptView {
     ],
     parts_disposition: "returned", completed_at: doc, advisor: "JS", tech: "ML", bar_license: "ARD000000", warranty_text: "12 mo / 12,000 mi parts & labor",
     lines: [], subtotal: 581.91, tax: 26.24, total: 608.15, deposit_paid: 0, paid: 608.15, balance: 0, tax_rate: 0.0875,
-    payments: [{ kind: "balance", method: "clover_flex", amount: 608.15, paid_at: doc, provider_ref: null }],
+    payments: [{ kind: "balance", method: "clover_flex", amount: 400, paid_at: doc, provider_ref: null }, { kind: "balance", method: "zelle", amount: 208.15, paid_at: doc, provider_ref: null, note: "John D" }],
     signed_name: "John Doe", signed_at: doc, has_signature: true, token: staff ? null : DOC_TOKEN,
     company: { ...COMPANY, address_line1: "123 Main St", address_line2: null, city: "Elk Grove", state: "CA", postal_code: "95624", phone: "(916) 555-0100", logo_path: null },
   };

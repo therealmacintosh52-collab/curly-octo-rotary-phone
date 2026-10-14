@@ -6,9 +6,10 @@ import { formatAddress } from "@/lib/address";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { PublicFindings } from "./public-findings";
+import { PAYMENT_METHOD } from "@/lib/retail/payment-labels";
 import { InvoiceDocument } from "./invoice-document";
 
-const METHOD: Record<string, string> = { clover_online: "Card online", clover_flex: "Card at the counter", cash: "Cash", check: "Check", other: "Other" };
+const METHOD = PAYMENT_METHOD;
 
 /** The customer's receipt page: what was done, what was paid and how, the signature at pickup, a PDF. */
 export function ReceiptView({ r, token }: { r: Receipt; token: string }) {

@@ -12,6 +12,7 @@ import { RetailPayment, type RetailPaymentInfo } from "./retail-payment";
 import { RoLayout, RoNotes } from "./ro-notes";
 import { RoInvoiceCard } from "./ro-invoice-card";
 import { RoWorkCard, type RoWork } from "./ro-work-card";
+import { JobStageBar } from "./job-stage-bar";
 import { RoStageBar } from "@/components/retail/ro-stage-bar";
 import type { ShareContext } from "./finding-actions";
 import type { FindingPricing } from "@/lib/retail/finding-quote";
@@ -131,7 +132,7 @@ export function JobDetail(p: JobDetailProps) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-title tracking-wide">{title}</h1>
-            {deleted ? <Badge variant="destructive">Deleted</Badge> : retail ? (paidAtCounter ? <Badge variant="success">Paid</Badge> : invoiced ? <Badge variant="warning">Collect</Badge> : <Badge variant="info">Work in progress</Badge>) : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
+            {deleted ? <Badge variant="destructive">Deleted</Badge> : retail ? (p.charge?.picked_up_at ? <Badge variant="success">Closed</Badge> : paidAtCounter ? <Badge variant="success">Paid</Badge> : invoiced ? <Badge variant="warning">Collect</Badge> : <Badge variant="info">Work in progress</Badge>) : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
             {retail && <Badge variant="muted">Retail</Badge>}
             {roTitle && <Badge variant="outline" data-testid="job-tag">Tag {job.tag_number}</Badge>}
             {canSetAmount && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
@@ -154,7 +155,7 @@ export function JobDetail(p: JobDetailProps) {
       </div>
 
       {retail && !deleted && (
-        <RoStageBar className="mt-5" roNumber={job.ro_number} hasJob lineCount={job.services.length} invoicedAt={job.invoiced_at} paidAt={job.payment?.paid_at ?? null} waitingOnApproval={waiting > 0} />
+        <RoStageBar className="mt-5" roNumber={job.ro_number} hasJob lineCount={job.services.length} invoicedAt={job.invoiced_at} paidAt={job.payment?.paid_at ?? null} pickedUpAt={p.charge ? (p.charge.picked_up_at ?? null) : undefined} waitingOnApproval={waiting > 0} />
       )}
 
       {retail ? (
@@ -163,6 +164,25 @@ export function JobDetail(p: JobDetailProps) {
         </RoLayout>
       ) : (
         <div className="mt-6">{body(p, steps, retail, deleted, isAdmin, canSetAmount)}</div>
+      )}
+
+      {retail && !deleted && (
+        <JobStageBar
+          jobId={job.id}
+          input={{
+            completed: !!p.work?.completedAt,
+            qc: !!p.work?.qcAt,
+            invoiced: !!job.invoiced_at,
+            paid: paidAtCounter,
+            signed: !!p.charge?.has_signature,
+            signatureRequired: p.charge?.signature_required ?? true,
+            pickedUp: !!p.charge?.picked_up_at,
+            unauthorized: p.unauthorized ?? 0,
+            canComplete: !!p.canComplete,
+            canQc: !!p.canQc,
+            canPrice: !!p.canConvert,
+          }}
+        />
       )}
     </Page>
   );

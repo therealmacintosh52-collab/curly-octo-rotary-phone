@@ -161,11 +161,11 @@ begin
   exception when sqlstate 'P0001' then null; end;
 
   -- money for the owner: the retail job is paid at the counter
-  perform public.record_retail_payment((select v from r_ids where k = 'job_r200'), 200, 'cash', null);
+  perform public.record_retail_payment((select v from r_ids where k = 'job_r200'), (public.retail_charge((select v from r_ids where k = 'job_r200')) ->> 'balance')::numeric, 'cash', null);
   t := public.customer_timeline(v_ana);
-  assert (t -> 'stats' ->> 'lifetime_spend')::numeric = 200 and (t -> 'jobs' -> 0 ->> 'paid_amount')::numeric = 200, '0037: owner sees lifetime spend';
+  assert (t -> 'stats' ->> 'lifetime_spend')::numeric >= 200 and (t -> 'stats' ->> 'lifetime_spend')::numeric = (t -> 'jobs' -> 0 ->> 'paid_amount')::numeric, '0037: owner sees lifetime spend';
   f := public.customers_filtered();
-  assert (f -> 'rows' -> 0 ->> 'lifetime_spend')::numeric = 200, '0037: list shows spend to the owner';
+  assert (f -> 'rows' -> 0 ->> 'lifetime_spend')::numeric = (t -> 'stats' ->> 'lifetime_spend')::numeric, '0037: list shows spend to the owner';
 
   -- archive and restore
   perform public.archive_customer(v_ana, true);
@@ -1081,10 +1081,9 @@ begin
     perform public.automation_rules_list();
     raise exception 'expected owner/admin only';
   exception when sqlstate '42501' then null; end;
-  begin
-    perform public.record_retail_payment(j.id, 10, 'cash', null);
-    raise exception 'expected no cash by hand';
-  exception when sqlstate '42501' then null; end;
+  -- 0056: the advisor may record a payment by hand (the amount is still capped by the balance)
+  perform public.record_retail_payment(j.id, 10, 'cash', null);
+  assert jsonb_array_length(public.retail_charge(j.id) -> 'payments') = 1, '0056: the advisor recorded the payment';
   begin
     update public.profiles set role = 'owner' where id = '10000000-0000-4000-8000-000000000004';
     get diagnostics n = row_count;
@@ -1975,10 +1974,71 @@ declare v_job uuid := (select v from r_ids where k = 'job55'); d jsonb;
 begin
   d := public.retail_charge(v_job);
   perform public.record_retail_payment(v_job, (d ->> 'balance')::numeric, 'cash');
-  assert (select closed_at from public.jobs where id = v_job) is not null, '0055: paid in full closes the RO';
+  -- 0056: paying does not close the RO any more; "Close job · Picked up" does, after the customer signs
+  assert (select paid_at from public.jobs where id = v_job) is not null and (select closed_at from public.jobs where id = v_job) is null and (select picked_up_at from public.jobs where id = v_job) is null, '0056: paid but not closed yet';
+  begin perform public.close_ro(v_job); raise exception 'expected refused'; exception when sqlstate 'P0001' then assert sqlerrm like 'The customer signs first%', '0056: ' || sqlerrm; end;
+  perform public.sign_receipt(v_job, '00000000-0000-4000-8000-000000000001/receipts/' || v_job::text || '/p.png', 'Ana Lopez');
+  perform public.close_ro(v_job);
+  assert (select closed_at from public.jobs where id = v_job) is not null and (select picked_up_at from public.jobs where id = v_job) is not null, '0056: Close job · Picked up closes the RO';
   assert pg_temp.has_event(v_job, 'ro.closed'), '0055: ro.closed is emitted when work was declined';
+  begin perform public.close_ro(v_job); raise exception 'expected refused'; exception when sqlstate 'P0001' then assert sqlerrm like '%already closed%', '0056: ' || sqlerrm; end;
   assert pg_temp.declined_list(v_job) like 'Oil change%', '0055: the follow-up knows what was declined: ' || coalesce(pg_temp.declined_list(v_job), 'null');
   assert (select count(*) from public.automation_rules where company_id = public.current_company_id() and key in ('ro_ready', 'declined_followup') and delay_minutes in (0, 20160)) = 2, '0055: the two rules are shipped';
+end $$;
+select pg_temp.logout();
+select set_config('app.allow_retail_job', 'on', false);
+
+-- 0056: how it was paid, split payments, pay before signing --------------------------
+select set_config('app.allow_retail_job', 'off', false);
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare
+  v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda'); e public.estimates; d jsonb; v_job uuid; ch jsonb; j public.jobs; r jsonb;
+begin
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh, 'odometer', 53000, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote',
+    'lines', jsonb_build_array(jsonb_build_object('line_type', 'labor', 'label', 'Wiper motor', 'hours', 2, 'rate', 100), jsonb_build_object('line_type', 'part', 'label', 'Motor', 'price', 100, 'taxable', false))))));
+  perform public.send_estimate(e.id);
+  d := public.estimate_detail(e.id);
+  perform public.mark_estimate_accepted(e.id, (d -> 'options' -> 0 ->> 'id')::uuid, (select array_agg((l ->> 'id')::uuid) from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l), 'Ana', 'in_person');
+  v_job := (public.estimate_detail(e.id) ->> 'job_id')::uuid;
+  insert into r_ids values ('job56', v_job);
+  perform pg_temp.finish_it(v_job);
+  perform pg_temp.invoice_it(v_job);
+  ch := public.retail_charge(v_job);
+  assert (ch ->> 'balance')::numeric = (ch ->> 'total')::numeric and (ch ->> 'total')::numeric >= 300, '0056: balance before paying: ' || ch::text;
+  -- the customer cannot sign before paying
+  begin perform public.sign_receipt(v_job, '00000000-0000-4000-8000-000000000001/receipts/' || v_job::text || '/x.png', 'Ana'); raise exception 'expected refused'; exception when sqlstate 'P0001' then assert sqlerrm like 'Take the payment first%', '0056: ' || sqlerrm; end;
+  -- a method nobody knows, and more than the balance, are refused
+  begin perform public.record_retail_payment(v_job, 10, 'bitcoin'); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  begin perform public.record_retail_payment(v_job, (ch ->> 'balance')::numeric + 1, 'cash'); raise exception 'expected refused'; exception when sqlstate '22023' then assert sqlerrm like 'That is more than the balance%', '0056: ' || sqlerrm; end;
+  -- part cash, part Zelle: the job is paid only when the balance reaches zero
+  j := public.record_retail_payment(v_job, 100, 'cash', null);
+  assert j.paid_at is null, '0056: part paid stays open';
+  ch := public.retail_charge(v_job);
+  assert (ch ->> 'paid')::numeric = 100 and (ch ->> 'balance')::numeric = (ch ->> 'total')::numeric - 100 and jsonb_array_length(ch -> 'payments') = 1, '0056: ledger after the first payment: ' || ch::text;
+  j := public.record_retail_payment(v_job, (ch ->> 'balance')::numeric, 'zelle', 'Ana L');
+  assert j.paid_at is not null and j.payment_method = 'other' and j.picked_up_at is null and j.closed_at is null, '0056: paid in full; Zelle shows as other on the job';
+  r := public.job_receipt(v_job);
+  assert jsonb_array_length(r -> 'payments') = 2 and (r -> 'payments' -> 1 ->> 'method') = 'zelle' and (r -> 'payments' -> 0 ->> 'method') = 'cash', '0056: the receipt lists how each part was paid: ' || (r -> 'payments')::text;
+  assert (select count(*) from public.payments where job_id = v_job and status = 'paid') = 2, '0056: two payments on the ledger';
+  begin perform public.record_retail_payment(v_job, 1, 'cash'); raise exception 'expected refused'; exception when sqlstate 'P0001' then assert sqlerrm like 'Already paid%', '0056: ' || sqlerrm; end;
+end $$;
+select pg_temp.logout();
+-- the advisor records a payment by hand; a detailer on someone else's job cannot; nobody closes an unpaid job
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job56'); v_sig text;
+begin
+  v_sig := '00000000-0000-4000-8000-000000000001/receipts/' || v_job::text || '/s.png';
+  perform public.sign_receipt(v_job, v_sig, 'Ana Lopez');
+  perform public.close_ro(v_job);
+  assert (select picked_up_at from public.jobs where id = v_job) is not null, '0056: the advisor closes the job';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  begin perform public.close_ro((select v from r_ids where k = 'job56')); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
 end $$;
 select pg_temp.logout();
 select set_config('app.allow_retail_job', 'on', false);
