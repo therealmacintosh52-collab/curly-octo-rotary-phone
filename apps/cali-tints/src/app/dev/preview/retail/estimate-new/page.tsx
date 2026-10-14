@@ -20,6 +20,8 @@ export default async function DevEstimateNewPreview(props: PageProps<"/dev/previ
   const initialPick: CustomerPick | null = picked ? { customer: picked, vehicleId: typeof sp.vehicle === "string" && picked.vehicles.some((v) => v.id === sp.vehicle) ? sp.vehicle : picked.vehicles.length === 1 ? picked.vehicles[0].id : null } : null;
   const lines = jobId ? linesFromFindings(jobFindingsFixture(jobId), typeof sp.findings === "string" ? sp.findings.split(",") : [], catalog) : [];
   const initialLines = lines.length ? lines : undefined;
+  const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string).slice(0, 40) : "");
+  const carHint = { vin: str("vin"), plate: str("plate"), year: str("year"), make: str("make"), model: str("model"), odometer: str("odometer").replace(/[^\d]/g, "") };
   return (
     <SessionProvider value={session}>
       <SyncProvider>
@@ -27,7 +29,7 @@ export default async function DevEstimateNewPreview(props: PageProps<"/dev/previ
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
             <RetailNav />
           </div>
-          <EstimateBuilder catalog={catalog} recent={recent} initialPick={initialPick} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={initialLines} />
+          <EstimateBuilder catalog={catalog} recent={recent} initialPick={initialPick} carHint={carHint} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={initialLines} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

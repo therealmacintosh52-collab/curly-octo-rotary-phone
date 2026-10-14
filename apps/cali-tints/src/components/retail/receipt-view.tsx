@@ -24,7 +24,7 @@ export function ReceiptView({ r, token }: { r: Receipt; token: string }) {
           <div>
             <div className="text-caption text-subtle">Receipt · {r.tag}</div>
             <h1 className="text-heading">Thanks{r.customer?.first_name ? `, ${r.customer.first_name}` : ""}!</h1>
-            <div className="text-sm text-muted-foreground">{[r.vehicle, r.color].filter(Boolean).join(" · ")}{r.paid_at ? ` · paid ${formatDateTime(r.paid_at)}` : ""}</div>
+            <div className="text-sm text-muted-foreground">{[r.vehicle, r.color, r.odometer ? `${r.odometer.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}{r.paid_at ? ` · paid ${formatDateTime(r.paid_at)}` : ""}</div>
           </div>
           <CheckCircle2Icon className="size-6 shrink-0 text-success" />
         </div>

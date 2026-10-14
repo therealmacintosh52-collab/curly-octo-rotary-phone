@@ -1408,3 +1408,43 @@ do $$ begin
 end $$;
 select pg_temp.logout();
 select set_config('app.allow_retail_job', 'on', false);
+
+-- 0049: mileage on the estimate ---------------------------------------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare e public.estimates; ed jsonb; v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda'); n int; v_job uuid;
+begin
+  n := (select count(*) from public.odometer_readings where vehicle_id = v_veh);
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh, 'odometer', '48,210', 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote',
+         'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))))));
+  ed := public.estimate_detail(e.id);
+  assert (ed ->> 'odometer')::int = 48210, '0049: the estimate carries the mileage';
+  assert (select reading from public.odometer_readings where vehicle_id = v_veh order by read_at desc limit 1) = 48210 and (select count(*) from public.odometer_readings where vehicle_id = v_veh) = n + 1, '0049: logged on the car';
+  -- saving again with the same mileage does not log a second reading; a new mileage does
+  perform public.update_estimate(e.id, jsonb_build_object('odometer', 48210));
+  assert (select count(*) from public.odometer_readings where vehicle_id = v_veh) = n + 1, '0049: no duplicate reading';
+  perform public.update_estimate(e.id, jsonb_build_object('odometer', 48300));
+  assert (select reading from public.odometer_readings where vehicle_id = v_veh order by read_at desc limit 1) = 48300, '0049: a changed mileage is logged';
+  -- approval attaches it to the job
+  perform public.send_estimate(e.id);
+  perform public.mark_estimate_accepted(e.id, (select (o ->> 'id')::uuid from jsonb_array_elements(public.estimate_detail(e.id) -> 'options') o limit 1), '{}', 'Ana', 'in_person');
+  v_job := (public.estimate_detail(e.id) ->> 'job_id')::uuid;
+  assert v_job is not null and (select reading from public.odometer_readings where job_id = v_job) = 48300, '0049: the job carries the mileage';
+  assert (public.retail_invoice_detail(v_job) ->> 'odometer')::int = 48300, '0049: the invoice shows the mileage';
+  -- the car lookup: plate with any spacing/case, or VIN; nothing for an unknown car
+  declare v_plate text; v_vin text; f jsonb; begin
+    perform public.save_vehicle(jsonb_build_object('id', v_veh, 'plate', '7ABC123', 'vin', 'JM1BK32F781234567'));
+    select plate, vin into v_plate, v_vin from public.vehicles where id = v_veh;
+    if v_plate is not null then
+      f := public.find_vehicle(lower(substr(v_plate, 1, 2)) || ' - ' || substr(v_plate, 3), null);
+      assert (f ->> 'vehicle_id')::uuid = v_veh and (f ->> 'customer') is not null and (f ->> 'last_odometer')::int = 48300, '0049: find by a loosely typed plate: ' || coalesce(f::text, 'null');
+    end if;
+    if v_vin is not null then
+      assert (public.find_vehicle(null, lower(v_vin)) ->> 'vehicle_id')::uuid = v_veh, '0049: find by VIN';
+    end if;
+    assert public.find_vehicle('ZZZ 999', 'ZZZZZZZZZZZZZZZZZ') is null, '0049: an unknown car finds nothing';
+    assert public.find_vehicle(null, null) is null and public.find_vehicle('', '') is null, '0049: empty finds nothing';
+  end;
+  assert (select count(*) from public.odometer_readings where vehicle_id = v_veh) = n + 2, '0049: the reading was attached, not duplicated';
+end $$;
+select pg_temp.logout();

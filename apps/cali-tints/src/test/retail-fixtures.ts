@@ -357,7 +357,7 @@ const COMPANY = { name: "Cali Tints", phone: "(916) 555-0110", email: "mike@cali
 const POLICY = { policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", deposit_kind: "percent" as const, deposit_value: 20, deposit_refundable: false, signature_required: true, cancel_hours: 24, shop_supplies_pct: 5, shop_supplies_cap: 10, shop_supplies_taxable: false, tax_rate: 0 };
 const suppliesFor = (lines: ReturnType<typeof line>[]) => Math.min(Math.round(lines.filter((l) => l.line_type === "labor").reduce((s, l) => s + (l.line_total ?? 0), 0) * 5) / 100, 10);
 
-function build(money: boolean, pub: boolean, base: { id: string; n: number; status: EstimateStatus; customer: Customer; vehicle: Vehicle; options: { id: string; tier: EstimateView["options"][number]["tier"]; name: string; description: string | null; recommended: boolean; lines: L[] }[]; addons: (L & { default_on: boolean; customer_approved: boolean | null })[]; selected?: string; created: string; expires: string; sent?: string | null; viewed?: { first: string; last: string; count: number }; accepted?: string | null; auth?: EstimateView["authorizations"][number] | null; customer_notes?: string | null; internal_notes?: string | null; po?: string | null; job?: EstimateView["job"]; kind?: "quote" | "supplement"; applied?: string | null; findings?: JobFinding[]; token?: string }): EstimateView {
+function build(money: boolean, pub: boolean, base: { id: string; n: number; status: EstimateStatus; customer: Customer; vehicle: Vehicle; options: { id: string; tier: EstimateView["options"][number]["tier"]; name: string; description: string | null; recommended: boolean; lines: L[] }[]; addons: (L & { default_on: boolean; customer_approved: boolean | null })[]; selected?: string; created: string; expires: string; sent?: string | null; viewed?: { first: string; last: string; count: number }; accepted?: string | null; auth?: EstimateView["authorizations"][number] | null; customer_notes?: string | null; internal_notes?: string | null; po?: string | null; odometer?: number | null; job?: EstimateView["job"]; kind?: "quote" | "supplement"; applied?: string | null; findings?: JobFinding[]; token?: string }): EstimateView {
   const options = base.options.map((o) => {
     const lines = o.lines.map((l) => line(true, l));
     const subtotal = sum(lines);
@@ -402,6 +402,7 @@ function build(money: boolean, pub: boolean, base: { id: string; n: number; stat
     total: money ? subtotal + supplies : null,
     deposit_required: money ? Math.round((subtotal + supplies) * 20) / 100 : null,
     customer: { id: base.customer.id, display_name: pub ? base.customer.first_name : base.customer.display_name, first_name: base.customer.first_name, phone: pub ? null : base.customer.phone, email: pub ? null : base.customer.email },
+    odometer: base.odometer ?? null,
     vehicle: { id: base.vehicle.id, name: vehicleName(base.vehicle), color: base.vehicle.color, plate: pub ? null : base.vehicle.plate, size_class: base.vehicle.size_class },
     options,
     addons,
@@ -419,7 +420,7 @@ function estimateBase(id: string) {
   switch (id) {
     case E1:
       return {
-        id: E1, n: 1, status: "viewed" as EstimateStatus, customer: cust(C1), vehicle: veh(V1),
+        id: E1, n: 1, status: "viewed" as EstimateStatus, customer: cust(C1), vehicle: veh(V1), odometer: 48210,
         options: [
           { id: "o1-good", tier: "good" as const, name: "Good", description: "The full detail, inside and out", recommended: false, lines: [{ id: "l1", svc: 0, price: 200 }] },
           { id: "o1-better", tier: "better" as const, name: "Better", description: "Adds the clay bar so the paint feels like glass", recommended: true, lines: [{ id: "l2", svc: 0, price: 200 }, { id: "l3", svc: 3, price: 70 }] },
@@ -431,7 +432,7 @@ function estimateBase(id: string) {
       };
     case E2:
       return {
-        id: E2, n: 2, status: "accepted" as EstimateStatus, customer: cust(C5), vehicle: veh(V6),
+        id: E2, n: 2, status: "accepted" as EstimateStatus, customer: cust(C5), vehicle: veh(V6), odometer: 76200,
         job: { id: RI_LUIS, ro_number: "RO-000043", invoice_number: "RI-000043", tag_number: "E-000002", performed_at: ago(3, 19), paid_at: null, odometer: null },
         options: [{ id: "o2-single", tier: "single" as const, name: "Paint correction", description: null, recommended: true, lines: [{ id: "l7", svc: 1, price: 350 }, { id: "l8", svc: 6, price: 50 }] }],
         addons: [{ id: "a3", svc: 7, price: 15, default_on: true, customer_approved: true }],
@@ -636,7 +637,7 @@ export function receiptFixture(token: string, money: boolean): ReceiptView | nul
   const r101 = JOBS[C1][0];
   const c = cust(C1);
   return {
-    id: r101.id, tag: "R-101", invoice_number: "RI-000041", ro_number: "RO-000041", performed_at: r101.performed_at, paid_at: r101.paid_at, payment_method: "clover", vehicle: "2019 Toyota Camry", color: "Silver",
+    id: r101.id, tag: "R-101", invoice_number: "RI-000041", ro_number: "RO-000041", odometer: 48210, plate: money ? "8KLM432" : null, performed_at: r101.performed_at, paid_at: r101.paid_at, payment_method: "clover", vehicle: "2019 Toyota Camry", color: "Silver",
     customer: { id: c.id, display_name: money ? c.display_name : c.first_name, first_name: c.first_name, email: money ? c.email : null, phone: money ? c.phone : null },
     lines: [{ name: "Full detail", price: 200 }, { name: "Pet hair", price: 40 }],
     subtotal: 240, tax: 0, total: 240, deposit_paid: 48, paid: 192, balance: 0, tax_rate: 0,
@@ -780,7 +781,7 @@ export function retailInvoiceDetailFixture(id: string): RetailInvoiceDetail | nu
   const lines = paid ? base.lines : row.id === JOBS[C2][0].id ? [{ name: "Full detail", price: 200 }] : [{ name: row.status === "void" ? "Trim restore" : "Water spot removal", price: row.total }];
   return {
     ...base,
-    id: row.id, job_id: row.id, tag: row.tag, invoice_number: row.number, ro_number: row.ro_number, performed_at: row.performed_at,
+    id: row.id, job_id: row.id, tag: row.tag, odometer: paid ? 48210 : row.id === JOBS[C2][0].id ? 31200 : 54300, plate: paid ? "8KLM432" : row.id === JOBS[C2][0].id ? "9EVX221" : null, invoice_number: row.number, ro_number: row.ro_number, performed_at: row.performed_at,
     paid_at: row.paid_at, payment_method: paid ? "clover" : null, vehicle: row.vehicle, color: paid ? "Silver" : "Red",
     customer: { id: row.customer_id ?? "", display_name: row.customer, first_name: (row.customer ?? "").split(" ")[0], email: null, phone: null },
     lines, subtotal: row.total, tax: 0, total: row.total, deposit_paid: row.deposit_paid, paid: row.paid, balance: row.balance, status: row.status, deleted: row.status === "void",

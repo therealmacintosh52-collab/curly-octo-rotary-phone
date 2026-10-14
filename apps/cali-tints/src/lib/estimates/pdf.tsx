@@ -91,7 +91,7 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
           <View style={{ alignItems: "flex-end" }}>
             <Text style={s.billLabel}>VEHICLE</Text>
             <Text style={{ fontFamily: "Helvetica-Bold" }}>{e.vehicle?.name ?? "Vehicle"}</Text>
-            <Text style={s.small}>{[e.vehicle?.color, e.vehicle?.plate ? `Plate ${e.vehicle.plate}` : null, SIZE_LABEL[e.size_class]].filter(Boolean).join(" · ")}</Text>
+            <Text style={s.small}>{[e.vehicle?.color, e.vehicle?.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString("en-US")} mi` : null, SIZE_LABEL[e.size_class]].filter(Boolean).join(" · ")}</Text>
           </View>
         </View>
 

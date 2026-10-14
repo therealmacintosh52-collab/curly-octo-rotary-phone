@@ -294,6 +294,8 @@ export type EstimateView = {
   size_class: VehicleSize;
   expires_at: string | null;
   po_number: string | null;
+  /** The mileage when the car came in (0049). */
+  odometer?: number | null;
   internal_notes: string | null;
   customer_notes: string | null;
   selected_option_id: string | null;
@@ -367,6 +369,8 @@ export type EstimatePayload = {
   size_class?: VehicleSize;
   expires_at?: string | null;
   po_number?: string | null;
+  /** The mileage when the car came in; logged on the car and carried to the invoice. */
+  odometer?: number | null;
   internal_notes?: string | null;
   customer_notes?: string | null;
   options?: { tier: EstimateTier; name: string; description?: string | null; recommended?: boolean; lines: EstimateLineInput[] }[];
@@ -554,6 +558,9 @@ export type RetailCharge = {
 export type ReceiptView = {
   id: string;
   tag: string;
+  /** The mileage when the car came in and (staff only) its plate (0049). */
+  odometer?: number | null;
+  plate?: string | null;
   invoice_number?: string | null;
   ro_number?: string | null;
   performed_at: string;
@@ -578,6 +585,8 @@ export type ReceiptView = {
   company: { name: string; phone: string | null; email: string | null; address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; postal_code: string | null; logo_path: string | null; timezone: string };
 };
 /** Retail's own invoices (0047): one per retail job, numbered RI-…, never in QuickBooks. */
+/** find_vehicle(): the car behind a plate or VIN typed in the bar at the top of Retail (0049). */
+export type FoundVehicle = { vehicle_id: string; customer_id: string; name: string | null; color: string | null; plate: string | null; vin: string | null; size_class: VehicleSize; customer: string | null; last_odometer: number | null };
 export type RetailInvoiceStatus = "unpaid" | "partial" | "paid" | "void";
 export type RetailInvoiceRow = {
   id: string;
@@ -1315,6 +1324,7 @@ export type Database = {
       retail_invoices_filtered: { Args: { p_q?: string | null; p_status?: string; p_limit?: number; p_offset?: number }; Returns: RetailInvoiceList };
       retail_invoice_detail: { Args: { p_job_id: string }; Returns: RetailInvoiceDetail };
       retail_dashboard: { Args: Record<string, never>; Returns: RetailDashboard };
+      find_vehicle: { Args: { p_plate?: string | null; p_vin?: string | null }; Returns: FoundVehicle | null };
       enqueue_due_runs: { Args: Record<string, never>; Returns: { derived: number; events: number; runs: number } };
       claim_runs: { Args: { p_limit?: number }; Returns: ClaimedRun[] };
       complete_run: { Args: { p_id: string; p_status: "sent" | "skipped" | "failed"; p_result?: string | null }; Returns: undefined };

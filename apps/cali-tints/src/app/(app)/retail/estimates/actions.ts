@@ -28,6 +28,7 @@ const payloadSchema = z.object({
   size_class: z.enum(["compact", "sedan", "suv_truck", "xl"]).optional(),
   expires_at: z.string().nullable().optional(),
   po_number: z.string().trim().max(40).nullable().optional(),
+  odometer: z.number().int().positive().max(9_999_999).nullable().optional(),
   internal_notes: z.string().trim().max(4000).nullable().optional(),
   customer_notes: z.string().trim().max(4000).nullable().optional(),
   options: z

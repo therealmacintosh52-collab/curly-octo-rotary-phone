@@ -77,7 +77,7 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
           <View style={{ alignItems: "flex-end" }}>
             <Text style={s.billLabel}>VEHICLE</Text>
             <Text style={{ fontFamily: "Helvetica-Bold" }}>{r.vehicle ?? "Vehicle"}</Text>
-            {r.color ? <Text style={s.small}>{r.color}</Text> : null}
+            {r.color || r.plate || r.odometer ? <Text style={s.small}>{[r.color, r.plate ? `Plate ${r.plate}` : null, r.odometer ? `${r.odometer.toLocaleString("en-US")} mi` : null].filter(Boolean).join(" · ")}</Text> : null}
           </View>
         </View>
 

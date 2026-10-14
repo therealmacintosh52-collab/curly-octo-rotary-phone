@@ -1,9 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { Customer, CustomerListRow, Vehicle } from "@/lib/db/types";
+import type { Customer, CustomerListRow, FoundVehicle, Vehicle } from "@/lib/db/types";
+import { DEMO_COOKIE, isDemoCookieValid } from "@/lib/demo";
+import { isVinShape, mapNhtsaRow, NHTSA_DECODE_URL, normalizeVin, type NhtsaDecodeRow } from "@/lib/vin";
+import { customersFixture, vehiclesFixture } from "@/test/retail-fixtures";
 import { customerSchema, vehicleSchema, type CustomerInput, type VehicleInput } from "@/lib/retail/schema";
 import { errorMessage } from "@/lib/utils";
 
@@ -64,6 +68,49 @@ export async function mergeCustomersAction(keepId: string, mergeId: string): Pro
   revalidatePath(`/retail/customers/${mergeId}`);
   revalidatePath("/jobs");
   return { ok: true, data };
+}
+
+const squash = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+/**
+ * The bar at the top of Retail: a plate or a VIN finds the car (and who owns
+ * it, and its last mileage). Nothing found is a normal answer: the bar then
+ * starts an estimate for a car that is not on file yet. Any member.
+ */
+export async function findCarAction(input: { plate?: string; vin?: string }): Promise<ActionResult<FoundVehicle | null>> {
+  const plate = squash(input.plate ?? "");
+  const vin = squash(input.vin ?? "");
+  if (!plate && !vin) return { ok: false, error: "Type a plate or a VIN" };
+  // The guest demo has no database: look in the sample cars.
+  if (isDemoCookieValid((await cookies()).get(DEMO_COOKIE)?.value)) {
+    const v = vehiclesFixture.find((x) => (vin && squash(x.vin ?? "") === vin) || (plate && squash(x.plate ?? "") === plate));
+    if (!v) return { ok: true, data: null };
+    const c = customersFixture.find((x) => x.id === v.customer_id);
+    return { ok: true, data: { vehicle_id: v.id, customer_id: v.customer_id, name: [v.year, v.make, v.model].filter(Boolean).join(" ") || null, color: v.color, plate: v.plate, vin: v.vin, size_class: v.size_class, customer: c?.display_name ?? null, last_odometer: v.id === "70000000-0000-4000-8000-000000000001" ? 48210 : null } };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("find_vehicle", { p_plate: plate || null, p_vin: vin || null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  return { ok: true, data: data ?? null };
+}
+
+/** The year, make and model behind a VIN for the bar's "not on file" answer (NHTSA vPIC; the cache first when signed in). A failure is just "no decode". */
+export async function decodeVinAction(raw: string): Promise<{ year: number | null; make: string | null; model: string | null } | null> {
+  const vin = normalizeVin(raw);
+  if (!isVinShape(vin)) return null;
+  try {
+    if (!isDemoCookieValid((await cookies()).get(DEMO_COOKIE)?.value)) {
+      const supabase = await createClient();
+      const { data: cached } = await supabase.from("vin_cache").select("year, make, model").eq("vin", vin).maybeSingle();
+      if (cached?.make) return { year: cached.year, make: cached.make, model: cached.model };
+    }
+    const res = await fetch(NHTSA_DECODE_URL(vin), { headers: { accept: "application/json" }, signal: AbortSignal.timeout(6000) });
+    const body = (await res.json()) as { Results?: NhtsaDecodeRow[] };
+    const d = mapNhtsaRow(vin, body.Results?.[0]);
+    return d.make ? { year: d.year, make: d.make, model: d.model } : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Create or edit a vehicle; `odometer` logs a reading at the same time. */

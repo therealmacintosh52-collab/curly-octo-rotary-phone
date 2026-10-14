@@ -145,7 +145,7 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <Link href={`/retail/customers/${e.customer.id}`} className="font-medium text-foreground hover:text-primary" data-testid="estimate-customer">{customerName}</Link>
-            {e.vehicle && <span>{[e.vehicle.name, e.vehicle.color].filter(Boolean).join(" · ")}</span>}
+            {e.vehicle && <span data-testid="estimate-car">{[e.vehicle.name, e.vehicle.color, e.vehicle.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}</span>}
             <Badge variant="outline">{SIZE_LABEL[e.size_class]}</Badge>
             <span>Written {formatDate(e.created_at)}</span>
             {e.expires_at && open && <span>· good until {formatDate(e.expires_at)}</span>}

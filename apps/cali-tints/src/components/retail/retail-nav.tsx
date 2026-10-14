@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Segmented } from "@/components/ui/segmented";
 import { useSession } from "@/components/app/session-provider";
+import { CarLookupBar } from "./car-lookup-bar";
 
 /** The retail area's sections. */
 const ITEMS = [
@@ -21,5 +22,10 @@ export function RetailNav() {
   const items = canPrices ? ITEMS : ITEMS.filter((i) => i.value !== "/retail/invoices");
   const active =
     items.filter((i) => (i.value === "/retail" ? pathname === "/retail" : pathname.startsWith(i.value) || (i.value === "/retail/customers" && pathname.startsWith("/retail/vehicles")) || (i.value === "/retail/calendar" && pathname.startsWith("/retail/appointments")))).at(-1)?.value ?? "/retail";
-  return <Segmented aria-label="Retail sections" items={items} value={active} wrap className="w-full sm:w-auto" />;
+  return (
+    <>
+      <Segmented aria-label="Retail sections" items={items} value={active} wrap className="w-full sm:w-auto" />
+      <CarLookupBar />
+    </>
+  );
 }

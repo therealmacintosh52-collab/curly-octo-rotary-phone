@@ -78,7 +78,7 @@ function toInput(l: LineDraft): EstimateLineInput {
  * prices everything again when it saves. Written on an open repair order it
  * is a supplement: the findings it quotes arrive prefilled.
  */
-export function EstimateBuilder({ catalog, recent, initialPick, estimate, job, initialLines }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[] }) {
+export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[] }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -100,6 +100,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, estimate, job, i
   const [addons, setAddons] = useState<AddonDraft[]>(initial.addons);
   const [expires, setExpires] = useState(estimate?.expires_at ? toDateInput(new Date(estimate.expires_at)) : addDaysYmd(toDateInput(new Date()), validDays));
   const [po, setPo] = useState(estimate?.po_number ?? "");
+  const [miles, setMiles] = useState(estimate?.odometer ? String(estimate.odometer) : (carHint?.odometer ?? ""));
   const [customerNotes, setCustomerNotes] = useState(estimate?.customer_notes ?? "");
   const [internalNotes, setInternalNotes] = useState(estimate?.internal_notes ?? "");
   const [adding, setAdding] = useState<{ scope: "option" | "addon"; key?: string; type: LineType } | null>(null);
@@ -174,6 +175,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, estimate, job, i
       size_class: size,
       expires_at: expires ? new Date(`${expires}T23:59:59`).toISOString() : null,
       po_number: po.trim() || null,
+      odometer: miles ? Number(miles) : null,
       customer_notes: customerNotes.trim() || null,
       internal_notes: internalNotes.trim() || null,
       options: options.map((o, i) => ({ tier: tierFor(i, options.length), name: o.name.trim() || TIER_NAMES[tierFor(i, options.length)], description: o.description.trim() || null, recommended: o.recommended, lines: o.lines.map(toInput) })),
@@ -206,7 +208,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, estimate, job, i
     });
   }
 
-  const carDraft = { vin: "", year: "", make: "", model: "", color: "" };
+  const carDraft = { vin: carHint?.vin ?? "", year: carHint?.year ?? "", make: carHint?.make ?? "", model: carHint?.model ?? "", color: "", plate: carHint?.plate ?? "", odometer: miles };
   const lineTypeIcon = (t: LineType) => (t === "labor" ? <ClockIcon className="size-3.5" /> : t === "part" ? <PackageIcon className="size-3.5" /> : t === "sublet" ? <TruckIcon className="size-3.5" /> : <ReceiptIcon className="size-3.5" />);
 
   return (
@@ -225,6 +227,10 @@ export function EstimateBuilder({ catalog, recent, initialPick, estimate, job, i
           <Card>
             <CardContent className="grid gap-4 pt-5">
               <CustomerPicker value={pick} onChange={setPick} carDraft={carDraft} recent={recent} onVehiclePicked={(v) => { if (v.size_class) setSize(v.size_class); }} />
+              <div className="grid gap-1.5 sm:max-w-xs">
+                <Label htmlFor="e-miles">Mileage</Label>
+                <Input id="e-miles" inputMode="numeric" value={miles} onChange={(ev) => setMiles(ev.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 84200" autoComplete="off" data-testid="estimate-miles" />
+              </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="e-size">Priced as</Label>
                 <Select value={size} onValueChange={(v) => setSize(v as VehicleSize)}>

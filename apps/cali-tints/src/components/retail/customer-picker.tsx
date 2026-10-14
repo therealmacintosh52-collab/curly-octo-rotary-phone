@@ -21,6 +21,10 @@ export interface VehicleDraftFromJob {
   make: string;
   model: string;
   color: string;
+  /** The plate typed in the bar at the top of Retail. */
+  plate?: string;
+  /** The mileage typed there: logged on the car when it is added. */
+  odometer?: string;
 }
 
 export interface PickedCustomer {
@@ -106,13 +110,13 @@ export function CustomerPicker({
     if (!c) return;
     start(async () => {
       if (demo) {
-        const v = { id: `demo-v-${Date.now()}`, year: carDraft.year ? Number(carDraft.year) : null, make: carDraft.make || null, model: carDraft.model || null, color: carDraft.color || null, vin: carDraft.vin || null, plate: null };
+        const v = { id: `demo-v-${Date.now()}`, year: carDraft.year ? Number(carDraft.year) : null, make: carDraft.make || null, model: carDraft.model || null, color: carDraft.color || null, vin: carDraft.vin || null, plate: carDraft.plate || null };
         const next = { ...c, vehicles: [...c.vehicles, v] };
         onChange({ customer: next, vehicleId: v.id });
         toast.success("Vehicle added · guest preview");
         return;
       }
-      const r = await saveVehicleAction({ customer_id: c.id, vin: carDraft.vin || null, year: carDraft.year ? Number(carDraft.year) : null, make: carDraft.make || null, model: carDraft.model || null, color: carDraft.color || null });
+      const r = await saveVehicleAction({ customer_id: c.id, vin: carDraft.vin || null, year: carDraft.year ? Number(carDraft.year) : null, make: carDraft.make || null, model: carDraft.model || null, color: carDraft.color || null, plate: carDraft.plate || null, odometer: carDraft.odometer ? Number(carDraft.odometer) : null });
       if (!r.ok) return void toast.error(r.error);
       const v = { id: r.data.id, year: r.data.year, make: r.data.make, model: r.data.model, color: r.data.color, vin: r.data.vin, plate: r.data.plate, size_class: r.data.size_class };
       onChange({ customer: { ...c, vehicles: [...c.vehicles, v] }, vehicleId: v.id });
@@ -120,7 +124,7 @@ export function CustomerPicker({
     });
   }
 
-  const carTyped = !!(carDraft.model || carDraft.vin);
+  const carTyped = !!(carDraft.model || carDraft.vin || carDraft.plate);
 
   return (
     <div className="grid gap-2" data-testid="customer-picker">

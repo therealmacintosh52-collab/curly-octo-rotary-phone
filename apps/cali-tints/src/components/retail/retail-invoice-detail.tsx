@@ -29,7 +29,7 @@ export function RetailInvoiceDetail({ inv }: { inv: Invoice }) {
             <RetailInvoiceStatusBadge status={inv.status} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {[inv.customer?.display_name ?? "Walk-in", inv.vehicle, inv.color].filter(Boolean).join(" · ")}
+            {[inv.customer?.display_name ?? "Walk-in", inv.vehicle, inv.color, inv.plate ? `Plate ${inv.plate}` : null, inv.odometer ? `${inv.odometer.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}
           </p>
           <p className="mt-0.5 text-caption text-subtle">
             {[inv.ro_number, `Tag ${inv.tag}`, formatDate(inv.performed_at)].filter(Boolean).join(" · ")}
