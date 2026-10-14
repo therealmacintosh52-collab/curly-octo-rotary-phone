@@ -319,6 +319,11 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .price{font-family:var(--display);font-weight:400;font-size:3.05rem;letter-spacing:.005em;
   line-height:.92;color:var(--ink);font-variant-numeric:tabular-nums}
 .price small{font-family:var(--body);font-size:.85rem;font-weight:700;color:var(--neutral);letter-spacing:0}
+/* Small details beside an app price. They live inside .price, which is safe now
+   that the count-up writes only the leading text node and leaves markup alone. */
+.price .pn{display:inline-block;vertical-align:middle;margin-left:10px;text-align:left;
+  font-size:.8rem;line-height:1.35}
+.price .pn b{display:block;color:var(--ink);font-weight:800}
 .annual{font-size:.86rem;color:var(--fire-dk);margin:9px 0 0;font-weight:700}
 .setup{font-size:.86rem;color:var(--neutral);margin:5px 0 0;font-weight:700}
 .setup b{color:var(--fire-dk)}
@@ -1059,13 +1064,13 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
     <div class="sec-head rv">
       <p class="eyebrow">Apps</p>
       <h2>Want an app <span class="hl">as well?</span></h2>
-      <p class="lede">Booking, ordering, loyalty, accounts. It installs from a link — no App Store needed, though we can list you on both stores for <b>$499</b> plus <b>$25</b> a month if you want that.</p>
+      <p class="lede">Booking, ordering, loyalty, accounts. It installs from a link — no App Store needed, though <a href="#stores">we can list you on both stores too</a>.</p>
     </div>
     <div class="plans">
       <div class="plan">
         <h3>Starter App</h3>
-        <div class="price">$699.99<small> build</small></div>
-        <p class="annual">then $49 a month</p>
+        <div class="price">$699.99<small class="pn"><b>one-time build</b>then $49 a month</small></div>
+        <p class="annual">Hosting, updates and support included</p>
         <ul>
           <li>Book, order or request a quote in under a minute</li>
           <li>Installs to the home screen, works offline</li>
@@ -1075,8 +1080,8 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
       <div class="plan feature">
         <span class="badge">Most useful</span>
         <h3>Business App</h3>
-        <div class="price">$999<small> build</small></div>
-        <p class="annual">then $99 a month</p>
+        <div class="price">$999<small class="pn"><b>one-time build</b>then $99 a month</small></div>
+        <p class="annual">Hosting, updates and support included</p>
         <ul>
           <li>Everything in Starter</li>
           <li>Send photos of the work straight to the customer</li>
@@ -1092,6 +1097,17 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
           <li>Fixed price agreed first, after a <b>$499</b> scoping session</li>
         </ul>
       </div>
+    </div>
+    <div class="basic rv" id="stores">
+      <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+      <h3>On the App Store and Google Play too</h3>
+      <p>Optional. We submit your app under developer accounts registered in <b>your</b> business name, so the listings are yours.</p>
+      <div class="basic-prices">
+        <div class="bp today"><div class="lab">Both stores</div><div class="num">$499</div><div class="sub">one time, wrapped, listed and submitted</div></div>
+        <div class="bp"><div class="lab">Then</div><div class="num">$25</div><div class="sub">a month, updates pushed through review</div></div>
+        <div class="bp"><div class="lab">Store fees, at cost</div><div class="num">$99 + $25</div><div class="sub">Apple yearly, Google once, in your name</div></div>
+      </div>
+      <p class="basic-why">Allow two to four weeks for a first listing. Apple rejects anything it reads as a repackaged website, so we build genuine native pieces in first. If we still cannot get it through, <b>$250 comes back to you</b>.</p>
     </div>
     <p class="rv" style="margin-top:22px;color:var(--ink-2)">Most small businesses do not need an app, and we will tell you if you are one of them. Call and ask.</p>
   </div>
@@ -1333,7 +1349,13 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
      starting with a digit (optionally after a currency symbol) is touched,
      which leaves "ES" and "A11y" alone. */
   function countUp(el){
-    var m=/^([$£€]?)(\d[\d,]*(?:\.\d+)?)([\s\S]*)$/.exec(el.textContent.trim());
+    /* Animate the leading text node and nothing else. Setting el.textContent
+       replaces every child, so a price like $299<small>/mo</small> lost its
+       <small> the moment the count finished and the "/mo" jumped to display
+       size. Writing to the one text node leaves any markup beside it alone. */
+    var tn=el.firstChild;
+    if(!tn||tn.nodeType!==3)return;
+    var m=/^([$£€]?)(\d[\d,]*(?:\.\d+)?)([\s\S]*)$/.exec(tn.nodeValue.trim());
     if(!m)return;
     var pre=m[1],raw=m[2],post=m[3],
         dec=(raw.split('.')[1]||'').length,
@@ -1346,8 +1368,8 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
       var p=Math.min(1,(ts-t0)/850),v=target*(1-Math.pow(1-p,3)),
           t=dec?v.toFixed(dec):String(Math.round(v));
       if(grouped)t=t.replace(/\B(?=(\d{3})+(?!\d))/g,',');
-      el.textContent=pre+t+post;
-      if(p<1)requestAnimationFrame(frame); else el.textContent=pre+raw+post;
+      tn.nodeValue=pre+t+post;
+      if(p<1)requestAnimationFrame(frame); else tn.nodeValue=pre+raw+post;
     });
   }
   var nums=document.querySelectorAll('.stat b,.inc b,.price,.bp .num,.promo .big,.amt,.cprice');
