@@ -3,14 +3,14 @@
 import { Fragment, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
+import { CarIcon, UserIcon, ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateView } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney, formatTaxRate } from "@/lib/money";
-import { detectPlatform, smsHref } from "@/lib/retail/phone";
+import { detectPlatform, formatPhone, smsHref } from "@/lib/retail/phone";
 import { SIZE_LABEL } from "@/lib/retail/size-class";
 import { Page } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -519,11 +519,11 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             )}
             {e.applied_at && supplement && <Badge variant="success" data-testid="estimate-applied"><CheckIcon /> On the estimate</Badge>}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            <Link href={`/retail/customers/${e.customer.id}`} className="font-medium text-foreground hover:text-primary" data-testid="estimate-customer">{customerName}</Link>
-            {e.vehicle && <span data-testid="estimate-car">{[[e.vehicle.name, e.vehicle.trim].filter(Boolean).join(" "), e.vehicle.color, e.vehicle.engine_size ? `${e.vehicle.engine_size}${e.vehicle.engine_code ? ` (${e.vehicle.engine_code})` : ""}` : null, e.vehicle.vin ? `VIN ${e.vehicle.vin}` : null, e.vehicle.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}</span>}
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground" data-testid="estimate-meta">
             <Badge variant="outline">{SIZE_LABEL[e.size_class]}</Badge>
-            <span>Written {formatDate(e.created_at)}{e.advisor ? ` · advisor ${e.advisor}` : ""}</span>
+            <span>Written {formatDate(e.created_at)}</span>
+            {e.advisor && <span>Advisor <span className="font-medium text-foreground">{e.advisor}</span></span>}
+            {invoiceDoc?.tech && <span>Tech <span className="font-medium text-foreground">{invoiceDoc.tech}</span></span>}
             {e.expires_at && open && <span>· good until {formatDate(e.expires_at)}</span>}
           </div>
         </div>
@@ -545,6 +545,33 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             )}
           </div>
         )}
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2" data-testid="estimate-parties">
+        <Card>
+          <CardContent className="grid gap-1 pt-5 text-sm">
+            <div className="flex items-center gap-2 text-label text-subtle"><UserIcon className="size-4" /> Customer</div>
+            <Link href={`/retail/customers/${e.customer.id}`} className="text-base font-semibold hover:text-primary" data-testid="estimate-customer">{customerName}</Link>
+            {e.customer.phone && <a href={`tel:${e.customer.phone}`} className="text-muted-foreground hover:text-foreground">{formatPhone(e.customer.phone)}</a>}
+            {e.customer.email && <span className="min-w-0 truncate text-muted-foreground">{e.customer.email}</span>}
+            {!e.customer.phone && !e.customer.email && <span className="text-muted-foreground">No phone or email on file</span>}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="grid gap-1 pt-5 text-sm" data-testid="estimate-car">
+            <div className="flex items-center gap-2 text-label text-subtle"><CarIcon className="size-4" /> Vehicle</div>
+            {e.vehicle ? (
+              <>
+                <span className="text-base font-semibold">{[e.vehicle.name, e.vehicle.trim].filter(Boolean).join(" ")}</span>
+                {e.vehicle.vin && <span className="text-muted-foreground">VIN {e.vehicle.vin}</span>}
+                {(e.vehicle.engine_size || e.vehicle.engine_code) && <span className="text-muted-foreground">Engine {e.vehicle.engine_size}{e.vehicle.engine_code ? ` (${e.vehicle.engine_code})` : ""}</span>}
+                <span className="text-muted-foreground">{[e.vehicle.plate ? `Plate ${e.vehicle.plate}` : null, e.vehicle.color, e.odometer ? `${e.odometer.toLocaleString()} mi in` : null].filter(Boolean).join(" · ")}</span>
+              </>
+            ) : (
+              <span className="text-muted-foreground">No car on file</span>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <RoStageBar
