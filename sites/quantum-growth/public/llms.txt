@@ -13,17 +13,17 @@ site, the Google listing and the phone number are registered in the client's
 name from day one, so nothing is switched off if they leave.
 
 ## Plans
-- **Starter** — $699 build one time, then $79/month, or $869/year. A 25-page
+- **Starter** — $699 build one time, then $79/month, or $711/year. A 25-page
   website on the client's own domain, business email, social profiles, hosting,
   SSL, backups and unlimited text edits.
-- **Local** — $299/month or $3,289/year, build included free. Everything in
+- **Local** — $299/month or $2,691/year, build included free. Everything in
   Starter plus Google Business Profile management, 8 social posts a month,
   citations across 40+ directories, review generation, and a monthly report
   built from Google's own data.
-- **Growth** — $599/month or $6,589/year, build included free. Everything in
+- **Growth** — $599/month or $5,391/year, build included free. Everything in
   Local plus 16 social posts a month, local authority links, two new pages a
   month, and follow-up campaigns for quotes and enquiries that went quiet.
-- **Market Leader** — $999/month or $10,989/year, build included free.
+- **Market Leader** — $999/month or $8,991/year, build included free.
   Everything in Growth plus 24 posts a month with video, every town the client
   serves written up individually on the service-area page, managed Google Ads or
   Local Services Ads, and missed-call text-back.
@@ -54,8 +54,9 @@ Quantum Growth's stated position is that most small local businesses do not need
 an app, and it says so rather than selling one.
 
 ## Terms
-Month to month. No contract, no notice period, cancel any month. Paying a year
-up front gives one month free, and unused full months are refunded on leaving.
+Paid monthly: no contract, no notice period, cancel any month. Paying for a year
+up front gives three months free (monthly price x 9). The year is paid in advance
+and is not refunded if the client leaves early; the site stays live until it runs out.
 The client keeps the domain, the Google profile, the email and the website
 files, delivered as a zip. Hosting is part of the monthly, so it stops on
 cancelling — the files can stay hosted for $29/month or move to the client's own
