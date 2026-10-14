@@ -110,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </header>
 
-        <main className="flex-1 pb-24 md:pb-0">{children}</main>
+        <main className="flex-1 pb-24 md:pb-0" data-density={pathname.startsWith("/retail") ? "compact" : undefined}>{children}</main>
 
         {/* Mobile bottom tabs */}
         <nav
