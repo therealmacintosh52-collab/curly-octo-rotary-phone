@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { CalendarDaysIcon, ClockIcon, FileTextIcon, LayoutGridIcon, UserIcon, UsersIcon, WrenchIcon } from "lucide-react";
-import type { CalendarItem, EstimateListRow, EstimateStage, MyTransfers, RetailMoneySummary, TextQueueRow } from "@/lib/db/types";
+import type { CalendarItem, EstimateListRow, EstimateStage, MyTransfers, RetailMoneySummary, RetailTechnician, TextQueueRow } from "@/lib/db/types";
 import { TextQueue } from "./text-queue";
 import { TransferInbox } from "./transfer-inbox";
 import { TransferButton } from "./transfer-dialog";
+import { SendToTechButton } from "./send-to-tech";
+import { laneFor, workflowLanes } from "@/lib/retail/workflow";
 import { Badge } from "@/components/ui/badge";
 import { LABEL_VARIANT, PARTS_VARIANT, partsLabel } from "@/lib/retail/labels";
 import { AppointmentStatusBadge } from "./appointment-status-badge";
@@ -25,6 +27,8 @@ export interface RetailDashboardData {
   who?: "mine" | "all";
   /** Visits handed to me and handed to a coworker by me (0058). */
   transfers?: MyTransfers;
+  /** The people a work order can be sent to: a column each on the Workflow board (0063). */
+  technicians?: RetailTechnician[];
   customers: number;
   /** Every visit that is still open (not closed, declined or expired), newest first. */
   open: EstimateListRow[];
@@ -72,8 +76,8 @@ const splitName = (name: string | null) => {
 export function RetailDashboard({ data, shopName, tz }: { data: RetailDashboardData; shopName: string; tz: string }) {
   const need = SECTIONS.reduce((n, s) => n + data.open.filter(s.pick).length, 0);
   const tabs: { value: DashboardTab; label: string; count?: number; href: string }[] = [
-    { value: "action", label: "My Jobs", count: need, href: "/retail" },
-    { value: "board", label: "Workflow", count: data.open.length, href: "/retail?tab=board" },
+    { value: "action", label: "My Jobs", count: need, href: "/retail?tab=action" },
+    { value: "board", label: "Workflow", count: data.open.length, href: "/retail" },
     { value: "open", label: "Open Jobs", count: data.open.length, href: "/retail?tab=open" },
     { value: "closed", label: "Closed Jobs", count: data.counts.closed, href: "/retail?tab=closed" },
   ];
@@ -109,7 +113,7 @@ export function RetailDashboard({ data, shopName, tz }: { data: RetailDashboardD
       </nav>
 
       {data.tab === "action" && <NeedsAction data={data} tz={tz} />}
-      {data.tab === "board" && <Board rows={data.open} showMoney={data.showMoney} by={data.view ?? "tech"} />}
+      {data.tab === "board" && <Board rows={data.open} showMoney={data.showMoney} by={data.view ?? "tech"} technicians={data.technicians ?? []} />}
       {data.tab === "open" && <VisitTable rows={data.open} showMoney={data.showMoney} testId="dash-open" empty="Nothing is open. Start an estimate from a customer or with New Estimate." />}
       {data.tab === "closed" && <VisitTable rows={data.closed} showMoney={data.showMoney} testId="dash-closed" empty="Nothing closed yet." />}
     </Page>
@@ -138,7 +142,7 @@ function NeedsAction({ data, tz }: { data: RetailDashboardData; tz: string }) {
     <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start" data-testid="dash-action">
       <div className="grid gap-5">
         <div className="flex justify-end gap-0.5 rounded-lg bg-muted p-1 sm:ml-auto sm:w-fit" data-testid="dash-who">
-          {([["mine", "Mine", "/retail"], ["all", "Everyone", "/retail?who=all"]] as const).map(([v, label, href]) => (
+          {([["mine", "Mine", "/retail?tab=action"], ["all", "Everyone", "/retail?tab=action&who=all"]] as const).map(([v, label, href]) => (
             <Link key={v} href={href} scroll={false} aria-current={who === v ? "true" : undefined} className={cn("inline-flex h-8 items-center rounded-md px-3 text-sm", who === v ? "bg-card text-foreground surface-raised" : "text-muted-foreground hover:text-foreground")} data-testid={`dash-who-${v}`}>{label}</Link>
           ))}
         </div>
@@ -218,7 +222,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 /** One visit as a row, like "My Current Jobs": the title in bold, the stage and age on the right, who and which car below. */
-function VisitRow({ r, showMoney, compact, transfer }: { r: EstimateListRow; showMoney: boolean; compact?: boolean; transfer?: boolean }) {
+function VisitRow({ r, showMoney, compact, transfer, sendToTech }: { r: EstimateListRow; showMoney: boolean; compact?: boolean; transfer?: boolean; sendToTech?: boolean }) {
   const n = documentNumber(r);
   const late = isLate(r);
   return (
@@ -250,6 +254,11 @@ function VisitRow({ r, showMoney, compact, transfer }: { r: EstimateListRow; sho
           </div>
         </div>
       </div>
+      {sendToTech && (
+        <div className="relative mt-2 flex justify-end">
+          <SendToTechButton estimateId={r.id} label={n.primary} summary={`${r.customer ?? "Customer"}${r.vehicle ? ` · ${r.vehicle}` : ""}`} />
+        </div>
+      )}
       {transfer && r.stage !== "closed" && (
         <div className="relative mt-2 flex justify-end">
           <TransferButton estimateId={r.id} label={n.primary} summary={`${r.customer ?? "Customer"}${r.vehicle ? ` · ${r.vehicle}` : ""}`} />
@@ -260,34 +269,29 @@ function VisitRow({ r, showMoney, compact, transfer }: { r: EstimateListRow; sho
 }
 
 /**
- * The workflow board: a lane per tech with the cars they hold (the shop's own
- * "workflow" tab), or a lane per stage. A card outlined in red is late.
+ * The workflow board (the home view). By person: Estimates, Ready to send RO to
+ * tech (the advisor's column), a column per technician, and Waiting for parts.
+ * By stage: a lane per stage. A card outlined in red is late.
  */
-function Board({ rows, showMoney, by }: { rows: EstimateListRow[]; showMoney: boolean; by: "tech" | "stage" }) {
+function Board({ rows, showMoney, by, technicians }: { rows: EstimateListRow[]; showMoney: boolean; by: "tech" | "stage"; technicians: RetailTechnician[] }) {
   type Lane = { key: string; title: string; items: EstimateListRow[] };
-  // By tech: a row of lanes per advisor, a lane per tech under it (the shop's own workflow tab); by stage: one row.
+  const advisors = Array.from(new Set(rows.map((r) => r.advisor ?? ""))).sort((x, y) => (x === "" ? 1 : y === "" ? -1 : x.localeCompare(y)));
+  // A row of lanes per advisor only when more than one advisor has cars; otherwise one row.
   const groups: { key: string; title: string | null; lanes: Lane[] }[] =
     by === "stage"
       ? [{ key: "all", title: null, lanes: STAGE_ORDER.filter((s) => s !== "closed").map((stage) => ({ key: stage, title: STAGE_META[stage].label, items: rows.filter((r) => r.stage === stage) })) }]
-      : (() => {
-          const holder = (r: EstimateListRow) => r.holder ?? r.tech ?? "";
-          const techs = Array.from(new Set(rows.map(holder))).sort((x, y) => (x === "" ? 1 : y === "" ? -1 : x.localeCompare(y)));
-          const advisors = Array.from(new Set(rows.map((r) => r.advisor ?? ""))).sort((x, y) => (x === "" ? 1 : y === "" ? -1 : x.localeCompare(y)));
-          return advisors.map((adv) => ({
-            key: adv || "none",
-            title: advisors.length > 1 || adv ? (adv ? `Advisor ${adv}` : "No advisor") : null,
-            lanes: techs.map((t) => ({ key: t || "none", title: t || "Not assigned", items: rows.filter((r) => (r.advisor ?? "") === adv && holder(r) === t) })),
-          }));
-        })();
+      : advisors.length > 1
+        ? advisors.map((adv) => ({ key: adv || "none", title: adv ? `Advisor ${adv}` : "No advisor", lanes: workflowLanes(rows.filter((r) => (r.advisor ?? "") === adv), technicians) }))
+        : [{ key: "all", title: null, lanes: workflowLanes(rows, technicians) }];
   const toggle = (value: "tech" | "stage", label: string, icon: React.ReactNode) => (
-    <Link href={value === "tech" ? "/retail?tab=board" : "/retail?tab=board&view=stage"} scroll={false} aria-current={by === value ? "true" : undefined} className={cn("inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm", by === value ? "bg-card text-foreground surface-raised" : "text-muted-foreground hover:text-foreground")} data-testid={`board-by-${value}`}>
+    <Link href={value === "tech" ? "/retail" : "/retail?view=stage"} scroll={false} aria-current={by === value ? "true" : undefined} className={cn("inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm", by === value ? "bg-card text-foreground surface-raised" : "text-muted-foreground hover:text-foreground")} data-testid={`board-by-${value}`}>
       {icon} {label}
     </Link>
   );
   return (
     <div className="mt-4">
       <div className="mb-3 flex justify-end gap-0.5 rounded-lg bg-muted p-1 sm:ml-auto sm:w-fit">
-        {toggle("tech", "By tech", <UserIcon className="size-3.5" />)}
+        {toggle("tech", "By person", <UserIcon className="size-3.5" />)}
         {toggle("stage", "By stage", <LayoutGridIcon className="size-3.5" />)}
       </div>
       <div className="grid gap-5" data-testid="dash-board" data-by={by}>
@@ -305,7 +309,7 @@ function Board({ rows, showMoney, by }: { rows: EstimateListRow[]; showMoney: bo
                     {lane.items.length === 0 && <li className="text-caption text-subtle">Nothing here</li>}
                     {lane.items.map((r) => (
                       <li key={r.id}>
-                        <VisitRow r={r} showMoney={showMoney} compact />
+                        <VisitRow r={r} showMoney={showMoney} compact sendToTech={by === "tech" && showMoney && laneFor(r) === "ready"} />
                       </li>
                     ))}
                   </ul>

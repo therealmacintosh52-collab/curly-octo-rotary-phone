@@ -239,6 +239,26 @@ export async function transferEstimateAction(id: string, to: string, status: str
   return { ok: true, data: undefined };
 }
 
+/** The technicians a work order can be sent to (names for the picker only). */
+export async function retailTechniciansAction(): Promise<ActionResult<import("@/lib/db/types").RetailTechnician[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("retail_technicians");
+  if (error) return { ok: false, error: errorMessage(error) };
+  return { ok: true, data: data ?? [] };
+}
+
+/** The advisor sends an approved work order to a technician (null puts it back with the advisor). */
+export async function sendToTechAction(id: string, tech: string | null): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner, an admin or an advisor sends a work order to a tech" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("send_to_tech", { p_estimate: id, p_tech: tech });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/retail");
+  revalidate(id);
+  return { ok: true, data: undefined };
+}
+
 export async function respondTransferAction(id: string, accept: boolean): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("respond_transfer", { p_id: id, p_accept: accept });

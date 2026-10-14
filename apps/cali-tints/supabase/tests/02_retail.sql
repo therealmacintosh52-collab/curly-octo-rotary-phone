@@ -2226,3 +2226,43 @@ begin
   assert jsonb_array_length(public.signed_documents((select v from r_ids where k = 'transfer_est'))) = 0 and public.document_path_for((select v from r_ids where k = 'doc_1')) is null, '0062: a tech sees no copies and no path';
 end $$;
 select pg_temp.logout();
+
+-- 0063: the Workflow columns — send a work order to a tech, tech_id on list rows, parts follow the status word
+create or replace function pg_temp.parts_of(p_est uuid) returns text language sql security definer as $$ select parts_status from public.estimates where id = p_est $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare
+  v_est uuid := (select v from r_ids where k = 'transfer_est'); techs jsonb; f jsonb; r jsonb;
+begin
+  techs := public.retail_technicians();
+  assert jsonb_array_length(techs) >= 1 and not exists (select 1 from jsonb_array_elements(techs) x where (x ->> 'id') = '10000000-0000-4000-8000-000000000006'), '0063: the picker lists technicians only';
+  begin perform public.send_to_tech(v_est, '10000000-0000-4000-8000-000000000004'); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  perform public.send_to_tech(v_est, '10000000-0000-4000-8000-000000000002');
+  assert pg_temp.holder_of(v_est) = '10000000-0000-4000-8000-000000000002' and pg_temp.tech_of(v_est) = '10000000-0000-4000-8000-000000000002', '0063: the advisor sends it, the tech holds it and is the tech';
+  f := public.estimates_filtered(p_limit => 200);
+  r := (select x from jsonb_array_elements(f -> 'rows') x where (x ->> 'id')::uuid = v_est);
+  assert (r ->> 'tech_id') = '10000000-0000-4000-8000-000000000002', '0063: the row names the technician by id';
+  perform public.send_to_tech(v_est, null);
+  assert pg_temp.holder_of(v_est) = '10000000-0000-4000-8000-000000000006', '0063: sending to nobody puts it back with the advisor';
+  f := public.estimates_filtered(p_limit => 200);
+  r := (select x from jsonb_array_elements(f -> 'rows') x where (x ->> 'id')::uuid = v_est);
+  assert (r ->> 'tech_id') is null, '0063: no tech_id while an advisor holds it';
+  perform public.set_estimate_meta(v_est, '{"parts_status":"none"}'::jsonb);
+  perform public.set_estimate_meta(v_est, '{"status_label":"Needs parts ordered"}'::jsonb);
+  assert pg_temp.parts_of(v_est) = 'needed', '0063: Needs parts ordered marks the parts as needed';
+  perform public.set_estimate_meta(v_est, '{"parts_status":"arrived"}'::jsonb);
+  assert pg_temp.parts_of(v_est) = 'arrived', '0063: parts can be marked arrived';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  begin perform public.send_to_tech((select v from r_ids where k = 'transfer_est'), '10000000-0000-4000-8000-000000000002'); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+begin
+  begin perform public.send_to_tech((select v from r_ids where k = 'transfer_est'), '10000000-0000-4000-8000-000000000002'); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();

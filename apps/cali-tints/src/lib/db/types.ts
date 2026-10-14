@@ -415,6 +415,8 @@ export type EstimateListRow = {
   /** Initials of whoever holds the visit now, and whether that is me (0058). */
   holder?: string | null;
   mine?: boolean;
+  /** The technician holding the visit (0063): an id, so lanes are per person; null while an advisor or owner holds it. */
+  tech_id?: string | null;
 };
 /** draft → sent → in_progress → ready (checked, not invoiced) → unpaid → paid (waiting for pickup) → closed; or declined / expired. */
 export type EstimateStage = "draft" | "sent" | "in_progress" | "ready" | "unpaid" | "paid" | "closed" | "declined" | "expired";
@@ -701,6 +703,7 @@ export type PricedFinding = { estimate_id: string; display_number: string; job_i
 export type InvoiceReview = { lines: number; ro_total: number; approved_total: number; linked_total: number; matches: boolean; unauthorized: number; jobs_not_done: number; completed: boolean; qc: boolean; odometer_out: number | null; ready: boolean };
 /** One entry of a repair order's authorization record (0052). Amount only for those who price jobs. */
 /** A coworker a visit can be handed to (the picker shows names; every list shows initials) (0058). */
+export type RetailTechnician = { id: string; name: string; initials: string };
 export type TransferCandidate = { id: string; name: string; initials: string; role: string };
 export type TransferRow = { id: string; estimate_id: string; number: string; customer: string | null; vehicle: string | null; from: string; to: string; status_label: string; message: string | null; created_at: string };
 export type MyTransfers = { incoming: TransferRow[]; outgoing: TransferRow[] };
@@ -1529,6 +1532,8 @@ export type Database = {
       document_path_for: { Args: { p_id: string }; Returns: string | null };
       set_estimate_meta: { Args: { p_id: string; p: Record<string, string | null> }; Returns: undefined };
       transfer_candidates: { Args: Record<string, never>; Returns: TransferCandidate[] };
+      retail_technicians: { Args: Record<string, never>; Returns: { id: string; name: string; initials: string }[] };
+      send_to_tech: { Args: { p_estimate: string; p_tech: string | null }; Returns: undefined };
       transfer_estimate: { Args: { p_estimate: string; p_to: string; p_status?: string; p_message?: string | null }; Returns: string };
       respond_transfer: { Args: { p_id: string; p_accept: boolean }; Returns: undefined };
       cancel_transfer: { Args: { p_id: string }; Returns: undefined };

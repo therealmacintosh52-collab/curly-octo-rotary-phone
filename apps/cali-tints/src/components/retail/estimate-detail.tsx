@@ -32,6 +32,7 @@ import { InvoiceDocument } from "./invoice-document";
 import { SignaturePad, signatureBlob } from "./signature-pad";
 import { SignaturesCard } from "./signatures-card";
 import { EstimateMeta } from "./estimate-meta";
+import { SendToTechButton } from "./send-to-tech";
 import { TransferButton } from "./transfer-dialog";
 import { EstimateStageBadge } from "./estimate-stage-badge";
 import { documentNumber, viewStage } from "@/lib/retail/estimate-stage";
@@ -567,6 +568,9 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {canPrices && accepted && !!visit && !supplement && stage !== "closed" && stage !== "declined" && stage !== "expired" && (
+            <SendToTechButton estimateId={e.id} size="default" variant="outline" text="Send to tech" label={num.primary} summary={`${customerName}${e.vehicle?.name ? ` · ${e.vehicle.name}` : ""}`} />
+          )}
           {!supplement && stage !== "closed" && stage !== "declined" && stage !== "expired" && (
             <TransferButton estimateId={e.id} size="default" label={num.primary} summary={`${customerName}${e.vehicle?.name ? ` · ${e.vehicle.name}` : ""}`} />
           )}

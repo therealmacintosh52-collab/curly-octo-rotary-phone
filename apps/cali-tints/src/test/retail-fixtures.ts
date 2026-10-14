@@ -629,7 +629,7 @@ export function estimateListFixture(money: boolean, q = "", stage: string = "ope
   const rows: EstimateListRow[] = all
     .filter((e) => (stage === "all" ? true : stage === "open" ? !["closed", "declined", "expired"].includes(fixtureStage(e)) : fixtureStage(e) === stage))
     .filter((e) => !t || e.display_number.toLowerCase().includes(t) || (e.job?.invoice_number ?? "").toLowerCase().includes(t) || (e.customer.display_name ?? "").toLowerCase().includes(t) || (e.vehicle?.name ?? "").toLowerCase().includes(t))
-    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, stage: fixtureStage(e), vehicle_id: e.vehicle?.id ?? null, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total, concern: e.customer_concern ?? null, invoice_number: e.job?.invoice_number ?? null, invoiced_at: e.job?.invoiced_at ?? null, paid_at: e.job?.paid_at ?? null, picked_up_at: e.job?.picked_up_at ?? null, waiting_supplement: e.job?.id === JOBS[C2][0].id, advisor: "MK", tech: e.job ? "VK" : null, ro_number: e.job?.ro_number ?? e.ro_number ?? null, label: e.label ?? null, status_label: e.status_label ?? null, parts_status: e.parts_status ?? "none", due_in: e.due_in ?? null, due_out: e.due_out ?? null, note: metaFor(e.id).note ?? null, holder: e.job ? "VK" : null, mine: [E5, E7, E8, E1].includes(e.id), balance: money && fixtureStage(e) === "unpaid" ? (e.job?.id === JOBS[C2][0].id ? 160 : 415) : null }));
+    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, stage: fixtureStage(e), vehicle_id: e.vehicle?.id ?? null, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total, concern: e.customer_concern ?? null, invoice_number: e.job?.invoice_number ?? null, invoiced_at: e.job?.invoiced_at ?? null, paid_at: e.job?.paid_at ?? null, picked_up_at: e.job?.picked_up_at ?? null, waiting_supplement: e.job?.id === JOBS[C2][0].id, advisor: "MK", tech: e.job ? "VK" : null, ro_number: e.job?.ro_number ?? e.ro_number ?? null, label: e.label ?? null, status_label: e.status_label ?? null, parts_status: e.parts_status ?? "none", due_in: e.due_in ?? null, due_out: e.due_out ?? null, note: metaFor(e.id).note ?? null, holder: e.job ? "VK" : null, tech_id: e.job && e.id !== E8 && e.id !== E2 ? "u2" : null, mine: [E5, E7, E8, E1].includes(e.id), balance: money && fixtureStage(e) === "unpaid" ? (e.job?.id === JOBS[C2][0].id ? 160 : 415) : null }));
   return { count: rows.length, counts, rows };
 }
 
@@ -1152,3 +1152,9 @@ export function signedDocumentsFixture(estimateId: string): import("@/lib/db/typ
   if (estimateId === E7) return [row("doc-e7-1", "estimate", 1.2, 61, "5b8d20aa")];
   return [];
 }
+
+/** The technicians the Workflow board has a column for in the demo. */
+export const retailTechniciansFixture = () => [
+  { id: "u2", name: "Victor Kim", initials: "VK" },
+  { id: "u3", name: "Dee One", initials: "DO" },
+];
