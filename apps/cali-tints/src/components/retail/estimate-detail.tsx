@@ -31,6 +31,7 @@ import { JobStageBar } from "@/components/jobs/job-stage-bar";
 import { InvoiceDocument } from "./invoice-document";
 import { SignaturePad, signatureBlob } from "./signature-pad";
 import { SignaturesCard } from "./signatures-card";
+import { EstimateMeta } from "./estimate-meta";
 import { TransferButton } from "./transfer-dialog";
 import { EstimateStageBadge } from "./estimate-stage-badge";
 import { documentNumber, viewStage } from "@/lib/retail/estimate-stage";
@@ -40,6 +41,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { sectionHeading } from "@/lib/retail/sections";
 import { cn } from "@/lib/utils";
 
+const SOURCE_LABEL: Record<string, string> = { walk_in: "Walk-in", online_booking: "Online booking", referral: "Referral", phone: "Phone", social: "Social", other: "Other" };
 const money = (n: number | null | undefined) => (n === null || n === undefined ? null : formatMoney(n));
 
 /**
@@ -589,7 +591,8 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2" data-testid="estimate-parties">
+      <div className="mt-4"><EstimateMeta e={e} tech={invoiceDoc?.tech ?? null} /></div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2" data-testid="estimate-parties">
         <Card>
           <CardContent className="grid gap-1 pt-5 text-sm">
             <div className="flex items-center gap-2 text-label text-subtle"><UserIcon className="size-4" /> Customer</div>
@@ -597,6 +600,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             {e.customer.phone && <a href={`tel:${e.customer.phone}`} className="text-muted-foreground hover:text-foreground">{formatPhone(e.customer.phone)}</a>}
             {e.customer.email && <span className="min-w-0 truncate text-muted-foreground">{e.customer.email}</span>}
             {!e.customer.phone && !e.customer.email && <span className="text-muted-foreground">No phone or email on file</span>}
+            {(e.previous_visits !== null && e.previous_visits !== undefined) && <span className="mt-1 text-caption text-subtle" data-testid="customer-history">{e.previous_visits} previous {e.previous_visits === 1 ? "visit" : "visits"} · Source {SOURCE_LABEL[e.customer.source ?? ""] ?? "Walk-in"}{e.customer.best_contact ? ` · Best contact ${e.customer.best_contact}` : ""}</span>}
           </CardContent>
         </Card>
         <Card>
@@ -607,7 +611,8 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
                 <span className="text-base font-semibold">{[e.vehicle.name, e.vehicle.trim].filter(Boolean).join(" ")}</span>
                 {e.vehicle.vin && <span className="text-muted-foreground">VIN {e.vehicle.vin}</span>}
                 {(e.vehicle.engine_size || e.vehicle.engine_code) && <span className="text-muted-foreground">Engine {e.vehicle.engine_size}{e.vehicle.engine_code ? ` (${e.vehicle.engine_code})` : ""}</span>}
-                <span className="text-muted-foreground">{[e.vehicle.plate ? `Plate ${e.vehicle.plate}` : null, e.vehicle.color, e.odometer ? `${e.odometer.toLocaleString()} mi in` : null].filter(Boolean).join(" · ")}</span>
+                <span className="text-muted-foreground">{[e.vehicle.plate ? `Plate ${e.vehicle.plate}` : null, e.vehicle.color, e.fleet_number ? `Fleet ${e.fleet_number}` : null].filter(Boolean).join(" · ")}</span>
+                <span className="text-muted-foreground">{[e.odometer ? `Odometer in ${e.odometer.toLocaleString()} mi` : null, e.job?.odometer_out ? `out ${e.job.odometer_out.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}</span>
               </>
             ) : (
               <span className="text-muted-foreground">No car on file</span>

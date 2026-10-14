@@ -12,7 +12,7 @@ const TABS: DashboardTab[] = ["action", "board", "open", "closed"];
 export default async function DevRetailPreview(props: PageProps<"/dev/preview/retail">) {
   const sp = await props.searchParams;
   const { session, canPrices } = previewSession(sp);
-  const who: "mine" | "all" = sp.who === "mine" ? "mine" : "all";
+  const who: "mine" | "all" = sp.who === "all" ? "all" : "mine";
   const view = sp.view === "stage" ? "stage" : "tech";
   const tab: DashboardTab = (TABS as string[]).includes(String(sp.tab)) ? (sp.tab as DashboardTab) : "action";
   const today = retailTodayFixture(canPrices);

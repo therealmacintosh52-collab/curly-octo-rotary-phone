@@ -574,9 +574,23 @@ function estimateBase(id: string) {
   }
 }
 
+/** The fields the shop's own work order shows (0061): label, status word, parts, due times, history. */
+const META: Record<string, Pick<EstimateView, "label" | "status_label" | "parts_status" | "due_in" | "due_out" | "fleet_number" | "previous_visits"> & { note?: string }> = {
+  [E8]: { label: "VIP Customer", status_label: "Needs parts ordered", parts_status: "needed", due_in: ago(0, 0.3), due_out: new Date(Date.now() + 26 * 3600000).toISOString(), previous_visits: 2, note: "Front pad kit on order, arrives tomorrow" },
+  [E5]: { label: "Drop-off", status_label: "Diagnosis / inspection", previous_visits: 1 },
+  [E3]: { status_label: "Checked in", previous_visits: 0 },
+  [E7]: { label: "Waiting", previous_visits: 0, note: "Customer waits in the lobby" },
+  [E1]: { status_label: "Waiting for approval", previous_visits: 3 },
+};
+const metaFor = (id: string) => META[id] ?? {};
+
 export function estimateViewFixture(id: string, money: boolean): EstimateView | null {
   const b = estimateBase(id);
-  return b ? build(money, false, b) : null;
+  if (!b) return null;
+  const v = build(money, false, b);
+  const { note: _note, ...m } = metaFor(id);
+  void _note;
+  return { ...v, parts_status: "none", previous_visits: 1, ...m, customer: { ...v.customer, source: "referral", best_contact: "Text" } };
 }
 
 export function estimatePublicFixture(token: string): EstimateView | null {
@@ -615,7 +629,7 @@ export function estimateListFixture(money: boolean, q = "", stage: string = "ope
   const rows: EstimateListRow[] = all
     .filter((e) => (stage === "all" ? true : stage === "open" ? !["closed", "declined", "expired"].includes(fixtureStage(e)) : fixtureStage(e) === stage))
     .filter((e) => !t || e.display_number.toLowerCase().includes(t) || (e.job?.invoice_number ?? "").toLowerCase().includes(t) || (e.customer.display_name ?? "").toLowerCase().includes(t) || (e.vehicle?.name ?? "").toLowerCase().includes(t))
-    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, stage: fixtureStage(e), vehicle_id: e.vehicle?.id ?? null, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total, concern: e.customer_concern ?? null, invoice_number: e.job?.invoice_number ?? null, invoiced_at: e.job?.invoiced_at ?? null, paid_at: e.job?.paid_at ?? null, picked_up_at: e.job?.picked_up_at ?? null, waiting_supplement: e.job?.id === JOBS[C2][0].id, advisor: "MK", tech: e.job ? "VK" : null, ro_number: e.job?.ro_number ?? e.ro_number ?? null, holder: e.job ? "VK" : null, mine: [E5, E7, E8, E1].includes(e.id), balance: money && fixtureStage(e) === "unpaid" ? (e.job?.id === JOBS[C2][0].id ? 160 : 415) : null }));
+    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, stage: fixtureStage(e), vehicle_id: e.vehicle?.id ?? null, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total, concern: e.customer_concern ?? null, invoice_number: e.job?.invoice_number ?? null, invoiced_at: e.job?.invoiced_at ?? null, paid_at: e.job?.paid_at ?? null, picked_up_at: e.job?.picked_up_at ?? null, waiting_supplement: e.job?.id === JOBS[C2][0].id, advisor: "MK", tech: e.job ? "VK" : null, ro_number: e.job?.ro_number ?? e.ro_number ?? null, label: e.label ?? null, status_label: e.status_label ?? null, parts_status: e.parts_status ?? "none", due_in: e.due_in ?? null, due_out: e.due_out ?? null, note: metaFor(e.id).note ?? null, holder: e.job ? "VK" : null, mine: [E5, E7, E8, E1].includes(e.id), balance: money && fixtureStage(e) === "unpaid" ? (e.job?.id === JOBS[C2][0].id ? 160 : 415) : null }));
   return { count: rows.length, counts, rows };
 }
 

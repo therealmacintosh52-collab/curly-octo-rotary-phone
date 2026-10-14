@@ -13,7 +13,7 @@ export default async function RetailDashboardPage(props: PageProps<"/retail">) {
   const tab: DashboardTab = (TABS as string[]).includes(String(sp.tab)) ? (sp.tab as DashboardTab) : "action";
   const view = sp.view === "stage" ? "stage" : "tech";
   const session = await getSession();
-  const who: "mine" | "all" = sp.who === "mine" ? "mine" : sp.who === "all" ? "all" : session.isAdmin ? "all" : "mine";
+  const who: "mine" | "all" = sp.who === "all" ? "all" : "mine";
   const supabase = await createClient();
   const { data: shops } = await supabase.from("dealerships").select("id, name").eq("retail", true).eq("active", true).order("name");
   const [{ data: open }, { data: closed }, { data: customers }, { data: appts }, { data: texts }, { data: money }, { data: transfers }] = await Promise.all([

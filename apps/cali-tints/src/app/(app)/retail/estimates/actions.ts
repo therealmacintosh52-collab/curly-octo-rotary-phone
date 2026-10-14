@@ -248,3 +248,13 @@ export async function cancelTransferAction(id: string): Promise<ActionResult> {
   revalidatePath("/retail");
   return { ok: true, data: undefined };
 }
+
+/** Label, due times, status word, parts and fleet number on a visit (0061). */
+export async function setEstimateMetaAction(id: string, patch: Partial<Record<"label" | "due_in" | "due_out" | "status_label" | "parts_status" | "fleet_number", string | null>>): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_estimate_meta", { p_id: id, p: patch as Record<string, string | null> });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(id);
+  revalidatePath("/retail");
+  return { ok: true, data: undefined };
+}

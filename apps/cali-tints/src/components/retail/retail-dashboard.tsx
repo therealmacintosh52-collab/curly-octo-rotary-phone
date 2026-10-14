@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { CalendarDaysIcon, ClockIcon, FileTextIcon, LayoutGridIcon, UserIcon, UsersIcon } from "lucide-react";
+import { CalendarDaysIcon, ClockIcon, FileTextIcon, LayoutGridIcon, UserIcon, UsersIcon, WrenchIcon } from "lucide-react";
 import type { CalendarItem, EstimateListRow, EstimateStage, MyTransfers, RetailMoneySummary, TextQueueRow } from "@/lib/db/types";
 import { TextQueue } from "./text-queue";
 import { TransferInbox } from "./transfer-inbox";
 import { TransferButton } from "./transfer-dialog";
+import { Badge } from "@/components/ui/badge";
+import { LABEL_VARIANT, PARTS_VARIANT, partsLabel } from "@/lib/retail/labels";
 import { AppointmentStatusBadge } from "./appointment-status-badge";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
@@ -54,6 +56,7 @@ const SECTIONS: { key: string; title: string; hint: string; pick: (r: EstimateLi
 const daysOpen = (iso: string, now = Date.now()) => Math.floor((now - new Date(iso).getTime()) / 86400000);
 /** A visit that has sat for three days or more and is not waiting on payment is flagged late (red outline, like the shop's board). */
 const isLate = (r: EstimateListRow) => r.stage !== "closed" && r.stage !== "declined" && r.stage !== "expired" && daysOpen(r.created_at) >= 3;
+const statusWord = (r: EstimateListRow) => r.status_label ?? STAGE_META[r.stage ?? "draft"].label;
 const titleOf = (r: EstimateListRow) => r.concern ?? documentNumber(r).primary;
 const splitName = (name: string | null) => {
   const [first, ...rest] = (name ?? "").trim().split(/\s+/);
@@ -126,7 +129,7 @@ function SideCard({ title, icon, children, action, testId }: { title: string; ic
 }
 
 function NeedsAction({ data, tz }: { data: RetailDashboardData; tz: string }) {
-  const who = data.who ?? "all";
+  const who = data.who ?? "mine";
   const pool = who === "mine" ? data.open.filter((r) => r.mine) : data.open;
   const groups = SECTIONS.map((s) => ({ ...s, rows: pool.filter(s.pick) })).filter((g) => g.rows.length > 0);
   const unpaid = data.open.filter((r) => r.stage === "unpaid");
@@ -135,10 +138,11 @@ function NeedsAction({ data, tz }: { data: RetailDashboardData; tz: string }) {
     <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start" data-testid="dash-action">
       <div className="grid gap-5">
         <div className="flex justify-end gap-0.5 rounded-lg bg-muted p-1 sm:ml-auto sm:w-fit" data-testid="dash-who">
-          {([["all", "Everyone", "/retail"], ["mine", "Mine", "/retail?who=mine"]] as const).map(([v, label, href]) => (
+          {([["mine", "Mine", "/retail"], ["all", "Everyone", "/retail?who=all"]] as const).map(([v, label, href]) => (
             <Link key={v} href={href} scroll={false} aria-current={who === v ? "true" : undefined} className={cn("inline-flex h-8 items-center rounded-md px-3 text-sm", who === v ? "bg-card text-foreground surface-raised" : "text-muted-foreground hover:text-foreground")} data-testid={`dash-who-${v}`}>{label}</Link>
           ))}
         </div>
+        <h2 className="flex items-center gap-2 text-sm font-semibold" data-testid="dash-heading"><WrenchIcon className="size-4 text-primary" /> {who === "mine" ? "My Current Jobs" : "Everyone's Current Jobs"}</h2>
         {groups.length === 0 ? (
           <p className="rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground" data-testid="dash-empty">Nothing needs action. Every visit is waiting on the customer, closed, or not started.</p>
         ) : (
@@ -222,16 +226,20 @@ function VisitRow({ r, showMoney, compact, transfer }: { r: EstimateListRow; sho
       <Link href={`/retail/estimates/${r.id}`} aria-label={`Open ${n.primary}`} className="absolute inset-0 rounded-lg" />
       <div className="pointer-events-none">
         <div className="flex items-start justify-between gap-3">
-          <div className={cn("min-w-0 font-semibold", compact ? "line-clamp-2 text-sm" : "line-clamp-2")}>{titleOf(r)}</div>
+          <div className="min-w-0">
+            <div className={cn("font-semibold", compact ? "line-clamp-2 text-sm" : "line-clamp-2")}>{titleOf(r)}</div>
+            {r.label && <Badge variant={LABEL_VARIANT[r.label]} className="mt-1 h-5 px-1.5 text-[11px]" data-testid="row-label">{r.label}</Badge>}
+          </div>
           <div className="shrink-0 text-right">
             <div className={cn("text-caption tabular-nums", late ? "font-medium text-destructive" : "text-subtle")}>{late ? `late ${ageLabel(r.created_at)}` : ageLabel(r.created_at)}</div>
-            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{STAGE_META[r.stage ?? "draft"].label}</div>
+            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground" data-testid="row-status">{statusWord(r)}</div>
           </div>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-3 text-caption">
           <div className="text-subtle">
             {r.advisor && <div>Advisor: <span className="text-muted-foreground">{r.advisor}</span></div>}
             {(r.holder ?? r.tech) && <div>Tech: <span className="text-muted-foreground">{r.holder ?? r.tech}</span></div>}
+            <div className="flex items-center gap-1">Parts: <Badge variant={PARTS_VARIANT[r.parts_status ?? "none"]} className="h-5 px-1.5 text-[11px]" data-testid="row-parts">{partsLabel(r.parts_status)}</Badge></div>
             <div className="tracking-wide">{n.primary}{n.secondary ? ` (${n.secondary})` : ""}</div>
           </div>
           <div className="min-w-0">
@@ -256,13 +264,20 @@ function VisitRow({ r, showMoney, compact, transfer }: { r: EstimateListRow; sho
  * "workflow" tab), or a lane per stage. A card outlined in red is late.
  */
 function Board({ rows, showMoney, by }: { rows: EstimateListRow[]; showMoney: boolean; by: "tech" | "stage" }) {
-  const lanes: { key: string; title: string; items: EstimateListRow[] }[] =
+  type Lane = { key: string; title: string; items: EstimateListRow[] };
+  // By tech: a row of lanes per advisor, a lane per tech under it (the shop's own workflow tab); by stage: one row.
+  const groups: { key: string; title: string | null; lanes: Lane[] }[] =
     by === "stage"
-      ? STAGE_ORDER.filter((s) => s !== "closed").map((stage) => ({ key: stage, title: STAGE_META[stage].label, items: rows.filter((r) => r.stage === stage) }))
+      ? [{ key: "all", title: null, lanes: STAGE_ORDER.filter((s) => s !== "closed").map((stage) => ({ key: stage, title: STAGE_META[stage].label, items: rows.filter((r) => r.stage === stage) })) }]
       : (() => {
-          const techs = Array.from(new Set(rows.map((r) => r.holder ?? r.tech ?? "")));
-          techs.sort((a, b) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b)));
-          return techs.map((t) => ({ key: t || "none", title: t || "Not assigned", items: rows.filter((r) => (r.holder ?? r.tech ?? "") === t) }));
+          const holder = (r: EstimateListRow) => r.holder ?? r.tech ?? "";
+          const techs = Array.from(new Set(rows.map(holder))).sort((x, y) => (x === "" ? 1 : y === "" ? -1 : x.localeCompare(y)));
+          const advisors = Array.from(new Set(rows.map((r) => r.advisor ?? ""))).sort((x, y) => (x === "" ? 1 : y === "" ? -1 : x.localeCompare(y)));
+          return advisors.map((adv) => ({
+            key: adv || "none",
+            title: advisors.length > 1 || adv ? (adv ? `Advisor ${adv}` : "No advisor") : null,
+            lanes: techs.map((t) => ({ key: t || "none", title: t || "Not assigned", items: rows.filter((r) => (r.advisor ?? "") === adv && holder(r) === t) })),
+          }));
         })();
   const toggle = (value: "tech" | "stage", label: string, icon: React.ReactNode) => (
     <Link href={value === "tech" ? "/retail?tab=board" : "/retail?tab=board&view=stage"} scroll={false} aria-current={by === value ? "true" : undefined} className={cn("inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm", by === value ? "bg-card text-foreground surface-raised" : "text-muted-foreground hover:text-foreground")} data-testid={`board-by-${value}`}>
@@ -275,24 +290,31 @@ function Board({ rows, showMoney, by }: { rows: EstimateListRow[]; showMoney: bo
         {toggle("tech", "By tech", <UserIcon className="size-3.5" />)}
         {toggle("stage", "By stage", <LayoutGridIcon className="size-3.5" />)}
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-3" data-testid="dash-board" data-by={by}>
-        {lanes.map((lane) => (
-          <section key={lane.key} className="w-72 shrink-0" data-testid={`board-col-${lane.key}`}>
-            <h2 className="mb-2 flex items-center justify-between px-1 text-sm font-semibold">
-              {lane.title}
-              <span className="rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground">{lane.items.length}</span>
-            </h2>
-            <ul className={cn("grid min-h-24 content-start gap-2 rounded-xl bg-muted/30 p-2", lane.items.length === 0 && "place-items-center")}>
-              {lane.items.length === 0 && <li className="text-caption text-subtle">Nothing here</li>}
-              {lane.items.map((r) => (
-                <li key={r.id}>
-                  <VisitRow r={r} showMoney={showMoney} compact />
-                </li>
+      <div className="grid gap-5" data-testid="dash-board" data-by={by}>
+        {groups.map((g) => (
+          <div key={g.key} data-testid={`board-group-${g.key}`}>
+            {g.title && <h3 className="mb-2 border-b border-border pb-1 text-label text-subtle">{g.title}</h3>}
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {g.lanes.map((lane) => (
+                <section key={lane.key} className="w-72 shrink-0" data-testid={`board-col-${lane.key}`}>
+                  <h2 className="mb-2 flex items-center justify-between px-1 text-sm font-semibold">
+                    {lane.title}
+                    <span className="rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground">{lane.items.length}</span>
+                  </h2>
+                  <ul className={cn("grid min-h-16 content-start gap-2 rounded-xl bg-muted/30 p-2", lane.items.length === 0 && "place-items-center")}>
+                    {lane.items.length === 0 && <li className="text-caption text-subtle">Nothing here</li>}
+                    {lane.items.map((r) => (
+                      <li key={r.id}>
+                        <VisitRow r={r} showMoney={showMoney} compact />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
-          </section>
+            </div>
+          </div>
         ))}
-        {lanes.length === 0 && <p className="text-sm text-muted-foreground">Nothing is open.</p>}
+        {groups.length === 0 && <p className="text-sm text-muted-foreground">Nothing is open.</p>}
       </div>
     </div>
   );
@@ -315,6 +337,7 @@ function VisitTable({ rows, showMoney, testId, empty }: { rows: EstimateListRow[
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-caption text-muted-foreground">
             <tr>
+              <th scope="col" className={th}>Label</th>
               <th scope="col" className={th}>Status</th>
               <th scope="col" className={th}>Started</th>
               <th scope="col" className={th}>RO #</th>
@@ -322,6 +345,7 @@ function VisitTable({ rows, showMoney, testId, empty }: { rows: EstimateListRow[
               <th scope="col" className={th}>Last</th>
               <th scope="col" className={th}>Vehicle</th>
               <th scope="col" className={th}>Title</th>
+              <th scope="col" className={th}>Notes</th>
               <th scope="col" className={th}>Advisor</th>
               <th scope="col" className={th}>Tech</th>
               {showMoney && <th scope="col" className={cn(th, "text-right")}>Amount</th>}
@@ -333,7 +357,8 @@ function VisitTable({ rows, showMoney, testId, empty }: { rows: EstimateListRow[
               const nm = splitName(r.customer);
               return (
                 <tr key={r.id} className={cn("hover:bg-accent/40", isLate(r) && "bg-destructive/5")} data-testid="dash-row">
-                  <td className="px-3 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{STAGE_META[r.stage ?? "draft"].label}</td>
+                  <td className="px-3 py-2.5">{r.label ? <Badge variant={LABEL_VARIANT[r.label]} className="h-5 px-1.5 text-[11px]">{r.label}</Badge> : null}</td>
+                  <td className="px-3 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{statusWord(r)}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">{formatDate(r.created_at)}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap">
                     <Link href={`/retail/estimates/${r.id}`} className="font-semibold tracking-wide text-primary hover:underline">{n.primary}</Link>
@@ -343,8 +368,9 @@ function VisitTable({ rows, showMoney, testId, empty }: { rows: EstimateListRow[
                   <td className="px-3 py-2.5">{nm.last}</td>
                   <td className="max-w-44 px-3 py-2.5 text-muted-foreground">{r.vehicle ?? "—"}</td>
                   <td className="max-w-72 px-3 py-2.5 text-muted-foreground"><span className="line-clamp-2">{r.concern ?? "—"}</span></td>
+                  <td className="max-w-56 px-3 py-2.5 text-muted-foreground"><span className="line-clamp-2">{r.note ?? ""}</span></td>
                   <td className="px-3 py-2.5 text-muted-foreground">{r.advisor ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{r.tech ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{r.holder ?? r.tech ?? "—"}</td>
                   {showMoney && <td className="px-3 py-2.5 text-right tabular-nums">{r.stage === "unpaid" && r.balance != null ? `${formatMoney(r.balance)} due` : r.total !== null ? formatMoney(r.total) : "—"}</td>}
                 </tr>
               );

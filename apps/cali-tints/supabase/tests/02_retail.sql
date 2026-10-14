@@ -2164,3 +2164,29 @@ begin
   assert public.signature_path_for('job', pg_temp.any_auth()) is null, '0059: no signature path for a detailer';
 end $$;
 select pg_temp.logout();
+
+-- 0061: the fields on a work order ---------------------------------------------------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'transfer_est'); f jsonb; d jsonb; x jsonb;
+begin
+  perform public.set_estimate_meta(v_est, jsonb_build_object('label', 'VIP Customer', 'parts_status', 'needed', 'status_label', 'Waiting for approval', 'fleet_number', '12', 'due_in', '2026-10-20T09:00:00Z'));
+  f := public.estimates_filtered(p_limit => 200);
+  x := (select r from jsonb_array_elements(f -> 'rows') r where (r ->> 'id')::uuid = v_est);
+  assert x ->> 'label' = 'VIP Customer' and x ->> 'parts_status' = 'needed' and x ->> 'status_label' = 'Waiting for approval' and x ->> 'due_in' is not null, '0061: the list row carries the label, parts, status and due time';
+  d := public.estimate_detail(v_est);
+  assert d ->> 'label' = 'VIP Customer' and d ->> 'fleet_number' = '12' and (d ->> 'previous_visits') is not null and (d -> 'customer' ->> 'source') is not null and (d -> 'customer' ->> 'best_contact') in ('Text', 'Call'), '0061: the estimate carries its fields, the customer''s history and source';
+  begin perform public.set_estimate_meta(v_est, jsonb_build_object('label', 'Nope')); raise exception 'expected refused'; exception when sqlstate '23514' then null; end;
+  begin perform public.set_estimate_meta(v_est, jsonb_build_object('parts_status', 'lost')); raise exception 'expected refused'; exception when sqlstate '23514' then null; end;
+end $$;
+select pg_temp.logout();
+-- a tech sets the status word and the parts, not the label
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'transfer_est');
+begin
+  perform public.set_estimate_meta(v_est, jsonb_build_object('status_label', 'Needs parts ordered', 'parts_status', 'ordered'));
+  begin perform public.set_estimate_meta(v_est, jsonb_build_object('label', 'Fleet')); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+  begin perform public.set_estimate_meta(v_est, jsonb_build_object('due_out', '2026-10-21T09:00:00Z')); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();

@@ -303,6 +303,8 @@ export type EstimateRow = {
 };
 
 /** estimate_detail() / estimate_by_token(): one estimate, read top to bottom. */
+export type EstimateLabel = "VIP Customer" | "Drop-off" | "Waiting" | "Fleet";
+export type PartsStatus = "none" | "needed" | "ordered" | "arrived";
 export type EstimateView = {
   id: string;
   display_number: string;
@@ -318,6 +320,14 @@ export type EstimateView = {
   customer_concern?: string | null;
   ro_number?: string | null;
   advisor?: string | null;
+  /** The fields the shop's own work order shows (0061). */
+  label?: EstimateLabel | null;
+  due_in?: string | null;
+  due_out?: string | null;
+  status_label?: string | null;
+  parts_status?: PartsStatus;
+  fleet_number?: string | null;
+  previous_visits?: number | null;
   internal_notes: string | null;
   customer_notes: string | null;
   selected_option_id: string | null;
@@ -337,7 +347,7 @@ export type EstimateView = {
   kind?: "quote" | "supplement";
   applied_at?: string | null;
   shop_supplies?: number | null;
-  job?: { id: string; ro_number: string | null; invoice_number?: string | null; invoiced_at?: string | null; tag_number: string; performed_at: string; paid_at: string | null; /** "Close · Picked up" was pressed (0056). */ picked_up_at?: string | null; /** 0057: where the work stands, and the quote that hosts the visit. */ completed_at?: string | null; qc_at?: string | null; primary_estimate_id?: string | null; odometer: number | null } | null;
+  job?: { id: string; ro_number: string | null; invoice_number?: string | null; invoiced_at?: string | null; tag_number: string; performed_at: string; paid_at: string | null; /** "Close · Picked up" was pressed (0056). */ picked_up_at?: string | null; /** 0057: where the work stands, and the quote that hosts the visit. */ completed_at?: string | null; qc_at?: string | null; primary_estimate_id?: string | null; odometer_out?: number | null; odometer: number | null } | null;
   /** The findings this estimate quotes (media URLs signed by the page). */
   findings?: JobFinding[];
   subtotal: number | null;
@@ -345,7 +355,7 @@ export type EstimateView = {
   tax: number | null;
   total: number | null;
   deposit_required: number | null;
-  customer: { id: string; display_name: string | null; first_name: string; phone: string | null; email: string | null };
+  customer: { id: string; display_name: string | null; first_name: string; phone: string | null; email: string | null; source?: string | null; best_contact?: "Text" | "Call" | null };
   vehicle: { id: string; name: string | null; year?: number | null; make?: string | null; model?: string | null; trim?: string | null; engine_size?: string | null; engine_code?: string | null; vin?: string | null; color: string | null; plate: string | null; size_class: VehicleSize } | null;
   options: EstimateOptionView[];
   addons: EstimateAddonView[];
@@ -390,8 +400,14 @@ export type EstimateListRow = {
   tech?: string | null;
   /** What is still owed (owner, admin, advisor). */
   balance?: number | null;
-  /** The work order number once approved (0060). */
+  /** The work order number once approved (0060), the label, status word, parts status, due times and the latest note (0061). */
   ro_number?: string | null;
+  label?: EstimateLabel | null;
+  status_label?: string | null;
+  parts_status?: PartsStatus;
+  due_in?: string | null;
+  due_out?: string | null;
+  note?: string | null;
   /** Initials of whoever holds the visit now, and whether that is me (0058). */
   holder?: string | null;
   mine?: boolean;
@@ -1504,6 +1520,7 @@ export type Database = {
       add_finding_lines: { Args: { p_finding: string; p_lines: { line_type: "labor" | "part" | "fee" | "sublet"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string }[] }; Returns: PricedFinding };
       convert_ro_to_invoice: { Args: { p_job: string }; Returns: { job_id: string; invoice_number: string; invoiced_at: string } };
       check_in_appointment: { Args: { p_id: string; p: CheckInPayload }; Returns: AppointmentView };
+      set_estimate_meta: { Args: { p_id: string; p: Record<string, string | null> }; Returns: undefined };
       transfer_candidates: { Args: Record<string, never>; Returns: TransferCandidate[] };
       transfer_estimate: { Args: { p_estimate: string; p_to: string; p_status?: string; p_message?: string | null }; Returns: string };
       respond_transfer: { Args: { p_id: string; p_accept: boolean }; Returns: undefined };

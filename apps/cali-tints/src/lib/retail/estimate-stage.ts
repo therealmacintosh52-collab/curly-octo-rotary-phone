@@ -44,6 +44,12 @@ export function ageLabel(iso: string, now = Date.now()): string {
   return days <= 0 ? "today" : days === 1 ? "1 day" : `${days} days`;
 }
 
+/** "22m", "3h", "2d": how long a visit has been open, like the shop's timer. */
+export function ageShort(iso: string, now = Date.now()): string {
+  const m = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000));
+  return m < 60 ? `${m}m` : m < 1440 ? `${Math.floor(m / 60)}h` : `${Math.floor(m / 1440)}d`;
+}
+
 /**
  * What the document is called now: an **Estimate** (EST-…) until the customer
  * approves it, a **Work Order** (the RO number) while it is being worked, an
