@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CircleAlertIcon, ClipboardCheckIcon, EllipsisVerticalIcon, FileTextIcon, FilmIcon, PlayIcon, PlusIcon, StickyNoteIcon, VideoIcon, XIcon } from "lucide-react";
+import { CameraIcon, CircleAlertIcon, ClipboardCheckIcon, EllipsisVerticalIcon, FileTextIcon, FilmIcon, PlayIcon, PlusIcon, StickyNoteIcon, VideoIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { FindingRecommendation, FindingSeverity, FindingStatus, JobEstimate, JobFinding } from "@/lib/db/types";
 import { addFindingAction, deleteFindingAction, updateFindingAction, type FindingRef } from "@/app/(app)/jobs/actions";
@@ -259,6 +259,7 @@ export function RoNotes(p: RoNotesProps) {
               </Button>
             )}
           </div>
+          {p.canWrite && p.side && <NoteComposer subject={p.jobId ? { jobId: p.jobId } : { estimateId: p.estimateId! }} onCamera={() => setAdding(true)} />}
         </CardContent>
       </Card>
 
@@ -320,6 +321,42 @@ function mediaCounts(f: JobFinding): string {
   const videos = f.media.filter((m) => isVideoMime(m.mime) || m.kind === "video").length;
   const photos = f.media.length - videos;
   return [photos ? `${photos} ${photos === 1 ? "photo" : "photos"}` : null, videos ? `${videos} ${videos === 1 ? "video" : "videos"}` : null].filter(Boolean).join(" · ");
+}
+
+/** "Write a new note": a quick note under the findings. Publish shows it to the customer with the quote; Keep internal does not. */
+function NoteComposer({ subject, onCamera }: { subject: { jobId: string } | { estimateId: string }; onCamera: () => void }) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [text, setText] = useState("");
+  const [pending, start] = useTransition();
+  const jobId = "jobId" in subject ? subject.jobId : null;
+  function save(internal: boolean) {
+    const t = text.trim();
+    if (!t) return void toast.error("Write the note first");
+    start(async () => {
+      if (demo) {
+        toast.success(internal ? "Internal note added" : "Note published", { description: "Guest preview — nothing changed" });
+        setText("");
+        return;
+      }
+      const r = await addFindingAction({ ...(jobId ? { job_id: jobId } : { estimate_id: ("estimateId" in subject ? subject.estimateId : "") }), customer_visible: !internal, kind: "note", severity: "ok", title: t.slice(0, 120), body: t.length > 120 ? t : null, recommended_service_id: null, recommendation: null });
+      if (!r.ok) return void toast.error(r.error);
+      toast.success(internal ? "Internal note added" : "Note published");
+      setText("");
+      router.refresh();
+    });
+  }
+  return (
+    <div className="mt-3 grid gap-2 border-t border-border pt-3" data-testid="note-composer">
+      <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Write a new note" maxLength={4000} className="min-h-16" data-testid="note-text" />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" size="icon-sm" onClick={onCamera} aria-label="Add a photo or clip" data-testid="note-camera"><CameraIcon /></Button>
+        <span className="mr-auto text-caption text-subtle">{text.trim() ? "Publish shows it to the customer" : "Notes marked internal stay private"}</span>
+        <Button type="button" variant="ghost" size="sm" onClick={() => save(true)} loading={pending} data-testid="note-internal">Keep internal</Button>
+        <Button type="button" size="sm" onClick={() => save(false)} loading={pending} data-testid="note-publish">Publish</Button>
+      </div>
+    </div>
+  );
 }
 
 function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: string } | { estimateId: string }; services: { id: string; name: string }[]; onClose: () => void }) {
@@ -466,12 +503,39 @@ function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: str
  */
 export function RoLayout({ initialTab = "job", count, notes, children, jobLabel = "Job", stack = false }: { initialTab?: "job" | "notes"; count: number; notes: React.ReactNode; children: React.ReactNode; /** The first tab's name on a phone: Job, Estimate, Invoice. */ jobLabel?: string; /** No tabs: the findings are one big block on top on a phone and a wide column beside the page on a wide screen. */ stack?: boolean }) {
   const [tab, setTab] = useState<"job" | "notes">(initialTab);
+  const [panel, setPanel] = useState(true);
+  useEffect(() => {
+    // Open by default on a wide screen; the viewer's choice is remembered (storage can be blocked: ignore).
+    const t = setTimeout(() => {
+      try {
+        if (localStorage.getItem("retail-notes-open") === "0") setPanel(false);
+      } catch {
+        /* storage blocked */
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+  function togglePanel() {
+    setPanel((v) => {
+      try {
+        localStorage.setItem("retail-notes-open", v ? "0" : "1");
+      } catch {
+        /* storage blocked */
+      }
+      return !v;
+    });
+  }
   if (stack) {
     return (
-      <div className="mt-5 flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_440px] xl:items-start">
-        <div className="order-2 min-w-0 xl:order-1">{children}</div>
-        <div className="order-1 min-w-0 xl:sticky xl:top-20 xl:order-2 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto" data-testid="ro-notes">{notes}</div>
-      </div>
+      <>
+        <button type="button" onClick={togglePanel} aria-expanded={panel} aria-label={panel ? "Close the notes" : "Open the notes"} className="fixed top-48 right-0 z-30 hidden items-center gap-1.5 rounded-l-lg border border-r-0 border-border bg-card px-1.5 py-3 text-sm font-medium text-muted-foreground shadow-md hover:text-foreground xl:flex [writing-mode:vertical-rl]" data-testid="notes-handle">
+          <StickyNoteIcon className="size-4 text-primary" /> Notes{count > 0 ? ` (${count})` : ""} {panel ? "›" : "‹"}
+        </button>
+        <div className={cn("mt-5 flex flex-col gap-4 xl:grid xl:items-start", panel ? "xl:grid-cols-[minmax(0,1fr)_440px]" : "xl:grid-cols-1")}>
+          <div className="order-2 min-w-0 xl:order-1">{children}</div>
+          <div className={cn("order-1 min-w-0 xl:sticky xl:top-20 xl:order-2 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto", !panel && "xl:hidden")} data-testid="ro-notes" data-open={panel}>{notes}</div>
+        </div>
+      </>
     );
   }
   return (
