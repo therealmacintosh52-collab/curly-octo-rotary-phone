@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CarIcon, UserIcon, ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
+import { CarIcon, ChevronDownIcon, UserIcon, ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateView } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
@@ -165,6 +165,52 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
               </span>
             );
           };
+          const lineRow = (l: typeof o.lines[number]) => (
+                    <li key={l.id} className="flex items-start justify-between gap-3 py-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 font-medium">
+                          {(l.line_type ?? "service") !== "service" && <Badge variant="muted">{l.line_type}</Badge>}
+                          <span>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</span>
+                          {accepted && o.tier === "single" && l.customer_approved === false && <Badge variant="muted">Declined</Badge>}
+                        </div>
+                        {lineMeta(l) && <div className="text-caption text-subtle">{lineMeta(l)}</div>}
+                        {l.benefit_text && <div className="text-caption text-subtle">{l.benefit_text}</div>}
+                        {l.modifiers.length > 0 && <div className="text-caption text-warning">{l.modifiers.map((m) => m.label).join(", ")}</div>}
+                        {showMoney && l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * ((l.line_type ?? "service") === "labor" ? 1 : l.qty))}</div>}
+                      </div>
+                      {showMoney && <span className={cn("shrink-0 tabular-nums", accepted && o.tier === "single" && l.customer_approved === false && "line-through text-muted-foreground")}>{money(l.line_total)}</span>}
+                    </li>
+          );
+          if (o.tier === "single" && jobs.length > 0) {
+            // One option: the work is numbered sections that open and close, like the shop's own estimate.
+            const groups = jobs.map((j) => ({ job: j, ls: lines.filter((l) => l.estimate_job_id === j.id) }));
+            const rest = lines.filter((l) => !jobs.some((j) => j.id === l.estimate_job_id));
+            return (
+              <div key={o.id} className="grid gap-2" data-testid="estimate-option">
+                {groups.map(({ job: j, ls }, gi) => {
+                  const total = ls.reduce((sum, x) => sum + (x.line_total ?? 0), 0);
+                  return (
+                    <details key={j.id} open className="group rounded-xl border border-border bg-card surface-raised" data-job={j.title}>
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 font-semibold marker:hidden" data-testid="line-section">
+                        <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground -rotate-90 transition-transform group-open:rotate-0" />
+                        <span>{gi + 1}. {j.title}</span>
+                        {j.kind !== "diagnosis" && <Badge variant={j.priority === "safety" ? "destructive" : j.priority === "soon" ? "warning" : "muted"} data-testid="job-priority">{{ safety: "Safety", soon: "Due soon", optional: "Optional" }[j.priority]}</Badge>}
+                        {j.status !== "recommended" && <Badge variant={j.status === "declined" ? "muted" : "success"}>{{ approved: "Approved", declined: "Declined", done: "Done", recommended: "" }[j.status]}</Badge>}
+                        {showMoney && <span className="ml-auto tabular-nums text-muted-foreground">{money(total)}</span>}
+                      </summary>
+                      <ul className="divide-y divide-border border-t border-border px-4 text-sm">{ls.map((l) => lineRow(l))}</ul>
+                    </details>
+                  );
+                })}
+                {rest.length > 0 && (
+                  <div className="rounded-xl border border-border bg-card px-4 text-sm surface-raised">
+                    <ul className="divide-y divide-border">{rest.map((l) => lineRow(l))}</ul>
+                  </div>
+                )}
+                {showMoney && (o.shop_supplies ?? 0) > 0 && <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums">{money(o.shop_supplies)}</span></div>}
+              </div>
+            );
+          }
           return (
             <Card key={o.id} className={cn(isChosen && "border-primary", !accepted && o.recommended && "border-primary/50")} data-testid="estimate-option">
               <CardHeader className="flex-row items-start justify-between gap-3">
@@ -183,20 +229,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
                   {lines.map((l, li) => (
                     <Fragment key={l.id}>
                     {heading(li) && <li className="pt-3 pb-1 text-label text-subtle" data-testid="line-section">{heading(li)}</li>}
-                    <li className="flex items-start justify-between gap-3 py-2">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 font-medium">
-                          {(l.line_type ?? "service") !== "service" && <Badge variant="muted">{l.line_type}</Badge>}
-                          <span>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</span>
-                          {accepted && o.tier === "single" && l.customer_approved === false && <Badge variant="muted">Declined</Badge>}
-                        </div>
-                        {lineMeta(l) && <div className="text-caption text-subtle">{lineMeta(l)}</div>}
-                        {l.benefit_text && <div className="text-caption text-subtle">{l.benefit_text}</div>}
-                        {l.modifiers.length > 0 && <div className="text-caption text-warning">{l.modifiers.map((m) => m.label).join(", ")}</div>}
-                        {showMoney && l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * ((l.line_type ?? "service") === "labor" ? 1 : l.qty))}</div>}
-                      </div>
-                      {showMoney && <span className={cn("shrink-0 tabular-nums", accepted && o.tier === "single" && l.customer_approved === false && "line-through text-muted-foreground")}>{money(l.line_total)}</span>}
-                    </li>
+                    {lineRow(l)}
                     </Fragment>
                   ))}
                 </ul>
@@ -574,6 +607,22 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
         </Card>
       </div>
 
+      {(e.findings ?? []).some((f) => f.kind === "finding") && (
+        <section className="mt-3 rounded-xl border border-border bg-card surface-raised" data-testid="estimate-recommendations">
+          <h2 className="px-4 pt-3 text-sm font-semibold">Current recommendations</h2>
+          <ul className="divide-y divide-border px-4 pb-1 text-sm">
+            {(e.findings ?? []).filter((f) => f.kind === "finding").map((f) => {
+              const st = ({ open: ["Recommended", "info"], quoted: ["Pending approval", "warning"], approved: ["Approved", "success"], declined: ["Declined", "muted"], done: ["Done", "success"] } as const)[f.status] ?? (["Recommended", "info"] as const);
+              return (
+                <li key={f.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="flex min-w-0 items-center gap-2"><span className={cn("inline-block size-2.5 shrink-0 rounded-full", f.severity === "urgent" ? "bg-destructive" : f.severity === "soon" ? "bg-warning" : "bg-success")} /><span className="truncate font-medium">{f.title}</span></span>
+                  <Badge variant={st[1]} className="shrink-0">{st[0]}</Badge>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
       <RoStageBar
         className="mt-4"
         roNumber={num.primary}

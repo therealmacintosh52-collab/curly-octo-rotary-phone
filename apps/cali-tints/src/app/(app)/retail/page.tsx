@@ -11,6 +11,7 @@ const TABS: DashboardTab[] = ["action", "board", "open", "closed"];
 export default async function RetailDashboardPage(props: PageProps<"/retail">) {
   const sp = await props.searchParams;
   const tab: DashboardTab = (TABS as string[]).includes(String(sp.tab)) ? (sp.tab as DashboardTab) : "action";
+  const view = sp.view === "stage" ? "stage" : "tech";
   const session = await getSession();
   const supabase = await createClient();
   const { data: shops } = await supabase.from("dealerships").select("id, name").eq("retail", true).eq("active", true).order("name");
@@ -26,7 +27,7 @@ export default async function RetailDashboardPage(props: PageProps<"/retail">) {
     <RetailDashboard
       shopName={shops?.map((s) => s.name).join(" · ") || "Retail"}
       tz={session.company.timezone}
-      data={{ tab, customers: customers?.count ?? 0, open: open?.rows ?? [], closed: closed?.rows ?? [], counts: open?.counts ?? {}, leads: appts?.leads ?? [], holds: appts?.holds ?? [], appointments: appts?.today ?? [], texts: texts ?? [], showMoney: session.canPrices, money: money ?? null }}
+      data={{ tab, view, customers: customers?.count ?? 0, open: open?.rows ?? [], closed: closed?.rows ?? [], counts: open?.counts ?? {}, leads: appts?.leads ?? [], holds: appts?.holds ?? [], appointments: appts?.today ?? [], texts: texts ?? [], showMoney: session.canPrices, money: money ?? null }}
     />
   );
 }

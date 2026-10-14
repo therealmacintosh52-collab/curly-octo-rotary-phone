@@ -12,6 +12,7 @@ const TABS: DashboardTab[] = ["action", "board", "open", "closed"];
 export default async function DevRetailPreview(props: PageProps<"/dev/preview/retail">) {
   const sp = await props.searchParams;
   const { session, canPrices } = previewSession(sp);
+  const view = sp.view === "stage" ? "stage" : "tech";
   const tab: DashboardTab = (TABS as string[]).includes(String(sp.tab)) ? (sp.tab as DashboardTab) : "action";
   const today = retailTodayFixture(canPrices);
   const open = estimateListFixture(canPrices, "", "open");
@@ -24,7 +25,7 @@ export default async function DevRetailPreview(props: PageProps<"/dev/preview/re
             <RetailNav />
           </div>
           <RetailDashboard
-            data={{ tab, customers: today.customers, open: open.rows, closed: closed.rows, counts: open.counts ?? {}, leads: today.leads, holds: today.holds, appointments: today.appointments, texts: textQueueFixture(), showMoney: canPrices, money: today.money ?? null }}
+            data={{ tab, view, customers: today.customers, open: open.rows, closed: closed.rows, counts: open.counts ?? {}, leads: today.leads, holds: today.holds, appointments: today.appointments, texts: textQueueFixture(), showMoney: canPrices, money: today.money ?? null }}
             shopName="Cali Tint · Fulton Ave"
             tz="America/Los_Angeles"
           />
