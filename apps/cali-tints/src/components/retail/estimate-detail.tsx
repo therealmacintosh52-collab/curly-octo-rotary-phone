@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RoLayout } from "@/components/jobs/ro-notes";
+import { RoStageBar } from "./ro-stage-bar";
 import { sectionHeading } from "@/lib/retail/sections";
 import { cn } from "@/lib/utils";
 import { EstimateStatusBadge } from "./estimate-status-badge";
@@ -346,12 +347,16 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
         {accepted && !supplement && (
           <Card data-testid="estimate-invoice">
             <CardHeader>
-              <CardTitle>Invoice</CardTitle>
+              <CardTitle>{ro?.invoice_number ? "Invoice" : "Repair order"}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
               {ro ? (
                 <>
-                  <p className="text-sm text-muted-foreground">Approved and signed: {ro.invoice_number ?? ro.ro_number ?? ro.tag_number} was created with the approved lines. Payment is collected at the counter, never through QuickBooks.</p>
+                  {ro.invoice_number ? (
+                    <p className="text-sm text-muted-foreground">Approved and signed; the work is done and {ro.invoice_number} was issued from {ro.ro_number ?? ro.tag_number}. Payment is collected at the counter, never through QuickBooks.</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Approved and signed: {ro.ro_number ?? ro.tag_number} is open with the approved lines. The invoice is made from it when the work is done.</p>
+                  )}
                   {canPrices && ro.invoice_number && (
                     <Button asChild data-testid="estimate-open-invoice"><Link href={`/retail/invoices/${ro.id}`}><FileTextIcon /> Open the invoice {ro.invoice_number}</Link></Button>
                   )}
@@ -411,7 +416,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
             <Link href={`/retail/customers/${e.customer.id}`} className="font-medium text-foreground hover:text-primary" data-testid="estimate-customer">{customerName}</Link>
             {e.vehicle && <span data-testid="estimate-car">{[[e.vehicle.name, e.vehicle.trim].filter(Boolean).join(" "), e.vehicle.color, e.vehicle.engine_size ? `${e.vehicle.engine_size}${e.vehicle.engine_code ? ` (${e.vehicle.engine_code})` : ""}` : null, e.vehicle.vin ? `VIN ${e.vehicle.vin}` : null, e.vehicle.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}</span>}
             <Badge variant="outline">{SIZE_LABEL[e.size_class]}</Badge>
-            <span>Written {formatDate(e.created_at)}</span>
+            <span>Written {formatDate(e.created_at)}{e.advisor ? ` · advisor ${e.advisor}` : ""}</span>
             {e.expires_at && open && <span>· good until {formatDate(e.expires_at)}</span>}
           </div>
         </div>
@@ -434,6 +439,22 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
           </div>
         )}
       </div>
+
+      <RoStageBar
+        className="mt-4"
+        roNumber={e.ro_number ?? ro?.ro_number ?? null}
+        hasJob={!!e.job_id}
+        estimateStatus={e.status}
+        invoicedAt={ro?.invoiced_at ?? (ro?.invoice_number ? ro.performed_at : null)}
+        paidAt={ro?.paid_at ?? null}
+        waitingOnApproval={e.status === "sent" || e.status === "viewed"}
+      />
+      {e.customer_concern && (
+        <blockquote className="mt-3 rounded-xl border border-border bg-card px-4 py-3 text-sm" data-testid="estimate-concern">
+          <span className="text-label text-subtle">Customer&apos;s concern, in their words</span>
+          <p className="mt-1 whitespace-pre-wrap">{e.customer_concern}</p>
+        </blockquote>
+      )}
 
       {notes ? (
         <RoLayout initialTab="job" jobLabel="Estimate" count={findingsCount ?? 0} notes={notes}>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDaysIcon, CarFrontIcon, ClockIcon, FileTextIcon, UsersIcon, WalletIcon } from "lucide-react";
+import { CalendarDaysIcon, CarFrontIcon, ClockIcon, FileTextIcon, UsersIcon, WalletIcon, WrenchIcon } from "lucide-react";
 import type { CalendarItem, RetailMoneySummary, TextQueueRow } from "@/lib/db/types";
 import { TextQueue } from "./text-queue";
 import { formatMoney } from "@/lib/money";
@@ -20,6 +20,8 @@ export interface RetailTodayCar {
   customer: string | null;
   performed_at: string;
   paid_at: string | null;
+  /** Set once the repair order is converted to the invoice (0052); null = still work in progress. */
+  invoiced_at?: string | null;
   services: string[];
 }
 
@@ -29,6 +31,8 @@ export interface RetailTodayData {
   today: RetailTodayCar[];
   /** Retail jobs still to collect (any day). */
   unpaid: RetailTodayCar[];
+  /** Repair orders in the shop, approved but not invoiced yet (0052). */
+  inProgress?: RetailTodayCar[];
   /** Online bookings waiting for a confirmation. */
   leads: CalendarItem[];
   /** Spots held right now by someone booking online. */
@@ -124,6 +128,25 @@ export function RetailToday({ data, shopName, tz }: { data: RetailTodayData; sho
           </CardContent>
         </Card>
 
+        {(data.inProgress ?? []).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <WrenchIcon className="size-4 text-primary" /> In the shop
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="divide-y divide-border text-sm" data-testid="retail-in-progress">
+                {(data.inProgress ?? []).map((j) => (
+                  <li key={j.id}>
+                    <CarRow job={j} />
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -208,7 +231,7 @@ function CarRow({ job: j }: { job: RetailTodayCar }) {
         <div className="truncate text-caption text-subtle">{[j.customer ?? "No customer on file", j.services.join(", ")].filter(Boolean).join(" · ")}</div>
       </div>
       <div className="shrink-0 text-right">
-        {j.paid_at ? <Badge variant="success">Paid</Badge> : <Badge variant="warning">Collect</Badge>}
+        {j.paid_at ? <Badge variant="success">Paid</Badge> : j.invoiced_at === null ? <Badge variant="info">In progress</Badge> : <Badge variant="warning">Collect</Badge>}
         <div className="mt-1 text-caption tabular-nums text-subtle">{formatDate(j.performed_at, "MMM d, h:mm a")}</div>
       </div>
     </Link>

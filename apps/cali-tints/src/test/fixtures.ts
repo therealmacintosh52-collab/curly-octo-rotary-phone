@@ -296,24 +296,26 @@ export function jobListFixture(): JobListRow[] {
       for (const c of cars) if (new Date(c.performed_at) <= now) push(c, null);
     }
   }
-  // The shop: two walk-in customers today, one paid on the Clover, one still to collect.
+  // The shop: two walk-ins today (one paid on the Clover, one still to collect) and a repair order still in progress (not invoiced yet).
   const nowIso = new Date().toISOString();
-  for (const [tag, vehicle, paid, customer_id, customer, vehicle_id, vin] of [
-    ["R-101", "2019 Toyota Camry", true, "60000000-0000-4000-8000-000000000001", "Ana Lopez", "70000000-0000-4000-8000-000000000001", "4T1BF1FK5CU123456"],
-    ["R-102", "2022 Tesla Model 3", false, "60000000-0000-4000-8000-000000000002", "Marcus Reed", "70000000-0000-4000-8000-000000000002", "5YJ3E1EA7NF123456"],
+  for (const [tag, vehicle, state, customer_id, customer, vehicle_id, vin, id, ro, ri, color, mins] of [
+    ["R-101", "2019 Toyota Camry", "paid", "60000000-0000-4000-8000-000000000001", "Ana Lopez", "70000000-0000-4000-8000-000000000001", "4T1BF1FK5CU123456", "40000000-0000-4000-8000-000000000998", "RO-000041", "RI-000041", "Silver", 150],
+    ["R-102", "2022 Tesla Model 3", "due", "60000000-0000-4000-8000-000000000002", "Marcus Reed", "70000000-0000-4000-8000-000000000002", "5YJ3E1EA7NF123456", "40000000-0000-4000-8000-000000000999", "RO-000042", "RI-000042", "Red", 40],
+    ["R-103", "2021 Ford F-150", "wip", "60000000-0000-4000-8000-000000000003", "Priya Nair", "70000000-0000-4000-8000-000000000003", "1FTEW1EP7MFA12345", "40000000-0000-4000-8000-000000000997", "RO-000044", null, "Obsidian Black", 25],
   ] as const) {
     n += 1;
+    const at = new Date(Date.now() - mins * 60000).toISOString();
     rows.push({
-      id: `40000000-0000-4000-8000-${paid ? "000000000998" : "000000000999"}`,
+      id,
       customer_id,
       customer,
       vehicle_id,
-      performed_at: new Date(Date.now() - (paid ? 150 : 40) * 60000).toISOString(),
+      performed_at: at,
       day: ymdOf(new Date()),
       tag,
       vin,
       vehicle,
-      color: paid ? "Silver" : "Red",
+      color,
       ...FUL,
       detailer_id: "u2",
       detailer: "Victor",
@@ -323,9 +325,10 @@ export function jobListFixture(): JobListRow[] {
       invoice_status: null,
       quickbooks_doc_number: null,
       retail: true,
-      ro_number: paid ? "RO-000041" : "RO-000042",
-      retail_invoice_number: paid ? "RI-000041" : "RI-000042",
-      paid_at: paid ? nowIso : null,
+      ro_number: ro,
+      retail_invoice_number: ri,
+      invoiced_at: ri ? at : null,
+      paid_at: state === "paid" ? nowIso : null,
       photo_count: 0,
       deleted: false,
     });

@@ -76,6 +76,8 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
             <Text style={s.title}>ESTIMATE</Text>
             <View style={{ marginTop: 8 }}>
               <View style={s.metaRow}><Text style={s.metaKey}>Estimate #</Text><Text style={s.metaVal}>{e.display_number}</Text></View>
+              {e.ro_number ?? e.job?.ro_number ? <View style={s.metaRow}><Text style={s.metaKey}>Repair order</Text><Text style={s.metaVal}>{e.ro_number ?? e.job?.ro_number}</Text></View> : null}
+              {e.advisor ? <View style={s.metaRow}><Text style={s.metaKey}>Advisor</Text><Text style={s.metaVal}>{e.advisor}</Text></View> : null}
               <View style={s.metaRow}><Text style={s.metaKey}>Date</Text><Text style={s.metaVal}>{format(new Date(e.created_at), "MMM d, yyyy")}</Text></View>
               {e.expires_at ? <View style={s.metaRow}><Text style={s.metaKey}>Good until</Text><Text style={s.metaVal}>{format(new Date(e.expires_at), "MMM d, yyyy")}</Text></View> : null}
               {e.po_number ? <View style={s.metaRow}><Text style={s.metaKey}>PO</Text><Text style={s.metaVal}>{e.po_number}</Text></View> : null}
@@ -157,6 +159,12 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
         </View>
 
         <View style={s.notes} wrap={false}>
+          {e.customer_concern ? (
+            <>
+              <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Your concern</Text>
+              <Text style={[s.small, { marginBottom: 8 }]}>{e.customer_concern}</Text>
+            </>
+          ) : null}
           {e.customer_notes ? (
             <>
               <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Notes</Text>

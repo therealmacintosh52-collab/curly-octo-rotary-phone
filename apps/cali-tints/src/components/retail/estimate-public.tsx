@@ -126,7 +126,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
         <div className="text-right">
           <div className="text-caption text-subtle">Estimate</div>
           <div className="font-semibold tracking-wide">{e.display_number}</div>
-          {e.job && <div className="text-caption text-subtle" data-testid="public-ro">Repair order {e.job.ro_number ?? e.job.tag_number}</div>}
+          {(e.ro_number || e.job) && <div className="text-caption text-subtle" data-testid="public-ro">Repair order {e.ro_number ?? e.job?.ro_number ?? e.job?.tag_number}</div>}
         </div>
       </header>
 
@@ -135,6 +135,9 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
         <p className="mt-1 text-sm text-muted-foreground">
           {draft ? `Our tech went over the ${e.vehicle?.name ?? "car"} and wrote up what they found.` : e.job ? `While the ${e.vehicle?.name ?? "car"} is in the shop we found a few things. ` : `Here is your estimate${e.vehicle?.name ? ` for the ${e.vehicle.name}` : ""}.`}{draft ? "" : e.options.length > 1 ? " Pick the option you want, add anything extra, then sign to approve." : single ? " Keep what you want done, untick the rest, then sign to approve." : " Add anything extra, then sign to approve."}
         </p>
+        {e.customer_concern && (
+          <p className="mt-3 whitespace-pre-wrap rounded-lg border border-border px-3 py-2 text-sm" data-testid="public-concern"><span className="block text-label text-subtle">What you told us</span>{e.customer_concern}</p>
+        )}
         {e.customer_notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-muted/50 px-3 py-2 text-sm">{e.customer_notes}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-caption text-subtle">
           {e.expires_at && <span className="inline-flex items-center gap-1"><ClockIcon className="size-3.5" /> Good until {formatDate(e.expires_at)}</span>}

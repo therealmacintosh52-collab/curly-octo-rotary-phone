@@ -137,6 +137,19 @@ export async function signReceiptAction(jobId: string, signaturePath: string, na
   return { ok: true, data: undefined };
 }
 
+/** Convert a finished retail repair order to the customer's invoice (RI-…): advisor, admin, owner (0052). */
+export async function convertRoToInvoiceAction(jobId: string): Promise<ActionResult<{ invoice_number: string }>> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner, an admin or an advisor converts a repair order to an invoice" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("convert_ro_to_invoice", { p_job: jobId });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidateJob(jobId);
+  revalidatePath("/retail/invoices");
+  revalidatePath("/retail/jobs");
+  return { ok: true, data: { invoice_number: data.invoice_number } };
+}
+
 /** The customer's receipt link, for texting (owner/admin/manager). */
 export async function receiptLinkAction(jobId: string): Promise<ActionResult<{ url: string }>> {
   const supabase = await createClient();

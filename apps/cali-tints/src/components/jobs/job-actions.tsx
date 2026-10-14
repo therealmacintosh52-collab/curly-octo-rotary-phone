@@ -28,7 +28,7 @@ export function JobActions({
   canRestore,
   lockedReason,
 }: {
-  job: EditableCar;
+  job: EditableCar & { retail?: boolean };
   priceList: PriceListRow[];
   detailers: { id: string; full_name: string }[];
   isAdmin: boolean;
@@ -94,6 +94,7 @@ export function JobActions({
           isAdmin={isAdmin}
           showMoney={false}
           canSetAmount={canSetAmount}
+          linesLocked={!!job.retail}
           title={`Edit job · ${job.tag_number}`}
           description="Fix the stock number, VIN, car, date, services or notes. The change shows on the month's invoice."
           save={async (input) => {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArchiveIcon, ArrowLeftIcon, CameraIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
-import type { JobEstimate, JobFinding, PriceListRow } from "@/lib/db/types";
+import type { JobEstimate, JobFinding, PriceListRow, RoAuthorization } from "@/lib/db/types";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { Page } from "@/components/app/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { JobPhotos } from "./job-photos";
 import type { RetailCharge } from "@/lib/db/types";
 import { RetailPayment, type RetailPaymentInfo } from "./retail-payment";
 import { RoLayout, RoNotes } from "./ro-notes";
+import { RoInvoiceCard } from "./ro-invoice-card";
+import { RoStageBar } from "@/components/retail/ro-stage-bar";
 import type { EditableCar } from "./edit-car-sheet";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +30,11 @@ export interface JobDetailProps {
     ro_number?: string | null;
     /** The retail invoice number (RI-…, 0047): the shop's own invoice, never on a dealership invoice or in QuickBooks. */
     retail_invoice_number?: string | null;
+    /** Set when the repair order was converted to the customer's invoice (0052). */
+    invoiced_at?: string | null;
+    /** The customer's concern in their words, and the mileage that came in (0052). */
+    customer_concern?: string | null;
+    mileage_in?: number | null;
     payment?: RetailPaymentInfo;
     deleted_at: string | null;
     deleted_reason: string | null;
@@ -53,6 +60,11 @@ export interface JobDetailProps {
   initialTab?: "job" | "notes";
   /** The estimates written on this RO (0044). */
   estimates?: JobEstimate[];
+  /** The authorization record of a retail repair order (0052), and how many lines nothing covers. */
+  authorizations?: RoAuthorization[];
+  unauthorized?: number;
+  /** Owner, admin, advisor: converts the repair order to an invoice. */
+  canConvert?: boolean;
 }
 
 const vehicle = (v: { year: number | null; make: string | null; model: string | null }) => [v.year, v.make, v.model].filter(Boolean).join(" ");
@@ -73,19 +85,10 @@ export function JobDetail(p: JobDetailProps) {
   const paidAtCounter = !!job.payment?.paid_at;
   const estimates = p.estimates ?? [];
   const waiting = estimates.filter((e) => e.status === "sent" || e.status === "viewed").length;
-  const toApply = estimates.filter((e) => e.status === "accepted" && !e.applied_at).length;
-  const applied = estimates.filter((e) => !!e.applied_at).reduce((s, e) => s + e.lines, 0);
+  const invoiced = !!job.invoiced_at;
+  // A retail repair order shows its stage bar instead of these steps (0052).
   const steps: { label: string; detail: string; state: "done" | "now" | "todo" | "off" }[] = retail
-    ? [
-        { label: "Logged", detail: `${formatDate(job.performed_at)} · ${job.dealership_name}`, state: "done" },
-        ...(waiting || toApply || applied ? [{ label: waiting ? "Waiting on approval" : toApply ? "Approved" : "Approved work added", detail: waiting ? `${waiting} ${waiting === 1 ? "estimate" : "estimates"} with the customer` : toApply ? "Add the approved work to the RO from the notes tab" : `${applied} ${applied === 1 ? "line" : "lines"} from the estimate`, state: (waiting ? "now" : toApply ? "now" : "done") as "now" | "done" }] : []),
-        deleted
-          ? { label: "Deleted", detail: `${formatDate(job.deleted_at)}${job.deleted_reason ? ` · ${job.deleted_reason}` : ""} · in the archive`, state: "off" }
-          : paidAtCounter
-            ? { label: "Paid at the counter", detail: `${job.payment?.payment_method === "clover" ? "Card on the Clover" : job.payment?.payment_method === "cash" ? "Cash" : job.payment?.payment_method === "check" ? "Check" : "Paid"} · ${formatDate(job.payment!.paid_at!)}`, state: "done" }
-            : { label: "Collect at the counter", detail: "Retail customer: card on the Clover, or cash / check", state: "now" },
-        { label: "Done", detail: paidAtCounter ? "Nothing else to do" : "—", state: deleted ? "off" : paidAtCounter ? "done" : "todo" },
-      ]
+    ? []
     : [
     { label: "Logged", detail: `${formatDate(job.performed_at)} · ${job.dealership_name}`, state: "done" },
     deleted
@@ -115,7 +118,7 @@ export function JobDetail(p: JobDetailProps) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-title tracking-wide">{title}</h1>
-            {deleted ? <Badge variant="destructive">Deleted</Badge> : retail ? (paidAtCounter ? <Badge variant="success">Paid</Badge> : <Badge variant="warning">Collect</Badge>) : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
+            {deleted ? <Badge variant="destructive">Deleted</Badge> : retail ? (paidAtCounter ? <Badge variant="success">Paid</Badge> : invoiced ? <Badge variant="warning">Collect</Badge> : <Badge variant="info">Work in progress</Badge>) : inv ? <Badge variant="info">{job.quickbooks_doc_number ? `QB ${job.quickbooks_doc_number}` : inv.display_number}</Badge> : job.quickbooks_doc_number ? <Badge variant="muted">QB {job.quickbooks_doc_number}</Badge> : <Badge variant="muted">Not in QuickBooks yet</Badge>}
             {retail && <Badge variant="muted">Retail</Badge>}
             {roTitle && <Badge variant="outline" data-testid="job-tag">Tag {job.tag_number}</Badge>}
             {canSetAmount && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
@@ -137,6 +140,10 @@ export function JobDetail(p: JobDetailProps) {
         <JobActions job={job} priceList={p.priceList} detailers={p.detailers} isAdmin={isAdmin} canSetAmount={canSetAmount} canEdit={p.canEdit} canDelete={p.canDelete} canRestore={p.canRestore} lockedReason={!p.canEdit && !deleted && inv ? "On an invoice, so the job is locked" : null} />
       </div>
 
+      {retail && !deleted && (
+        <RoStageBar className="mt-5" roNumber={job.ro_number} hasJob lineCount={job.services.length} invoicedAt={job.invoiced_at} paidAt={job.payment?.paid_at ?? null} waitingOnApproval={waiting > 0} />
+      )}
+
       {retail ? (
         <RoLayout initialTab={p.initialTab} count={(p.findings ?? []).length} notes={<RoNotes jobId={job.id} roNumber={job.ro_number ?? null} findings={p.findings ?? []} fromLastTime={p.fromLastTime ?? []} services={p.retailServices ?? []} canWrite={!!p.canNote && !deleted} canDeleteAny={canSetAmount && isAdmin} userId={p.userId ?? ""} estimates={estimates} canQuote={canSetAmount} jobOpen={!deleted && !paidAtCounter} />}>
           {body(p, steps, retail, deleted, isAdmin, canSetAmount)}
@@ -153,6 +160,7 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
   return (
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="flex min-w-0 flex-col gap-4">
+          {!retail && (
           <Card>
             <CardHeader>
               <CardTitle>Where it stands</CardTitle>
@@ -182,6 +190,7 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
               </ol>
             </CardContent>
           </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -205,6 +214,8 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
                     }
                   />
                 )}
+                {retail && job.customer_concern && <Fact label="Concern" value={<span className="whitespace-pre-wrap" data-testid="job-concern">{job.customer_concern}</span>} />}
+                {retail && job.mileage_in != null && <Fact label="Mileage in" value={<span data-testid="job-mileage-in">{job.mileage_in.toLocaleString()} mi</span>} />}
                 <Fact label="Vehicle" value={vehicle(job) || "—"} />
                 <Fact label="Color" value={job.color ?? "—"} />
                 <Fact
@@ -244,7 +255,7 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
                 {job.services.map((s, i) => (
                   <li key={i} className="flex items-baseline justify-between gap-4 py-2">
                     <div className="min-w-0">
-                      <div>{s.label || s.name}</div>
+                      <div>{s.label || s.name}{retail && !job.invoiced_at && s.authorized === false && <Badge variant="warning" className="ml-2 align-middle" data-testid="line-unauthorized">Not authorized</Badge>}</div>
                       {canSetAmount && s.needs_price && <div className="text-caption text-warning">Needs a price: tap Edit job and set the amount</div>}
                     </div>
                   </li>
@@ -255,7 +266,13 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          {retail && job.payment && <RetailPayment jobId={job.id} payment={job.payment} charge={p.charge ?? null} canRecordByHand={isAdmin && canSetAmount} open={!deleted} />}
+          {retail && !deleted && <RoInvoiceCard jobId={job.id} authorizations={p.authorizations ?? []} unauthorized={p.unauthorized ?? 0} lineCount={job.services.length} invoiced={!!job.invoiced_at} canConvert={!!p.canConvert} showMoney={canSetAmount} />}
+          {retail && job.payment && job.invoiced_at && <RetailPayment jobId={job.id} payment={job.payment} charge={p.charge ?? null} canRecordByHand={isAdmin && canSetAmount} open={!deleted} />}
+          {retail && job.payment && !job.invoiced_at && !deleted && (
+            <Card>
+              <CardContent className="pt-5 text-sm text-muted-foreground" data-testid="payment-waits">Payment opens at the counter once this repair order is converted to an invoice.</CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

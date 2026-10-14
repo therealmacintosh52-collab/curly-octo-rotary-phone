@@ -21,6 +21,7 @@ export const updateJobSchema = z.object({
   performed_at: z.string().datetime({ offset: true }),
   ro_po_number: z.string().trim().max(40).nullable(),
   notes: z.string().trim().max(2000).nullable(),
-  services: z.array(serviceLine).min(1),
+  /** Left out for a retail repair order: its lines change through an estimate (0052). */
+  services: z.array(serviceLine).min(1).optional(),
 });
 export type UpdateJobInput = z.input<typeof updateJobSchema>;

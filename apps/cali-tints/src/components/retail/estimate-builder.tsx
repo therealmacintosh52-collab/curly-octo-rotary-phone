@@ -123,6 +123,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   const [po, setPo] = useState(estimate?.po_number ?? "");
   const [miles, setMiles] = useState(estimate?.odometer ? String(estimate.odometer) : (carHint?.odometer ?? ""));
   const [customerNotes, setCustomerNotes] = useState(estimate?.customer_notes ?? "");
+  const [concern, setConcern] = useState(estimate?.customer_concern ?? "");
   const [internalNotes, setInternalNotes] = useState(estimate?.internal_notes ?? "");
   const [adding, setAdding] = useState<{ scope: "option" | "addon"; key?: string; section?: "diagnosis" | "repair"; type: LineType } | null>(null);
 
@@ -199,6 +200,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
       po_number: po.trim() || null,
       odometer: miles ? Number(miles) : null,
       customer_notes: customerNotes.trim() || null,
+      customer_concern: concern.trim() || null,
       internal_notes: internalNotes.trim() || null,
       options: options.map((o, i) => ({ tier: tierFor(i, options.length), name: o.name.trim() || TIER_NAMES[tierFor(i, options.length)], description: o.description.trim() || null, recommended: o.recommended, lines: diagnosisFirst(o.lines).map(toInput) })),
       addons: addons.map((a) => ({ ...(toInput(a) as Extract<EstimateLineInput, { service_id: string }>), default_on: a.default_on })),
@@ -323,6 +325,10 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
               <CardContent className="grid gap-3">
                 <CustomerPicker value={pick} onChange={setPick} carDraft={carDraft} recent={recent} onVehiclePicked={(v) => { if (v.size_class) setSize(v.size_class); setCar(carFrom(v)); }} />
                 {pick.customer && <p className="text-caption text-subtle">Their cars are on the right; pick one or type a new one. The estimate starts as a draft the moment you pick them.</p>}
+                <div className="grid gap-1.5">
+                  <Label htmlFor="e-concern">What the customer says is wrong</Label>
+                  <Textarea id="e-concern" value={concern} onChange={(e) => setConcern(e.target.value)} placeholder="In their own words: “Squeals when I brake, worse in the morning.”" className="min-h-20" data-testid="estimate-concern-input" />
+                </div>
               </CardContent>
             </Card>
 

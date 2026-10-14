@@ -14,6 +14,16 @@ language sql security definer as $$
   select price from public.job_services where job_id = p_job and (p_service is null or service_id = p_service) limit 1;
 $$;
 
+-- 0052: an RO becomes an invoice when it is converted; these tests authorize a job's lines and convert it.
+create or replace function pg_temp.invoice_it(p_job uuid) returns void language plpgsql security definer as $$
+declare a uuid;
+begin
+  insert into public.job_authorizations (company_id, job_id, kind, amount, name, method, by_staff)
+  select company_id, id, 'initial', 0, 'Test', 'in_person', true from public.jobs where id = p_job returning id into a;
+  update public.job_services set authorization_id = a where job_id = p_job and authorization_id is null;
+  perform public.convert_ro_to_invoice(p_job);
+end $$;
+
 -- Retail work normally starts from an estimate (0048); these tests log retail jobs directly on purpose.
 select set_config('app.allow_retail_job', 'on', false);
 
@@ -1262,10 +1272,16 @@ select pg_temp.logout();
 select pg_temp.login('10000000-0000-4000-8000-000000000001');
 do $$
 declare v_job uuid := (select v from r_ids where k = 'job_det'); n int; l jsonb; d jsonb; first_no text;
+declare r record;
 begin
-  -- numbers: every retail job has RI-…, no dealership job has one, all distinct
-  select count(*) into n from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where dd.retail and j.retail_invoice_number is null;
-  assert n = 0, '0047: every retail job has an invoice number: ' || n;
+  -- (0052) the invoice number is minted at conversion: convert the repair orders these tests built
+  for r in select j.id from public.jobs j join public.dealerships dd on dd.id = j.dealership_id
+           where dd.retail and j.deleted_at is null and j.invoiced_at is null and exists (select 1 from public.job_services js where js.job_id = j.id) loop
+    perform pg_temp.invoice_it(r.id);
+  end loop;
+  -- numbers: every converted retail job has RI-…, no dealership job has one, all distinct
+  select count(*) into n from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where dd.retail and j.invoiced_at is not null and j.retail_invoice_number is null;
+  assert n = 0, '0047: every converted retail job has an invoice number: ' || n;
   select count(*) into n from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where not dd.retail and j.retail_invoice_number is not null;
   assert n = 0, '0047: no dealership job has a retail invoice number';
   assert (select count(*) from public.jobs where retail_invoice_number is not null and retail_invoice_number !~ '^RI-[0-9]{6}$') = 0, '0047: RI format';
@@ -1377,13 +1393,23 @@ begin
   assert (ed ->> 'job_id') is not null and (ed ->> 'applied_at') is not null, '0048: approval created the job and applied it';
   v_cust := (ed -> 'customer' ->> 'id')::uuid;
   select * into j from public.jobs where id = (ed ->> 'job_id')::uuid;
-  assert j.ro_number like 'RO-%' and j.retail_invoice_number ~ '^RI-[0-9]{6}$' and j.customer_id = v_cust and j.vehicle_id = (ed -> 'vehicle' ->> 'id')::uuid and j.invoice_id is null, '0048: RO and RI numbers, the customer and car, no dealership invoice';
+  assert j.ro_number like 'RO-%' and j.retail_invoice_number is null and j.invoiced_at is null and j.customer_id = v_cust and j.vehicle_id = (ed -> 'vehicle' ->> 'id')::uuid and j.invoice_id is null, '0048/0052: approval makes the RO (numbered, no invoice yet)';
+  assert (ed ->> 'ro_number') = j.ro_number, '0052: the RO number was minted with the estimate (at send) and the job kept it';
   assert (select count(*) from public.job_services where job_id = j.id) = 2, '0048: both approved lines are on it';
-  assert (ed -> 'job' ->> 'invoice_number') = j.retail_invoice_number, '0048: the estimate carries its invoice number';
+  assert (ed -> 'job' ->> 'invoice_number') is null and (ed -> 'job' ->> 'invoiced_at') is null, '0052: the estimate shows no invoice yet';
+  assert (select count(*) from public.job_services where job_id = j.id and estimate_line_id is not null and authorization_id is not null) = 2 and (select count(*) from public.job_services where job_id = j.id and authorization_id is null) = 0, '0052: lines tie to their estimate line and the authorization';
+  assert (select count(*) from public.job_authorizations where job_id = j.id and kind = 'estimate' and estimate_id = v_est) = 1, '0052: the authorization is on the RO';
   assert (public.retail_charge(j.id) ->> 'subtotal')::numeric = (ed ->> 'subtotal')::numeric, '0048: at the quoted prices';
-  assert (public.retail_charge(j.id) ->> 'total')::numeric = (ed ->> 'total')::numeric, '0048: the invoice total is the estimate total';
+  assert (public.retail_charge(j.id) ->> 'total')::numeric = (ed ->> 'total')::numeric, '0048: the RO total is the estimate total';
   assert (select count(*) from public.jobs where customer_id = v_cust and tag_number = replace(ed ->> 'display_number', 'EST-', 'E-')) = 1, '0048: exactly one job';
   assert (public.convert_estimate_to_job(v_est)).id = j.id and (select count(*) from public.job_services where job_id = j.id) = 2, '0048: the fallback button changes nothing';
+  assert not exists (select 1 from jsonb_array_elements(public.retail_invoices_filtered(null, 'all') -> 'rows') x where (x ->> 'id')::uuid = j.id), '0052: work in progress is not in Retail → Invoices';
+  begin perform public.retail_invoice_detail(j.id); raise exception 'expected no invoice yet'; exception when sqlstate 'P0002' then null; end;
+  -- converting issues the invoice number once
+  assert (public.convert_ro_to_invoice(j.id) ->> 'invoice_number') ~ '^RI-[0-9]{6}$', '0052: convert mints the RI number';
+  select * into j from public.jobs where id = j.id;
+  assert j.invoiced_at is not null and j.retail_invoice_number is not null, '0052: invoiced';
+  begin perform public.convert_ro_to_invoice(j.id); raise exception 'expected already invoiced'; exception when sqlstate 'P0001' then null; end;
   l := public.retail_invoices_filtered(j.retail_invoice_number, 'all');
   assert jsonb_array_length(l -> 'rows') = 1 and (l -> 'rows' -> 0 ->> 'status') = 'unpaid' and (l -> 'rows' -> 0 ->> 'customer') is not null, '0048: it shows in Retail → Invoices as unpaid';
   d := public.retail_invoice_detail(j.id);
@@ -1399,7 +1425,7 @@ begin
   e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Yes', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))))));
   perform public.send_estimate(e.id);
   e := public.mark_estimate_accepted(e.id, (select (o ->> 'id')::uuid from jsonb_array_elements(public.estimate_detail(e.id) -> 'options') o limit 1), '{}', 'Ana at the counter', 'in_person');
-  assert (public.estimate_detail(e.id) ->> 'job_id') is not null, '0048: a counter approval makes the invoice too';
+  assert (public.estimate_detail(e.id) ->> 'job_id') is not null and (public.estimate_detail(e.id) ->> 'ro_number') is not null, '0048: a counter approval makes the RO too';
 end $$;
 select pg_temp.logout();
 select pg_temp.login('10000000-0000-4000-8000-000000000004');
@@ -1430,6 +1456,7 @@ begin
   perform public.mark_estimate_accepted(e.id, (select (o ->> 'id')::uuid from jsonb_array_elements(public.estimate_detail(e.id) -> 'options') o limit 1), '{}', 'Ana', 'in_person');
   v_job := (public.estimate_detail(e.id) ->> 'job_id')::uuid;
   assert v_job is not null and (select reading from public.odometer_readings where job_id = v_job) = 48300, '0049: the job carries the mileage';
+  perform pg_temp.invoice_it(v_job);
   assert (public.retail_invoice_detail(v_job) ->> 'odometer')::int = 48300, '0049: the invoice shows the mileage';
   -- the car lookup: plate with any spacing/case, or VIN; nothing for an unknown car
   declare v_plate text; v_vin text; f jsonb; begin
@@ -1527,6 +1554,9 @@ begin
   assert v_job is not null, '0050: approved';
   assert (select count(*) from public.job_findings where estimate_id = v_est and job_id = v_job) = 2 and (select count(*) from public.job_photos where estimate_id = v_est and job_id = v_job) = 2, '0050: findings and media moved onto the job';
   assert jsonb_array_length(public.estimate_findings(v_est)) = 2 and jsonb_array_length(public.job_findings(v_job)) >= 2, '0050: estimate and job list the same rows';
+  v_link := public.receipt_link(v_job);
+  assert length(v_link) >= 20 and (public.receipt_by_token(v_link) ->> 'invoice_number') is null, '0052: the customer link works on work in progress, with no invoice number yet';
+  perform pg_temp.invoice_it(v_job);
   d := public.retail_invoice_detail(v_job);
   assert jsonb_array_length(d -> 'findings') >= 2, '0050: the invoice carries the findings';
   -- the invoice link works while it is unpaid, and shows only what the customer may see
@@ -1594,8 +1624,120 @@ declare v_est uuid := (select v from e50 where k = 'e51')::uuid; e public.estima
 begin
   perform public.mark_estimate_accepted(v_est, (select (o ->> 'id')::uuid from jsonb_array_elements(public.estimate_detail(v_est) -> 'options') o limit 1), '{}', 'Ana', 'in_person');
   v_job := (public.estimate_detail(v_est) ->> 'job_id')::uuid;
+  perform pg_temp.invoice_it(v_job);
   d := public.retail_invoice_detail(v_job);
   assert exists (select 1 from jsonb_array_elements(d -> 'lines') l where l ->> 'name' like 'Diagnosis · Diagnose the noise%'), '0051: the diagnosis line on the invoice: ' || (d -> 'lines')::text;
   assert exists (select 1 from jsonb_array_elements(d -> 'lines') l where l ->> 'name' like 'Replace front pads%'), '0051: the repair line';
+end $$;
+select pg_temp.logout();
+
+-- 0052: one repair order through its stages -----------------------------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare
+  v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda');
+  e public.estimates; ed jsonb; s public.estimates; j public.jobs; v_job uuid; r jsonb;
+begin
+  -- the concern in the customer's words; the RO number only once the estimate is sent
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh, 'customer_concern', 'Squeal when I brake, worse in the morning',
+         'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))))));
+  ed := public.estimate_detail(e.id);
+  assert (ed ->> 'customer_concern') = 'Squeal when I brake, worse in the morning' and (ed ->> 'ro_number') is null, '0052: the concern is saved; no RO number on a draft';
+  perform public.update_estimate(e.id, jsonb_build_object('customer_concern', 'Squeal when I brake'));
+  assert (public.estimate_detail(e.id) ->> 'customer_concern') = 'Squeal when I brake', '0052: the concern is editable';
+  perform public.send_estimate(e.id);
+  ed := public.estimate_detail(e.id);
+  assert (ed ->> 'ro_number') like 'RO-%', '0052: the RO number is minted when it is sent';
+  perform public.send_estimate(e.id);
+  assert (public.estimate_detail(e.id) ->> 'ro_number') = (ed ->> 'ro_number'), '0052: sending again keeps it';
+  assert (public.estimate_detail(e.id) -> 'customer' ->> 'id') is not null and (ed -> 'advisor') is not null, '0052: the advisor rides on the estimate';
+  -- approval (in person) makes the RO under that number, carrying the concern and the advisor
+  perform public.mark_estimate_accepted(e.id, (select (o ->> 'id')::uuid from jsonb_array_elements(ed -> 'options') o limit 1), '{}', 'Ana at the counter', 'in_person');
+  v_job := (public.estimate_detail(e.id) ->> 'job_id')::uuid;
+  select * into j from public.jobs where id = v_job;
+  assert j.ro_number = ed ->> 'ro_number' and j.customer_concern = 'Squeal when I brake' and j.advisor_id = '10000000-0000-4000-8000-000000000001' and j.invoiced_at is null, '0052: the RO keeps the number, the concern and the advisor';
+  -- a supplement carries the RO it was written for
+  s := public.create_estimate(jsonb_build_object('job_id', v_job, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'More', 'lines', jsonb_build_array(
+         jsonb_build_object('line_type', 'labor', 'label', 'Machine the rotors', 'hours', 1))))));
+  assert (public.estimate_detail(s.id) ->> 'ro_number') = j.ro_number, '0052: a supplement carries the RO number';
+  perform public.mark_estimate_accepted(s.id, (select id from public.estimate_options where estimate_id = s.id), '{}', 'Ana by phone', 'phone');
+  assert (select count(*) from public.job_authorizations where job_id = v_job) = 2 and (select count(*) from public.job_authorizations where job_id = v_job and kind = 'change_order' and method = 'phone') = 1, '0052: the change order is its own authorization';
+  assert (select count(*) from public.job_services where job_id = v_job and authorization_id is null) = 0, '0052: every line is authorized';
+  r := public.ro_authorizations(v_job);
+  assert jsonb_array_length(r) = 2 and (r -> 0 ->> 'amount') is not null, '0052: the owner reads the authorizations with amounts';
+end $$;
+select pg_temp.logout();
+
+-- an unauthorized line blocks the invoice; payments wait for the invoice; the plain editor cannot touch retail lines
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare j public.jobs;
+begin
+  j := public.create_job(jsonb_build_object('dealership_id', '00000000-0000-4000-8000-000000000103', 'tag_number', 'R-520', 'vehicle_id', (select v from r_ids where k = 'veh_mazda'),
+        'services', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))));
+  insert into r_ids values ('job_unauth', j.id);
+  begin perform public.convert_ro_to_invoice(j.id); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
+  perform set_config('app.allow_retail_job', 'off', false);
+  begin perform public.record_retail_payment(j.id, 10, 'cash'); raise exception 'expected refused'; exception when sqlstate 'P0001' then
+    assert sqlerrm like 'Convert the repair order%', '0052: no payment before the invoice: ' || sqlerrm;
+  end;
+  begin perform public.update_job(j.id, jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full'))))); raise exception 'expected refused';
+  exception when sqlstate 'P0001' then
+    assert sqlerrm like 'Retail work changes through an estimate', '0052: retail lines change through an estimate: ' || sqlerrm;
+  end;
+  perform set_config('app.allow_retail_job', 'on', false);
+end $$;
+select pg_temp.logout();
+
+-- check-in: mileage in, the concern, the initial authorization (signature), the RO opens
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare
+  a jsonb; v_clay uuid; v_mon date := (select mon from r_days); v_ana uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda'); j public.jobs; v_id uuid;
+begin
+  select id into v_clay from public.services where name = 'Clay bar';
+  a := public.book_appointment(jsonb_build_object('customer_id', v_ana, 'vehicle_id', v_veh, 'lines', jsonb_build_array(jsonb_build_object('service_id', v_clay)), 'starts_at', (v_mon + time '15:00') at time zone 'America/Los_Angeles'));
+  v_id := (a ->> 'id')::uuid;
+  insert into r_ids values ('appt_checkin', v_id);
+  begin perform public.check_in_appointment(v_id, jsonb_build_object('name', 'Ana Lopez', 'odometer', 52100)); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  begin perform public.check_in_appointment(v_id, jsonb_build_object('name', 'Ana Lopez', 'signature_path', 'elsewhere/x.png')); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  begin perform public.check_in_appointment(v_id, jsonb_build_object('name', '', 'signature_path', '00000000-0000-4000-8000-000000000001/checkins/' || v_id || '/s.png')); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  a := public.check_in_appointment(v_id, jsonb_build_object('name', 'Ana Lopez', 'odometer', '52,100', 'concern', 'Wants it back by 5', 'amount_limit', 120,
+         'signature_path', '00000000-0000-4000-8000-000000000001/checkins/' || v_id || '/s.png'));
+  assert (a ->> 'status') = 'in_progress' and (a ->> 'job_id') is not null, '0052: checked in, the RO is open';
+  select * into j from public.jobs where id = (a ->> 'job_id')::uuid;
+  assert j.customer_concern = 'Wants it back by 5' and j.advisor_id = '10000000-0000-4000-8000-000000000006', '0052: the concern and the advisor are on the RO';
+  assert (select reading from public.odometer_readings where job_id = j.id) = 52100, '0052: mileage in is on the RO';
+  assert (select count(*) from jsonb_array_elements(public.ro_authorizations(j.id)) x where x ->> 'kind' = 'initial' and x ->> 'name' = 'Ana Lopez' and (x ->> 'amount')::numeric = 120 and (x ->> 'has_signature')::boolean) = 1, '0052: the initial authorization is recorded';
+  assert (select count(*) from public.job_services where job_id = j.id and authorization_id is null) = 0, '0052: the booked services are authorized by it';
+  perform public.convert_ro_to_invoice(j.id);
+  assert (select retail_invoice_number from public.jobs where id = j.id) like 'RI-%', '0052: an advisor converts an authorized RO';
+  begin perform public.check_in_appointment(v_id, jsonb_build_object('name', 'Ana Lopez', 'signature_path', '00000000-0000-4000-8000-000000000001/checkins/' || v_id || '/s.png')); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
+end $$;
+select pg_temp.logout();
+
+-- a detailer does not check cars in; the manager does and never sees amounts
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  begin perform public.check_in_appointment((select v from r_ids where k = 'appt_checkin'), jsonb_build_object('name', 'x')); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare r jsonb; v_job uuid := (select job_id from public.appointments where id = (select v from r_ids where k = 'appt_checkin'));
+begin
+  r := public.ro_authorizations(v_job);
+  assert jsonb_array_length(r) = 1 and (r -> 0 ->> 'amount') is null and (r -> 0 ->> 'name') = 'Ana Lopez', '0052: the manager sees the authorization, not the amount';
+  begin perform public.convert_ro_to_invoice(v_job); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();
+-- the dashboard counts invoices, not work in progress
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare d jsonb;
+begin
+  d := public.retail_dashboard();
+  assert (d -> 'money' ->> 'unpaid_invoices')::int = (select count(*) from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where dd.retail and j.deleted_at is null and j.invoiced_at is not null and j.paid_at is null), '0052: unpaid invoices count converted ROs only: ' || d::text;
 end $$;
 select pg_temp.logout();

@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, BanknoteIcon, CalendarClockIcon, CheckIcon, CopyIcon, FileTextIcon, LinkIcon, LogInIcon, UndoIcon, UserXIcon, WrenchIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { AppointmentStatus, AppointmentView, RetailPaymentMethod, Slot } from "@/lib/db/types";
-import { depositLinkAction, findSlotsAction, recordDepositAtShopAction, refundPaymentAction, rescheduleAppointmentAction, setAppointmentStatusAction } from "@/app/(app)/retail/appointments/actions";
+import { checkInAppointmentAction, depositLinkAction, findSlotsAction, recordDepositAtShopAction, refundPaymentAction, rescheduleAppointmentAction, setAppointmentStatusAction } from "@/app/(app)/retail/appointments/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AppointmentStatusBadge } from "./appointment-status-badge";
 import { ContactButtons } from "./text-customer-button";
 import { SlotPicker } from "./slot-picker";
+import { SignaturePad, signatureBlob } from "./signature-pad";
 import { demoSlots } from "./appointment-sheet";
 
 const money = (n: number | null | undefined) => (n === null || n === undefined ? null : formatMoney(n));
@@ -42,6 +43,7 @@ export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = fa
   const [refunding, setRefunding] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [moving, setMoving] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
   const [cancelling, setCancelling] = useState<"cancelled" | "no_show" | null>(null);
   const tz = a.company.timezone;
   const live = a.status === "lead" || a.status === "booked" || a.status === "confirmed";
@@ -114,7 +116,7 @@ export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = fa
               </Button>
             )}
             {live && (
-              <Button onClick={() => setStatus("in_progress")} loading={pending} data-testid="appointment-checkin">
+              <Button onClick={() => setCheckingIn(true)} data-testid="appointment-checkin">
                 <LogInIcon /> Check in
               </Button>
             )}
@@ -280,6 +282,7 @@ export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = fa
       </div>
 
       <MoveDialog a={a} open={moving} onOpenChange={setMoving} />
+      {checkingIn && <CheckInDialog a={a} showMoney={showMoney} onClose={() => setCheckingIn(false)} />}
       {takingDeposit && <TakeDepositDialog a={a} onClose={() => setTakingDeposit(false)} />}
       {refunding && <RefundDialog paymentId={refunding} appointmentId={a.id} onClose={() => setRefunding(null)} />}
       <Dialog open={!!cancelling} onOpenChange={(o) => !o && setCancelling(null)}>
@@ -306,6 +309,110 @@ function CancelForm({ onSubmit, pending, destructive }: { onSubmit: (reason: str
         </Button>
       </DialogFooter>
     </>
+  );
+}
+
+/**
+ * Check-in (0052): confirm who and what, take the mileage in, write down the
+ * customer's concern in their words, and get the initial authorization (their
+ * name and signature, or a phone approval) before the car goes in the bay.
+ * Opens the repair order.
+ */
+function CheckInDialog({ a, showMoney, onClose }: { a: AppointmentView; showMoney: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [pending, start] = useTransition();
+  const [miles, setMiles] = useState("");
+  const [concern, setConcern] = useState(a.customer_notes ?? "");
+  const [name, setName] = useState(a.customer?.display_name ?? "");
+  const [limit, setLimit] = useState(showMoney && a.total ? String(a.total) : "");
+  const [method, setMethod] = useState<"in_person" | "phone">("in_person");
+  const [hasInk, setHasInk] = useState(false);
+  const padRef = useRef<HTMLDivElement>(null);
+
+  function submit() {
+    if (name.trim().length < 2) return void toast.error("Type the customer's name");
+    if (method === "in_person" && !hasInk) return void toast.error("Ask them to sign in the box");
+    start(async () => {
+      if (demo) {
+        toast.success("Checked in · the repair order is open", { description: "Guest preview — nothing changed" });
+        onClose();
+        return;
+      }
+      let signature_path: string | null = null;
+      if (method === "in_person") {
+        const blob = await signatureBlob(padRef.current);
+        if (!blob) return void toast.error("Could not read the signature");
+        const fd = new FormData();
+        fd.append("signature", blob, "signature.png");
+        const res = await fetch(`/api/appointments/${a.id}/checkin-signature`, { method: "POST", body: fd });
+        const body = (await res.json().catch(() => ({}))) as { path?: string; error?: string };
+        if (!res.ok || !body.path) return void toast.error(body.error ?? "Could not save the signature");
+        signature_path = body.path;
+      }
+      const r = await checkInAppointmentAction(a.id, { name, odometer: miles.replace(/[^\d]/g, "") || null, concern: concern.trim() || null, amount_limit: limit ? Number(limit) : null, method, signature_path });
+      if (!r.ok) return void toast.error(r.error);
+      const jobId = r.data.job_id;
+      toast.success("Checked in · the repair order is open", jobId ? { action: { label: "Open the notes", onClick: () => router.push(`/jobs/${jobId}?tab=notes`) } } : undefined);
+      onClose();
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" data-testid="checkin-dialog">
+        <DialogHeader>
+          <DialogTitle>Check in {a.vehicle?.name ?? "the car"}</DialogTitle>
+          <DialogDescription>
+            {a.customer ? `${a.customer.display_name ?? a.customer.first_name} · ${a.customer.phone ? formatPhone(a.customer.phone) : "no phone on file"}` : "No customer yet"}
+            {a.vehicle?.plate ? ` · plate ${a.vehicle.plate}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor="ci-miles">Mileage in</Label>
+            <Input id="ci-miles" inputMode="numeric" value={miles} onChange={(e) => setMiles(e.target.value.replace(/[^\d,]/g, ""))} placeholder="84200" data-testid="checkin-miles" />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="ci-concern">What the customer says is wrong</Label>
+            <Textarea id="ci-concern" value={concern} onChange={(e) => setConcern(e.target.value)} placeholder="In their own words" className="min-h-20" data-testid="checkin-concern" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="ci-name">Authorized by</Label>
+              <Input id="ci-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} autoComplete="off" data-testid="checkin-name" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="ci-how">How</Label>
+              <Select value={method} onValueChange={(v) => setMethod(v as typeof method)}>
+                <SelectTrigger id="ci-how" className="w-full" data-testid="checkin-method"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_person">In person, signs here</SelectItem>
+                  <SelectItem value="phone">By phone</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {showMoney && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="ci-limit">Authorizes the diagnosis and booked work up to</Label>
+              <Input id="ci-limit" type="number" inputMode="decimal" step="0.01" min="0" value={limit} onChange={(e) => setLimit(e.target.value)} data-testid="checkin-limit" />
+              <p className="text-caption text-subtle">Anything beyond this is a change order: you re-present it and get a new approval before the work.</p>
+            </div>
+          )}
+          {method === "in_person" && (
+            <div ref={padRef}>
+              <SignaturePad onChange={setHasInk} />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Not now</Button>
+          <Button onClick={submit} loading={pending} data-testid="checkin-confirm"><LogInIcon /> Check in and open the RO</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

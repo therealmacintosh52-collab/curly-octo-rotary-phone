@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { JobEstimate, JobFinding, PriceListRow } from "@/lib/db/types";
+import type { JobEstimate, JobFinding, PriceListRow, RoAuthorization } from "@/lib/db/types";
 import { signedUrls } from "@/lib/media/signed";
 import { withoutPrices } from "@/lib/jobs/price-list";
 import { JobDetail, type JobDetailProps } from "@/components/jobs/job-detail";
@@ -28,6 +28,8 @@ type JobRow = {
   quickbooks_doc_number: string | null;
   ro_number: string | null;
   retail_invoice_number: string | null;
+  invoiced_at: string | null;
+  customer_concern: string | null;
   paid_at: string | null;
   paid_amount: number | null;
   payment_method: "clover" | "cash" | "check" | "other" | null;
@@ -37,7 +39,7 @@ type JobRow = {
   customer: { id: string; display_name: string | null } | null;
   vehicle: { id: string; year: number | null; make: string | null; model: string | null } | null;
   invoice: { display_number: string; status: string } | null;
-  job_services: { id: string; service_id: string; label: string | null; needs_price: boolean; service: { name: string } | null }[];
+  job_services: { id: string; service_id: string; label: string | null; needs_price: boolean; authorization_id: string | null; service: { name: string } | null }[];
 };
 
 /**
@@ -54,7 +56,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .from("jobs")
     .select(
       // No prices on a job: job_services.price stays unread (column privileges); the lines carry only name, label and the Needs-a-price flag.
-      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, ro_number, retail_invoice_number, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), customer:customers(id, display_name), vehicle:vehicles(id, year, make, model), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, service:services(name))",
+      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, ro_number, retail_invoice_number, invoiced_at, customer_concern, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), customer:customers(id, display_name), vehicle:vehicles(id, year, make, model), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, authorization_id, service:services(name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -64,7 +66,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const open = !job.invoice_id && !job.deleted_at;
   const retail = !!job.dealership?.retail;
   const own = session.isAdmin || job.detailer_id === session.userId;
-  const [{ data: photoRows }, priceListRes, { data: detailers }, { data: charge }, { data: invoiceNumber }, { data: findingRows }, { data: lastTimeRows }, { data: catalog }, { data: estimateRows }] = await Promise.all([
+  const [{ data: photoRows }, priceListRes, { data: detailers }, { data: charge }, { data: invoiceNumber }, { data: findingRows }, { data: lastTimeRows }, { data: catalog }, { data: estimateRows }, { data: authRows }, { data: odoRows }] = await Promise.all([
     supabase.from("job_photos").select("id, kind, storage_path, created_at, finding_id").eq("job_id", id).order("created_at"),
     supabase.rpc("dealership_price_list", { p_dealership_id: job.dealership_id }),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [{ id: session.profile.id, full_name: session.profile.full_name }] }),
@@ -77,6 +79,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     retail && job.vehicle ? supabase.rpc("vehicle_open_findings", { p_vehicle: job.vehicle.id, p_exclude_job: id }) : Promise.resolve({ data: [] as JobFinding[] }),
     retail ? supabase.rpc("retail_catalog") : Promise.resolve({ data: null }),
     retail ? supabase.rpc("job_estimates", { p_job: id }) : Promise.resolve({ data: [] as JobEstimate[] }),
+    retail ? supabase.rpc("ro_authorizations", { p_job: id }) : Promise.resolve({ data: [] as RoAuthorization[] }),
+    retail ? supabase.from("odometer_readings").select("reading").eq("job_id", id).order("read_at", { ascending: false }).limit(1) : Promise.resolve({ data: [] as { reading: number }[] }),
   ]);
   const findings = (findingRows ?? []) as JobFinding[];
   const fromLastTime = (lastTimeRows ?? []) as JobFinding[];
@@ -100,7 +104,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       performed_at: job.performed_at,
       ro_po_number: job.ro_po_number,
       notes: job.notes,
-      services: job.job_services.map((s) => ({ service_id: s.service_id, name: s.service?.name ?? "", price: 0, override_reason: null, label: s.label, needs_price: s.needs_price })),
+      services: job.job_services.map((s) => ({ service_id: s.service_id, name: s.service?.name ?? "", price: 0, override_reason: null, label: s.label, needs_price: s.needs_price, authorized: s.authorization_id !== null })),
       dealership_name: job.dealership?.name ?? "",
       customer: job.customer ? { id: job.customer.id, name: job.customer.display_name ?? "Customer" } : null,
       vehicle: job.vehicle ? { id: job.vehicle.id, name: [job.vehicle.year, job.vehicle.make, job.vehicle.model].filter(Boolean).join(" ") || "Vehicle" } : null,
@@ -109,6 +113,9 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       retail,
       ro_number: job.ro_number,
       retail_invoice_number: job.retail_invoice_number,
+      invoiced_at: job.invoiced_at,
+      customer_concern: job.customer_concern,
+      mileage_in: odoRows?.[0]?.reading ?? null,
       payment: { paid_at: job.paid_at, paid_amount: job.paid_amount === null ? null : Number(job.paid_amount), payment_method: job.payment_method, payment_ref: job.payment_ref },
       deleted_at: job.deleted_at,
       deleted_reason: job.delete_reason,
@@ -130,6 +137,9 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     userId: session.userId,
     initialTab: sp.tab === "notes" ? "notes" : "job",
     estimates: (estimateRows ?? []) as JobEstimate[],
+    authorizations: (authRows ?? []) as RoAuthorization[],
+    unauthorized: job.invoiced_at ? 0 : job.job_services.filter((s) => s.authorization_id === null).length,
+    canConvert: session.canPrices && retail && !job.deleted_at,
   };
   return <JobDetail {...detail} />;
 }

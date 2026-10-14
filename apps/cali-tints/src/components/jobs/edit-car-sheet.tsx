@@ -36,7 +36,7 @@ export interface EditableCar {
   performed_at: string;
   ro_po_number: string | null;
   notes: string | null;
-  services: { service_id: string; name: string; price: number; override_reason: string | null; label?: string | null; needs_price?: boolean }[];
+  services: { service_id: string; name: string; price: number; override_reason: string | null; label?: string | null; needs_price?: boolean; /** Retail: an authorization covers this line (0052). */ authorized?: boolean }[];
 }
 
 /**
@@ -56,6 +56,7 @@ export function EditCarSheet({
   onSaved,
   showMoney = true,
   canSetAmount = showMoney,
+  linesLocked = false,
 }: {
   car: EditableCar;
   priceList: PriceListRow[];
@@ -70,6 +71,8 @@ export function EditCarSheet({
   showMoney?: boolean;
   /** With prices hidden: may still type the amount of an "Other" line (owner, admin). */
   canSetAmount?: boolean;
+  /** A retail repair order: its lines come from approved estimates, so the sheet leaves them alone (0052). */
+  linesLocked?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -112,7 +115,7 @@ export function EditCarSheet({
     if (!(otherMake ? customMake.trim() : make)) return toast.error("Make is required");
     if (!model.trim()) return toast.error("Model is required");
     if (!color) return toast.error("Color is required");
-    if (services.length === 0) return toast.error("Select at least one service");
+    if (!linesLocked && services.length === 0) return toast.error("Select at least one service");
     start(async () => {
       const r = await save({
         id: car.id,
@@ -127,7 +130,7 @@ export function EditCarSheet({
         performed_at: performedAt === toDateInput(new Date(car.performed_at)) ? car.performed_at : dateInputToIso(performedAt),
         ro_po_number: car.ro_po_number ?? null,
         notes: notes.trim() || null,
-        services: services.map((s) => ({ service_id: s.service_id, price: s.price, override_reason: s.override_reason, label: s.label ?? null })),
+        services: linesLocked ? undefined : services.map((s) => ({ service_id: s.service_id, price: s.price, override_reason: s.override_reason, label: s.label ?? null })),
       });
       if (r.ok) {
         toast.success("Saved");
@@ -242,10 +245,14 @@ export function EditCarSheet({
               </div>
             )}
           </div>
-          <div className="grid gap-2">
-            <Label>Services</Label>
-            <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={showMoney} canSetAmount={canSetAmount} />
-          </div>
+          {linesLocked ? (
+            <p className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground" data-testid="lines-locked">The lines on a retail repair order come from what the customer approved. To add or change work, write an estimate on the RO and get it approved.</p>
+          ) : (
+            <div className="grid gap-2">
+              <Label>Services</Label>
+              <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={showMoney} canSetAmount={canSetAmount} />
+            </div>
+          )}
           <div className="grid gap-1.5">
             <Label htmlFor="e-notes">Notes</Label>
             <Textarea id="e-notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-20" />

@@ -193,12 +193,13 @@ export function pickedCustomersFixture(): PickedCustomer[] {
 export function retailTodayFixture(money = false): RetailTodayData {
   const r101 = JOBS[C1][0];
   const r102 = JOBS[C2][0];
-  const car = (j: FixtureJob, customer: string) => ({ id: j.id, tag: j.tag, ro_number: j.ro_number ?? null, vehicle: j.vehicle, customer, performed_at: j.performed_at, paid_at: j.paid_at, services: j.services });
+  const car = (j: FixtureJob, customer: string, invoiced = true) => ({ id: j.id, tag: j.tag, ro_number: j.ro_number ?? null, vehicle: j.vehicle, customer, performed_at: j.performed_at, paid_at: j.paid_at, invoiced_at: invoiced ? j.performed_at : null, services: j.services });
   const items = calendarItemsFixture(money);
   return {
     customers: customersFixture.length,
     today: [car(r102, "Marcus Reed"), car(r101, "Ana Lopez")],
     unpaid: [car(r102, "Marcus Reed")],
+    inProgress: [{ ...car({ id: WIP_JOB_ID, tag: "R-103", ro_number: "RO-000044", performed_at: ago(0, 0.4), vehicle: "2021 Ford F-150", vehicle_id: V3, services: ["Diagnose the brake squeal", "Replace front pads"], paid_at: null, payment_method: null, paid_amount: null, deleted_at: null }, "Priya Nair", false) }],
     leads: items.filter((a) => a.status === "lead"),
     holds: items.filter((a) => a.status === "hold"),
     appointments: items.filter((a) => a.status !== "lead" && a.status !== "hold" && a.status !== "cancelled").filter((a) => a.starts_at.slice(0, 10) === at(0, 12).slice(0, 10)), // the shop's day, as at() builds it
@@ -363,7 +364,7 @@ const COMPANY = { name: "Cali Tints", phone: "(916) 555-0110", email: "mike@cali
 const POLICY = { policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", deposit_kind: "percent" as const, deposit_value: 20, deposit_refundable: false, signature_required: true, cancel_hours: 24, shop_supplies_pct: 5, shop_supplies_cap: 10, shop_supplies_taxable: false, tax_rate: 0 };
 const suppliesFor = (lines: ReturnType<typeof line>[]) => Math.min(Math.round(lines.filter((l) => l.line_type === "labor").reduce((s, l) => s + (l.line_total ?? 0), 0) * 5) / 100, 10);
 
-function build(money: boolean, pub: boolean, base: { id: string; n: number; status: EstimateStatus; customer: Customer; vehicle: Vehicle; options: { id: string; tier: EstimateView["options"][number]["tier"]; name: string; description: string | null; recommended: boolean; lines: L[] }[]; addons: (L & { default_on: boolean; customer_approved: boolean | null })[]; selected?: string; created: string; expires: string; sent?: string | null; viewed?: { first: string; last: string; count: number }; accepted?: string | null; auth?: EstimateView["authorizations"][number] | null; customer_notes?: string | null; internal_notes?: string | null; po?: string | null; odometer?: number | null; job?: EstimateView["job"]; kind?: "quote" | "supplement"; applied?: string | null; findings?: JobFinding[]; token?: string }): EstimateView {
+function build(money: boolean, pub: boolean, base: { id: string; n: number; status: EstimateStatus; customer: Customer; vehicle: Vehicle; options: { id: string; tier: EstimateView["options"][number]["tier"]; name: string; description: string | null; recommended: boolean; lines: L[] }[]; addons: (L & { default_on: boolean; customer_approved: boolean | null })[]; selected?: string; created: string; expires: string; sent?: string | null; viewed?: { first: string; last: string; count: number }; accepted?: string | null; auth?: EstimateView["authorizations"][number] | null; customer_notes?: string | null; internal_notes?: string | null; po?: string | null; odometer?: number | null; job?: EstimateView["job"]; kind?: "quote" | "supplement"; applied?: string | null; findings?: JobFinding[]; token?: string; concern?: string | null; ro?: string | null }): EstimateView {
   const options = base.options.map((o) => {
     const lines = o.lines.map((l) => line(true, l));
     const subtotal = sum(lines);
@@ -385,6 +386,9 @@ function build(money: boolean, pub: boolean, base: { id: string; n: number; stat
     po_number: base.po ?? null,
     internal_notes: pub ? null : (base.internal_notes ?? null),
     customer_notes: base.customer_notes ?? null,
+    customer_concern: base.concern ?? null,
+    ro_number: base.ro ?? base.job?.ro_number ?? null,
+    advisor: "MK",
     selected_option_id: base.selected ?? null,
     sent_at: base.sent ?? null,
     first_viewed_at: base.viewed?.first ?? null,
@@ -442,11 +446,12 @@ function estimateBase(id: string) {
         addons: [{ id: "a1", svc: 5, price: 60, default_on: true, customer_approved: null }, { id: "a2", svc: 8, price: 35, default_on: false, customer_approved: null }],
         created: ago(1, 3), expires: new Date(Date.now() + 13 * 86400000).toISOString(), sent: ago(1, 2), viewed: { first: ago(0, 20), last: ago(0, 4), count: 3 },
         customer_notes: "Light swirls on the hood and trunk; the Best option takes most of them out.", internal_notes: "Rear bumper scratch noted on intake photos.", po: null,
+        concern: "Swirl marks everywhere since the last car wash, mostly in the sun.", ro: "RO-000045",
       };
     case E2:
       return {
         id: E2, n: 2, status: "accepted" as EstimateStatus, customer: cust(C5), vehicle: veh(V6), odometer: 76200,
-        job: { id: RI_LUIS, ro_number: "RO-000043", invoice_number: "RI-000043", tag_number: "E-000002", performed_at: ago(3, 19), paid_at: null, odometer: null },
+        job: { id: RI_LUIS, ro_number: "RO-000043", invoice_number: "RI-000043", invoiced_at: ago(3, 18), tag_number: "E-000002", performed_at: ago(3, 19), paid_at: null, odometer: null },
         options: [{ id: "o2-single", tier: "single" as const, name: "Paint correction", description: null, recommended: true, lines: [{ id: "l7", svc: 1, price: 350 }, { id: "l8", svc: 6, price: 50 }] }],
         addons: [{ id: "a3", svc: 7, price: 15, default_on: true, customer_approved: true }],
         selected: "o2-single", created: ago(4), expires: new Date(Date.now() + 10 * 86400000).toISOString(), sent: ago(4), viewed: { first: ago(3, 20), last: ago(3, 19), count: 1 }, accepted: ago(3, 19),
@@ -474,6 +479,7 @@ function estimateBase(id: string) {
             media: [{ id: "94100000-0000-4000-8000-000000000001", kind: "video", storage_path: "demo/rattle.mp4", mime: "video/mp4", duration_s: 9.2, size_bytes: 9000000, created_at: ago(0, 2), url: null }] }),
         ],
         created: ago(0, 3), expires: new Date(Date.now() + 14 * 86400000).toISOString(), customer_notes: "The rattle is the tensioner; the diagnosis confirms it before we take anything apart.", internal_notes: null, po: null,
+        concern: "A metallic rattle for a couple of seconds on a cold start, only in the mornings.",
       };
     case E4: {
       const found = jobFindingsFixture("40000000-0000-4000-8000-000000000999").filter((f) => f.id === FINDING_IDS.pads || f.id === FINDING_IDS.spots).map((f) => ({ ...f, status: "quoted" as const, estimate_line_id: f.id === FINDING_IDS.pads ? "l11" : "l13" }));
@@ -664,6 +670,7 @@ export function retailChargeFixture(jobId: string, money: boolean): RetailCharge
 export const INVOICE_TOKEN = "demo-invoice-token-marcus-tesla-0002";
 
 export function receiptFixture(token: string, money: boolean): ReceiptView | null {
+  if (token === WIP_TOKEN) return wipReceiptFixture(money);
   if (token === INVOICE_TOKEN) {
     // The customer's copy of the unpaid invoice (RI-000042): what is due and what the tech found (internal notes left out).
     const inv = retailInvoiceDetailFixture(JOBS[C2][0].id)!;
@@ -684,6 +691,49 @@ export function receiptFixture(token: string, money: boolean): ReceiptView | nul
   };
 }
 
+
+// ---------------------------------------------------------------------------
+// 0052: one repair order through its stages: header facts, the authorization record, a job in progress (R-103, not invoiced yet).
+// ---------------------------------------------------------------------------
+import type { RoAuthorization } from "@/lib/db/types";
+
+export const WIP_JOB_ID = "40000000-0000-4000-8000-000000000997";
+export const WIP_TOKEN = "demo-ro-token-priya-f150-0003";
+
+/** The concern in the customer's words and the mileage that came in. */
+export function roHeaderFixture(jobId: string): { concern: string | null; mileage_in: number | null } {
+  if (jobId === WIP_JOB_ID) return { concern: "Squeals when I brake, worse in the morning.", mileage_in: 61400 };
+  if (jobId === JOBS[C2][0].id) return { concern: "Wants it back by 5; do the carpets first.", mileage_in: 31200 };
+  if (jobId === JOBS[C1][0].id) return { concern: "Interior smells like smoke.", mileage_in: 48210 };
+  return { concern: null, mileage_in: null };
+}
+
+/** Who authorized what, how and when. Amounts only for those who price jobs. */
+export function roAuthorizationsFixture(jobId: string, money: boolean): RoAuthorization[] {
+  const amt = (n: number) => (money ? n : null);
+  if (jobId === WIP_JOB_ID)
+    return [
+      { id: "auth-wip-1", kind: "initial", authorized_at: ago(0, 0.4), name: "Priya Nair", method: "in_person", by_staff: true, has_signature: true, estimate_id: null, amount: amt(120) },
+      { id: "auth-wip-2", kind: "change_order", authorized_at: ago(0, 0.2), name: "Priya Nair", method: "phone", by_staff: true, has_signature: false, estimate_id: null, amount: amt(480) },
+    ];
+  if (jobId === JOBS[C2][0].id) return [{ id: "auth-102-1", kind: "estimate", authorized_at: ago(0, 0.9), name: "Marcus Reed", method: "online", by_staff: false, has_signature: true, estimate_id: null, amount: amt(200) }];
+  if (jobId === JOBS[C1][0].id) return [{ id: "auth-101-1", kind: "initial", authorized_at: ago(0, 2.6), name: "Ana Lopez", method: "in_person", by_staff: true, has_signature: true, estimate_id: null, amount: amt(240) }];
+  return [];
+}
+
+/** The customer's page on a repair order in progress: what they said and what is approved so far; no amount due. */
+export function wipReceiptFixture(money: boolean): ReceiptView {
+  const c = cust(C3);
+  return {
+    id: WIP_JOB_ID, tag: "R-103", invoice_number: null, invoiced_at: null, ro_number: "RO-000044", concern: roHeaderFixture(WIP_JOB_ID).concern, odometer: 61400, plate: money ? "7FLT009" : null,
+    performed_at: ago(0, 0.4), paid_at: null, payment_method: null, vehicle: "2021 Ford F-150", color: "Obsidian Black",
+    customer: { id: c.id, display_name: money ? c.display_name : c.first_name, first_name: c.first_name, email: money ? c.email : null, phone: money ? c.phone : null },
+    lines: [{ name: "Diagnosis · Diagnose the brake squeal — 1.00 h @ $120.00", price: 120 }, { name: "Replace front pads — 3.00 h @ $120.00", price: 360 }],
+    subtotal: 480, tax: 0, total: 480, deposit_paid: 0, paid: 0, balance: 480, tax_rate: 0, payments: [],
+    signed_name: null, signed_at: null, has_signature: false, token: money ? null : WIP_TOKEN,
+    company: { ...COMPANY, address_line2: null, logo_path: null },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // 0042: the shipped rules, a log, the texts queued for the phone.

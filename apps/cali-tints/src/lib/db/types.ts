@@ -302,6 +302,10 @@ export type EstimateView = {
   odometer?: number | null;
   /** When the findings were last texted / emailed to the customer (0050). */
   findings_sent_at?: string | null;
+  /** The customer's concern in their own words, the RO number (minted at the first send) and the advisor's initials (0052). */
+  customer_concern?: string | null;
+  ro_number?: string | null;
+  advisor?: string | null;
   internal_notes: string | null;
   customer_notes: string | null;
   selected_option_id: string | null;
@@ -321,7 +325,7 @@ export type EstimateView = {
   kind?: "quote" | "supplement";
   applied_at?: string | null;
   shop_supplies?: number | null;
-  job?: { id: string; ro_number: string | null; invoice_number?: string | null; tag_number: string; performed_at: string; paid_at: string | null; odometer: number | null } | null;
+  job?: { id: string; ro_number: string | null; invoice_number?: string | null; invoiced_at?: string | null; tag_number: string; performed_at: string; paid_at: string | null; odometer: number | null } | null;
   /** The findings this estimate quotes (media URLs signed by the page). */
   findings?: JobFinding[];
   subtotal: number | null;
@@ -379,6 +383,8 @@ export type EstimatePayload = {
   odometer?: number | null;
   internal_notes?: string | null;
   customer_notes?: string | null;
+  /** The customer's concern in their own words (0052). */
+  customer_concern?: string | null;
   options?: { tier: EstimateTier; name: string; description?: string | null; recommended?: boolean; lines: EstimateLineInput[] }[];
   addons?: (EstimateLineInput & { default_on?: boolean })[];
 };
@@ -571,6 +577,9 @@ export type ReceiptView = {
   findings?: JobFinding[];
   invoice_number?: string | null;
   ro_number?: string | null;
+  /** Set once the repair order is converted to the invoice (0052); the concern the customer gave. */
+  invoiced_at?: string | null;
+  concern?: string | null;
   performed_at: string;
   paid_at: string | null;
   payment_method: "clover" | "cash" | "check" | "other" | null;
@@ -595,6 +604,10 @@ export type ReceiptView = {
 /** Retail's own invoices (0047): one per retail job, numbered RI-…, never in QuickBooks. */
 /** find_vehicle(): the car behind a plate or VIN typed in the bar at the top of Retail (0049). */
 export type FoundVehicle = { vehicle_id: string; customer_id: string; name: string | null; color: string | null; trim?: string | null; year?: number | null; make?: string | null; model?: string | null; engine_size?: string | null; engine_code?: string | null; plate: string | null; vin: string | null; size_class: VehicleSize; customer: string | null; last_odometer: number | null };
+/** One entry of a repair order's authorization record (0052). Amount only for those who price jobs. */
+export type RoAuthorization = { id: string; kind: "initial" | "estimate" | "change_order"; authorized_at: string; name: string; method: "online" | "in_person" | "phone" | "email"; by_staff: boolean; has_signature: boolean; estimate_id: string | null; amount: number | null };
+/** check_in_appointment(): mileage in, the customer's concern and the initial authorization (the signature is uploaded first). */
+export type CheckInPayload = { name: string; odometer?: number | string | null; concern?: string | null; amount_limit?: number | null; method?: "in_person" | "phone" | "email" | "online"; signature_path?: string | null };
 export type RetailInvoiceStatus = "unpaid" | "partial" | "paid" | "void";
 export type RetailInvoiceRow = {
   id: string;
@@ -1105,6 +1118,7 @@ export type JobListRow = {
   /** Retail rows: the repair order number (0043). */
   ro_number?: string | null;
   retail_invoice_number?: string | null;
+  invoiced_at?: string | null;
   photo_count: number;
   deleted: boolean;
 };
@@ -1398,6 +1412,9 @@ export type Database = {
       job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
       estimate_findings: { Args: { p_estimate: string }; Returns: JobFinding[] };
       add_finding_media: { Args: { p_finding: string; p: { path: string; mime: string; size: number; duration?: number | null } }; Returns: { id: string } };
+      convert_ro_to_invoice: { Args: { p_job: string }; Returns: { job_id: string; invoice_number: string; invoiced_at: string } };
+      check_in_appointment: { Args: { p_id: string; p: CheckInPayload }; Returns: AppointmentView };
+      ro_authorizations: { Args: { p_job: string }; Returns: RoAuthorization[] };
       delete_draft_estimate: { Args: { p_id: string }; Returns: { id: string; paths: string[] } };
       mark_findings_sent: { Args: { p_estimate: string }; Returns: { token: string; job_id: string | null; findings_sent_at: string } };
       vehicle_open_findings: { Args: { p_vehicle: string; p_exclude_job?: string | null }; Returns: JobFinding[] };

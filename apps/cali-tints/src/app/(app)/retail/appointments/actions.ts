@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { AppointmentStatus, AppointmentView, BookPayload, RetailPaymentMethod, Slot } from "@/lib/db/types";
+import type { AppointmentStatus, AppointmentView, BookPayload, CheckInPayload, RetailPaymentMethod, Slot } from "@/lib/db/types";
 import { createDepositLink } from "@/lib/clover/deposit";
 import { depositsOnline } from "@/lib/clover/env";
 import { errorMessage } from "@/lib/utils";
@@ -58,6 +58,30 @@ export async function setAppointmentStatusAction(id: string, status: Appointment
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate(id);
   if (data.job_id) revalidatePath("/jobs");
+  return { ok: true, data };
+}
+
+const checkInSchema = z.object({
+  name: z.string().trim().min(2, "Type the customer's name").max(120),
+  odometer: z.union([z.number().int().min(0).max(2000000), z.string().regex(/^[\d,\s]*$/)]).nullable().optional(),
+  concern: z.string().trim().max(2000).nullable().optional(),
+  amount_limit: z.number().min(0).max(1000000).nullable().optional(),
+  method: z.enum(["in_person", "phone", "email", "online"]).optional(),
+  signature_path: z.string().max(300).nullable().optional(),
+});
+
+/** Check-in with mileage in, the customer's concern and the initial authorization; opens the repair order (0052). */
+export async function checkInAppointmentAction(id: string, input: CheckInPayload): Promise<ActionResult<AppointmentView>> {
+  const session = await getSession();
+  if (!session.isAdmin) return { ok: false, error: "Only the owner, an admin, an advisor or a manager checks a car in" };
+  const parsed = checkInSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("check_in_appointment", { p_id: id, p: parsed.data });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate(id);
+  revalidatePath("/jobs");
+  revalidatePath("/retail/jobs");
   return { ok: true, data };
 }
 

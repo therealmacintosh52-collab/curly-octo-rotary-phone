@@ -32,6 +32,7 @@ const payloadSchema = z.object({
   odometer: z.number().int().positive().max(9_999_999).nullable().optional(),
   internal_notes: z.string().trim().max(4000).nullable().optional(),
   customer_notes: z.string().trim().max(4000).nullable().optional(),
+  customer_concern: z.string().trim().max(2000).nullable().optional(),
   options: z
     .array(z.object({ tier: z.enum(["good", "better", "best", "single"]), name: z.string().trim().min(1).max(60), description: z.string().trim().max(300).nullable().optional(), recommended: z.boolean().optional(), lines: z.array(lineInput).max(60) }))
     .min(1)
