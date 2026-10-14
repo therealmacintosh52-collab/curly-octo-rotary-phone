@@ -9,6 +9,8 @@ State lives here: tick a phase only when its CLOSE step is done. Manual to-dos l
 
 # Part 1: The spec (verbatim, as given)
 
+> Where this spec says Stripe, **D-001 (Part 4) overrides it**: payments use Square and Zelle.
+
 Build "Quantum Growth OS": the complete back-office and fulfillment platform for my one-person local-marketing agency, Quantum Growth. It must let me deliver EVERY service my public site sells, take payment, onboard clients, and track every third-party cost per client. I run everything from my PHONE (no computer), so every screen must be mobile-first and every recurring task automated, with a human approval queue instead of manual work.
 
 ## MODEL + WORKFLOW RULES (follow strictly — this controls my usage costs)
@@ -198,7 +200,7 @@ Tick a box only after the phase's CLOSE step (tests run, preview deployed where 
 decisions log updated, manual to-dos listed).
 
 - [x] Phase 0: Project setup
-- [ ] Phase 1: Sell, pay, onboard. **Too big, will be split.** Proposed: 1a foundation, 1b intake funnel, 1c Stripe, 1d requirements tracker, today view and offboarding.
+- [ ] Phase 1: Sell, pay, onboard. **Too big, will be split.** Proposed: 1a foundation, 1b intake funnel, 1c payments (Square + Zelle), 1d requirements tracker, today view and offboarding.
 - [ ] Phase 2: Cost ledger + vendor setup
 - [ ] Phase 3: Visibility Audit engine (free check + $499 audit)
 - [ ] Phase 4: Site engine
@@ -229,7 +231,21 @@ Empty by design. Add one entry per decision, newest last, in this format:
 - Consequences / what it locks in:
 ```
 
-(No entries yet.)
+## D-001: Square + Zelle replace Stripe (Phase 1c, 2026-10-14)
+- Decision: Square handles recurring and card payments; Zelle is a manual-confirm method for one-time money.
+  - Monthly plans and hosting: Square Subscriptions on a card on file. Annual plans: Square annual cadence.
+  - Zelle: offered for the build fee, annual prepay and audits only. The operator marks it received by hand. No Zelle webhooks exist.
+  - No monthly ACH (Square's Subscriptions API does not support bank accounts).
+  - Receptionist overage ($0.25/min past 400): the OS counts minutes (Retell data) and sends one Square invoice per month. No metered-usage billing.
+  - Early-exit invoice: created through the Square Invoices API on cancellation.
+  - Customer Portal: built in `/portal`. Card updates use Square Web Payments SDK + Cards API (Square has no hosted portal).
+  - Admin "text a pay link": Square payment/invoice link, or the Zelle instructions screen.
+  - Provider code sits behind a `PaymentProvider` interface (`square` live, `manual` adapter, which also records Zelle).
+- Why: operator chose Square and Zelle over Stripe. Research (2026-10-14): Square has subscriptions and invoices APIs but no metered billing, no ACH in
+  subscriptions and no hosted portal; Zelle has no public business API.
+- Alternatives rejected: Square for everything (loses the no-fee, no-chargeback option for large payments); Zelle for monthly billing (no auto-retry, late payers).
+- Consequences: Phase 1c scope is Square + Zelle; webhooks are Square-only; Zelle clients have no chargeback protection, so the pay screen says so
+  in plain language; the agreement step (1b) must state the payment methods and that annual is non-refundable.
 
 ---
 
@@ -250,6 +266,9 @@ Not decisions. Questions found by checking the spec against the live public page
   queue) in the Phase 1a plan.
 - **PII.** Intake collects EINs, customer lists and call transcripts. Phase 1a needs a retention policy and column-level
   encryption, not just row-level security.
+- **Verify with Square before Phase 1c:** ACH through the Subscriptions API (docs say unsupported), whether an existing subscription's card can be
+  swapped via API, current card fees, and the exact webhook events for subscriptions and invoices.
+- **Zelle for business:** confirm the bank supports it on the business account, the per-day limits, and that the bank's terms allow receiving client payments.
 - **Phase 0 choices not yet logged** (the decisions log was required to be empty): project lives in this repo under
   `quantum-growth-os/` with settings at the repo root; pnpm workspaces; short pointer `CLAUDE.md` at the repo root;
   folder-scoped `.gitignore`; `RESEND_API_KEY` added to `.env.example` (spec names no email provider). Log these at the
