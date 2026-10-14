@@ -337,7 +337,7 @@ export type EstimateView = {
   kind?: "quote" | "supplement";
   applied_at?: string | null;
   shop_supplies?: number | null;
-  job?: { id: string; ro_number: string | null; invoice_number?: string | null; invoiced_at?: string | null; tag_number: string; performed_at: string; paid_at: string | null; odometer: number | null } | null;
+  job?: { id: string; ro_number: string | null; invoice_number?: string | null; invoiced_at?: string | null; tag_number: string; performed_at: string; paid_at: string | null; /** "Close · Picked up" was pressed (0056). */ picked_up_at?: string | null; /** 0057: where the work stands, and the quote that hosts the visit. */ completed_at?: string | null; qc_at?: string | null; primary_estimate_id?: string | null; odometer: number | null } | null;
   /** The findings this estimate quotes (media URLs signed by the page). */
   findings?: JobFinding[];
   subtotal: number | null;
@@ -371,11 +371,29 @@ export type EstimateListRow = {
   customer_id: string;
   customer: string | null;
   vehicle: string | null;
+  vehicle_id?: string | null;
   size_class: VehicleSize;
   options: number;
   total: number | null;
+  /** Where the whole visit stands (0057): derived, never typed in. */
+  stage?: EstimateStage;
+  concern?: string | null;
+  /** The invoice number once the estimate has become the invoice, and the facts the stage comes from. */
+  invoice_number?: string | null;
+  invoiced_at?: string | null;
+  paid_at?: string | null;
+  picked_up_at?: string | null;
+  /** More work is out with the customer for approval. */
+  waiting_supplement?: boolean;
+  /** Initials only. */
+  advisor?: string | null;
+  tech?: string | null;
+  /** What is still owed (owner, admin, advisor). */
+  balance?: number | null;
 };
-export type EstimateListResult = { count: number; rows: EstimateListRow[] };
+/** draft → sent → in_progress → ready (checked, not invoiced) → unpaid → paid (waiting for pickup) → closed; or declined / expired. */
+export type EstimateStage = "draft" | "sent" | "in_progress" | "ready" | "unpaid" | "paid" | "closed" | "declined" | "expired";
+export type EstimateListResult = { count: number; counts?: Partial<Record<EstimateStage, number>>; rows: EstimateListRow[] };
 
 /** What the builder sends to create_estimate / update_estimate. A service line prices through the matrix; the others carry their own numbers (0044). */
 export type EstimateLineInput = (
@@ -605,6 +623,8 @@ export type ReceiptView = {
   findings?: JobFinding[];
   invoice_number?: string | null;
   ro_number?: string | null;
+  /** The estimate this visit started as (EST-…), shown small beside the invoice number (0057). */
+  estimate_number?: string | null;
   /** Set once the repair order is converted to the invoice (0052); the concern the customer gave. */
   invoiced_at?: string | null;
   /** "Close job · Picked up" was pressed (0056). */
@@ -1331,7 +1351,7 @@ export type CustomerTimeline = {
     paid_amount: number | null;
     deleted_at: string | null;
   }[];
-  estimates?: { id: string; display_number: string; status: EstimateStatus; created_at: string; expires_at: string | null; vehicle: string | null; total: number | null; job_id: string | null }[];
+  estimates?: { id: string; display_number: string; status: EstimateStatus; created_at: string; expires_at: string | null; vehicle: string | null; total: number | null; job_id: string | null; stage?: EstimateStage; invoice_number?: string | null }[];
   appointments?: { id: string; display_number: string; status: AppointmentStatus; starts_at: string; ends_at: string; vehicle: string | null; services: string[]; job_id: string | null }[];
   payments?: { id: string; kind: PaymentKind; status: PaymentStatus; method: RetailPaymentMethod; paid_at: string | null; amount: number | null; appointment_id: string | null; job_id: string | null; estimate_id: string | null }[];
   stats: { visits: number; last_visit: string | null; lifetime_spend: number | null };
@@ -1439,7 +1459,8 @@ export type Database = {
       decline_estimate: { Args: { p_id: string; p_reason?: string | null }; Returns: { id: string; status: EstimateStatus } };
       convert_estimate_to_job: { Args: { p_id: string; p?: { dealership_id?: string; tag_number?: string; performed_at?: string; detailer_id?: string; notes?: string } }; Returns: Job };
       estimate_detail: { Args: { p_id: string }; Returns: EstimateView };
-      estimates_filtered: { Args: { p_q?: string | null; p_status?: string; p_customer?: string | null; p_limit?: number; p_offset?: number }; Returns: EstimateListResult };
+      estimates_filtered: { Args: { p_q?: string | null; p_status?: string; p_customer?: string | null; p_limit?: number; p_offset?: number; p_stage?: string | null }; Returns: EstimateListResult };
+      job_primary_estimate: { Args: { p_job: string }; Returns: string };
       estimate_by_token: { Args: { p_token: string }; Returns: EstimateView };
       estimate_mark_viewed: { Args: { p_token: string }; Returns: undefined };
       estimate_respond: { Args: { p_token: string; p: { decision?: "accept" | "decline"; option_id?: string; approved_line_ids?: string[]; name?: string; signature_path?: string | null; pay_choice?: "deposit" | "at_shop"; ip?: string; user_agent?: string; reason?: string } }; Returns: { status: "accepted" | "declined"; total?: number; deposit_required?: number; display_number?: string } };

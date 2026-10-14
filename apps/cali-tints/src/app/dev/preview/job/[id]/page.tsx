@@ -1,9 +1,10 @@
+import { redirect } from "next/navigation";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { jobListFixture, priceListFixture } from "@/test/fixtures";
-import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailCatalogFixture, retailChargeFixture, retailServicesFixture, roAuthorizationsFixture, roHeaderFixture, roReviewFixture, roWorkFixture, WIP_JOB_IDS, type PayStage } from "@/test/retail-fixtures";
+import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailCatalogFixture, retailChargeFixture, retailServicesFixture, roAuthorizationsFixture, roHeaderFixture, roReviewFixture, roWorkFixture, WIP_JOB_IDS, ESTIMATE_FOR_JOB, type PayStage } from "@/test/retail-fixtures";
 import { previewSession } from "@/test/preview-session";
 import { findingPricing } from "@/lib/retail/finding-quote";
 
@@ -17,6 +18,11 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
   const payStage: PayStage = sp.pay === "partial" || sp.pay === "paid" || sp.pay === "signed" || sp.pay === "closed" ? sp.pay : "none";
   const settled = found.retail && found.retail_invoice_number && found.tag === "R-102" && (payStage === "paid" || payStage === "signed" || payStage === "closed");
   const row = settled ? { ...found, paid_at: new Date().toISOString() } : found;
+  // Jobs are for the dealerships: a retail visit opens its estimate (keeping ?work= and ?pay= for the walk-through).
+  if (found.retail && ESTIMATE_FOR_JOB[found.id]) {
+    const qs = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
+    redirect(`/retail/estimates/${ESTIMATE_FOR_JOB[found.id]}${qs.size ? `?${qs}` : ""}`);
+  }
   const { profile, isAdmin, canMoney, session } = previewSession(sp);
   const prices = Object.fromEntries(priceListFixture().map((s) => [s.name, s]));
   const [year, make, ...model] = (row.vehicle ?? "").split(" ");

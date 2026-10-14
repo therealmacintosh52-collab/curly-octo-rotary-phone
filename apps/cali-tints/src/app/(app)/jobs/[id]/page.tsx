@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { EstimateJobPriority, InvoiceReview, JobEstimate, JobFinding, PriceListRow, RoAuthorization } from "@/lib/db/types";
@@ -73,6 +73,11 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const job = data as unknown as JobRow | null;
   if (!job) notFound();
 
+  // Jobs are for the dealerships. A retail visit lives on its estimate, which carries it from the quote to the signed invoice.
+  if (job.dealership?.retail) {
+    const { data: estimate } = await supabase.rpc("job_primary_estimate", { p_job: id });
+    if (estimate) redirect(`/retail/estimates/${estimate}`);
+  }
   const open = !job.invoice_id && !job.deleted_at;
   const jobIds = [...new Set(job.job_services.map((s) => s.estimate_job_id).filter((x): x is string => !!x))];
   const retail = !!job.dealership?.retail;

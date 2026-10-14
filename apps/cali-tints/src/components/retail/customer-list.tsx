@@ -80,7 +80,7 @@ export function CustomerList({ rows, count, page, q, archived, showMoney }: { ro
       </p>
 
       {rows.length === 0 ? (
-        <EmptyState icon={UsersIcon} title={q ? "No one matches" : archived ? "Nobody archived" : "No customers yet"} description={q ? "Try the phone number or the car." : "Add the first walk-in, or log a job at the shop and pick New customer there."} action={!q && !archived ? <Button asChild><Link href="/retail/customers/new"><PlusIcon /> New customer</Link></Button> : undefined} />
+        <EmptyState icon={UsersIcon} title={q ? "No one matches" : archived ? "Nobody archived" : "No customers yet"} description={q ? "Try the phone number or the car." : "Add the first walk-in, or start an estimate and pick New customer there."} action={!q && !archived ? <Button asChild><Link href="/retail/customers/new"><PlusIcon /> New customer</Link></Button> : undefined} />
       ) : (
         <>
           {/* Phone cards */}

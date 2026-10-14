@@ -1694,7 +1694,7 @@ begin
   begin perform public.convert_ro_to_invoice(j.id); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
   perform set_config('app.allow_retail_job', 'off', false);
   begin perform public.record_retail_payment(j.id, 10, 'cash'); raise exception 'expected refused'; exception when sqlstate 'P0001' then
-    assert sqlerrm like 'Convert the repair order%', '0052: no payment before the invoice: ' || sqlerrm;
+    assert sqlerrm like 'Make the invoice first%', '0052: no payment before the invoice: ' || sqlerrm;
   end;
   begin perform public.update_job(j.id, jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full'))))); raise exception 'expected refused';
   exception when sqlstate 'P0001' then
@@ -2042,3 +2042,41 @@ begin
 end $$;
 select pg_temp.logout();
 select set_config('app.allow_retail_job', 'on', false);
+
+-- 0057: every retail visit has one primary estimate ----------------------------------
+create or replace function pg_temp.shell_ok(p_est uuid, p_job uuid) returns boolean language sql security definer as $$
+  select kind = 'quote' and status = 'accepted' and applied_at is not null and ro_number is not distinct from (select ro_number from public.jobs where id = p_job) from public.estimates where id = p_est
+$$;
+create or replace function pg_temp.shell_lines(p_est uuid, p_job uuid) returns boolean language sql security definer as $$
+  select (select count(*) from public.estimate_lines where estimate_id = p_est) = (select count(*) from public.job_services where job_id = p_job)
+     and not exists (select 1 from public.job_services where job_id = p_job and estimate_line_id is null)
+     and not exists (select 1 from public.estimates where job_id = p_job and id <> p_est and kind = 'quote')
+$$;
+create or replace function pg_temp.has_est(p_job uuid) returns boolean language sql security definer as $$
+  select exists (select 1 from public.estimates where job_id = p_job)
+$$;
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job_r200'); v_est uuid; f jsonb; r jsonb; n integer; m integer;
+begin
+  assert not pg_temp.has_est(v_job), '0057: the test visit starts with no estimate';
+  v_est := public.job_primary_estimate(v_job);
+  assert v_est is not null and v_est = public.job_primary_estimate(v_job), '0057: the primary estimate is made once';
+  assert pg_temp.shell_ok(v_est, v_job), '0057: shell estimate is an applied quote carrying the number';
+  assert pg_temp.shell_lines(v_est, v_job), '0057: its lines mirror the visit and are linked';
+  f := public.estimates_filtered(p_stage => 'paid');
+  assert exists (select 1 from jsonb_array_elements(f -> 'rows') x where (x ->> 'id')::uuid = v_est and x ->> 'stage' = 'paid' and (x ->> 'job_id')::uuid = v_job), '0057: a paid visit is in the paid stage';
+  assert (f -> 'counts' ->> 'paid')::int >= 1, '0057: counts per stage';
+  f := public.estimates_filtered(p_stage => 'open');
+  assert exists (select 1 from jsonb_array_elements(f -> 'rows') x where (x ->> 'id')::uuid = v_est), '0057: open = not closed, declined or expired';
+end $$;
+select pg_temp.logout();
+-- a manager sees the list without money
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare f jsonb;
+begin
+  f := public.estimates_filtered(p_stage => 'open');
+  assert (select bool_and(x -> 'total' = 'null'::jsonb and x -> 'balance' = 'null'::jsonb) from jsonb_array_elements(f -> 'rows') x), '0057: no money for a manager';
+end $$;
+select pg_temp.logout();

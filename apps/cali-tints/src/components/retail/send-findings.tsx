@@ -50,6 +50,7 @@ export function SendFindings({ estimateId, firstName, vehicle, phone, email, url
     }
   }
 
+  if (count === 0) return null;
   return (
     <Card data-testid="send-findings">
       <CardHeader>
@@ -57,7 +58,7 @@ export function SendFindings({ estimateId, firstName, vehicle, phone, email, url
       </CardHeader>
       <CardContent className="grid gap-2">
         <p className="text-caption text-subtle">
-          {count === 0 ? "Nothing to send yet: add a finding first." : `${count} ${count === 1 ? "item" : "items"} the customer will see: notes, photos, clips and what we recommend. Internal notes stay internal.`}
+          {`${count} ${count === 1 ? "item" : "items"} the customer will see: notes, photos, clips and what we recommend. Internal notes stay internal.`}
         </p>
         <div className="flex flex-wrap gap-2">
           {sms ? (

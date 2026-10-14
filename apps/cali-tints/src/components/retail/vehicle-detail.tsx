@@ -1,5 +1,8 @@
 "use client";
 
+import type { EstimateListRow } from "@/lib/db/types";
+import { documentNumber } from "@/lib/retail/estimate-stage";
+import { EstimateStageBadge } from "./estimate-stage-badge";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,12 +27,13 @@ export interface VehicleDetailData {
   vehicle: Vehicle;
   customer: { id: string; display_name: string | null };
   odometer: Pick<OdometerReading, "id" | "reading" | "read_at" | "job_id">[];
-  jobs: { id: string; performed_at: string; tag: string; services: string[]; paid_at: string | null; deleted_at: string | null }[];
+  /** Every visit of this car: its estimates, each one the whole life of the visit (0057). */
+  visits: EstimateListRow[];
 }
 
 /** One car's history: what it is, the mileage over time, every visit. */
 export function VehicleDetail({ data }: { data: VehicleDetailData }) {
-  const { vehicle: v, customer, odometer, jobs } = data;
+  const { vehicle: v, customer, odometer, visits } = data;
   const { isAdmin, canPrices, demo } = useSession();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -109,21 +113,20 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
             <CardTitle>Visits</CardTitle>
           </CardHeader>
           <CardContent>
-            {jobs.length === 0 ? (
+            {visits.length === 0 ? (
               <p className="text-sm text-muted-foreground">No visits yet.</p>
             ) : (
-              <ul className="divide-y divide-border text-sm" data-testid="vehicle-jobs">
-                {jobs.map((j) => (
-                  <li key={j.id}>
-                    <Link href={`/jobs/${j.id}`} className="flex items-center justify-between gap-3 py-2.5 hover:text-primary">
+              <ul className="divide-y divide-border text-sm" data-testid="vehicle-visits">
+                {visits.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/retail/estimates/${r.id}`} className="flex items-center justify-between gap-3 py-2.5 hover:text-primary">
                       <div className="min-w-0">
                         <div className="font-medium">
-                          {formatDate(j.performed_at)} · <span className="tracking-wide">{j.tag}</span>
-                          {j.deleted_at && <Badge variant="destructive" className="ml-2">Deleted</Badge>}
+                          {formatDate(r.created_at)} · <span className="tracking-wide">{documentNumber(r).primary}</span>
                         </div>
-                        <div className="truncate text-caption text-subtle">{j.services.join(", ")}</div>
+                        <div className="truncate text-caption text-subtle">{r.concern ?? ""}</div>
                       </div>
-                      {j.paid_at ? <Badge variant="success">Paid</Badge> : j.deleted_at ? null : <Badge variant="warning">Collect</Badge>}
+                      <EstimateStageBadge stage={r.stage} status={r.status} />
                     </Link>
                   </li>
                 ))}

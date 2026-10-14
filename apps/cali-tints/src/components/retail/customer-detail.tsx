@@ -20,7 +20,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CustomerForm, SOURCE_LABEL } from "./customer-form";
-import { EstimateStatusBadge } from "./estimate-status-badge";
+import { EstimateStageBadge } from "./estimate-stage-badge";
+import { documentNumber } from "@/lib/retail/estimate-stage";
 import { VehicleForm } from "./vehicle-form";
 import { ContactButtons } from "./text-customer-button";
 
@@ -32,7 +33,7 @@ const vehicleName = (v: { year: number | null; make: string | null; model: strin
  * detailer sees the record and may add a vehicle.
  */
 export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; showMoney: boolean }) {
-  const { customer: c, vehicles, jobs, stats } = data;
+  const { customer: c, vehicles, stats } = data;
   const { isAdmin, canPrices, demo } = useSession();
   const router = useRouter();
   const estimates = data.estimates ?? [];
@@ -146,7 +147,7 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
             </CardHeader>
             <CardContent>
               {vehicles.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No vehicle on file yet. Add one, or it is created when you log their first job.</p>
+                <p className="text-sm text-muted-foreground">No vehicle on file yet. Add one, or it is created with their first estimate.</p>
               ) : (
                 <ul className="divide-y divide-border" data-testid="customer-vehicles">
                   {vehicles.map((v) => (
@@ -185,11 +186,11 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
                     <li key={es.id} className="py-2.5">
                       <Link href={`/retail/estimates/${es.id}`} className="flex items-center justify-between gap-3 hover:text-primary">
                         <div className="min-w-0">
-                          <div className="font-medium"><span className="tracking-wide">{es.display_number}</span> · {formatDate(es.created_at)}</div>
+                          <div className="font-medium"><span className="tracking-wide">{documentNumber({ display_number: es.display_number, invoice_number: es.invoice_number }).primary}</span> · {formatDate(es.created_at)}</div>
                           <div className="truncate text-caption text-subtle">{[es.vehicle, es.expires_at && (es.status === "sent" || es.status === "viewed" || es.status === "draft") ? `good until ${formatDate(es.expires_at)}` : null].filter(Boolean).join(" · ")}</div>
                         </div>
                         <div className="shrink-0 text-right">
-                          <EstimateStatusBadge status={es.status} />
+                          <EstimateStageBadge stage={es.stage} status={es.status} />
                           {showMoney && es.total !== null && <div className="mt-1 text-caption tabular-nums text-muted-foreground">{formatMoney(es.total)}</div>}
                         </div>
                       </Link>
@@ -199,37 +200,6 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
               </CardContent>
             </Card>
           )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Visits</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {jobs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing yet. Their first job shows up here.</p>
-              ) : (
-                <ul className="divide-y divide-border text-sm" data-testid="customer-jobs">
-                  {jobs.map((j) => (
-                    <li key={j.id} className="py-2.5">
-                      <Link href={`/jobs/${j.id}`} className="flex items-center justify-between gap-3 hover:text-primary">
-                        <div className="min-w-0">
-                          <div className="font-medium">
-                            {formatDate(j.performed_at)} · <span className="tracking-wide">{j.tag}</span>
-                            {j.deleted_at && <Badge variant="destructive" className="ml-2">Deleted</Badge>}
-                          </div>
-                          <div className="truncate text-caption text-subtle">{[j.vehicle, j.services.join(", ")].filter(Boolean).join(" · ")}</div>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          {j.paid_at ? <Badge variant="success">Paid</Badge> : j.deleted_at ? null : <Badge variant="warning">Collect</Badge>}
-                          {showMoney && j.paid_amount !== null && <div className="mt-1 text-caption tabular-nums text-muted-foreground">{formatMoney(j.paid_amount)}</div>}
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">

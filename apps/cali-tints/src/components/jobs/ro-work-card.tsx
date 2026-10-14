@@ -42,9 +42,9 @@ const PARTS: { value: "offered" | "returned" | "declined"; label: string }[] = [
 export const partsLabel = (v: RoWork["parts"]) => PARTS.find((p) => p.value === v)?.label ?? null;
 
 /**
- * Finishing a retail repair order: the tech writes the mileage out and, for
- * every job, what caused it and what was done; a second person signs the work
- * off. Only then can the advisor convert the RO to the customer's invoice.
+ * Finishing a retail estimate: the tech writes the mileage out and, for every
+ * item, what caused it and what was done; a second person signs it off. Only
+ * then can the advisor make the customer's invoice.
  */
 export function RoWorkCard({ jobId, work, canComplete, canQc, unauthorized, invoiced }: { jobId: string; work: RoWork; canComplete: boolean; canQc: boolean; unauthorized: number; invoiced: boolean }) {
   const router = useRouter();
@@ -64,13 +64,13 @@ export function RoWorkCard({ jobId, work, canComplete, canQc, unauthorized, invo
   function save() {
     start(async () => {
       if (demo) {
-        toast.success("Work marked done", { description: "Guest preview — nothing changed" });
+        toast.success("Marked done", { description: "Guest preview — nothing changed" });
         setEditing(false);
         return;
       }
       const r = await completeRoWorkAction(jobId, { odometer_out: out, parts_disposition: parts, jobs: work.jobs.map((j) => ({ id: j.id, cause: notes[j.id]?.cause ?? "", correction: notes[j.id]?.correction ?? "" })) });
       if (!r.ok) return void toast.error(r.error);
-      toast.success("Work marked done");
+      toast.success("Marked done");
       setEditing(false);
       router.refresh();
     });
@@ -78,10 +78,10 @@ export function RoWorkCard({ jobId, work, canComplete, canQc, unauthorized, invo
 
   function signOff() {
     start(async () => {
-      if (demo) return void toast.success("Work signed off", { description: "Guest preview — nothing changed" });
+      if (demo) return void toast.success("Signed off", { description: "Guest preview — nothing changed" });
       const r = await qualityCheckAction(jobId, qcNote);
       if (!r.ok) return void toast.error(r.error);
-      toast.success("Work signed off");
+      toast.success("Signed off");
       router.refresh();
     });
   }
@@ -90,16 +90,16 @@ export function RoWorkCard({ jobId, work, canComplete, canQc, unauthorized, invo
     <Card id="ro-work" className="scroll-mt-24" data-testid="ro-work">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
-          <WrenchIcon className="size-4 text-primary" /> The work
+          <WrenchIcon className="size-4 text-primary" /> What was done
         </CardTitle>
         {work.qcAt ? <Badge variant="success" data-testid="ro-qc-badge">Checked</Badge> : done ? <Badge variant="warning" data-testid="ro-qc-badge">Needs a check</Badge> : <Badge variant="muted" data-testid="ro-qc-badge">In progress</Badge>}
       </CardHeader>
       <CardContent className="grid gap-4">
-        {work.jobs.length === 0 && <p className="text-sm text-muted-foreground">No approved jobs on this RO yet.</p>}
+        {work.jobs.length === 0 && !done && <p className="text-sm text-muted-foreground">Nothing approved yet.</p>}
 
         {form ? (
           <>
-            {unauthorized > 0 && <p className="text-caption text-warning">Some work is not authorized yet. Get the approval before marking it done.</p>}
+            {unauthorized > 0 && <p className="text-caption text-warning">Some items are not approved yet. Get the approval before marking it done.</p>}
             {work.jobs.map((j) => (
               <div key={j.id} className="grid gap-2 rounded-lg border border-border p-3" data-testid="work-job">
                 <div className="flex items-center justify-between gap-2">
@@ -132,10 +132,10 @@ export function RoWorkCard({ jobId, work, canComplete, canQc, unauthorized, invo
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={save} loading={pending} disabled={unauthorized > 0 || work.jobs.length === 0 || missing.length > 0 || out === "" || lowOut} data-testid="work-done"><ClipboardCheckIcon /> Mark the work done</Button>
+              <Button onClick={save} loading={pending} disabled={unauthorized > 0 || work.jobs.length === 0 || missing.length > 0 || out === "" || lowOut} data-testid="work-done"><ClipboardCheckIcon /> Mark it done</Button>
               {done && <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>}
             </div>
-            {missing.length > 0 && <p className="text-caption text-subtle">Cause and correction for every job: {missing.map((j) => j.title).join(", ")}.</p>}
+            {missing.length > 0 && <p className="text-caption text-subtle">Cause and correction for each item: {missing.map((j) => j.title).join(", ")}.</p>}
           </>
         ) : (
           <>
@@ -164,15 +164,15 @@ export function RoWorkCard({ jobId, work, canComplete, canQc, unauthorized, invo
                 {work.qcAt && (<><dt className="text-muted-foreground">Checked</dt><dd data-testid="work-qc-at">{formatDateTime(work.qcAt)}{work.qcNote ? ` · ${work.qcNote}` : ""}</dd></>)}
               </dl>
             )}
-            {!done && !canComplete && <p className="text-caption text-subtle">The tech writes the cause and correction when the work is finished.</p>}
+            {!done && !canComplete && <p className="text-caption text-subtle">The tech writes the cause and correction when it is finished.</p>}
             {done && !work.qcAt && !invoiced && canQc && (
               <div className="grid gap-2 rounded-lg border border-border p-3">
                 <Label htmlFor="qc-note">Quality check</Label>
                 <Input id="qc-note" data-testid="qc-note" value={qcNote} onChange={(e) => setQcNote(e.target.value)} maxLength={500} placeholder="Test drive, torque, fluids, anything to note (optional)" />
-                <Button onClick={signOff} loading={pending} data-testid="qc-sign"><CheckCircle2Icon /> Sign off the work</Button>
+                <Button onClick={signOff} loading={pending} data-testid="qc-sign"><CheckCircle2Icon /> Check it and sign off</Button>
               </div>
             )}
-            {done && !work.qcAt && !invoiced && !canQc && <p className="text-caption text-subtle">Waiting for the advisor or owner to check the work.</p>}
+            {done && !work.qcAt && !invoiced && !canQc && <p className="text-caption text-subtle">Waiting for the advisor or owner to check it.</p>}
             {!invoiced && canComplete && done && <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setEditing(true)} data-testid="work-edit">Change what was written</Button>}
           </>
         )}

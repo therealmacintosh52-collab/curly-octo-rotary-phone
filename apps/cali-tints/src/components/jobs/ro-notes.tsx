@@ -62,6 +62,8 @@ export interface RoNotesProps {
   estimateSoFar?: { display_number: string; subtotal: number; tax: number; total: number } | null;
   /** The findings block at the top of the estimate: wider cards in two columns, bigger photos, bigger text and buttons. */
   large?: boolean;
+  /** The block sits in a narrow right-hand column: one finding per row. */
+  side?: boolean;
 }
 
 const SEVERITY_LABEL: Record<FindingSeverity, string> = { ok: "Looks fine", soon: "Soon", urgent: "Urgent" };
@@ -92,10 +94,10 @@ export function RoNotes(p: RoNotesProps) {
   const ref: FindingRef = p.jobId ?? { estimateId: p.estimateId! };
   function applyEstimate(e: JobEstimate) {
     start(async () => {
-      if (demo) return void toast.success(`Approved work added to ${p.roNumber ?? "the RO"}`, { description: "Guest preview — nothing changed" });
+      if (demo) return void toast.success(`Approved items added to the estimate`, { description: "Guest preview — nothing changed" });
       const r = await convertEstimateAction(e.id, {});
       if (!r.ok) return void toast.error(r.error);
-      toast.success(`Approved work added to ${p.roNumber ?? "the RO"}`);
+      toast.success(`Approved items added to the estimate`);
       router.refresh();
     });
   }
@@ -146,7 +148,7 @@ export function RoNotes(p: RoNotesProps) {
                       <span className="font-medium">{f.title}</span>
                     </div>
                     <div className="text-caption text-subtle">
-                      {f.job_ro_number ? <Link href={`/jobs/${f.job_id}?tab=notes`} className="hover:text-primary">{f.job_ro_number}</Link> : "Earlier visit"} · {formatDate(f.job_performed_at)}
+                      {f.job_id ? <Link href={`/jobs/${f.job_id}`} className="hover:text-primary">Earlier visit</Link> : "Earlier visit"} · {formatDate(f.job_performed_at)}
                       {f.recommended_service ? ` · ${f.recommended_service}` : ""}
                     </div>
                   </div>
@@ -177,7 +179,7 @@ export function RoNotes(p: RoNotesProps) {
           {p.findings.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing yet. What the tech sees goes here: a note, or a finding with a photo or a clip; the advisor quotes from it.</p>
           ) : (
-            <ol className={cn("gap-3", p.large ? "grid md:grid-cols-2" : "flex flex-col")} data-testid="ro-findings">
+            <ol className={cn("gap-3", p.large && !p.side ? "grid md:grid-cols-2" : "flex flex-col")} data-testid="ro-findings">
               {p.findings.map((f) => (
                 <li key={f.id} className={cn("rounded-xl border border-border bg-card/60", p.large ? "p-4" : "p-3")} data-testid={`finding-${f.kind}`}>
                   <div className="flex items-start justify-between gap-2">
@@ -263,7 +265,7 @@ export function RoNotes(p: RoNotesProps) {
       {estimates.length > 0 && (
         <Card data-testid="ro-estimates">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FileTextIcon className="size-4 text-primary" /> Estimates on this RO <Badge variant="muted">{estimates.length}</Badge></CardTitle>
+            <CardTitle className="flex items-center gap-2"><FileTextIcon className="size-4 text-primary" /> Estimates on this visit <Badge variant="muted">{estimates.length}</Badge></CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="divide-y divide-border text-sm">
@@ -271,12 +273,12 @@ export function RoNotes(p: RoNotesProps) {
                 <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
                   <div className="min-w-0">
                     <Link href={`/retail/estimates/${e.id}`} className="font-medium hover:text-primary">{e.display_number}</Link>
-                    <span className="ml-2 text-caption text-subtle">{e.lines} {e.lines === 1 ? "item" : "items"}{e.total !== null ? ` · ${formatMoney(e.total)}` : ""}{e.applied_at ? " · on the RO" : e.status === "accepted" ? " · approved, not on the RO yet" : e.status === "sent" || e.status === "viewed" ? " · waiting on the customer" : ""}</span>
+                    <span className="ml-2 text-caption text-subtle">{e.lines} {e.lines === 1 ? "item" : "items"}{e.total !== null ? ` · ${formatMoney(e.total)}` : ""}{e.applied_at ? " · on the invoice" : e.status === "accepted" ? " · approved, not added yet" : e.status === "sent" || e.status === "viewed" ? " · waiting on the customer" : ""}</span>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <EstimateStatusBadge status={e.status} />
                     {p.canQuote && e.status === "accepted" && !e.applied_at && (
-                      <Button size="sm" onClick={() => applyEstimate(e)} disabled={pending} data-testid="apply-estimate"><ClipboardCheckIcon /> Add to the RO</Button>
+                      <Button size="sm" onClick={() => applyEstimate(e)} disabled={pending} data-testid="apply-estimate"><ClipboardCheckIcon /> Add to the estimate</Button>
                     )}
                   </div>
                 </li>
@@ -462,13 +464,21 @@ function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: str
  * On a phone the RO is two tabs, Job and Notes; from 1280 px the notes sit
  * beside the job. The same children render either way.
  */
-export function RoLayout({ initialTab = "job", count, notes, children, jobLabel = "Job" }: { initialTab?: "job" | "notes"; count: number; notes: React.ReactNode; children: React.ReactNode; /** The first tab's name on a phone: Job, Estimate, Invoice. */ jobLabel?: string }) {
+export function RoLayout({ initialTab = "job", count, notes, children, jobLabel = "Job", stack = false }: { initialTab?: "job" | "notes"; count: number; notes: React.ReactNode; children: React.ReactNode; /** The first tab's name on a phone: Job, Estimate, Invoice. */ jobLabel?: string; /** No tabs: the findings are one big block on top on a phone and a wide column beside the page on a wide screen. */ stack?: boolean }) {
   const [tab, setTab] = useState<"job" | "notes">(initialTab);
+  if (stack) {
+    return (
+      <div className="mt-5 flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_440px] xl:items-start">
+        <div className="order-2 min-w-0 xl:order-1">{children}</div>
+        <div className="order-1 min-w-0 xl:sticky xl:top-20 xl:order-2 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto" data-testid="ro-notes">{notes}</div>
+      </div>
+    );
+  }
   return (
     <>
       <div className="mt-5 xl:hidden">
         <Segmented
-          aria-label="Job or notes"
+          aria-label="Estimate or notes"
           value={tab}
           onValueChange={(v) => setTab(v as "job" | "notes")}
           items={[

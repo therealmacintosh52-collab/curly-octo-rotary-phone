@@ -177,8 +177,9 @@ export function vehicleDetailFixture(id: string): VehicleDetailData | null {
   if (!v) return null;
   const c = customersFixture.find((x) => x.id === v.customer_id)!;
   const jobs = (JOBS[c.id] ?? []).filter((j) => j.vehicle_id === v.id);
+  const visits = estimateListFixture(true, "", "all").rows.filter((r) => r.vehicle_id === v.id);
   const odometer = v.id === V1 ? [{ id: "o1", reading: 48210, read_at: ago(0, 2.5), job_id: jobs[0]?.id ?? null }, { id: "o2", reading: 46950, read_at: ago(62), job_id: null }, { id: "o3", reading: 44120, read_at: ago(118), job_id: null }] : v.id === V3 ? [{ id: "o4", reading: 61400, read_at: ago(20), job_id: null }] : [];
-  return { vehicle: v, customer: { id: c.id, display_name: c.display_name }, odometer, jobs: jobs.map((j) => ({ id: j.id, performed_at: j.performed_at, tag: j.tag, services: j.services, paid_at: j.paid_at, deleted_at: j.deleted_at })) };
+  return { vehicle: v, customer: { id: c.id, display_name: c.display_name }, odometer, visits };
 }
 
 export function pickedCustomersFixture(): PickedCustomer[] {
@@ -323,7 +324,14 @@ export const ESTIMATE_TOKEN = "demo-estimate-token-ana-camry-0001";
 const E4 = "90000000-0000-4000-8000-000000000004";
 /** Priya's F-150: a diagnosis, then the repair itemized, with the tech's findings on the side tab. */
 const E5 = "90000000-0000-4000-8000-000000000005";
-export const ESTIMATE_IDS_EXTRA = { priya: E5 };
+/** The primary estimate of each retail visit in the demo (R-101 Ana, R-102 Marcus, R-103 Priya): the one screen that carries it from quote to closed (0057). */
+const E6 = "90000000-0000-4000-8000-000000000006";
+const E7 = "90000000-0000-4000-8000-000000000007";
+const E8 = "90000000-0000-4000-8000-000000000008";
+const E9 = "90000000-0000-4000-8000-000000000009";
+export const ESTIMATE_IDS_EXTRA = { priya: E5, anaClosed: E6, marcusUnpaid: E7, priyaWork: E8, johnClosed: E9 };
+/** The primary estimate of each demo retail visit, by the id of its hidden repair-order row. */
+export const ESTIMATE_FOR_JOB: Record<string, string> = { "40000000-0000-4000-8000-000000000998": E6, "40000000-0000-4000-8000-000000000999": E7, "40000000-0000-4000-8000-000000000997": E8, "40000000-0000-4000-8000-000000000996": E9, "40000000-0000-4000-8000-000000000993": E2 };
 export const ESTIMATE_TOKEN_RO = "demo-estimate-token-marcus-tesla-0004";
 /** A draft: the link can go out with findings only ("your quote is being prepared"). */
 export const ESTIMATE_TOKEN_DRAFT = "demo-estimate-token-dana-odyssey-0003";
@@ -498,11 +506,57 @@ function estimateBase(id: string) {
         created: ago(0, 3), expires: new Date(Date.now() + 14 * 86400000).toISOString(), customer_notes: "The rattle is the tensioner; the diagnosis confirms it before we take anything apart.", internal_notes: null, po: null,
         concern: "A metallic rattle for a couple of seconds on a cold start, only in the mornings.",
       };
+    case E6:
+      return {
+        id: E6, n: 6, status: "accepted" as EstimateStatus, customer: cust(C1), vehicle: veh(V1), odometer: 48210,
+        job: { id: JOBS[C1][0].id, ro_number: "RO-000041", invoice_number: "RI-000041", invoiced_at: JOBS[C1][0].performed_at, tag_number: "R-101", performed_at: JOBS[C1][0].performed_at, paid_at: JOBS[C1][0].paid_at, picked_up_at: JOBS[C1][0].paid_at, odometer: 48210 },
+        options: [{ id: "o6-single", tier: "single" as const, name: "Quote", description: null, recommended: true, lines: [{ id: "l21", svc: 0, price: 240 }] }],
+        addons: [], selected: "o6-single", created: ago(0, 3), expires: new Date(Date.now() + 14 * 86400000).toISOString(), sent: ago(0, 3), accepted: ago(0, 2.6), applied: ago(0, 2.6),
+        auth: { id: "au6", authorized_at: ago(0, 2.6), name: "Ana Lopez", method: "in_person" as const, by_staff: "u1", selected_option_id: "o6-single", approved_line_ids: [], signature_path: "c1/estimates/e6/sig.png", pay_choice: "at_shop" as const, total: null },
+        customer_notes: null, internal_notes: null, po: null, concern: "Interior smells like smoke.", ro: "RO-000041",
+      };
+    case E7:
+      return {
+        id: E7, n: 7, status: "accepted" as EstimateStatus, customer: cust(C2), vehicle: veh(V2), odometer: 31200,
+        job: { id: JOBS[C2][0].id, ro_number: "RO-000042", invoice_number: "RI-000042", invoiced_at: JOBS[C2][0].performed_at, tag_number: "R-102", performed_at: JOBS[C2][0].performed_at, paid_at: null, odometer: 31200 },
+        options: [{ id: "o7-single", tier: "single" as const, name: "Quote", description: null, recommended: true, lines: [{ id: "l22", svc: 0, price: 200 }] }],
+        addons: [], selected: "o7-single", created: ago(0, 1), expires: new Date(Date.now() + 14 * 86400000).toISOString(), sent: ago(0, 1), accepted: ago(0, 0.9), applied: ago(0, 0.9),
+        auth: { id: "au7", authorized_at: ago(0, 0.9), name: "Marcus Reed", method: "online" as const, by_staff: null, selected_option_id: "o7-single", approved_line_ids: [], signature_path: "c1/estimates/e7/sig.png", pay_choice: "deposit" as const, total: null },
+        customer_notes: null, internal_notes: null, po: null, concern: "Wants it back by 5; do the carpets first.", ro: "RO-000042", findings: jobFindingsFixture(JOBS[C2][0].id),
+      };
+    case E8:
+      return {
+        id: E8, n: 8, status: "accepted" as EstimateStatus, customer: cust(C3), vehicle: veh(V3), odometer: 61400,
+        job: { id: WIP_JOB_ID, ro_number: "RO-000044", invoice_number: null, invoiced_at: null, tag_number: "R-103", performed_at: ago(0, 0.4), paid_at: null, odometer: 61400 },
+        options: [{ id: "o8-single", tier: "single" as const, name: "Quote", description: null, recommended: true, lines: [
+          { id: "l23", svc: null, type: "labor" as const, name: "Diagnose the brake squeal", hours: 1, price: 120, section: "diagnosis" as const },
+          { id: "l24", svc: null, type: "labor" as const, name: "Replace front pads", hours: 3, price: 120 },
+        ] }],
+        addons: [], selected: "o8-single", created: ago(0, 0.5), expires: new Date(Date.now() + 14 * 86400000).toISOString(), sent: ago(0, 0.45), accepted: ago(0, 0.4), applied: ago(0, 0.4),
+        auth: { id: "au8", authorized_at: ago(0, 0.4), name: "Priya Nair", method: "in_person" as const, by_staff: "u1", selected_option_id: "o8-single", approved_line_ids: [], signature_path: "c1/estimates/e8/sig.png", pay_choice: "at_shop" as const, total: null },
+        customer_notes: null, internal_notes: null, po: null, concern: "Squeals when I brake, worse in the morning.", ro: "RO-000044",
+      };
+    case E9: {
+      const john: Customer = { ...cust(C1), id: "doc-john", first_name: "John", last_name: "Doe", display_name: "John Doe", phone: "(916) 555-0199", email: "john@email.com" };
+      const accord: Vehicle = { ...veh(V1), id: "doc-accord", customer_id: "doc-john", year: 2018, make: "Honda", model: "Accord", trim: "EX", color: "Gray", vin: "1HGCV1F3XJA000000", plate: "8ABC123" };
+      return {
+        id: E9, n: 9, status: "accepted" as EstimateStatus, customer: john, vehicle: accord, odometer: 84210,
+        job: { id: DOC_JOB_ID, ro_number: "RO-000046", invoice_number: "RI-000044", invoiced_at: ago(1, 2), tag_number: "R-100", performed_at: ago(1, 2), paid_at: ago(1, 1), picked_up_at: ago(1, 1), odometer: 84210 },
+        options: [{ id: "o9-single", tier: "single" as const, name: "Quote", description: null, recommended: true, lines: [
+          { id: "l31", svc: null, type: "labor" as const, name: "Brake pads/rotors", hours: 1.5, price: 150 },
+          { id: "l32", svc: null, type: "part" as const, name: "Brake pad set", qty: 1, price: 89.99 },
+          { id: "l33", svc: null, type: "part" as const, name: "Front rotor", qty: 2, price: 79.99 },
+        ] }],
+        addons: [], selected: "o9-single", created: ago(1, 4), expires: new Date(Date.now() + 10 * 86400000).toISOString(), sent: ago(1, 4), accepted: ago(1, 3), applied: ago(1, 3),
+        auth: { id: "au9", authorized_at: ago(1, 3), name: "John Doe", method: "online" as const, by_staff: null, selected_option_id: "o9-single", approved_line_ids: [], signature_path: "c1/estimates/e9/sig.png", pay_choice: "at_shop" as const, total: null },
+        customer_notes: null, internal_notes: null, po: null, concern: "Grinding noise when braking", ro: "RO-000046",
+      };
+    }
     case E4: {
       const found = jobFindingsFixture("40000000-0000-4000-8000-000000000999").filter((f) => f.id === FINDING_IDS.pads || f.id === FINDING_IDS.spots).map((f) => ({ ...f, status: "quoted" as const, estimate_line_id: f.id === FINDING_IDS.pads ? "l11" : "l13" }));
       return {
         id: E4, n: 4, status: "sent" as EstimateStatus, customer: cust(C2), vehicle: veh(V2), kind: "supplement" as const, token: ESTIMATE_TOKEN_RO,
-        job: { id: "40000000-0000-4000-8000-000000000999", ro_number: "RO-000042", tag_number: "R-102", performed_at: ago(0, 0.7), paid_at: null, odometer: 31200 },
+        job: { id: "40000000-0000-4000-8000-000000000999", ro_number: "RO-000042", tag_number: "R-102", performed_at: ago(0, 0.7), paid_at: null, odometer: 31200, primary_estimate_id: E7 },
         findings: found,
         options: [{ id: "o4-single", tier: "single" as const, name: "While it is here", description: "What the tech found during the detail", recommended: true, lines: [
           { id: "l11", svc: null, type: "labor" as const, name: "Replace rear brake pads", hours: 1.5, price: 120, finding_id: FINDING_IDS.pads },
@@ -539,22 +593,38 @@ export function jobEstimatesFixture(jobId: string, money: boolean): JobEstimate[
   return [{ id: e.id, display_number: e.display_number, status: e.status, kind: "supplement", sent_at: e.sent_at, accepted_at: e.accepted_at, applied_at: null, total: e.total, lines: e.options[0].lines.length }];
 }
 
-export function estimateListFixture(money: boolean, q = "", status = "open"): EstimateListResult {
+/** The stage of a demo estimate, derived the way the database does (0057). */
+export function fixtureStage(e: EstimateView): EstimateStage {
+  if (e.status === "draft") return "draft";
+  if (e.status === "sent" || e.status === "viewed") return "sent";
+  if (e.status === "declined" || e.status === "expired") return e.status;
+  const j = e.job;
+  if (!j) return "in_progress";
+  if (j.picked_up_at) return "closed";
+  if (j.paid_at) return "paid";
+  if (j.invoiced_at) return "unpaid";
+  return "in_progress";
+}
+const LIST_IDS = [E5, E3, E8, E7, E1, E2, E6, E9];
+
+export function estimateListFixture(money: boolean, q = "", stage: string = "open"): EstimateListResult {
   const t = q.trim().toLowerCase();
-  const rows: EstimateListRow[] = [E5, E4, E3, E1, E2]
-    .map((id) => estimateViewFixture(id, money)!)
-    .filter((e) => (status === "all" ? true : status === "open" ? ["draft", "sent", "viewed"].includes(e.status) : e.status === status))
-    .filter((e) => !t || e.display_number.toLowerCase().includes(t) || (e.customer.display_name ?? "").toLowerCase().includes(t) || (e.vehicle?.name ?? "").toLowerCase().includes(t))
-    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total }));
-  return { count: rows.length, rows };
+  const all = LIST_IDS.map((id) => estimateViewFixture(id, money)!);
+  const counts: Partial<Record<EstimateStage, number>> = {};
+  for (const e of all) counts[fixtureStage(e)] = (counts[fixtureStage(e)] ?? 0) + 1;
+  const rows: EstimateListRow[] = all
+    .filter((e) => (stage === "all" ? true : stage === "open" ? !["closed", "declined", "expired"].includes(fixtureStage(e)) : fixtureStage(e) === stage))
+    .filter((e) => !t || e.display_number.toLowerCase().includes(t) || (e.job?.invoice_number ?? "").toLowerCase().includes(t) || (e.customer.display_name ?? "").toLowerCase().includes(t) || (e.vehicle?.name ?? "").toLowerCase().includes(t))
+    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, stage: fixtureStage(e), vehicle_id: e.vehicle?.id ?? null, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total, concern: e.customer_concern ?? null, invoice_number: e.job?.invoice_number ?? null, invoiced_at: e.job?.invoiced_at ?? null, paid_at: e.job?.paid_at ?? null, picked_up_at: e.job?.picked_up_at ?? null, waiting_supplement: e.job?.id === JOBS[C2][0].id, advisor: "MK", tech: e.job ? "VK" : null, balance: money && fixtureStage(e) === "unpaid" ? (e.job?.id === JOBS[C2][0].id ? 160 : 415) : null }));
+  return { count: rows.length, counts, rows };
 }
 
 /** The customer page's estimates list. */
 export function customerEstimatesFixture(customerId: string, money: boolean): NonNullable<CustomerTimeline["estimates"]> {
-  return [E5, E4, E3, E1, E2]
+  return [E5, E4, E3, E8, E7, E1, E2, E6, E9]
     .map((id) => estimateViewFixture(id, money)!)
-    .filter((e) => e.customer.id === customerId)
-    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, created_at: e.created_at, expires_at: e.expires_at, vehicle: e.vehicle?.name ?? null, total: e.total, job_id: e.job_id }));
+    .filter((e) => e.customer.id === customerId && e.kind !== "supplement")
+    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, created_at: e.created_at, expires_at: e.expires_at, vehicle: e.vehicle?.name ?? null, total: e.total, job_id: e.job_id, stage: fixtureStage(e), invoice_number: e.job?.invoice_number ?? null }));
 }
 
 
@@ -676,7 +746,7 @@ export function retailChargeFixture(jobId: string, money: boolean, stage: PaySta
   const r101 = JOBS[C1][0];
   const r102 = JOBS[C2][0];
   if (jobId === r101.id) {
-    return { job_id: jobId, tag: "R-101", vehicle: "2019 Toyota Camry", subtotal: 240, tax: 0, total: 240, deposit_paid: 48, paid: 192, balance: 0, amount: 0, amount_cents: 0, paid_at: r101.paid_at, receipt_signed_at: r101.paid_at, receipt_signed_name: "Ana Lopez", has_signature: true, signature_required: true,
+    return { job_id: jobId, tag: "R-101", vehicle: "2019 Toyota Camry", subtotal: 240, tax: 0, total: 240, deposit_paid: 48, paid: 192, balance: 0, amount: 0, amount_cents: 0, paid_at: r101.paid_at, picked_up_at: r101.paid_at, receipt_signed_at: r101.paid_at, receipt_signed_name: "Ana Lopez", has_signature: true, signature_required: true,
       payments: [{ id: "pay-101-d", kind: "deposit", status: "paid", method: "clover_online", paid_at: ago(2), provider_ref: "HC7Q2M", note: null, amount: money ? 48 : null }, { id: "pay-101-b", kind: "balance", status: "paid", method: "clover_flex", paid_at: r101.paid_at, provider_ref: "K7Q2M3", note: null, amount: money ? 192 : null }] };
   }
   if (jobId === r102.id && stage !== "none") {
@@ -725,7 +795,7 @@ export function receiptFixture(token: string, money: boolean): ReceiptView | nul
 // ---------------------------------------------------------------------------
 // 0052: one repair order through its stages: header facts, the authorization record, a job in progress (R-103, not invoiced yet).
 // ---------------------------------------------------------------------------
-import type { InvoiceJob, RoAuthorization } from "@/lib/db/types";
+import type { EstimateStage, InvoiceJob, RoAuthorization } from "@/lib/db/types";
 
 export const WIP_JOB_ID = "40000000-0000-4000-8000-000000000997";
 export const WIP_TOKEN = "demo-ro-token-priya-f150-0003";
@@ -748,7 +818,7 @@ export function roAuthorizationsFixture(jobId: string, money: boolean): RoAuthor
     ];
   if (jobId === JOBS[C2][0].id) return [{ id: "auth-102-1", kind: "estimate", authorized_at: ago(0, 0.9), name: "Marcus Reed", method: "online", by_staff: false, has_signature: true, estimate_id: null, amount: amt(200) }];
   if (jobId === JOBS[C1][0].id) return [{ id: "auth-101-1", kind: "initial", authorized_at: ago(0, 2.6), name: "Ana Lopez", method: "in_person", by_staff: true, has_signature: true, estimate_id: null, amount: amt(240) }];
-  return [];
+  return [{ id: `auth-${jobId.slice(-4)}`, kind: "estimate", authorized_at: ago(1, 2), name: "Customer", method: "online", by_staff: false, has_signature: true, estimate_id: null, amount: amt(415) }];
 }
 
 /**
@@ -781,7 +851,7 @@ export function roReviewFixture(state: "none" | "done" | "qc"): import("@/lib/db
 export function wipReceiptFixture(money: boolean): ReceiptView {
   const c = cust(C3);
   return {
-    id: WIP_JOB_ID, tag: "R-103", invoice_number: null, invoiced_at: null, ro_number: "RO-000044", concern: roHeaderFixture(WIP_JOB_ID).concern, odometer: 61400, plate: money ? "7FLT009" : null,
+    id: WIP_JOB_ID, tag: "R-103", invoice_number: null, invoiced_at: null, ro_number: "RO-000044", estimate_number: "EST-000008", concern: roHeaderFixture(WIP_JOB_ID).concern, odometer: 61400, plate: money ? "7FLT009" : null,
     performed_at: ago(0, 0.4), paid_at: null, payment_method: null, vehicle: "2021 Ford F-150", color: "Obsidian Black",
     customer: { id: c.id, display_name: money ? c.display_name : c.first_name, first_name: c.first_name, email: money ? c.email : null, phone: money ? c.phone : null },
     lines: [{ name: "Diagnosis · Diagnose the brake squeal — 1.00 h @ $120.00", price: 120 }, { name: "Replace front pads — 3.00 h @ $120.00", price: 360 }],
@@ -802,7 +872,7 @@ export function invoiceDocFixture(staff: boolean): ReceiptView {
   const doc = new Date(Date.now() - 26 * 3600 * 1000).toISOString();
   const ln = (name: string, type: string, total: number, extra: Partial<{ qty: number; hours: number; rate: number }> = {}) => ({ name, type, qty: extra.qty ?? null, hours: extra.hours ?? null, rate: extra.rate ?? null, part_number: null, total });
   return {
-    id: DOC_JOB_ID, tag: "R-100", invoice_number: "RI-000044", invoiced_at: doc, ro_number: "RO-000046", concern: "Grinding noise when braking", performed_at: doc, paid_at: doc, payment_method: "clover",
+    id: DOC_JOB_ID, tag: "R-100", invoice_number: "RI-000044", invoiced_at: doc, ro_number: "RO-000046", estimate_number: "EST-000009", concern: "Grinding noise when braking", performed_at: doc, paid_at: doc, payment_method: "clover",
     vehicle: "2018 Honda Accord EX", color: "Gray", odometer: 84210, odometer_out: 84212, vin: staff ? "1HGCV1F3XJA000000" : null, plate: staff ? "8ABC123" : null,
     customer: { id: "doc-john", display_name: staff ? "John Doe" : "John", first_name: "John", email: staff ? "john@email.com" : null, phone: staff ? "(916) 555-0199" : null },
     jobs: [
@@ -983,5 +1053,72 @@ export function retailDashboardFixture(money: boolean): RetailDashboard {
     open_jobs: 3,
     appointments_today: 3,
     money: money ? { collected_week: 1385, collected_month: 2960, unpaid_invoices: 3, unpaid_total: 705, deposits_outstanding: 66 } : null,
+  };
+}
+
+
+// ---------------------------------------------------------------------------
+// 0057: the visit behind an approved estimate: the work, the authorizations, the payments, the invoice.
+// ?work=none|done|qc (R-103) and ?pay=partial|paid|signed|closed (R-102) walk the stages in the preview.
+// ---------------------------------------------------------------------------
+import type { VisitPanel } from "@/lib/retail/visit";
+
+export function visitFixture(estimateId: string, money: boolean, isAdmin: boolean, opts: { work?: string | string[]; pay?: string | string[]; unauth?: string | string[] } = {}): VisitPanel | null {
+  const base = estimateViewFixture(estimateId, money);
+  if (!base?.job || base.kind === "supplement") return null;
+  const jobId = base.job.id;
+  const workState = opts.work === "qc" || opts.work === "done" ? opts.work : "none";
+  const payStage: PayStage = opts.pay === "partial" || opts.pay === "paid" || opts.pay === "signed" || opts.pay === "closed" ? opts.pay : "none";
+  const invoiced = !!base.job.invoiced_at;
+  const docInv = jobId === DOC_JOB_ID ? invoiceDocFixture(money) : null;
+  const charge: RetailCharge | null = docInv
+    ? { job_id: jobId, tag: "R-100", vehicle: docInv.vehicle, subtotal: docInv.subtotal, tax: docInv.tax, total: docInv.total, deposit_paid: 0, paid: docInv.total, balance: 0, amount: 0, amount_cents: 0, paid_at: docInv.paid_at, picked_up_at: docInv.paid_at, receipt_signed_at: docInv.signed_at, receipt_signed_name: docInv.signed_name, has_signature: true, signature_required: true,
+        payments: docInv.payments.map((p, i) => ({ id: `pay-doc-${i}`, kind: p.kind, status: "paid" as const, method: p.method, paid_at: p.paid_at, provider_ref: null, note: p.note ?? null, amount: money ? p.amount : null })) }
+    : invoiced ? retailChargeFixture(jobId, money, payStage) : null;
+  const wip = roWorkFixture(jobId, workState);
+  const work = wip ?? { jobs: [], mileageIn: base.odometer ?? null, odometerOut: (base.odometer ?? 0) + 10, completedAt: base.job.performed_at, qcAt: base.job.performed_at, qcNote: null, parts: null };
+  const detail = invoiced && !docInv ? retailInvoiceDetailFixture(jobId) : null;
+  const invoiceDoc: ReceiptView | null = docInv ?? (detail
+    ? {
+        ...detail,
+        jobs: [],
+        extras: detail.lines.map((l) => ({ name: l.name, type: "service", total: l.price })),
+        categories: { labor: 0, parts: 0, fees: 0, sublets: 0, services: detail.subtotal },
+        taxable_types: [],
+        declined: [],
+        recommended: [],
+        authorizations: [{ kind: "estimate", method: "online", authorized_at: base.accepted_at ?? ago(0, 1), name: base.customer.display_name ?? "Customer", amount: money ? detail.total : null }],
+        advisor: "MK",
+        tech: "VK",
+        bar_license: "ARD000000",
+        warranty_text: "12 mo / 12,000 mi parts & labor",
+        estimate_number: base.display_number,
+        invoiced_at: base.job.invoiced_at ?? null,
+        picked_up_at: charge?.picked_up_at ?? null,
+        paid_at: charge?.paid_at ?? detail.paid_at,
+        payments: charge ? charge.payments.filter((p) => p.amount !== null).map((p) => ({ kind: p.kind, method: p.method, amount: p.amount as number, paid_at: p.paid_at, provider_ref: null, note: p.note ?? null })) : detail.payments,
+        balance: charge?.balance ?? detail.balance,
+        paid: charge ? charge.paid : detail.paid,
+        signed_name: charge?.receipt_signed_name ?? null,
+        signed_at: charge?.receipt_signed_at ?? null,
+        has_signature: !!charge?.has_signature,
+      }
+    : null);
+  return {
+    jobId,
+    deleted: false,
+    invoiced,
+    lineCount: base.options[0]?.lines.length ?? 1,
+    work,
+    payment: { paid_at: charge?.paid_at ?? null, paid_amount: charge?.paid_at ? (charge.total ?? null) : null, payment_method: charge?.paid_at ? "cash" : null, payment_ref: null },
+    charge,
+    authorizations: roAuthorizationsFixture(jobId, money),
+    unauthorized: opts.unauth === "1" && !invoiced ? 1 : 0,
+    review: !invoiced && money ? (() => { const rv = roReviewFixture(workState); const un = opts.unauth === "1" ? 1 : 0; return { ...rv, unauthorized: un, ready: rv.ready && un === 0 }; })() : null,
+    canComplete: isAdmin && !invoiced,
+    canQc: isAdmin && !invoiced,
+    canPrice: money,
+    receiptUrl: money ? "/r/demo-ro-token-priya-f150-0003" : null,
+    invoiceDoc,
   };
 }

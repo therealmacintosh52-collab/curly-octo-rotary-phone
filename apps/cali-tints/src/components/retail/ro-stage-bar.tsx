@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 const SHORT: Record<string, string> = { estimate: "Estimate", in_progress: "In progress", invoice: "Invoice", closed: "Closed" };
 
 /**
- * Estimate → Work in progress → Invoice → Paid / Closed: one repair order, the
- * same RO number all the way (0052). Shown on the estimate, the repair order and
- * the invoice so everyone sees where it stands.
+ * Estimate → In progress → Invoice → Closed: one document, the same number
+ * all the way (0052). Shown on the estimate and the invoice so everyone sees
+ * where it stands.
  */
 export function RoStageBar({ roNumber, className, ...input }: RoStageInput & { roNumber?: string | null; className?: string }) {
   const stage = roStage(input);
@@ -15,7 +15,7 @@ export function RoStageBar({ roNumber, className, ...input }: RoStageInput & { r
   const finished = stage.key === "closed" && input.pickedUpAt !== null;
   return (
     <div className={cn("rounded-xl border border-border bg-card px-3 py-3 sm:px-4", className)} data-testid="ro-stage" data-stage={stage.key}>
-      <ol className="grid grid-cols-4 gap-1.5" aria-label="Repair order stage">
+      <ol className="grid grid-cols-4 gap-1.5" aria-label="Where this estimate stands">
         {RO_STAGES.map((s, i) => {
           const done = i < stage.index || (s.key === "closed" && finished);
           const current = i === stage.index && !done;

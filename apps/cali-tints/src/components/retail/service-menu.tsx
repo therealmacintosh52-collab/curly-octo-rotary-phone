@@ -50,7 +50,7 @@ export function ServiceMenu({ services, selected, size, onToggle, onOther, onBla
         </ul>
         {(onBlankJob || onOther) && (
           <div className="mt-2 grid gap-1 border-t border-border pt-2">
-            {onBlankJob && <button type="button" onClick={() => { setOpen(false); onBlankJob(); }} className="min-h-11 rounded-md px-2.5 text-left text-sm hover:bg-muted" data-testid={`${testId}-blank`}>A job I name myself…</button>}
+            {onBlankJob && <button type="button" onClick={() => { setOpen(false); onBlankJob(); }} className="min-h-11 rounded-md px-2.5 text-left text-sm hover:bg-muted" data-testid={`${testId}-blank`}>A service I name myself…</button>}
             {onOther && <button type="button" onClick={() => { setOpen(false); onOther(); }} className="min-h-11 rounded-md px-2.5 text-left text-sm hover:bg-muted" data-testid={`${testId}-other`}>Other (not on the menu)…</button>}
           </div>
         )}

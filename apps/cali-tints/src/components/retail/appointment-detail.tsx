@@ -61,7 +61,7 @@ export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = fa
       if (!r.ok) return void toast.error(r.error);
       if (status === "in_progress" && r.data.job_id) {
         const jobId = r.data.job_id;
-        toast.success("Checked in · the repair order is open", { action: { label: "Open the notes", onClick: () => router.push(`/jobs/${jobId}?tab=notes`) } });
+        toast.success("Checked in", { action: { label: "Open the estimate", onClick: () => router.push(`/jobs/${jobId}`) } });
       } else toast.success(status === "booked" ? "Confirmed" : "Updated");
       setCancelling(null);
       router.refresh();
@@ -149,7 +149,7 @@ export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = fa
         <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Work</CardTitle>
+              <CardTitle>Services</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="divide-y divide-border text-sm" data-testid="appointment-services">
@@ -243,7 +243,7 @@ export function AppointmentDetail({ a, showMoney, publicUrl, depositsOnline = fa
               </div>
               {a.job_id && (
                 <Button asChild variant="secondary">
-                  <Link href={`/jobs/${a.job_id}`} data-testid="appointment-job"><WrenchIcon /> Open the job</Link>
+                  <Link href={`/jobs/${a.job_id}`} data-testid="appointment-job"><WrenchIcon /> Open the estimate</Link>
                 </Button>
               )}
               {a.estimate && (
@@ -317,7 +317,7 @@ function CancelForm({ onSubmit, pending, destructive }: { onSubmit: (reason: str
  * Check-in (0052): confirm who and what, take the mileage in, write down the
  * customer's concern in their words, and get the initial authorization (their
  * name and signature, or a phone approval) before the car goes in the bay.
- * Opens the repair order.
+ * Opens the estimate for the visit.
  */
 function CheckInDialog({ a, showMoney, onClose }: { a: AppointmentView; showMoney: boolean; onClose: () => void }) {
   const router = useRouter();
@@ -336,7 +336,7 @@ function CheckInDialog({ a, showMoney, onClose }: { a: AppointmentView; showMone
     if (method === "in_person" && !hasInk) return void toast.error("Ask them to sign in the box");
     start(async () => {
       if (demo) {
-        toast.success("Checked in · the repair order is open", { description: "Guest preview — nothing changed" });
+        toast.success("Checked in", { description: "Guest preview — nothing changed" });
         onClose();
         return;
       }
@@ -354,7 +354,7 @@ function CheckInDialog({ a, showMoney, onClose }: { a: AppointmentView; showMone
       const r = await checkInAppointmentAction(a.id, { name, odometer: miles.replace(/[^\d]/g, "") || null, concern: concern.trim() || null, amount_limit: limit ? Number(limit) : null, method, signature_path });
       if (!r.ok) return void toast.error(r.error);
       const jobId = r.data.job_id;
-      toast.success("Checked in · the repair order is open", jobId ? { action: { label: "Open the notes", onClick: () => router.push(`/jobs/${jobId}?tab=notes`) } } : undefined);
+      toast.success("Checked in", jobId ? { action: { label: "Open the estimate", onClick: () => router.push(`/jobs/${jobId}`) } } : undefined);
       onClose();
       router.refresh();
     });
@@ -397,9 +397,9 @@ function CheckInDialog({ a, showMoney, onClose }: { a: AppointmentView; showMone
           </div>
           {showMoney && (
             <div className="grid gap-1.5">
-              <Label htmlFor="ci-limit">Authorizes the diagnosis and booked work up to</Label>
+              <Label htmlFor="ci-limit">Approves the diagnosis and the booked services up to</Label>
               <Input id="ci-limit" type="number" inputMode="decimal" step="0.01" min="0" value={limit} onChange={(e) => setLimit(e.target.value)} data-testid="checkin-limit" />
-              <p className="text-caption text-subtle">Anything beyond this is a change order: you re-present it and get a new approval before the work.</p>
+              <p className="text-caption text-subtle">Anything beyond this is extra work: send it for a new approval before doing it.</p>
             </div>
           )}
           {method === "in_person" && (
@@ -410,7 +410,7 @@ function CheckInDialog({ a, showMoney, onClose }: { a: AppointmentView; showMone
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Not now</Button>
-          <Button onClick={submit} loading={pending} data-testid="checkin-confirm"><LogInIcon /> Check in and open the RO</Button>
+          <Button onClick={submit} loading={pending} data-testid="checkin-confirm"><LogInIcon /> Check in</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

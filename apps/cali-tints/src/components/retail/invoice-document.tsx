@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 const TYPE_LABEL: Record<string, string> = { labor: "Labor", part: "Part", fee: "Fee", shop_supplies: "Fee", sublet: "Sublet", service: "Service" };
 const METHOD = { get: paymentMethodLower };
-const AUTH_KIND: Record<string, string> = { initial: "Diagnosis approved", estimate: "Work approved", change_order: "Change order approved" };
+const AUTH_KIND: Record<string, string> = { initial: "Diagnosis approved", estimate: "Estimate approved", change_order: "Change order approved" };
 const AUTH_HOW: Record<string, string> = { online: "link", in_person: "in person", phone: "phone or text", email: "email" };
 const PRIORITY: Record<string, string> = { safety: "safety", soon: "due soon", optional: "optional" };
 const REC: Record<string, string> = { replace: "recommend replace", diagnose: "recommend diagnosis", monitor: "keep an eye on it" };
@@ -51,8 +51,8 @@ export function InvoiceDocument({ r, children }: { r: ReceiptView; children?: Re
       </header>
 
       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <div className="text-label text-subtle">{wip ? "REPAIR ORDER" : "INVOICE"}</div>
-        <div className="text-right font-semibold" data-testid="doc-ro">RO # {r.ro_number ?? r.tag}</div>
+        <div className="text-label text-subtle">{r.invoice_number ? "INVOICE" : "ESTIMATE"}</div>
+        <div className="text-right font-semibold" data-testid="doc-number">{r.invoice_number ? `Invoice # ${r.invoice_number}` : `Estimate # ${r.estimate_number ?? r.tag}`}{r.invoice_number && r.estimate_number && <span className="ml-1.5 text-caption font-normal text-subtle">{r.estimate_number}</span>}</div>
         <div>Date: {formatDate(r.performed_at)}</div>
         <div className="text-right">{r.advisor ? `Advisor: ${r.advisor}` : ""}</div>
         <div data-testid="doc-status" className={cn("font-semibold", closed ? "text-success" : "text-warning")}>Status: {closed ? "PAID" : wip ? "IN PROGRESS" : "UNPAID"}</div>
@@ -89,7 +89,7 @@ export function InvoiceDocument({ r, children }: { r: ReceiptView; children?: Re
           return (
             <section key={j.id} className="text-sm" data-testid="doc-job" data-title={j.title}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-semibold uppercase tracking-wide">{j.kind === "diagnosis" ? j.title : `Job ${n}: ${j.title}`}</h3>
+                <h3 className="font-semibold uppercase tracking-wide">{j.kind === "diagnosis" ? j.title : `${n}. ${j.title}`}</h3>
                 <span className="text-caption font-medium text-muted-foreground">[{j.status === "declined" ? "DECLINED" : "APPROVED"}]</span>
               </div>
               {(j.cause || j.correction) && (
@@ -107,7 +107,7 @@ export function InvoiceDocument({ r, children }: { r: ReceiptView; children?: Re
                   </li>
                 ))}
               </ul>
-              <div className="mt-1 text-right font-medium tabular-nums" data-testid="doc-job-total">Job Total: {formatMoney(j.total)}</div>
+              <div className="mt-1 text-right font-medium tabular-nums" data-testid="doc-job-total">Total: {formatMoney(j.total)}</div>
             </section>
           );
         })}

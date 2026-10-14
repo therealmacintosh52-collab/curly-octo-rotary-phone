@@ -205,7 +205,7 @@ function FindingQuoteSheet({ f, pricing, onClose }: { f: JobFinding; pricing: Fi
                 <span className="text-label text-subtle">{TYPE_LABEL[r.type]}</span>
                 <button type="button" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} aria-label={`Remove this ${TYPE_LABEL[r.type].toLowerCase()} line`} className="rounded-full p-1 text-muted-foreground hover:text-foreground"><XIcon className="size-4" /></button>
               </div>
-              <Input value={r.label} onChange={(e) => set(i, { label: e.target.value })} placeholder={r.type === "labor" ? "What the work is" : r.type === "part" ? "Part name" : "Fee (disposal, supplies…)"} maxLength={120} aria-label={`${TYPE_LABEL[r.type]} name`} data-testid="quote-label" />
+              <Input value={r.label} onChange={(e) => set(i, { label: e.target.value })} placeholder={r.type === "labor" ? "What the service is" : r.type === "part" ? "Part name" : "Fee (disposal, supplies…)"} maxLength={120} aria-label={`${TYPE_LABEL[r.type]} name`} data-testid="quote-label" />
               {r.type === "labor" && (
                 <div className="grid grid-cols-2 gap-2">
                   <label className="grid gap-1"><span className="text-caption text-subtle">Hours</span><Input inputMode="decimal" value={r.hours} onChange={(e) => set(i, { hours: e.target.value })} placeholder="Hours" aria-label="Hours" data-testid="quote-hours" /></label>

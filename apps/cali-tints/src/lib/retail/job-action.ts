@@ -4,7 +4,7 @@
  * it off, convert to the invoice, collect payment, customer signs, and the
  * last one: Close job · Picked up.
  */
-export type JobActionKey = "complete" | "qc" | "convert" | "collect" | "sign" | "close" | "closed";
+export type JobActionKey = "complete" | "qc" | "convert" | "collect" | "sign" | "close" | "closed" | "send" | "waiting" | "apply" | "makeinvoice";
 
 export type JobActionInput = {
   deleted?: boolean;
@@ -31,10 +31,10 @@ export function nextJobAction(i: JobActionInput): JobAction {
   if (i.pickedUp) return { key: "closed", label: "Closed · picked up", enabled: false, hint: null };
   if (i.paid) {
     if (i.signatureRequired && !i.signed) return { key: "sign", label: "Customer signs", enabled: i.canPrice, hint: i.canPrice ? "They paid. Now the customer signs for the car." : "Waiting for the advisor to take the signature." };
-    return { key: "close", label: "Close job · Picked up", enabled: i.canPrice, hint: i.canPrice ? "Paid and signed. Hand over the keys." : "Waiting for the advisor to close the job." };
+    return { key: "close", label: "Close job · Picked up", enabled: i.canPrice, hint: i.canPrice ? "Paid and signed. Hand over the keys." : "Waiting for the advisor to close it." };
   }
   if (i.invoiced) return { key: "collect", label: "Collect payment", enabled: i.canPrice, hint: i.canPrice ? null : "Waiting for the advisor to take payment." };
-  if (!i.completed) return { key: "complete", label: "Mark the work done", enabled: i.canComplete, hint: i.canComplete ? null : "The tech marks the work done." };
-  if (!i.qc) return { key: "qc", label: "Sign off the work", enabled: i.canQc, hint: i.canQc ? null : "Waiting for the advisor or owner to check the work." };
-  return { key: "convert", label: "Convert to invoice", enabled: i.canPrice && (i.unauthorized ?? 0) === 0, hint: (i.unauthorized ?? 0) > 0 ? "Some work is not authorized yet." : i.canPrice ? null : "Waiting for the advisor to invoice." };
+  if (!i.completed) return { key: "complete", label: "Mark it done", enabled: i.canComplete, hint: i.canComplete ? null : "The tech marks it done." };
+  if (!i.qc) return { key: "qc", label: "Check it and sign off", enabled: i.canQc, hint: i.canQc ? null : "Waiting for the advisor or owner to check it." };
+  return { key: "convert", label: "Make the invoice", enabled: i.canPrice && (i.unauthorized ?? 0) === 0, hint: (i.unauthorized ?? 0) > 0 ? "Some items are not approved yet." : i.canPrice ? null : "Waiting for the advisor to invoice." };
 }

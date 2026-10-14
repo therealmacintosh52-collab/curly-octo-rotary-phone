@@ -4,7 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
-import type { EstimateListRow, EstimateStatus } from "@/lib/db/types";
+import type { EstimateListRow, EstimateStage } from "@/lib/db/types";
+import { documentNumber, STAGE_FILTERS, type StageFilter } from "@/lib/retail/estimate-stage";
 import { formatDate } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { SIZE_LABEL } from "@/lib/retail/size-class";
@@ -14,20 +15,19 @@ import { Segmented } from "@/components/ui/segmented";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StaggerItem } from "@/components/motion/primitives";
 import { cn } from "@/lib/utils";
-import { EstimateStatusBadge } from "./estimate-status-badge";
+import { EstimateStageBadge } from "./estimate-stage-badge";
 
 export const ESTIMATE_PAGE_SIZE = 50;
-export type EstimateFilter = "open" | "all" | EstimateStatus;
-const FILTERS: { value: EstimateFilter; label: string }[] = [
-  { value: "open", label: "Open" },
-  { value: "accepted", label: "Approved" },
-  { value: "declined", label: "Declined" },
-  { value: "expired", label: "Expired" },
-  { value: "all", label: "All" },
-];
+export type EstimateFilter = StageFilter;
 
 /** Every estimate, newest first. Money only for owner and admin; the rest see who, which car and where it stands. */
-export function EstimateList({ rows, count, page, q, status, showMoney }: { rows: EstimateListRow[]; count: number; page: number; q: string; status: EstimateFilter; showMoney: boolean }) {
+function stageLabel(f: { value: StageFilter; label: string }, counts?: Partial<Record<EstimateStage, number>>): string {
+  if (!counts || f.value === "all") return f.label;
+  const n = f.value === "open" ? (["draft", "sent", "in_progress", "ready", "unpaid", "paid"] as const).reduce((s, k) => s + (counts[k] ?? 0), 0) : (counts[f.value as EstimateStage] ?? 0);
+  return n > 0 ? `${f.label} ${n}` : f.label;
+}
+
+export function EstimateList({ rows, count, counts, page, q, status, showMoney }: { rows: EstimateListRow[]; count: number; counts?: Partial<Record<EstimateStage, number>>; page: number; q: string; status: EstimateFilter; showMoney: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, start] = useTransition();
@@ -43,7 +43,7 @@ export function EstimateList({ rows, count, page, q, status, showMoney }: { rows
     const ns = patch.status ?? status;
     const np = patch.page ?? 1;
     if (nq) sp.set("q", nq);
-    if (ns !== "open") sp.set("status", ns);
+    if (ns !== "open") sp.set("stage", ns);
     if (np > 1) sp.set("page", String(np));
     start(() => router.replace(`${pathname}${sp.size ? `?${sp}` : ""}`));
   }
@@ -73,14 +73,14 @@ export function EstimateList({ rows, count, page, q, status, showMoney }: { rows
           </Link>
         </Button>
       </form>
-      <Segmented aria-label="Estimate status" size="sm" items={FILTERS} value={status} onValueChange={(v) => go({ status: v as EstimateFilter })} wrap />
+      <Segmented aria-label="Estimate stage" size="sm" items={STAGE_FILTERS.map((f) => ({ value: f.value, label: stageLabel(f, counts) }))} value={status} onValueChange={(v) => go({ status: v as EstimateFilter })} wrap />
 
       <p className="text-sm text-muted-foreground" aria-live="polite">
         {pending ? "Loading…" : `${count.toLocaleString()} ${count === 1 ? "estimate" : "estimates"}${q ? ` matching “${q}”` : ""}`}
       </p>
 
       {rows.length === 0 ? (
-        <EmptyState icon={FileTextIcon} title={q ? "Nothing matches" : status === "open" ? "No open estimates" : "No estimates here"} description={q ? "Try the customer's phone or the car." : "Write one from a customer's page or with New estimate."} action={!q ? <Button asChild><Link href="/retail/estimates/new"><PlusIcon /> New estimate</Link></Button> : undefined} />
+        <EmptyState icon={FileTextIcon} title={q ? "Nothing matches" : status === "open" ? "Nothing open right now" : "Nothing here"} description={q ? "Try the customer's phone or the car." : "Write one from a customer's page or with New estimate."} action={!q ? <Button asChild><Link href="/retail/estimates/new"><PlusIcon /> New estimate</Link></Button> : undefined} />
       ) : (
         <>
           <ul className="flex flex-col gap-2 md:hidden" data-testid="estimate-cards">
@@ -93,12 +93,14 @@ export function EstimateList({ rows, count, page, q, status, showMoney }: { rows
                       <div className="mt-0.5 truncate text-sm text-muted-foreground">{[r.vehicle, SIZE_LABEL[r.size_class]].filter(Boolean).join(" · ")}</div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <EstimateStatusBadge status={r.status} />
+                      <EstimateStageBadge stage={r.stage} status={r.status} />
                       {showMoney && r.total !== null && <div className="mt-1 text-sm font-semibold tabular-nums">{formatMoney(r.total)}</div>}
+                      {showMoney && r.balance != null && r.balance > 0 && <div className="text-caption text-warning tabular-nums">{formatMoney(r.balance)} due</div>}
                     </div>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-2 text-caption text-subtle">
-                    <span className="tracking-wide">{r.display_number}</span>
+                    <span className="tracking-wide" data-testid="list-number">{documentNumber(r).primary}</span>
+                    {documentNumber(r).secondary && <span>({documentNumber(r).secondary})</span>}
                     <span>· {formatDate(r.created_at)}</span>
                     {r.options > 1 && <span>· {r.options} options</span>}
                     {r.expires_at && r.status !== "accepted" && r.status !== "declined" && <span className="ml-auto">good until {formatDate(r.expires_at)}</span>}
@@ -115,8 +117,8 @@ export function EstimateList({ rows, count, page, q, status, showMoney }: { rows
                   <th scope="col" className="px-4 py-2.5 font-medium">Estimate</th>
                   <th scope="col" className="px-4 py-2.5 font-medium">Customer</th>
                   <th scope="col" className="px-4 py-2.5 font-medium">Vehicle</th>
-                  <th scope="col" className="px-4 py-2.5 font-medium">Status</th>
-                  <th scope="col" className="px-4 py-2.5 font-medium">Good until</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Stage</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Opened</th>
                   {showMoney && <th scope="col" className="px-4 py-2.5 text-right font-medium">Total</th>}
                 </tr>
               </thead>
@@ -124,13 +126,13 @@ export function EstimateList({ rows, count, page, q, status, showMoney }: { rows
                 {rows.map((r) => (
                   <tr key={r.id} className="hover:bg-accent/40">
                     <td className="px-4 py-2.5">
-                      <Link href={`/retail/estimates/${r.id}`} className="font-semibold tracking-wide hover:text-primary">{r.display_number}</Link>
-                      <div className="text-caption text-subtle">{formatDate(r.created_at)}{r.options > 1 ? ` · ${r.options} options` : ""}</div>
+                      <Link href={`/retail/estimates/${r.id}`} className="font-semibold tracking-wide hover:text-primary">{documentNumber(r).primary}</Link>
+                      <div className="text-caption text-subtle">{documentNumber(r).secondary ? `${documentNumber(r).secondary} · ` : ""}{formatDate(r.created_at)}{r.options > 1 ? ` · ${r.options} options` : ""}</div>
                     </td>
                     <td className="px-4 py-2.5">{r.customer ?? "—"}</td>
                     <td className="max-w-64 truncate px-4 py-2.5 text-muted-foreground">{[r.vehicle, SIZE_LABEL[r.size_class]].filter(Boolean).join(" · ") || "—"}</td>
-                    <td className="px-4 py-2.5"><EstimateStatusBadge status={r.status} /></td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{r.expires_at ? formatDate(r.expires_at) : "—"}</td>
+                    <td className="px-4 py-2.5"><EstimateStageBadge stage={r.stage} status={r.status} /></td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{formatDate(r.created_at)}</td>
                     {showMoney && <td className="px-4 py-2.5 text-right tabular-nums">{r.total !== null ? formatMoney(r.total) : "—"}</td>}
                   </tr>
                 ))}

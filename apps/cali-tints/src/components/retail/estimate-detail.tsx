@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon, FileTextIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateView } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
@@ -24,9 +24,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { RoLayout } from "@/components/jobs/ro-notes";
 import { RoStageBar } from "./ro-stage-bar";
+import { RoWorkCard } from "@/components/jobs/ro-work-card";
+import { RoInvoiceCard } from "@/components/jobs/ro-invoice-card";
+import { RetailPayment } from "@/components/jobs/retail-payment";
+import { JobStageBar } from "@/components/jobs/job-stage-bar";
+import { InvoiceDocument } from "./invoice-document";
+import { EstimateStageBadge } from "./estimate-stage-badge";
+import { documentNumber, viewStage } from "@/lib/retail/estimate-stage";
+import type { VisitPanel } from "@/lib/retail/visit";
+import type { JobAction } from "@/lib/retail/job-action";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { sectionHeading } from "@/lib/retail/sections";
 import { cn } from "@/lib/utils";
-import { EstimateStatusBadge } from "./estimate-status-badge";
 
 const money = (n: number | null | undefined) => (n === null || n === undefined ? null : formatMoney(n));
 
@@ -36,7 +45,7 @@ const money = (n: number | null | undefined) => (n === null || n === undefined ?
  * send it, record an approval taken in person or by phone, decline it, turn
  * it into the job. Managers and detailers see everything but the money.
  */
-export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }: { e: EstimateView; showMoney: boolean; publicUrl: string | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
+export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit }: { e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { canPrices, isAdmin, demo } = useSession();
   const [pending, start] = useTransition();
@@ -54,17 +63,20 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
   const auth = e.authorizations[0] ?? null;
   const chosen = e.options.find((o) => o.id === e.selected_option_id) ?? null;
   const customerName = e.customer.display_name ?? e.customer.first_name;
-  const url = sentUrl ?? publicUrl ?? "";
+  const url = (visit?.receiptUrl && !open ? visit.receiptUrl : null) ?? sentUrl ?? publicUrl ?? "";
   const ro = e.job ?? null;
   const supplement = e.kind === "supplement" && !!ro;
+  const stage = viewStage(e);
+  const invoiceDoc = visit?.invoiceDoc ?? null;
+  const num = documentNumber({ display_number: e.display_number, invoice_number: ro?.invoice_number ?? null });
   const [applying, startApply] = useTransition();
   function applyToRo() {
     if (!ro) return;
     startApply(async () => {
-      if (demo) return void toast.success(`Added to ${ro.ro_number ?? ro.tag_number}`, { description: "Guest preview — nothing changed" });
+      if (demo) return void toast.success("Added to the estimate", { description: "Guest preview — nothing changed" });
       const r = await convertEstimateAction(e.id, {});
       if (!r.ok) return void toast.error(r.error);
-      toast.success(`Approved work added to ${ro.ro_number ?? ro.tag_number}`);
+      toast.success("Approved items added to the estimate");
       router.refresh();
     });
   }
@@ -125,9 +137,14 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
   }
 
   const mainGrid = (
-    <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-      <div className="flex min-w-0 flex-col gap-4">
-        {e.options.map((o) => {
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="contents">
+        {invoiceDoc && (
+          <div data-testid="estimate-invoice-document">
+            <InvoiceDocument r={invoiceDoc} />
+          </div>
+        )}
+        {!invoiceDoc && e.options.map((o) => {
           const isChosen = chosen?.id === o.id;
           // Named jobs (0054): grouped, Diagnosis first, then safety, due soon, optional; the lines of one job sit together.
           const jobs = o.jobs ?? [];
@@ -190,7 +207,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
           );
         })}
 
-        {e.addons.length > 0 && (
+        {!invoiceDoc && e.addons.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>{accepted ? "Add-ons" : "Add-ons offered"}</CardTitle>
@@ -226,7 +243,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
                     <div className="min-w-0">
                       <div className="flex items-center gap-2"><span className={cn("inline-block size-2.5 shrink-0 rounded-full", f.severity === "urgent" ? "bg-destructive" : f.severity === "soon" ? "bg-warning" : "bg-success")} /><span className="font-medium">{f.title}</span></div>
                       {f.body && <p className="mt-0.5 text-caption text-subtle">{f.body}</p>}
-                      {f.media.length > 0 && <div className="mt-1 text-caption text-subtle">{f.media.length} {f.media.length === 1 ? "photo or clip" : "photos / clips"} on the RO</div>}
+                      {f.media.length > 0 && <div className="mt-1 text-caption text-subtle">{f.media.length} {f.media.length === 1 ? "photo or clip" : "photos / clips"} on the estimate</div>}
                     </div>
                     <Badge variant={f.status === "approved" ? "success" : f.status === "declined" ? "muted" : "info"}>{f.status === "approved" ? "Approved" : f.status === "declined" ? "Declined" : "Quoted"}</Badge>
                   </li>
@@ -237,7 +254,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
         )}
 
         {(e.customer_notes || e.internal_notes) && (
-          <Card>
+          <Card className="order-last">
             <CardHeader>
               <CardTitle>Notes</CardTitle>
             </CardHeader>
@@ -249,8 +266,8 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col gap-4">
-        {showMoney && (
+      <div className="contents">
+        {showMoney && !invoiceDoc && (
           <Card data-testid="estimate-money">
             <CardContent className="grid gap-1.5 pt-5 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">{accepted ? "Subtotal" : e.options.length > 1 ? "Subtotal (recommended)" : "Subtotal"}</span><span className="tabular-nums">{money(e.subtotal)}</span></div>
@@ -264,7 +281,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
         )}
 
         {canPrices && open && (
-          <Card data-testid="estimate-send">
+          <Card id="estimate-send" className="scroll-mt-24" data-testid="estimate-send">
             <CardHeader>
               <CardTitle>{e.status === "draft" ? "Send it" : "Sent"}</CardTitle>
             </CardHeader>
@@ -324,7 +341,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
           </Card>
         )}
 
-        {auth && (
+        {auth && !visit && (
           <Card data-testid="estimate-authorization">
             <CardHeader>
               <CardTitle>{accepted ? "Approved" : "Answer"}</CardTitle>
@@ -353,35 +370,34 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
             </CardHeader>
             <CardContent className="grid gap-2">
               {e.applied_at ? (
-                <p className="text-sm text-muted-foreground">The approved work is on {ro.ro_number ?? ro.tag_number}; the counter collects it with the rest.</p>
+                <p className="text-sm text-muted-foreground">The approved items are on the main estimate; they are collected with the rest.</p>
               ) : canPrices ? (
-                <Button onClick={applyToRo} loading={applying} data-testid="apply-to-ro"><ClipboardCheckIcon /> Add the approved work to {ro.ro_number ?? ro.tag_number}</Button>
+                <Button onClick={applyToRo} loading={applying} data-testid="apply-to-ro"><ClipboardCheckIcon /> Add the approved items to the estimate</Button>
               ) : (
-                <p className="text-sm text-muted-foreground">Approved; the advisor adds it to the RO.</p>
+                <p className="text-sm text-muted-foreground">Approved; the advisor adds it to the estimate.</p>
               )}
-              <Button asChild variant="outline"><Link href={`/jobs/${ro.id}?tab=notes`}><WrenchIcon /> Open the RO</Link></Button>
+              {ro.primary_estimate_id && <Button asChild variant="outline"><Link href={`/retail/estimates/${ro.primary_estimate_id}`}><FileTextIcon /> Back to the main estimate</Link></Button>}
             </CardContent>
           </Card>
         )}
-        {accepted && !supplement && (
+        {accepted && !supplement && ro && visit && !visit.deleted && (
+          <>
+            <RoWorkCard jobId={visit.jobId} work={visit.work} canComplete={visit.canComplete} canQc={visit.canQc} unauthorized={visit.unauthorized} invoiced={visit.invoiced} />
+            {!visit.invoiced && <RoInvoiceCard jobId={visit.jobId} authorizations={visit.authorizations} unauthorized={visit.unauthorized} lineCount={visit.lineCount} invoiced={visit.invoiced} canConvert={visit.canPrice} showMoney={showMoney} review={visit.review} />}
+            {visit.invoiced ? (
+              <RetailPayment jobId={visit.jobId} payment={visit.payment} charge={visit.charge} canRecordByHand={visit.canPrice} open />
+            ) : (
+              <p className="px-1 text-caption text-subtle" data-testid="payment-waits">Payment opens at the counter once the invoice is made.</p>
+            )}
+          </>
+        )}
+        {accepted && !supplement && !ro && (
           <Card data-testid="estimate-invoice">
             <CardHeader>
-              <CardTitle>{ro?.invoice_number ? "Invoice" : "Repair order"}</CardTitle>
+              <CardTitle>Invoice</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
-              {ro ? (
-                <>
-                  {ro.invoice_number ? (
-                    <p className="text-sm text-muted-foreground">Approved and signed; the work is done and {ro.invoice_number} was issued from {ro.ro_number ?? ro.tag_number}. Payment is collected at the counter, never through QuickBooks.</p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Approved and signed: {ro.ro_number ?? ro.tag_number} is open with the approved lines. The invoice is made from it when the work is done.</p>
-                  )}
-                  {canPrices && ro.invoice_number && (
-                    <Button asChild data-testid="estimate-open-invoice"><Link href={`/retail/invoices/${ro.id}`}><FileTextIcon /> Open the invoice {ro.invoice_number}</Link></Button>
-                  )}
-                  <Button asChild variant="outline"><Link href={`/jobs/${ro.id}?tab=notes`}><WrenchIcon /> Open the work</Link></Button>
-                </>
-              ) : canPrices ? (
+              {canPrices ? (
                 <>
                   <p className="text-sm text-muted-foreground">Approved, but the invoice could not be created (is a retail location set up in Settings → Dealerships?).</p>
                   <Button onClick={createInvoice} loading={applying} data-testid="create-invoice"><FileTextIcon /> Create the invoice</Button>
@@ -392,7 +408,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
             </CardContent>
           </Card>
         )}
-        {isAdmin && accepted && !supplement && (
+        {isAdmin && accepted && !supplement && !(visit?.invoiced || visit?.work.completedAt) && (
           <Card>
             <CardHeader>
               <CardTitle>Next</CardTitle>
@@ -401,13 +417,89 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
               <Button asChild data-testid="schedule-estimate">
                 <Link href={`/retail/calendar?estimate=${e.id}`}><CalendarPlusIcon /> Schedule it</Link>
               </Button>
-              <p className="text-caption text-subtle">Pick a time on the calendar; the invoice and the work are already open.</p>
+              <p className="text-caption text-subtle">Pick a time on the calendar; the estimate is already approved.</p>
             </CardContent>
           </Card>
         )}
       </div>
     </div>
   );
+
+  // The bar at the bottom: Edit, + Service on the left; Share and the one button that changes with the stage on the right.
+  const toSend = () => document.getElementById("estimate-send")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const override: { action: NonNullable<JobAction>; onClick?: () => void } | undefined =
+    visit && !supplement && accepted && !visit.deleted
+      ? undefined
+      : e.status === "draft"
+        ? { action: { key: "send", label: supplement ? "Send the extra items" : "Send to customer", enabled: !!canPrices, hint: canPrices ? null : "The advisor sends it." }, onClick: toSend }
+        : e.status === "sent" || e.status === "viewed"
+          ? { action: { key: "waiting", label: "Waiting on the customer", enabled: false, hint: `Sent ${formatDateTime(e.sent_at)}${e.view_count ? ` · opened ${e.view_count}×` : " · not opened yet"}` } }
+          : accepted && supplement && !e.applied_at
+            ? { action: { key: "apply", label: "Add the approved items", enabled: !!canPrices, hint: null }, onClick: applyToRo }
+            : accepted && !ro
+              ? { action: { key: "makeinvoice", label: "Make the invoice", enabled: !!canPrices, hint: "Approved, but there is no invoice yet." }, onClick: createInvoice }
+              : undefined;
+  const hasBar = !!override || (!!visit && !supplement && accepted && !visit.deleted);
+  const addServiceHref = open ? `/retail/estimates/${e.id}/edit` : ro ? `/retail/estimates/new?job=${ro.id}` : null;
+  const bar = hasBar ? (
+    <JobStageBar
+      jobId={visit?.jobId}
+      input={
+        visit
+          ? {
+              completed: !!visit.work.completedAt,
+              qc: !!visit.work.qcAt,
+              invoiced: visit.invoiced,
+              paid: !!visit.payment.paid_at,
+              signed: !!visit.charge?.has_signature,
+              signatureRequired: visit.charge?.signature_required ?? true,
+              pickedUp: !!visit.charge?.picked_up_at,
+              unauthorized: visit.unauthorized,
+              canComplete: visit.canComplete,
+              canQc: visit.canQc,
+              canPrice: visit.canPrice,
+            }
+          : undefined
+      }
+      override={override}
+      leading={
+        canPrices && (
+          <>
+            {open && (
+              <Button asChild variant="outline" size="sm" data-testid="bar-edit">
+                <Link href={`/retail/estimates/${e.id}/edit`}><PencilIcon /> Edit</Link>
+              </Button>
+            )}
+            {addServiceHref && !supplement && (
+              <Button asChild variant="outline" size="sm" data-testid="bar-add-service">
+                <Link href={addServiceHref}><PlusIcon /> Service</Link>
+              </Button>
+            )}
+          </>
+        )
+      }
+      trailing={
+        canPrices && url ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" data-testid="bar-share"><Share2Icon /> Share</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {e.customer.phone ? (
+                <DropdownMenuItem asChild>
+                  <a href={smsHref(e.customer.phone, smsBody, platform) ?? "#"} data-testid="bar-share-text"><MessageSquareTextIcon /> Text the link</a>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem disabled><MessageSquareTextIcon /> Text (no phone on file)</DropdownMenuItem>
+              )}
+              <DropdownMenuItem disabled={!e.customer.email} onSelect={() => send("email")} data-testid="bar-share-email"><MailIcon /> {e.customer.email ? "Email the link" : "Email (none on file)"}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={copy} data-testid="bar-share-copy"><CopyIcon /> Copy the link</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null
+      }
+    />
+  ) : null;
 
   return (
     <Page>
@@ -417,19 +509,15 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-title tracking-wide">{e.display_number}</h1>
-            <EstimateStatusBadge status={e.status} />
-            {e.job_id && !supplement && (
-              <Badge variant="info" asChild>
-                <Link href={`/jobs/${e.job_id}`}>Job created</Link>
-              </Badge>
-            )}
-            {supplement && ro && (
+            <h1 className="text-title tracking-wide" data-testid="estimate-number">{num.primary}</h1>
+            {num.secondary && <span className="text-sm text-muted-foreground" data-testid="estimate-number-secondary">({num.secondary})</span>}
+            <EstimateStageBadge stage={stage} status={e.status} />
+            {supplement && ro?.primary_estimate_id && (
               <Badge variant="info" asChild data-testid="estimate-ro">
-                <Link href={`/jobs/${ro.id}?tab=notes`}>On {ro.ro_number ?? ro.tag_number}</Link>
+                <Link href={`/retail/estimates/${ro.primary_estimate_id}`}>Extra work · main estimate</Link>
               </Badge>
             )}
-            {e.applied_at && supplement && <Badge variant="success" data-testid="estimate-applied"><CheckIcon /> On the RO</Badge>}
+            {e.applied_at && supplement && <Badge variant="success" data-testid="estimate-applied"><CheckIcon /> On the estimate</Badge>}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <Link href={`/retail/customers/${e.customer.id}`} className="font-medium text-foreground hover:text-primary" data-testid="estimate-customer">{customerName}</Link>
@@ -461,11 +549,12 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
 
       <RoStageBar
         className="mt-4"
-        roNumber={e.ro_number ?? ro?.ro_number ?? null}
+        roNumber={num.primary}
         hasJob={!!e.job_id}
         estimateStatus={e.status}
         invoicedAt={ro?.invoiced_at ?? (ro?.invoice_number ? ro.performed_at : null)}
         paidAt={ro?.paid_at ?? null}
+        pickedUpAt={ro ? (ro.picked_up_at ?? null) : undefined}
         waitingOnApproval={e.status === "sent" || e.status === "viewed"}
       />
       {e.customer_concern && (
@@ -476,13 +565,14 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
       )}
 
       {notes ? (
-        <RoLayout initialTab="job" jobLabel="Estimate" count={findingsCount ?? 0} notes={notes}>
+        <RoLayout stack initialTab="job" jobLabel="Estimate" count={findingsCount ?? 0} notes={notes}>
           {mainGrid}
         </RoLayout>
       ) : (
         <div className="mt-6">{mainGrid}</div>
       )}
 
+      {bar}
       {canPrices && <MarkAcceptedDialog e={e} open={accepting} onOpenChange={setAccepting} />}
       <DeclineDialog open={declining} onOpenChange={setDeclining} onDecline={decline} pending={pending} />
     </Page>

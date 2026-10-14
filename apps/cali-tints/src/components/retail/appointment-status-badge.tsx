@@ -6,7 +6,7 @@ export const APPOINTMENT_STATUS: Record<AppointmentStatus, { label: string; hint
   lead: { label: "Lead · confirm", hint: "Booked online without a deposit; confirm it or call them", variant: "warning" },
   booked: { label: "Booked", hint: "On the calendar", variant: "info" },
   confirmed: { label: "Confirmed", hint: "The customer confirmed they are coming", variant: "info" },
-  in_progress: { label: "In the shop", hint: "Checked in; the job is open", variant: "default" },
+  in_progress: { label: "In the shop", hint: "Checked in", variant: "default" },
   done: { label: "Done", hint: "Finished", variant: "success" },
   cancelled: { label: "Cancelled", hint: "Cancelled", variant: "destructive" },
   no_show: { label: "No-show", hint: "They did not come", variant: "destructive" },
