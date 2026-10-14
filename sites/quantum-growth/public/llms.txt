@@ -29,6 +29,9 @@ name from day one, so nothing is switched off if they leave.
   Local Services Ads, and missed-call text-back.
 - **Basic Site** — $599 one time, or $400 same day, then $29/month hosting. A
   website with no marketing plan attached.
+- **Add to any plan** — quoted before work starts: PPC and Meta ad management; lead
+  generation and CRM setup (HubSpot, Salesforce, GoHighLevel, industry-specific CRMs);
+  AI-assisted promotional content, video and localized ad copy; social media management.
 
 ## Apps
 Built as installable web apps by default: they install to the home screen from a
