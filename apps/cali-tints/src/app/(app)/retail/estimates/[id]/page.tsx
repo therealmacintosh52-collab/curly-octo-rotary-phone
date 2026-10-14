@@ -5,8 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { appUrl } from "@/lib/retail/email";
 import { recommendableServices, withMediaUrls } from "@/lib/retail/findings-panel";
 import { EstimateDetail } from "@/components/retail/estimate-detail";
-import { RoNotes } from "@/components/jobs/ro-notes";
-import { SendFindings } from "@/components/retail/send-findings";
+import { EstimateFindingsPanel } from "@/components/retail/estimate-findings-panel";
 
 export const metadata: Metadata = { title: "Estimate" };
 
@@ -25,30 +24,11 @@ export default async function EstimatePage(props: PageProps<"/retail/estimates/[
   // The side panel: what the tech found, on the estimate now and on the invoice after approval. The customer sees it by link.
   const [{ data: rawFindings }, services] = await Promise.all([supabase.rpc("estimate_findings", { p_estimate: id }), recommendableServices(supabase)]);
   const findings = await withMediaUrls(supabase, rawFindings ?? []);
-  const open = e.status === "draft" || e.status === "sent" || e.status === "viewed";
   let findingsUrl = publicUrl;
   if (session.canPrices && e.job_id) {
     const { data: rt } = await supabase.rpc("receipt_link", { p_job_id: e.job_id });
     if (rt) findingsUrl = `${appUrl() ?? ""}/r/${rt}`;
   }
-  const notes = (
-    <RoNotes
-      estimateId={id}
-      roNumber={e.job?.ro_number ?? null}
-      findings={findings}
-      fromLastTime={[]}
-      services={services}
-      canWrite={open || session.isAdmin}
-      canDeleteAny={session.canPrices}
-      userId={session.userId}
-      canQuote={session.canPrices}
-      estimateOpen={open}
-      extra={
-        session.canPrices && findingsUrl ? (
-          <SendFindings estimateId={id} firstName={e.customer.first_name} vehicle={e.vehicle?.name ?? null} phone={e.customer.phone ?? null} email={e.customer.email ?? null} url={findingsUrl} sentAt={e.findings_sent_at ?? null} count={findings.filter((f) => f.customer_visible !== false).length} />
-        ) : null
-      }
-    />
-  );
+  const notes = <EstimateFindingsPanel e={e} findings={findings} services={services} canPrices={session.canPrices} isAdmin={session.isAdmin} userId={session.userId} findingsUrl={findingsUrl} />;
   return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} />;
 }

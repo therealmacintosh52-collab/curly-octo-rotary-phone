@@ -79,6 +79,9 @@ export interface VinDecodeResult {
   model: string | null;
   trim: string | null;
   bodyClass: string | null;
+  /** "2.0L" from the displacement, and the manufacturer's engine code, when NHTSA knows them. */
+  engineSize?: string | null;
+  engineCode?: string | null;
   /** Non-zero error code means NHTSA could not fully decode (still may return year/make). */
   errorCode: string | null;
   errorText: string | null;
@@ -91,6 +94,8 @@ export interface NhtsaDecodeRow {
   Model?: string;
   Trim?: string;
   BodyClass?: string;
+  DisplacementL?: string;
+  EngineModel?: string;
   ErrorCode?: string;
   ErrorText?: string;
   [key: string]: string | undefined;
@@ -122,6 +127,12 @@ export function displayMake(make: string | null | undefined): string | null {
 }
 
 /** Map an NHTSA row to our result. Returns null fields rather than throwing. */
+/** NHTSA's displacement in litres ("1.9980000000") as an engine size label ("2.0L"). */
+export function engineSizeOf(raw: string | undefined): string | null {
+  const n = raw ? Number(raw) : NaN;
+  return Number.isFinite(n) && n > 0 ? `${n.toFixed(1)}L` : null;
+}
+
 export function mapNhtsaRow(vin: string, row: NhtsaDecodeRow | undefined): VinDecodeResult {
   const year = row?.ModelYear ? Number(row.ModelYear) : NaN;
   const nz = (s?: string) => (s && s.trim() ? s.trim() : null);
@@ -132,6 +143,8 @@ export function mapNhtsaRow(vin: string, row: NhtsaDecodeRow | undefined): VinDe
     model: nz(row?.Model),
     trim: nz(row?.Trim),
     bodyClass: nz(row?.BodyClass),
+    engineSize: engineSizeOf(row?.DisplacementL),
+    engineCode: nz(row?.EngineModel),
     errorCode: nz(row?.ErrorCode),
     errorText: nz(row?.ErrorText),
   };

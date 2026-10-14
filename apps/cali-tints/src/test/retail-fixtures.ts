@@ -92,9 +92,9 @@ const vbase = (over: Partial<Vehicle>): Vehicle => ({
 });
 
 export const vehiclesFixture: Vehicle[] = [
-  vbase({ id: V1, customer_id: C1, vin: "4T1BF1FK5CU123456", year: 2019, make: "Toyota", model: "Camry", trim: "SE", body_class: "Sedan/Saloon", size_class: "sedan", color: "Silver", plate: "8KLM432", created_at: ago(120) }),
+  vbase({ id: V1, customer_id: C1, vin: "4T1BF1FK5CU123456", year: 2019, make: "Toyota", model: "Camry", trim: "SE", engine_size: "2.5L", engine_code: "A25A-FKS", body_class: "Sedan/Saloon", size_class: "sedan", color: "Silver", plate: "8KLM432", created_at: ago(120) }),
   vbase({ id: V2, customer_id: C2, vin: "5YJ3E1EA7NF123456", year: 2022, make: "Tesla", model: "Model 3", body_class: "Sedan/Saloon", size_class: "sedan", color: "Red", plate: "9EVX221", created_at: ago(40) }),
-  vbase({ id: V3, customer_id: C3, vin: "1FTEW1EP7MFA12345", year: 2021, make: "Ford", model: "F-150", trim: "Lariat", body_class: "Pickup", size_class: "suv_truck", color: "Obsidian Black", plate: "7FLT009", notes: "Fleet truck · bed liner", created_at: ago(300) }),
+  vbase({ id: V3, customer_id: C3, vin: "1FTEW1EP7MFA12345", year: 2021, make: "Ford", model: "F-150", trim: "Lariat", engine_size: "2.7L", engine_code: "EcoBoost", body_class: "Pickup", size_class: "suv_truck", color: "Obsidian Black", plate: "7FLT009", notes: "Fleet truck · bed liner", created_at: ago(300) }),
   vbase({ id: V4, customer_id: C3, year: 2020, make: "Ford", model: "Transit", body_class: "Cargo Van", size_class: "xl", color: "Polar White", plate: "7FLT010", created_at: ago(290) }),
   vbase({ id: V5, customer_id: C4, year: 2018, make: "Honda", model: "Odyssey", body_class: "Minivan", size_class: "xl", color: "Gray", created_at: ago(15) }),
   vbase({ id: V6, customer_id: C5, vin: "2HGFC2F59JH123456", year: 2018, make: "Honda", model: "Civic", body_class: "Coupe", size_class: "compact", color: "Blue", plate: "8CIV118", created_at: ago(200) }),
@@ -186,7 +186,7 @@ export function pickedCustomersFixture(): PickedCustomer[] {
     id: c.id,
     name: c.display_name ?? c.phone ?? "Customer",
     phone: c.phone,
-    vehicles: vehiclesFixture.filter((v) => v.customer_id === c.id && !v.archived_at).map((v) => ({ id: v.id, year: v.year, make: v.make, model: v.model, color: v.color, vin: v.vin, plate: v.plate, size_class: v.size_class })),
+    vehicles: vehiclesFixture.filter((v) => v.customer_id === c.id && !v.archived_at).map((v) => ({ id: v.id, year: v.year, make: v.make, model: v.model, color: v.color, vin: v.vin, plate: v.plate, size_class: v.size_class, trim: v.trim ?? null, engine_size: v.engine_size ?? null, engine_code: v.engine_code ?? null })),
   }));
 }
 
@@ -320,11 +320,14 @@ export const ESTIMATE_IDS = { ana: E1, luis: E2, dana: E3 };
 export const ESTIMATE_TOKEN = "demo-estimate-token-ana-camry-0001";
 /** The supplement written on RO-000042 (Marcus, the Tesla) from the tech's findings. */
 const E4 = "90000000-0000-4000-8000-000000000004";
+/** Priya's F-150: a diagnosis, then the repair itemized, with the tech's findings on the side tab. */
+const E5 = "90000000-0000-4000-8000-000000000005";
+export const ESTIMATE_IDS_EXTRA = { priya: E5 };
 export const ESTIMATE_TOKEN_RO = "demo-estimate-token-marcus-tesla-0004";
 /** A draft: the link can go out with findings only ("your quote is being prepared"). */
 export const ESTIMATE_TOKEN_DRAFT = "demo-estimate-token-dana-odyssey-0003";
 
-type L = { id: string; svc: number | "other" | null; name?: string; qty?: number; price: number; modifiers?: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; taxable?: boolean; type?: EstimateLineType; hours?: number; part_number?: string; vendor?: string; cost?: number; finding_id?: string; customer_approved?: boolean | null };
+type L = { id: string; svc: number | "other" | null; name?: string; qty?: number; price: number; modifiers?: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; taxable?: boolean; type?: EstimateLineType; hours?: number; part_number?: string; vendor?: string; cost?: number; finding_id?: string; section?: "diagnosis" | "repair"; customer_approved?: boolean | null };
 const seedName = (i: number) => RETAIL_SEED[i][0];
 const seedBenefit = (i: number) => RETAIL_SEED[i][1];
 const seedMinutes = (i: number) => RETAIL_SEED[i][2];
@@ -336,6 +339,7 @@ const line = (money: boolean, l: L) => {
     id: l.id,
     service_id: l.svc === null ? null : l.svc === "other" ? "s8" : RETAIL_SERVICE_ID(l.svc),
     line_type: type,
+    section: l.section ?? ("repair" as const),
     name: l.name ?? (l.svc === "other" || l.svc === null ? "Other" : seedName(l.svc)),
     benefit_text: l.svc === "other" || l.svc === null ? null : seedBenefit(l.svc),
     qty,
@@ -405,7 +409,7 @@ function build(money: boolean, pub: boolean, base: { id: string; n: number; stat
     deposit_required: money ? Math.round((subtotal + supplies) * 20) / 100 : null,
     customer: { id: base.customer.id, display_name: pub ? base.customer.first_name : base.customer.display_name, first_name: base.customer.first_name, phone: pub ? null : base.customer.phone, email: pub ? null : base.customer.email },
     odometer: base.odometer ?? null,
-    vehicle: { id: base.vehicle.id, name: vehicleName(base.vehicle), color: base.vehicle.color, plate: pub ? null : base.vehicle.plate, size_class: base.vehicle.size_class },
+    vehicle: { id: base.vehicle.id, name: vehicleName(base.vehicle), year: base.vehicle.year, make: base.vehicle.make, model: base.vehicle.model, trim: base.vehicle.trim, engine_size: base.vehicle.engine_size ?? null, engine_code: base.vehicle.engine_code ?? null, vin: pub ? null : base.vehicle.vin, color: base.vehicle.color, plate: pub ? null : base.vehicle.plate, size_class: base.vehicle.size_class },
     options,
     addons,
     authorizations: base.auth ? [{ ...base.auth, total: money ? subtotal : null }] : [],
@@ -456,6 +460,21 @@ function estimateBase(id: string) {
         addons: [],
         created: ago(0, 1), expires: new Date(Date.now() + 14 * 86400000).toISOString(), customer_notes: "Pet hair in the back; the extraction gets the third row.", internal_notes: null, po: null,
       };
+    case E5:
+      return {
+        id: E5, n: 5, status: "draft" as EstimateStatus, customer: cust(C3), vehicle: veh(V3), odometer: 61400,
+        options: [{ id: "o5-single", tier: "single" as const, name: "Quote", description: null, recommended: true, lines: [
+          { id: "l14", svc: null, type: "labor" as const, name: "Diagnose the cold-start rattle", hours: 1, price: 120, section: "diagnosis" as const },
+          { id: "l15", svc: null, type: "labor" as const, name: "Replace the timing chain tensioner", hours: 3, price: 120 },
+          { id: "l16", svc: null, type: "part" as const, name: "Tensioner kit", qty: 1, price: 185, part_number: "TK-2711", vendor: "FordParts", cost: 110, taxable: true },
+        ] }],
+        addons: [],
+        findings: [
+          finding({ id: "94000000-0000-4000-8000-000000000001", job_id: null, estimate_id: E5, severity: "urgent", title: "Rattle for two seconds on a cold start", body: "Timing chain tensioner. Recorded the sound; do not wait on this one.", job_ro_number: null, job_performed_at: null, created_at: ago(0, 2), updated_at: ago(0, 2),
+            media: [{ id: "94100000-0000-4000-8000-000000000001", kind: "video", storage_path: "demo/rattle.mp4", mime: "video/mp4", duration_s: 9.2, size_bytes: 9000000, created_at: ago(0, 2), url: null }] }),
+        ],
+        created: ago(0, 3), expires: new Date(Date.now() + 14 * 86400000).toISOString(), customer_notes: "The rattle is the tensioner; the diagnosis confirms it before we take anything apart.", internal_notes: null, po: null,
+      };
     case E4: {
       const found = jobFindingsFixture("40000000-0000-4000-8000-000000000999").filter((f) => f.id === FINDING_IDS.pads || f.id === FINDING_IDS.spots).map((f) => ({ ...f, status: "quoted" as const, estimate_line_id: f.id === FINDING_IDS.pads ? "l11" : "l13" }));
       return {
@@ -499,7 +518,7 @@ export function jobEstimatesFixture(jobId: string, money: boolean): JobEstimate[
 
 export function estimateListFixture(money: boolean, q = "", status = "open"): EstimateListResult {
   const t = q.trim().toLowerCase();
-  const rows: EstimateListRow[] = [E4, E3, E1, E2]
+  const rows: EstimateListRow[] = [E5, E4, E3, E1, E2]
     .map((id) => estimateViewFixture(id, money)!)
     .filter((e) => (status === "all" ? true : status === "open" ? ["draft", "sent", "viewed"].includes(e.status) : e.status === status))
     .filter((e) => !t || e.display_number.toLowerCase().includes(t) || (e.customer.display_name ?? "").toLowerCase().includes(t) || (e.vehicle?.name ?? "").toLowerCase().includes(t))
@@ -509,7 +528,7 @@ export function estimateListFixture(money: boolean, q = "", status = "open"): Es
 
 /** The customer page's estimates list. */
 export function customerEstimatesFixture(customerId: string, money: boolean): NonNullable<CustomerTimeline["estimates"]> {
-  return [E4, E3, E1, E2]
+  return [E5, E4, E3, E1, E2]
     .map((id) => estimateViewFixture(id, money)!)
     .filter((e) => e.customer.id === customerId)
     .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, created_at: e.created_at, expires_at: e.expires_at, vehicle: e.vehicle?.name ?? null, total: e.total, job_id: e.job_id }));

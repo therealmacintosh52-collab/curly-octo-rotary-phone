@@ -4,8 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
 import { toPickedCustomer, type CustomerPick, type PickedCustomer } from "@/components/retail/customer-picker";
 
-type RC = { id: string; display_name: string | null; phone: string | null; email: string | null; vehicles: { id: string; year: number | null; make: string | null; model: string | null; color: string | null; vin: string | null; plate: string | null; size_class: PickedCustomer["vehicles"][number]["size_class"]; archived_at: string | null }[] };
-const SELECT = "id, display_name, phone, email, vehicles(id, year, make, model, color, vin, plate, size_class, archived_at)";
+type RC = { id: string; display_name: string | null; phone: string | null; email: string | null; vehicles: { id: string; year: number | null; make: string | null; model: string | null; trim: string | null; engine_size: string | null; engine_code: string | null; color: string | null; vin: string | null; plate: string | null; size_class: PickedCustomer["vehicles"][number]["size_class"]; archived_at: string | null }[] };
+const SELECT = "id, display_name, phone, email, vehicles(id, year, make, model, trim, engine_size, engine_code, color, vin, plate, size_class, archived_at)";
 const live = (c: RC) => toPickedCustomer(c, c.vehicles.filter((v) => !v.archived_at));
 
 /**

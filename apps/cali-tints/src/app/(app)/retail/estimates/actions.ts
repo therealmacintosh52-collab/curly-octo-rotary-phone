@@ -7,12 +7,13 @@ import { createClient } from "@/lib/supabase/server";
 import type { EstimatePayload, EstimateStatus } from "@/lib/db/types";
 import { appUrl, sendRetailEmail } from "@/lib/retail/email";
 import { formatDate } from "@/lib/dates";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { errorMessage } from "@/lib/utils";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
 const money = z.number().min(0).max(100000);
-const extra = { taxable: z.boolean().nullable().optional(), cost: money.nullable().optional(), finding_id: z.uuid().nullable().optional() };
+const extra = { section: z.enum(["diagnosis", "repair"]).optional(), taxable: z.boolean().nullable().optional(), cost: money.nullable().optional(), finding_id: z.uuid().nullable().optional() };
 /** A service line prices through the size matrix; labor, parts, fees and sublets carry their own numbers (0044). */
 const lineSchema = z.discriminatedUnion("line_type", [
   z.object({ line_type: z.literal("service"), service_id: z.uuid(), qty: z.number().positive().max(99).optional(), label: z.string().trim().max(120).nullable().optional(), price: money.nullable().optional(), modifiers: z.array(z.string().trim().max(40)).max(10).optional(), ...extra }),
@@ -32,7 +33,7 @@ const payloadSchema = z.object({
   internal_notes: z.string().trim().max(4000).nullable().optional(),
   customer_notes: z.string().trim().max(4000).nullable().optional(),
   options: z
-    .array(z.object({ tier: z.enum(["good", "better", "best", "single"]), name: z.string().trim().min(1).max(60), description: z.string().trim().max(300).nullable().optional(), recommended: z.boolean().optional(), lines: z.array(lineInput).min(1).max(60) }))
+    .array(z.object({ tier: z.enum(["good", "better", "best", "single"]), name: z.string().trim().min(1).max(60), description: z.string().trim().max(300).nullable().optional(), recommended: z.boolean().optional(), lines: z.array(lineInput).max(60) }))
     .min(1)
     .max(3)
     .optional(),
@@ -174,4 +175,24 @@ export async function sendFindingsAction(estimateId: string, via: "email" | "tex
   }
   revalidate(estimateId);
   return { ok: true, data: { url, emailed, note } };
+}
+
+/** Remove a draft that never went anywhere (blank or abandoned): its rows and its photos and clips. */
+export async function deleteDraftEstimateAction(id: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner, an admin or an advisor removes a draft" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("delete_draft_estimate", { p_id: id });
+  if (error) return { ok: false, error: errorMessage(error) };
+  const paths = (data?.paths ?? []).filter((p): p is string => typeof p === "string" && p.length > 0);
+  if (paths.length) {
+    try {
+      await createAdminClient().storage.from("job-photos").remove(paths);
+    } catch {
+      await supabase.storage.from("job-photos").remove(paths);
+    }
+  }
+  revalidatePath("/retail/estimates");
+  revalidatePath("/retail");
+  return { ok: true, data: undefined };
 }

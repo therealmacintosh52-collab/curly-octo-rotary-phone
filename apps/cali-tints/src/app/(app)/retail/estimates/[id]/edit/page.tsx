@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { JobFinding } from "@/lib/db/types";
 import { linesFromFindings } from "@/lib/estimates/from-findings";
 import { loadPickerCustomers } from "@/lib/retail/pick";
+import { appUrl } from "@/lib/retail/email";
+import { recommendableServices, withMediaUrls } from "@/lib/retail/findings-panel";
+import { EstimateFindingsPanel } from "@/components/retail/estimate-findings-panel";
 import { EstimateBuilder } from "@/components/retail/estimate-builder";
 
 export const metadata: Metadata = { title: "Edit estimate" };
@@ -20,9 +23,11 @@ export default async function EditEstimatePage(props: PageProps<"/retail/estimat
   if (!e || !catalog) notFound();
   if (e.status === "accepted" || e.status === "declined") redirect(`/retail/estimates/${id}`);
   const withCustomer = picker.recent.some((c) => c.id === e.customer.id) ? picker : await loadPickerCustomers(supabase, { customer: e.customer.id, vehicle: e.vehicle?.id });
-  // "Add to this estimate" on a recommendation in the findings panel: ?findings=<id,...> appends their lines.
+  // The findings side tab (and "Add to this estimate" on a recommendation: ?findings=<id,...> appends their lines).
   const ids = typeof sp.findings === "string" ? sp.findings.split(",").filter(Boolean) : [];
-  const { data: findings } = ids.length ? await supabase.rpc("estimate_findings", { p_estimate: id }) : { data: [] as JobFinding[] };
-  const extraLines = ids.length ? linesFromFindings((findings ?? []) as JobFinding[], ids, catalog) : undefined;
-  return <EstimateBuilder catalog={catalog} recent={withCustomer.initialPick?.customer ? [withCustomer.initialPick.customer, ...withCustomer.recent.filter((c) => c.id !== e.customer.id)] : withCustomer.recent} estimate={e} extraLines={extraLines} />;
+  const [{ data: rawFindings }, services, { data: token }] = await Promise.all([supabase.rpc("estimate_findings", { p_estimate: id }), recommendableServices(supabase), supabase.rpc("estimate_link", { p_id: id })]);
+  const findings = await withMediaUrls(supabase, rawFindings ?? []);
+  const extraLines = ids.length ? linesFromFindings(findings as JobFinding[], ids, catalog) : undefined;
+  const panel = <EstimateFindingsPanel e={e} findings={findings} services={services} canPrices={session.canPrices} isAdmin={session.isAdmin} userId={session.userId} findingsUrl={token ? `${appUrl() ?? ""}/e/${token}` : null} />;
+  return <EstimateBuilder catalog={catalog} recent={withCustomer.initialPick?.customer ? [withCustomer.initialPick.customer, ...withCustomer.recent.filter((c) => c.id !== e.customer.id)] : withCustomer.recent} estimate={e} extraLines={extraLines} findingsPanel={panel} findingsCount={findings.length} />;
 }

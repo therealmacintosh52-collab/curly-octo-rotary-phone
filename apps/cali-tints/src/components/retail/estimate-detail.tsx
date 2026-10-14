@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { Fragment, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, SendIcon, StarIcon, ThumbsDownIcon, WrenchIcon, FileTextIcon } from "lucide-react";
@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RoLayout } from "@/components/jobs/ro-notes";
+import { sectionHeading } from "@/lib/retail/sections";
 import { cn } from "@/lib/utils";
 import { EstimateStatusBadge } from "./estimate-status-badge";
 
@@ -142,8 +143,10 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border text-sm">
-                  {o.lines.map((l) => (
-                    <li key={l.id} className="flex items-start justify-between gap-3 py-2">
+                  {o.lines.map((l, li) => (
+                    <Fragment key={l.id}>
+                    {sectionHeading(o.lines, li) && <li className="pt-3 pb-1 text-label text-subtle" data-testid="line-section">{sectionHeading(o.lines, li)}</li>}
+                    <li className="flex items-start justify-between gap-3 py-2">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 font-medium">
                           {(l.line_type ?? "service") !== "service" && <Badge variant="muted">{l.line_type}</Badge>}
@@ -157,6 +160,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
                       </div>
                       {showMoney && <span className={cn("shrink-0 tabular-nums", accepted && o.tier === "single" && l.customer_approved === false && "line-through text-muted-foreground")}>{money(l.line_total)}</span>}
                     </li>
+                    </Fragment>
                   ))}
                 </ul>
                 {showMoney && (o.shop_supplies ?? 0) > 0 && <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-sm"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums">{money(o.shop_supplies)}</span></div>}
@@ -405,7 +409,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <Link href={`/retail/customers/${e.customer.id}`} className="font-medium text-foreground hover:text-primary" data-testid="estimate-customer">{customerName}</Link>
-            {e.vehicle && <span data-testid="estimate-car">{[e.vehicle.name, e.vehicle.color, e.vehicle.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}</span>}
+            {e.vehicle && <span data-testid="estimate-car">{[[e.vehicle.name, e.vehicle.trim].filter(Boolean).join(" "), e.vehicle.color, e.vehicle.engine_size ? `${e.vehicle.engine_size}${e.vehicle.engine_code ? ` (${e.vehicle.engine_code})` : ""}` : null, e.vehicle.vin ? `VIN ${e.vehicle.vin}` : null, e.vehicle.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}</span>}
             <Badge variant="outline">{SIZE_LABEL[e.size_class]}</Badge>
             <span>Written {formatDate(e.created_at)}</span>
             {e.expires_at && open && <span>· good until {formatDate(e.expires_at)}</span>}

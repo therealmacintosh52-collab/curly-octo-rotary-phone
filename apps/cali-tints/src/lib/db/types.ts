@@ -215,11 +215,15 @@ export type EstimateStatus = "draft" | "sent" | "viewed" | "accepted" | "decline
 export type EstimateTier = "good" | "better" | "best" | "single";
 /** A catalog service priced by size, or labor (hours × rate), a part, a fee, a sublet (0044). */
 export type EstimateLineType = "service" | "labor" | "part" | "fee" | "sublet";
+/** Every estimate line is itemized under Diagnosis or Repairs (0051). */
+export type EstimateSection = "diagnosis" | "repair";
 
 export type EstimateLineView = {
   id: string;
   service_id: string | null;
   line_type?: EstimateLineType;
+  /** Diagnosis or repair (0051). */
+  section?: EstimateSection;
   name: string;
   benefit_text: string | null;
   qty: number;
@@ -326,7 +330,7 @@ export type EstimateView = {
   total: number | null;
   deposit_required: number | null;
   customer: { id: string; display_name: string | null; first_name: string; phone: string | null; email: string | null };
-  vehicle: { id: string; name: string | null; color: string | null; plate: string | null; size_class: VehicleSize } | null;
+  vehicle: { id: string; name: string | null; year?: number | null; make?: string | null; model?: string | null; trim?: string | null; engine_size?: string | null; engine_code?: string | null; vin?: string | null; color: string | null; plate: string | null; size_class: VehicleSize } | null;
   options: EstimateOptionView[];
   addons: EstimateAddonView[];
   authorizations: EstimateAuthorizationView[];
@@ -359,10 +363,10 @@ export type EstimateListResult = { count: number; rows: EstimateListRow[] };
 
 /** What the builder sends to create_estimate / update_estimate. A service line prices through the matrix; the others carry their own numbers (0044). */
 export type EstimateLineInput =
-  | { line_type?: "service"; service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[]; cost?: number | null; finding_id?: string | null }
-  | { line_type: "labor"; label: string; hours: number; rate?: number | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null }
-  | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null }
-  | { line_type: "fee" | "sublet"; label: string; qty?: number; price: number; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null };
+  | { line_type?: "service"; service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[]; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
+  | { line_type: "labor"; label: string; hours: number; rate?: number | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
+  | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
+  | { line_type: "fee" | "sublet"; label: string; qty?: number; price: number; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection };
 export type EstimatePayload = {
   /** 0044: write the estimate on an open repair order (its customer and car are used). */
   job_id?: string | null;
@@ -590,7 +594,7 @@ export type ReceiptView = {
 };
 /** Retail's own invoices (0047): one per retail job, numbered RI-…, never in QuickBooks. */
 /** find_vehicle(): the car behind a plate or VIN typed in the bar at the top of Retail (0049). */
-export type FoundVehicle = { vehicle_id: string; customer_id: string; name: string | null; color: string | null; plate: string | null; vin: string | null; size_class: VehicleSize; customer: string | null; last_odometer: number | null };
+export type FoundVehicle = { vehicle_id: string; customer_id: string; name: string | null; color: string | null; trim?: string | null; year?: number | null; make?: string | null; model?: string | null; engine_size?: string | null; engine_code?: string | null; plate: string | null; vin: string | null; size_class: VehicleSize; customer: string | null; last_odometer: number | null };
 export type RetailInvoiceStatus = "unpaid" | "partial" | "paid" | "void";
 export type RetailInvoiceRow = {
   id: string;
@@ -1189,6 +1193,9 @@ export type Vehicle = {
   make: string | null;
   model: string | null;
   trim: string | null;
+  /** "2.0L" and the engine code (0051). */
+  engine_size?: string | null;
+  engine_code?: string | null;
   body_class: string | null;
   size_class: VehicleSize;
   size_class_source: "nhtsa" | "manual";
@@ -1391,6 +1398,7 @@ export type Database = {
       job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
       estimate_findings: { Args: { p_estimate: string }; Returns: JobFinding[] };
       add_finding_media: { Args: { p_finding: string; p: { path: string; mime: string; size: number; duration?: number | null } }; Returns: { id: string } };
+      delete_draft_estimate: { Args: { p_id: string }; Returns: { id: string; paths: string[] } };
       mark_findings_sent: { Args: { p_estimate: string }; Returns: { token: string; job_id: string | null; findings_sent_at: string } };
       vehicle_open_findings: { Args: { p_vehicle: string; p_exclude_job?: string | null }; Returns: JobFinding[] };
       job_estimates: { Args: { p_job: string }; Returns: JobEstimate[] };

@@ -1554,3 +1554,48 @@ begin
   exception when sqlstate '42501' then null; end;
 end $$;
 select pg_temp.logout();
+
+-- 0051: engine details on the car, Diagnosis / Repairs sections, blank drafts ---
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda'); e public.estimates; ed jsonb; v public.vehicles; f jsonb; v_job uuid; r jsonb;
+begin
+  v := public.save_vehicle(jsonb_build_object('id', v_veh, 'trim', 'Touring', 'engine_size', '2.5L', 'engine_code', 'py-vps'));
+  assert v.engine_size = '2.5L' and v.engine_code = 'PY-VPS' and v.trim = 'Touring', '0051: engine size and code saved (code upper-cased)';
+  f := public.find_vehicle(null, (select vin from public.vehicles where id = v_veh));
+  assert f ->> 'engine_size' = '2.5L' and f ->> 'engine_code' = 'PY-VPS' and f ->> 'trim' = 'Touring', '0051: the lookup carries them';
+  -- a blank draft: the tech can start documenting before anything is itemized; it cannot be sent
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', '[]'::jsonb))));
+  assert e.status = 'draft' and e.total = 0, '0051: a blank draft';
+  begin perform public.send_estimate(e.id); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  -- itemized: a diagnosis and the repairs
+  e := public.update_estimate(e.id, jsonb_build_object('options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', jsonb_build_array(
+         jsonb_build_object('line_type', 'labor', 'label', 'Diagnose the noise', 'hours', 1, 'section', 'diagnosis'),
+         jsonb_build_object('line_type', 'labor', 'label', 'Replace front pads', 'hours', 1.5),
+         jsonb_build_object('line_type', 'part', 'label', 'Brake pads', 'price', 60, 'section', 'repair'))))));
+  ed := public.estimate_detail(e.id);
+  assert (select count(*) from jsonb_array_elements(ed -> 'options' -> 0 -> 'lines') l where l ->> 'section' = 'diagnosis') = 1
+     and (select count(*) from jsonb_array_elements(ed -> 'options' -> 0 -> 'lines') l where l ->> 'section' = 'repair') = 2, '0051: lines carry their section';
+  assert ed -> 'vehicle' ->> 'engine_size' = '2.5L' and ed -> 'vehicle' ->> 'trim' = 'Touring' and ed -> 'vehicle' ->> 'vin' is not null and ed -> 'vehicle' ->> 'year' is not null, '0051: the estimate carries the car in full';
+  insert into e50 values ('e51', e.id::text) on conflict (k) do update set v = excluded.v;
+  -- a draft that never went anywhere can be removed; a sent one cannot
+  perform public.send_estimate(e.id);
+  begin perform public.delete_draft_estimate(e.id); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', '[]'::jsonb))));
+  r := public.delete_draft_estimate(e.id);
+  assert (r ->> 'id')::uuid = e.id, '0051: removed';
+  begin perform public.estimate_detail(e.id); raise exception 'still there'; exception when sqlstate 'P0002' then null; end;
+end $$;
+select pg_temp.logout();
+-- the customer approves: the diagnosis line reads "Diagnosis · ..." on the invoice
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from e50 where k = 'e51')::uuid; e public.estimates; v_job uuid; d jsonb;
+begin
+  perform public.mark_estimate_accepted(v_est, (select (o ->> 'id')::uuid from jsonb_array_elements(public.estimate_detail(v_est) -> 'options') o limit 1), '{}', 'Ana', 'in_person');
+  v_job := (public.estimate_detail(v_est) ->> 'job_id')::uuid;
+  d := public.retail_invoice_detail(v_job);
+  assert exists (select 1 from jsonb_array_elements(d -> 'lines') l where l ->> 'name' like 'Diagnosis · Diagnose the noise%'), '0051: the diagnosis line on the invoice: ' || (d -> 'lines')::text;
+  assert exists (select 1 from jsonb_array_elements(d -> 'lines') l where l ->> 'name' like 'Replace front pads%'), '0051: the repair line';
+end $$;
+select pg_temp.logout();

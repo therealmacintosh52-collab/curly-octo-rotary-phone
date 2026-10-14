@@ -4,7 +4,8 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { RetailNav } from "@/components/retail/retail-nav";
 import { EstimateBuilder } from "@/components/retail/estimate-builder";
-import { estimateViewFixture, pickedCustomersFixture, retailCatalogFixture } from "@/test/retail-fixtures";
+import { ESTIMATE_TOKEN, estimateViewFixture, pickedCustomersFixture, retailCatalogFixture, retailServicesFixture } from "@/test/retail-fixtures";
+import { EstimateFindingsPanel } from "@/components/retail/estimate-findings-panel";
 import { previewSession } from "@/test/preview-session";
 
 /** Fixture preview of editing an estimate. */
@@ -20,7 +21,23 @@ export default async function DevEstimateEditPreview(props: PageProps<"/dev/prev
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
             <RetailNav />
           </div>
-          <EstimateBuilder catalog={retailCatalogFixture(canPrices)} recent={pickedCustomersFixture()} estimate={e} />
+          <EstimateBuilder
+            catalog={retailCatalogFixture(canPrices)}
+            recent={pickedCustomersFixture()}
+            estimate={e}
+            findingsCount={(e.findings ?? []).length}
+            findingsPanel={
+              <EstimateFindingsPanel
+                e={e}
+                findings={e.findings ?? []}
+                services={retailServicesFixture(false).filter((s) => s.retail).map((s) => ({ id: s.id, name: s.name }))}
+                canPrices={canPrices}
+                isAdmin={canPrices}
+                userId="u2"
+                findingsUrl={canPrices ? `/e/${ESTIMATE_TOKEN}` : null}
+              />
+            }
+          />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

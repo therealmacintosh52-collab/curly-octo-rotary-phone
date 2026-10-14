@@ -31,7 +31,7 @@ export interface PickedCustomer {
   id: string;
   name: string;
   phone: string | null;
-  vehicles: (Pick<Vehicle, "id" | "year" | "make" | "model" | "color" | "vin" | "plate"> & { size_class?: Vehicle["size_class"] })[];
+  vehicles: (Pick<Vehicle, "id" | "year" | "make" | "model" | "color" | "vin" | "plate"> & { trim?: string | null; engine_size?: string | null; engine_code?: string | null; size_class?: Vehicle["size_class"] })[];
 }
 
 export interface CustomerPick {

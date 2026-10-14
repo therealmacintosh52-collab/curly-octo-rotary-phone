@@ -36,6 +36,8 @@ export const vehicleSchema = z.object({
   size_class: z.enum(["compact", "sedan", "suv_truck", "xl"]).optional(),
   color: optionalText(40),
   plate: optionalText(12),
+  engine_size: optionalText(30),
+  engine_code: optionalText(30),
   notes: optionalText(2000),
   odometer: z.coerce.number().int().positive().max(9_999_999).optional().nullable(),
   archived: z.boolean().optional(),

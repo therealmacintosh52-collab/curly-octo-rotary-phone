@@ -136,6 +136,8 @@ export type EstimateLineDraft = {
   taxable: boolean | null;
   cost: number | null;
   finding_id: string | null;
+  /** Itemized under Diagnosis or Repairs. */
+  section: "diagnosis" | "repair";
 };
 
 export interface SuppliesPolicy {
@@ -152,7 +154,7 @@ export interface PricedLine extends QuoteLine {
   rate: number | null;
 }
 
-export const emptyLine = (line_type: LineType, patch: Partial<EstimateLineDraft> = {}): EstimateLineDraft => ({ line_type, service_id: null, qty: 1, label: null, price: null, modifiers: [], hours: null, rate: null, part_number: null, vendor: null, taxable: null, cost: null, finding_id: null, ...patch });
+export const emptyLine = (line_type: LineType, patch: Partial<EstimateLineDraft> = {}): EstimateLineDraft => ({ line_type, service_id: null, qty: 1, label: null, price: null, modifiers: [], hours: null, rate: null, part_number: null, vendor: null, taxable: null, cost: null, finding_id: null, section: "repair", ...patch });
 
 /** Price one line: a service through the matrix, labor = hours × rate, the rest qty × price. Throws on a bad line. */
 export function priceLine(

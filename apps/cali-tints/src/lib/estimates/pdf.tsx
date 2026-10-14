@@ -1,4 +1,5 @@
 import { FindingsPdfSection } from "./findings-pdf";
+import { sectionHeading } from "@/lib/retail/sections";
 import "server-only";
 
 import React from "react";
@@ -91,8 +92,8 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={s.billLabel}>VEHICLE</Text>
-            <Text style={{ fontFamily: "Helvetica-Bold" }}>{e.vehicle?.name ?? "Vehicle"}</Text>
-            <Text style={s.small}>{[e.vehicle?.color, e.vehicle?.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString("en-US")} mi` : null, SIZE_LABEL[e.size_class]].filter(Boolean).join(" · ")}</Text>
+            <Text style={{ fontFamily: "Helvetica-Bold" }}>{[e.vehicle?.name, e.vehicle?.trim].filter(Boolean).join(" ") || "Vehicle"}</Text>
+            <Text style={s.small}>{[e.vehicle?.color, e.vehicle?.engine_size ? `${e.vehicle.engine_size}${e.vehicle.engine_code ? ` (${e.vehicle.engine_code})` : ""}` : null, e.vehicle?.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString("en-US")} mi` : null, SIZE_LABEL[e.size_class]].filter(Boolean).join(" · ")}</Text>
           </View>
         </View>
 
@@ -105,8 +106,10 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
               <Text style={s.optionTotal}>{formatMoney(o.total ?? 0)}</Text>
             </View>
             {o.description ? <Text style={[s.small, { marginBottom: 4 }]}>{o.description}</Text> : null}
-            {o.lines.filter((l) => !(accepted && o.tier === "single" && l.customer_approved === false)).map((l) => (
-              <View key={l.id} style={s.line}>
+            {o.lines.filter((l) => !(accepted && o.tier === "single" && l.customer_approved === false)).map((l, li, shown) => (
+              <React.Fragment key={l.id}>
+              {sectionHeading(shown, li) ? <Text style={[s.small, { marginTop: 6, marginBottom: 2, fontFamily: "Helvetica-Bold" }]}>{sectionHeading(shown, li)}</Text> : null}
+              <View style={s.line}>
                 <View style={s.lineName}>
                   <Text>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</Text>
                   {l.line_type === "labor" ? <Text style={s.small}>{`${l.hours} h × ${formatMoney(l.rate ?? 0)}`}</Text> : null}
@@ -117,6 +120,7 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
                 </View>
                 <Text style={s.lineAmt}>{formatMoney(l.line_total ?? 0)}</Text>
               </View>
+              </React.Fragment>
             ))}
             {(o.shop_supplies ?? 0) > 0 ? (
               <View style={s.line}>

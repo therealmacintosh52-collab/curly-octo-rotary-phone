@@ -94,20 +94,16 @@ export async function findCarAction(input: { plate?: string; vin?: string }): Pr
   return { ok: true, data: data ?? null };
 }
 
-/** The year, make and model behind a VIN for the bar's "not on file" answer (NHTSA vPIC; the cache first when signed in). A failure is just "no decode". */
-export async function decodeVinAction(raw: string): Promise<{ year: number | null; make: string | null; model: string | null } | null> {
+/** The year, make and model behind a VIN for the bar's "not on file" answer (NHTSA vPIC: year, make, model, trim, engine size and code). A failure is just "no decode". */
+export type DecodedCar = { year: number | null; make: string | null; model: string | null; trim: string | null; engine_size: string | null; engine_code: string | null };
+export async function decodeVinAction(raw: string): Promise<DecodedCar | null> {
   const vin = normalizeVin(raw);
   if (!isVinShape(vin)) return null;
   try {
-    if (!isDemoCookieValid((await cookies()).get(DEMO_COOKIE)?.value)) {
-      const supabase = await createClient();
-      const { data: cached } = await supabase.from("vin_cache").select("year, make, model").eq("vin", vin).maybeSingle();
-      if (cached?.make) return { year: cached.year, make: cached.make, model: cached.model };
-    }
     const res = await fetch(NHTSA_DECODE_URL(vin), { headers: { accept: "application/json" }, signal: AbortSignal.timeout(6000) });
     const body = (await res.json()) as { Results?: NhtsaDecodeRow[] };
     const d = mapNhtsaRow(vin, body.Results?.[0]);
-    return d.make ? { year: d.year, make: d.make, model: d.model } : null;
+    return d.make ? { year: d.year, make: d.make, model: d.model, trim: d.trim, engine_size: d.engineSize ?? null, engine_code: d.engineCode ?? null } : null;
   } catch {
     return null;
   }

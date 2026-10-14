@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 // The barcode engine is ~200 KB; it only loads the first time the scanner opens.
 const VinScanner = dynamic(() => import("@/components/jobs/vin-scanner").then((m) => m.VinScanner), { ssr: false });
 
-type Result = { kind: "found"; car: FoundVehicle } | { kind: "new"; vin: string; plate: string; year?: number | null; make?: string | null; model?: string | null };
+type Result = { kind: "found"; car: FoundVehicle } | { kind: "new"; vin: string; plate: string; year?: number | null; make?: string | null; model?: string | null; trim?: string | null; engine_size?: string | null; engine_code?: string | null };
 
 /**
  * The bar at the top of Retail: the car in front of you. Type the plate or the
@@ -46,7 +46,7 @@ export function CarLookupBar() {
       if (r.data) return void setResult({ kind: "found", car: r.data });
       // Not on file: decode the VIN so the estimate starts with the car filled in.
       const decoded = v ? await decodeVinAction(v) : null;
-      setResult({ kind: "new", vin: v, plate: plate.trim(), year: decoded?.year, make: decoded?.make, model: decoded?.model });
+      setResult({ kind: "new", vin: v, plate: plate.trim(), year: decoded?.year, make: decoded?.make, model: decoded?.model, trim: decoded?.trim, engine_size: decoded?.engine_size, engine_code: decoded?.engine_code });
     });
   }
 
@@ -62,6 +62,9 @@ export function CarLookupBar() {
       if (result.year) q.set("year", String(result.year));
       if (result.make) q.set("make", result.make);
       if (result.model) q.set("model", result.model);
+      if (result.trim) q.set("trim", result.trim);
+      if (result.engine_size) q.set("engine_size", result.engine_size);
+      if (result.engine_code) q.set("engine_code", result.engine_code);
     }
     if (odometer) q.set("odometer", odometer);
     return `/retail/estimates/new?${q}`;

@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, CheckIcon, ClockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
-import { createEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
+import { createEstimateAction, deleteDraftEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
+import { saveVehicleAction } from "@/app/(app)/retail/actions";
+import { normalizeVin } from "@/lib/vin";
+import { diagnosisFirst } from "@/lib/retail/sections";
 import { useSession } from "@/components/app/session-provider";
 import { addDaysYmd, toDateInput } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -20,6 +23,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { CustomerPicker, type CustomerPick, type PickedCustomer } from "./customer-picker";
 
 type LineDraft = EstimateLineDraft;
+type CarFields = { year: string; make: string; model: string; trim: string; vin: string; plate: string; engine_size: string; engine_code: string };
 type AddonDraft = LineDraft & { default_on: boolean };
 type OptionDraft = { key: string; tier: EstimateTier; name: string; description: string; recommended: boolean; lines: LineDraft[] };
 
@@ -35,7 +40,7 @@ const TYPE_LABEL: Record<LineType, string> = { service: "Service", labor: "Labor
 const tierFor = (i: number, n: number): EstimateTier => (n === 1 ? "single" : (["good", "better", "best"] as const)[i]);
 let keySeq = 0;
 const nextKey = () => `o${++keySeq}-${Date.now()}`;
-const lineKey = (l: LineDraft) => `${l.line_type}:${l.service_id ?? ""}:${l.label ?? ""}:${l.part_number ?? ""}:${l.finding_id ?? ""}`;
+const lineKey = (l: LineDraft) => `${l.section ?? "repair"}:${l.line_type}:${l.service_id ?? ""}:${l.label ?? ""}:${l.part_number ?? ""}:${l.finding_id ?? ""}`;
 
 function toQuoteCatalog(catalog: RetailCatalog) {
   return {
@@ -52,8 +57,8 @@ function fromView(e: EstimateView, services: RetailCatalogService[]): { options:
   const isOpen = (id: string | null) => !!services.find((s) => s.id === id)?.open_amount;
   const line = (l: EstimateView["options"][number]["lines"][number]): LineDraft => {
     const type = l.line_type ?? "service";
-    if (type === "service") return emptyLine("service", { service_id: l.service_id ?? "", qty: l.qty, label: isOpen(l.service_id) ? l.name : null, price: isOpen(l.service_id) ? l.unit_price : null, modifiers: l.modifiers.map((m) => m.code), cost: l.cost ?? null, finding_id: l.finding_id ?? null });
-    return emptyLine(type, { label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, part_number: l.part_number ?? null, vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
+    if (type === "service") return emptyLine("service", { section: l.section ?? "repair", service_id: l.service_id ?? "", qty: l.qty, label: isOpen(l.service_id) ? l.name : null, price: isOpen(l.service_id) ? l.unit_price : null, modifiers: l.modifiers.map((m) => m.code), cost: l.cost ?? null, finding_id: l.finding_id ?? null });
+    return emptyLine(type, { section: l.section ?? "repair", label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, part_number: l.part_number ?? null, vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
   };
   return {
     options: e.options.map((o) => ({ key: o.id, tier: o.tier, name: o.name, description: o.description ?? "", recommended: o.recommended, lines: o.lines.map(line) })),
@@ -62,7 +67,7 @@ function fromView(e: EstimateView, services: RetailCatalogService[]): { options:
 }
 
 function toInput(l: LineDraft): EstimateLineInput {
-  const extra = { cost: l.cost, finding_id: l.finding_id };
+  const extra = { cost: l.cost, finding_id: l.finding_id, section: l.section };
   if (l.line_type === "service") return { line_type: "service", service_id: l.service_id ?? "", qty: l.qty, label: l.label, price: l.price, modifiers: l.modifiers, ...extra };
   if (l.line_type === "labor") return { line_type: "labor", label: l.label ?? "", hours: Number(l.hours ?? 0), rate: l.rate, taxable: l.taxable, ...extra };
   if (l.line_type === "part") return { line_type: "part", label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), part_number: l.part_number, vendor: l.vendor, taxable: l.taxable, ...extra };
@@ -86,7 +91,7 @@ function withExtra<T extends { options: OptionDraft[] }>(base: T, extra?: LineDr
   return { ...base, options: [{ ...base.options[0], lines: [...base.options[0].lines, ...add] }, ...base.options.slice(1)] };
 }
 
-export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[] }) {
+export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines, findingsPanel, findingsCount }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; trim?: string; engine_size?: string; engine_code?: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[]; /** The findings side tab (server-rendered notes panel) and how many findings it holds. */ findingsPanel?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -102,6 +107,14 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
     : (initialPick ?? { customer: null, vehicleId: null });
   const [pick, setPick] = useState<CustomerPick>(initialCustomer);
   const pickedVehicle = pick.customer?.vehicles.find((v) => v.id === pick.vehicleId) ?? null;
+  const carFrom = (v: { year?: number | null; make?: string | null; model?: string | null; trim?: string | null; vin?: string | null; plate?: string | null; engine_size?: string | null; engine_code?: string | null } | null | undefined): CarFields => ({
+    year: v?.year ? String(v.year) : "", make: v?.make ?? "", model: v?.model ?? "", trim: v?.trim ?? "", vin: v?.vin ?? "", plate: v?.plate ?? "", engine_size: v?.engine_size ?? "", engine_code: v?.engine_code ?? "",
+  });
+  const [car, setCar] = useState<CarFields>(() =>
+    estimate?.vehicle ? carFrom(estimate.vehicle) : pickedVehicle ? carFrom(pickedVehicle) : { year: carHint?.year ?? "", make: carHint?.make ?? "", model: carHint?.model ?? "", trim: carHint?.trim ?? "", vin: carHint?.vin ?? "", plate: carHint?.plate ?? "", engine_size: carHint?.engine_size ?? "", engine_code: carHint?.engine_code ?? "" },
+  );
+  const [side, setSide] = useState<"summary" | "findings">("summary");
+  const creating = useRef(false);
   const [size, setSize] = useState<VehicleSize>(estimate?.size_class ?? pickedVehicle?.size_class ?? "sedan");
   const initial = useMemo(() => (estimate ? withExtra(fromView(estimate, catalog.services), extraLines) : { options: [{ key: nextKey(), tier: "single" as EstimateTier, name: "Quote", description: "", recommended: true, lines: initialLines ?? [] }], addons: [] }), [estimate, catalog.services, initialLines, extraLines]);
   const [options, setOptions] = useState<OptionDraft[]>(initial.options);
@@ -111,7 +124,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   const [miles, setMiles] = useState(estimate?.odometer ? String(estimate.odometer) : (carHint?.odometer ?? ""));
   const [customerNotes, setCustomerNotes] = useState(estimate?.customer_notes ?? "");
   const [internalNotes, setInternalNotes] = useState(estimate?.internal_notes ?? "");
-  const [adding, setAdding] = useState<{ scope: "option" | "addon"; key?: string; type: LineType } | null>(null);
+  const [adding, setAdding] = useState<{ scope: "option" | "addon"; key?: string; section?: "diagnosis" | "repair"; type: LineType } | null>(null);
 
   // Live totals: never thrown away on a bad line, just shown as 0 for that option.
   const totals = useMemo(() => {
@@ -164,8 +177,9 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   }
   function addLine(line: LineDraft) {
     if (!adding) return;
-    if (adding.scope === "addon") setAddons((prev) => [...prev, { ...line, default_on: false }]);
-    else if (adding.key) setOption(adding.key, (o) => ({ ...o, lines: [...o.lines.filter((l) => lineKey(l) !== lineKey(line)), line] }));
+    const placed = { ...line, section: adding.section ?? "repair" } as LineDraft;
+    if (adding.scope === "addon") setAddons((prev) => [...prev, { ...placed, default_on: false }]);
+    else if (adding.key) setOption(adding.key, (o) => ({ ...o, lines: [...o.lines.filter((l) => lineKey(l) !== lineKey(placed)), placed] }));
     setAdding(null);
   }
   function removeLine(key: string, line: LineDraft) {
@@ -175,27 +189,84 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
     setAddons((prev) => (prev.some((a) => a.service_id === svc.id) ? prev.filter((a) => a.service_id !== svc.id) : [...prev, { ...emptyLine("service", { service_id: svc.id }), default_on: false }]));
   }
 
-  function payload(): EstimatePayload {
+  function payload(vehicleId: string | null): EstimatePayload {
     return {
       job_id: ro?.id ?? null,
       customer_id: pick.customer?.id,
-      vehicle_id: pick.vehicleId,
+      vehicle_id: vehicleId,
       size_class: size,
       expires_at: expires ? new Date(`${expires}T23:59:59`).toISOString() : null,
       po_number: po.trim() || null,
       odometer: miles ? Number(miles) : null,
       customer_notes: customerNotes.trim() || null,
       internal_notes: internalNotes.trim() || null,
-      options: options.map((o, i) => ({ tier: tierFor(i, options.length), name: o.name.trim() || TIER_NAMES[tierFor(i, options.length)], description: o.description.trim() || null, recommended: o.recommended, lines: o.lines.map(toInput) })),
+      options: options.map((o, i) => ({ tier: tierFor(i, options.length), name: o.name.trim() || TIER_NAMES[tierFor(i, options.length)], description: o.description.trim() || null, recommended: o.recommended, lines: diagnosisFirst(o.lines).map(toInput) })),
       addons: addons.map((a) => ({ ...(toInput(a) as Extract<EstimateLineInput, { service_id: string }>), default_on: a.default_on })),
     };
   }
+
+  /** The car on the right of the screen is the customer's vehicle record: saved (or created) with the estimate. */
+  async function persistCar(customerId: string): Promise<string | null> {
+    if (demo) return pick.vehicleId;
+    const base = { year: car.year ? Number(car.year) : null, make: car.make.trim() || null, model: car.model.trim() || null, trim: car.trim.trim() || null, vin: car.vin.trim() ? normalizeVin(car.vin) : null, plate: car.plate.trim() || null, engine_size: car.engine_size.trim() || null, engine_code: car.engine_code.trim() || null };
+    if (pick.vehicleId && pickedVehicle) {
+      const was = carFrom(pickedVehicle);
+      const changed = (Object.keys(was) as (keyof CarFields)[]).some((k) => (was[k] ?? "").trim().toUpperCase() !== (car[k] ?? "").trim().toUpperCase());
+      if (changed) {
+        const r = await saveVehicleAction({ id: pick.vehicleId, ...base });
+        if (!r.ok) {
+          toast.error(r.error);
+          throw new Error(r.error);
+        }
+      }
+      return pick.vehicleId;
+    }
+    if (!Object.values(car).some((v) => v.trim())) return null;
+    const r = await saveVehicleAction({ customer_id: customerId, ...base, size_class: size, odometer: miles ? Number(miles) : null });
+    if (!r.ok) {
+      toast.error(r.error);
+      throw new Error(r.error);
+    }
+    const v = { id: r.data.id, year: r.data.year, make: r.data.make, model: r.data.model, trim: r.data.trim, engine_size: r.data.engine_size ?? null, engine_code: r.data.engine_code ?? null, color: r.data.color, vin: r.data.vin, plate: r.data.plate, size_class: r.data.size_class };
+    setPick((p) => (p.customer ? { customer: { ...p.customer, vehicles: [...p.customer.vehicles, v] }, vehicleId: v.id } : p));
+    return v.id;
+  }
+
+  // Retail always starts with an estimate: picking the customer saves a blank draft right away, so the tech can
+  // write findings on the side tab while the advisor itemizes. (Not in the guest demo: nothing is saved there.)
+  useEffect(() => {
+    if (estimate || demo || creating.current || !pick.customer) return;
+    creating.current = true;
+    const customerId = pick.customer.id;
+    void (async () => {
+      try {
+        const vId = await persistCar(customerId);
+        const r = await createEstimateAction(payload(vId));
+        if (!r.ok) {
+          creating.current = false;
+          return void toast.error(r.error);
+        }
+        router.replace(`/retail/estimates/${r.data.id}/edit`);
+      } catch {
+        creating.current = false;
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pick.customer?.id]);
 
   function save() {
     if (!pick.customer && !ro) return void toast.error("Pick the customer first");
     if (options.some((o) => o.lines.length === 0)) return void toast.error("Every option needs at least one line");
     if (totals.options.some((t) => t === null)) return void toast.error("A line is missing something (hours, a rate, a name)");
     start(async () => {
+      let vehicleId = pick.vehicleId;
+      if (!demo && pick.customer) {
+        try {
+          vehicleId = await persistCar(pick.customer.id);
+        } catch {
+          return;
+        }
+      }
       if (demo) {
         toast.success(estimate ? "Estimate updated" : "Estimate saved as a draft", { description: "Guest preview — nothing changed" });
         router.push(`/retail/estimates/${estimate?.id ?? (ro ? "90000000-0000-4000-8000-000000000004" : "90000000-0000-4000-8000-000000000001")}`);
@@ -203,10 +274,10 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
       }
       let id = estimate?.id ?? null;
       if (estimate) {
-        const r = await updateEstimateAction(estimate.id, payload());
+        const r = await updateEstimateAction(estimate.id, payload(vehicleId));
         if (!r.ok) return void toast.error(r.error);
       } else {
-        const r = await createEstimateAction(payload());
+        const r = await createEstimateAction(payload(vehicleId));
         if (!r.ok) return void toast.error(r.error);
         id = r.data.id;
       }
@@ -216,7 +287,19 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
     });
   }
 
-  const carDraft = { vin: carHint?.vin ?? "", year: carHint?.year ?? "", make: carHint?.make ?? "", model: carHint?.model ?? "", color: "", plate: carHint?.plate ?? "", odometer: miles };
+  function removeDraft() {
+    if (!estimate) return;
+    start(async () => {
+      if (demo) return void toast.success("Draft deleted", { description: "Guest preview — nothing changed" });
+      const r = await deleteDraftEstimateAction(estimate.id);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success("Draft deleted");
+      router.push("/retail/estimates");
+      router.refresh();
+    });
+  }
+
+  const carDraft = { vin: car.vin, year: car.year, make: car.make, model: car.model, color: "", plate: car.plate, odometer: miles };
   const lineTypeIcon = (t: LineType) => (t === "labor" ? <ClockIcon className="size-3.5" /> : t === "part" ? <PackageIcon className="size-3.5" /> : t === "sublet" ? <TruckIcon className="size-3.5" /> : <ReceiptIcon className="size-3.5" />);
 
   return (
@@ -232,31 +315,56 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="flex min-w-0 flex-col gap-4">
-          <Card>
-            <CardContent className="grid gap-4 pt-5">
-              <CustomerPicker value={pick} onChange={setPick} carDraft={carDraft} recent={recent} onVehiclePicked={(v) => { if (v.size_class) setSize(v.size_class); }} />
-              <div className="grid gap-1.5 sm:max-w-xs">
-                <Label htmlFor="e-miles">Mileage</Label>
-                <Input id="e-miles" inputMode="numeric" value={miles} onChange={(ev) => setMiles(ev.target.value.replace(/[^\d]/g, ""))} placeholder="e.g. 84200" autoComplete="off" data-testid="estimate-miles" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="e-size">Priced as</Label>
-                <Select value={size} onValueChange={(v) => setSize(v as VehicleSize)}>
-                  <SelectTrigger id="e-size" aria-label="Size class" className="w-full sm:w-64">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SIZE_CLASSES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label} <span className="text-muted-foreground">· {s.hint}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <div className="grid gap-4 xl:grid-cols-2" data-testid="estimate-top">
+            <Card data-testid="estimate-customer-card">
+              <CardHeader>
+                <CardTitle>Customer</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                <CustomerPicker value={pick} onChange={setPick} carDraft={carDraft} recent={recent} onVehiclePicked={(v) => { if (v.size_class) setSize(v.size_class); setCar(carFrom(v)); }} />
+                {pick.customer && <p className="text-caption text-subtle">Their cars are on the right; pick one or type a new one. The estimate starts as a draft the moment you pick them.</p>}
+              </CardContent>
+            </Card>
+
+            <Card data-testid="estimate-car-card">
+              <CardHeader>
+                <CardTitle>Vehicle</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <CarInput id="c-year" label="Year" value={car.year} onChange={(v) => setCar((c) => ({ ...c, year: v.replace(/[^\d]/g, "").slice(0, 4) }))} inputMode="numeric" testId="car-year" />
+                  <CarInput id="c-make" label="Make" value={car.make} onChange={(v) => setCar((c) => ({ ...c, make: v }))} testId="car-make" />
+                  <CarInput id="c-model" label="Model" value={car.model} onChange={(v) => setCar((c) => ({ ...c, model: v }))} testId="car-model" />
+                  <CarInput id="c-trim" label="Trim" value={car.trim} onChange={(v) => setCar((c) => ({ ...c, trim: v }))} testId="car-trim" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2"><CarInput id="c-vin" label="VIN" value={car.vin} onChange={(v) => setCar((c) => ({ ...c, vin: v.toUpperCase() }))} mono maxLength={20} testId="car-vin-field" /></div>
+                  <CarInput id="c-plate" label="License plate" value={car.plate} onChange={(v) => setCar((c) => ({ ...c, plate: v.toUpperCase() }))} maxLength={12} testId="car-plate-field" />
+                  <CarInput id="e-miles" label="Mileage" value={miles} onChange={(v) => setMiles(v.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="84200" testId="estimate-miles" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <CarInput id="c-engine" label="Engine size" value={car.engine_size} onChange={(v) => setCar((c) => ({ ...c, engine_size: v }))} placeholder="2.0L" testId="car-engine-size" />
+                  <CarInput id="c-engine-code" label="Engine code" value={car.engine_code} onChange={(v) => setCar((c) => ({ ...c, engine_code: v.toUpperCase() }))} placeholder="EJ25" testId="car-engine-code" />
+                  <div className="col-span-2 grid gap-1.5">
+                    <Label htmlFor="e-size">Priced as</Label>
+                    <Select value={size} onValueChange={(v) => setSize(v as VehicleSize)}>
+                      <SelectTrigger id="e-size" aria-label="Size class" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SIZE_CLASSES.map((sc) => (
+                          <SelectItem key={sc.value} value={sc.value}>
+                            {sc.label} <span className="text-muted-foreground">· {sc.hint}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 {pickedVehicle?.size_class && pickedVehicle.size_class !== size && <p className="text-caption text-subtle">The car is on file as {SIZE_LABEL[pickedVehicle.size_class]}; this estimate prices it as {SIZE_LABEL[size]}.</p>}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           {options.map((o, idx) => {
             const t = totals.options[idx];
@@ -278,83 +386,103 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                   </div>
                   <Input value={o.description} onChange={(e) => setOption(o.key, { description: e.target.value })} placeholder="One line the customer reads under the name (optional)" aria-label={`Option ${idx + 1} description`} className="h-9" />
                 </CardHeader>
-                <CardContent className="grid gap-3">
-                  <div className="flex flex-wrap gap-2" data-testid="estimate-chips">
-                    {menu.map((s) => {
-                      const on = o.lines.some((l) => l.line_type === "service" && l.service_id === s.id);
-                      const price = catalog.services.length ? (s.prices?.[size] ?? s.default_price) : null;
-                      return (
-                        <button key={s.id} type="button" aria-pressed={on} onClick={() => toggleLine(o.key, s)} className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors", on ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong")}>
-                          {on && <CheckIcon className="size-3.5" />}
-                          {s.name}
-                          {price !== null && price !== undefined && <span className={cn("tabular-nums", on ? "text-primary/80" : "text-muted-foreground")}>{formatMoney(price)}</span>}
-                        </button>
-                      );
-                    })}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-border-strong" data-testid="add-line">
-                          <PlusIcon className="size-3.5" /> Add a line
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, type: "labor" })}>Labor (hours × rate)</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, type: "part" })}>Part</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, type: "fee" })}>Fee</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, type: "sublet" })}>Sublet (outside work)</DropdownMenuItem>
-                        {other && <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, type: "service" })}>Other (not on the menu)</DropdownMenuItem>}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  {o.lines.length > 0 && (
-                    <ul className="divide-y divide-border rounded-xl border border-border text-sm" data-testid="estimate-lines">
-                      {o.lines.map((l, li) => {
-                        const svc = l.line_type === "service" ? catalog.services.find((s) => s.id === l.service_id) : undefined;
-                        const ql: PricedLine | undefined = t?.lines[li];
-                        const name = l.line_type === "service" ? (l.label ?? svc?.name) : l.label;
-                        return (
-                          <li key={lineKey(l)} className="grid gap-2 px-3 py-2.5" data-testid={`line-${l.line_type}`}>
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2 font-medium">
-                                  {l.line_type !== "service" && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-caption text-muted-foreground">{lineTypeIcon(l.line_type)} {TYPE_LABEL[l.line_type]}</span>}
-                                  <span>{name}</span>
-                                  {svc?.placeholder && <Badge variant="warning">placeholder price</Badge>}
-                                  {l.finding_id && <Badge variant="outline">from a finding</Badge>}
-                                </div>
-                                {l.line_type === "service" && svc?.benefit_text && !l.label && <div className="truncate text-caption text-subtle">{svc.benefit_text}</div>}
-                                {l.line_type === "labor" && <div className="text-caption text-subtle">{l.hours} h × {formatMoney(l.rate ?? quoteCatalog.defaultRate ?? 0)}{l.taxable ? " · taxed" : ""}</div>}
-                                {l.line_type === "part" && <div className="text-caption text-subtle">{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.price ?? 0)}` : null, l.part_number, l.vendor, l.taxable === false ? "no tax" : "taxed"].filter(Boolean).join(" · ")}</div>}
-                                {(l.line_type === "fee" || l.line_type === "sublet") && <div className="text-caption text-subtle">{[l.vendor, l.taxable ? "taxed" : null].filter(Boolean).join(" · ")}</div>}
-                                {l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}{ql ? ` · margin ${formatMoney(ql.line_total - Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}` : ""}</div>}
-                              </div>
-                              <div className="flex shrink-0 items-center gap-2">
-                                {l.line_type === "service" && !svc?.open_amount && (
-                                  <Input type="number" min={1} max={10} value={l.qty} onChange={(e) => setQty(o.key, l.service_id ?? "", Number(e.target.value) || 1)} aria-label={`${svc?.name} quantity`} className="h-8 w-14 px-2 text-center" />
-                                )}
-                                <span className="w-20 text-right font-semibold tabular-nums">{formatMoney(ql?.line_total ?? 0)}</span>
-                                <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove ${name}`} onClick={() => removeLine(o.key, l)}>
-                                  <XIcon />
-                                </Button>
-                              </div>
-                            </div>
-                            {l.line_type === "service" && !svc?.open_amount && catalog.modifiers.filter((m) => m.active).length > 0 && (
-                              <div className="flex flex-wrap gap-1.5">
-                                {catalog.modifiers.filter((m) => m.active).map((m) => {
-                                  const on = l.modifiers.includes(m.code);
-                                  return (
-                                    <button key={m.code} type="button" aria-pressed={on} onClick={() => toggleModifier(o.key, l.service_id ?? "", m.code)} className={cn("rounded-full border px-2.5 py-1 text-caption transition-colors", on ? "border-warning/50 bg-warning/12 text-warning" : "border-border text-muted-foreground hover:border-border-strong")}>
-                                      {m.label} {m.kind === "percent" ? `+${m.amount}%` : `+${formatMoney(m.amount)}`}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
+                <CardContent className="grid gap-5">
+                  {(["diagnosis", "repair"] as const).map((sec) => {
+                    const rows = o.lines.map((l, i) => ({ l, i })).filter((x) => (x.l.section ?? "repair") === sec);
+                    const secTotal = rows.reduce((sum, r) => sum + (t?.lines[r.i]?.line_total ?? 0), 0);
+                    return (
+                      <section key={sec} className="grid gap-3" data-testid={`section-${sec}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-label text-subtle">{sec === "diagnosis" ? "Diagnosis" : "Repairs"}</h3>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-border-strong" data-testid="add-line">
+                                          <PlusIcon className="size-3.5" /> Add a line
+                                        </button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="start">
+                                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "labor" })}>Labor (hours × rate)</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "part" })}>Part</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "fee" })}>Fee</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "sublet" })}>Sublet (outside work)</DropdownMenuItem>
+                                        {other && <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "service" })}>Other (not on the menu)</DropdownMenuItem>}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                        </div>
+                        {sec === "repair" && (
+                                    <div className="flex flex-wrap gap-2" data-testid="estimate-chips">
+                                      {menu.map((s) => {
+                                        const on = o.lines.some((l) => l.line_type === "service" && l.service_id === s.id);
+                                        const price = catalog.services.length ? (s.prices?.[size] ?? s.default_price) : null;
+                                        return (
+                                          <button key={s.id} type="button" aria-pressed={on} onClick={() => toggleLine(o.key, s)} className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors", on ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong")}>
+                                            {on && <CheckIcon className="size-3.5" />}
+                                            {s.name}
+                                            {price !== null && price !== undefined && <span className={cn("tabular-nums", on ? "text-primary/80" : "text-muted-foreground")}>{formatMoney(price)}</span>}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                        )}
+                                    {rows.length > 0 && (
+                                      <ul className="divide-y divide-border rounded-xl border border-border text-sm" data-testid="estimate-lines">
+                                        {rows.map(({ l, i: li }) => {
+                                          const svc = l.line_type === "service" ? catalog.services.find((s) => s.id === l.service_id) : undefined;
+                                          const ql: PricedLine | undefined = t?.lines[li];
+                                          const name = l.line_type === "service" ? (l.label ?? svc?.name) : l.label;
+                                          return (
+                                            <li key={lineKey(l)} className="grid gap-2 px-3 py-2.5" data-testid={`line-${l.line_type}`}>
+                                              <div className="flex items-center justify-between gap-3">
+                                                <div className="min-w-0">
+                                                  <div className="flex flex-wrap items-center gap-2 font-medium">
+                                                    {l.line_type !== "service" && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-caption text-muted-foreground">{lineTypeIcon(l.line_type)} {TYPE_LABEL[l.line_type]}</span>}
+                                                    <span>{name}</span>
+                                                    {svc?.placeholder && <Badge variant="warning">placeholder price</Badge>}
+                                                    {l.finding_id && <Badge variant="outline">from a finding</Badge>}
+                                                  </div>
+                                                  {l.line_type === "service" && svc?.benefit_text && !l.label && <div className="truncate text-caption text-subtle">{svc.benefit_text}</div>}
+                                                  {l.line_type === "labor" && <div className="text-caption text-subtle">{l.hours} h × {formatMoney(l.rate ?? quoteCatalog.defaultRate ?? 0)}{l.taxable ? " · taxed" : ""}</div>}
+                                                  {l.line_type === "part" && <div className="text-caption text-subtle">{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.price ?? 0)}` : null, l.part_number, l.vendor, l.taxable === false ? "no tax" : "taxed"].filter(Boolean).join(" · ")}</div>}
+                                                  {(l.line_type === "fee" || l.line_type === "sublet") && <div className="text-caption text-subtle">{[l.vendor, l.taxable ? "taxed" : null].filter(Boolean).join(" · ")}</div>}
+                                                  {l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}{ql ? ` · margin ${formatMoney(ql.line_total - Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}` : ""}</div>}
+                                                </div>
+                                                <div className="flex shrink-0 items-center gap-2">
+                                                  {l.line_type === "service" && !svc?.open_amount && (
+                                                    <Input type="number" min={1} max={10} value={l.qty} onChange={(e) => setQty(o.key, l.service_id ?? "", Number(e.target.value) || 1)} aria-label={`${svc?.name} quantity`} className="h-8 w-14 px-2 text-center" />
+                                                  )}
+                                                  <span className="w-20 text-right font-semibold tabular-nums">{formatMoney(ql?.line_total ?? 0)}</span>
+                                                  <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove ${name}`} onClick={() => removeLine(o.key, l)}>
+                                                    <XIcon />
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                              {l.line_type === "service" && !svc?.open_amount && catalog.modifiers.filter((m) => m.active).length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                  {catalog.modifiers.filter((m) => m.active).map((m) => {
+                                                    const on = l.modifiers.includes(m.code);
+                                                    return (
+                                                      <button key={m.code} type="button" aria-pressed={on} onClick={() => toggleModifier(o.key, l.service_id ?? "", m.code)} className={cn("rounded-full border px-2.5 py-1 text-caption transition-colors", on ? "border-warning/50 bg-warning/12 text-warning" : "border-border text-muted-foreground hover:border-border-strong")}>
+                                                        {m.label} {m.kind === "percent" ? `+${m.amount}%` : `+${formatMoney(m.amount)}`}
+                                                      </button>
+                                                    );
+                                                  })}
+                                                </div>
+                                              )}
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                        {rows.length > 0 && (
+                          <div className="flex items-center justify-between text-sm text-muted-foreground" data-testid={`section-total-${sec}`}>
+                            <span>{sec === "diagnosis" ? "Diagnosis" : "Repairs"} subtotal</span>
+                            <span className="tabular-nums">{formatMoney(secTotal)}</span>
+                          </div>
+                        )}
+                        {rows.length === 0 && sec === "diagnosis" && <p className="text-caption text-subtle">Nothing here yet: add the diagnosis time (labor hours) or a diagnostic fee.</p>}
+                      </section>
+                    );
+                  })}
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-muted-foreground">{t ? `${Math.round((t.duration_minutes / 60) * 10) / 10} h · subtotal ${formatMoney(t.subtotal)}${t.shop_supplies > 0 ? ` · supplies ${formatMoney(t.shop_supplies)}` : ""} · tax ${formatMoney(t.tax)}` : o.lines.length ? "A line is incomplete" : "Pick services or add a line"}</span>
                     <span className="text-lg font-semibold tabular-nums" data-testid="option-total">{formatMoney(t?.total ?? 0)}</span>
@@ -440,7 +568,25 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
           </Card>
         </div>
 
-        <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
+        <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto" data-testid="estimate-side">
+          <Segmented
+            aria-label="Side tab"
+            size="sm"
+            value={side}
+            onValueChange={(v) => setSide(v as "summary" | "findings")}
+            items={[
+              { value: "summary", label: "Summary" },
+              { value: "findings", label: <span className="flex items-center gap-1.5">Findings {(findingsCount ?? 0) > 0 && <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">{findingsCount}</span>}</span> },
+            ]}
+          />
+          <div className={cn(side !== "findings" && "hidden")} data-testid="estimate-side-findings">
+            {findingsPanel ?? (
+              <Card>
+                <CardContent className="pt-5 text-sm text-muted-foreground">Pick the customer: the draft starts, and the technician can add notes, photos, clips and recommendations here while you itemize. The customer sees them with the estimate.</CardContent>
+              </Card>
+            )}
+          </div>
+          <div className={cn("flex flex-col gap-4", side !== "summary" && "hidden")}>
           <Card>
             <CardHeader>
               <CardTitle>Summary</CardTitle>
@@ -465,6 +611,12 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
             {estimate ? "Save changes" : "Save draft"}
           </Button>
           <p className="text-center text-caption text-subtle">Nothing goes to the customer until you tap Send on the next screen.</p>
+          {estimate && estimate.status === "draft" && !estimate.sent_at && (
+            <Button type="button" variant="ghost" size="sm" onClick={removeDraft} loading={pending} data-testid="estimate-delete-draft">
+              <Trash2Icon /> Delete this draft
+            </Button>
+          )}
+          </div>
         </div>
       </div>
 
@@ -559,5 +711,16 @@ function LineDialog({ type, rates, defaultRate, policy, other, onClose, onAdd }:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+
+/** One labelled field of the car on the estimate. */
+function CarInput({ id, label, value, onChange, placeholder, inputMode, mono, maxLength, testId }: { id: string; label: string; value: string; onChange: (v: string) => void; placeholder?: string; inputMode?: "numeric"; mono?: boolean; maxLength?: number; testId?: string }) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength ?? 60} autoComplete="off" className={mono ? "font-mono" : undefined} data-testid={testId} />
+    </div>
   );
 }

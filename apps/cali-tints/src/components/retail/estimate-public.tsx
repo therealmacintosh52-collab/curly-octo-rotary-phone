@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2Icon, CheckIcon, ClockIcon, FileDownIcon, PlayIcon, StarIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { formatMoney, formatTaxRate } from "@/lib/money";
 import { depositFor, optionTotals } from "@/lib/retail/quote";
 import { formatClipLength, isVideoMime } from "@/lib/media/kind";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { sectionHeading } from "@/lib/retail/sections";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,7 +114,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6" data-testid="estimate-public">
+    <main className="mx-auto grid min-h-dvh w-full max-w-2xl content-start gap-5 px-4 py-6 sm:px-6 xl:max-w-6xl xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-x-8 xl:[&>*]:col-start-1" data-testid="estimate-public">
       <header className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <Logo size={44} />
@@ -164,7 +165,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
       )}
 
       {(e.findings ?? []).length > 0 && (
-        <section className="rounded-2xl border border-border bg-card p-4" data-testid="public-findings">
+        <section className="rounded-2xl border border-border bg-card p-4 xl:sticky xl:top-6 xl:col-start-2! xl:row-span-6 xl:row-start-2 xl:self-start" data-testid="public-findings">
           <h2 className="font-semibold">What we found</h2>
           <ul className="mt-2 grid gap-3">
             {e.findings!.map((f) => (
@@ -222,12 +223,14 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
                   </div>
                 </div>
                 <ul className="mt-3 grid gap-1.5 text-sm">
-                  {o.lines.map((l) => {
+                  {o.lines.map((l, li) => {
                     const type = l.line_type ?? "service";
                     const meta = type === "labor" ? `${l.hours} h${l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}` : type === "part" ? [l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number].filter(Boolean).join(" · ") : type === "service" && l.qty !== 1 ? `× ${l.qty}` : "";
                     const on = single ? kept.includes(l.id) : true;
                     return (
-                      <li key={l.id} className="flex items-start gap-2">
+                      <Fragment key={l.id}>
+                      {sectionHeading(o.lines, li) && <li className="pt-2 text-label text-subtle" data-testid="public-line-section">{sectionHeading(o.lines, li)}</li>}
+                      <li className="flex items-start gap-2">
                         {single ? (
                           <Checkbox checked={on} disabled={locked} onCheckedChange={(v) => setKept((prev) => (v ? [...prev, l.id] : prev.filter((x) => x !== l.id)))} onClick={(ev) => ev.stopPropagation()} aria-label={l.name} className="mt-0.5" />
                         ) : (
@@ -241,6 +244,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
                         </div>
                         {single && <span className={cn("shrink-0 tabular-nums", !on && "text-muted-foreground line-through")}>{formatMoney(l.line_total ?? 0)}</span>}
                       </li>
+                      </Fragment>
                     );
                   })}
                 </ul>
