@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { freezeApproval } from "@/lib/documents/freeze";
 import { errorMessage } from "@/lib/utils";
+import { customerLinkForJob } from "@/lib/retail/customer-link";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -169,10 +170,7 @@ export async function sendFindingsAction(estimateId: string, via: "email" | "tex
   if (error) return { ok: false, error: errorMessage(error) };
   const base = appUrl() ?? "";
   let url = `${base}/e/${data.token}`;
-  if (data.job_id) {
-    const { data: rt } = await supabase.rpc("receipt_link", { p_job_id: data.job_id });
-    if (rt) url = `${base}/r/${rt}`;
-  }
+  if (data.job_id) url = (await customerLinkForJob(supabase, data.job_id, base)) ?? url;
   let emailed = false;
   let note: string | null = null;
   if (via === "email") {

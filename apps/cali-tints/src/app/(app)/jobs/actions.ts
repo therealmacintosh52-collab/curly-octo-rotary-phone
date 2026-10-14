@@ -13,6 +13,7 @@ import { syncJobToQuickBooks } from "@/lib/quickbooks/live";
 import { errorMessage } from "@/lib/utils";
 import { appUrl, sendRetailEmail } from "@/lib/retail/email";
 import { freezeInvoice } from "@/lib/documents/freeze";
+import { customerLinkForJob } from "@/lib/retail/customer-link";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
@@ -312,8 +313,7 @@ export async function emailFindingAction(findingId: string): Promise<ActionResul
   }
   const jobId = f.job_id;
   if (!url && jobId) {
-    const { data: rt } = await supabase.rpc("receipt_link", { p_job_id: jobId });
-    if (rt) url = `${base}/r/${rt}`;
+    url = (await customerLinkForJob(supabase, jobId, base)) ?? "";
     const { data: j } = await supabase.from("jobs").select("year, make, model, customer:customers(first_name, display_name, email)").eq("id", jobId).maybeSingle();
     const c = (j as unknown as { year: number | null; make: string | null; model: string | null; customer: { first_name: string; display_name: string | null; email: string | null } | null } | null);
     if (c) contact = { first_name: c.customer?.first_name || c.customer?.display_name || "there", email: c.customer?.email ?? null, vehicle: [c.year, c.make, c.model].filter(Boolean).join(" ") || null };
