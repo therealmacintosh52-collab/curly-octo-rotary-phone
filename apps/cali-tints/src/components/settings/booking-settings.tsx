@@ -82,6 +82,7 @@ function PolicyCard({ settings: s }: { settings: RetailSettings }) {
     signature_required_estimate: s.signature_required_estimate,
     signature_required_receipt: s.signature_required_receipt,
     policy_text: s.policy_text ?? "",
+    warranty_text: s.warranty_text ?? "",
     review_url: s.review_url ?? "",
     quiet_from: (s.quiet_from ?? "20:00").slice(0, 5),
     quiet_to: (s.quiet_to ?? "08:00").slice(0, 5),
@@ -112,6 +113,7 @@ function PolicyCard({ settings: s }: { settings: RetailSettings }) {
         signature_required_estimate: f.signature_required_estimate,
         signature_required_receipt: f.signature_required_receipt,
         policy_text: f.policy_text,
+        warranty_text: f.warranty_text,
         review_url: f.review_url,
         quiet_from: f.quiet_from,
         quiet_to: f.quiet_to,
@@ -212,6 +214,10 @@ function PolicyCard({ settings: s }: { settings: RetailSettings }) {
           <div className="grid gap-1.5">
             <Label htmlFor="p-policy">Policy text shown to customers</Label>
             <Textarea id="p-policy" value={f.policy_text} onChange={(e) => set("policy_text", e.target.value)} placeholder="Deposits are non-refundable. Cancel or reschedule up to 24 hours before…" className="min-h-20" />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="p-warranty">Warranty text on the invoice</Label>
+            <Textarea id="p-warranty" data-testid="warranty-text" value={f.warranty_text} onChange={(e) => set("warranty_text", e.target.value)} placeholder="Parts and labor are warranted for 12 months or 12,000 miles…" className="min-h-20" maxLength={1000} />
           </div>
           <div className="flex justify-end">
             <Button type="submit" loading={pending} data-testid="policy-save">

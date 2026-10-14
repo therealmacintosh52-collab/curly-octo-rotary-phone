@@ -29,7 +29,7 @@ export interface RunReport {
   errors: string[];
 }
 
-const TEMPLATE_KEYS = new Set<string>(["estimate_sent", "hold_created", "hold_expiring", "booking_confirmed", "reminder", "receipt", "abandoned", "cancelled", "review_request", "estimate_nudge", "booking_received", "findings_ready"]);
+const TEMPLATE_KEYS = new Set<string>(["estimate_sent", "hold_created", "hold_expiring", "booking_confirmed", "reminder", "receipt", "abandoned", "cancelled", "review_request", "estimate_nudge", "booking_received", "findings_ready", "status_ready", "declined_work"]);
 
 /** The placeholders a template may use, from the run's subject. Pure, for tests. */
 export function runVariables(run: ClaimedRun): Record<string, string | number | null | undefined> {
@@ -53,6 +53,7 @@ export function runVariables(run: ClaimedRun): Record<string, string | number | 
     expires,
     receipt_url: receiptToken ? `${base}/r/${receiptToken}` : "",
     review_url: run.settings.review_url ?? "",
+    declined_list: typeof s.declined_list === "string" ? s.declined_list : "",
     address: run.company.address ?? "",
     company: run.company.name,
     total: typeof s.total === "number" ? formatMoney(s.total) : "",

@@ -129,6 +129,25 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
       <div className="flex min-w-0 flex-col gap-4">
         {e.options.map((o) => {
           const isChosen = chosen?.id === o.id;
+          // Named jobs (0054): grouped, Diagnosis first, then safety, due soon, optional; the lines of one job sit together.
+          const jobs = o.jobs ?? [];
+          const lines = jobs.length ? [...jobs.flatMap((j) => o.lines.filter((l) => l.estimate_job_id === j.id)), ...o.lines.filter((l) => !jobs.some((j) => j.id === l.estimate_job_id))] : o.lines;
+          const heading = (li: number): React.ReactNode => {
+            if (!jobs.length) return sectionHeading(o.lines, li);
+            const l = lines[li];
+            if (li > 0 && lines[li - 1].estimate_job_id === l.estimate_job_id) return null;
+            const j = jobs.find((x) => x.id === l.estimate_job_id);
+            if (!j) return "Other items";
+            const total = lines.filter((x) => x.estimate_job_id === j.id).reduce((sum, x) => sum + (x.line_total ?? 0), 0);
+            return (
+              <span className="flex flex-wrap items-center gap-2" data-job={j.title}>
+                <span className="text-foreground">{j.title}</span>
+                {j.kind !== "diagnosis" && <Badge variant={j.priority === "safety" ? "destructive" : j.priority === "soon" ? "warning" : "muted"} data-testid="job-priority">{{ safety: "Safety", soon: "Due soon", optional: "Optional" }[j.priority]}</Badge>}
+                {j.status !== "recommended" && <Badge variant={j.status === "declined" ? "muted" : "success"}>{{ approved: "Approved", declined: "Declined", done: "Done", recommended: "" }[j.status]}</Badge>}
+                {showMoney && <span className="ml-auto tabular-nums text-muted-foreground">{money(total)}</span>}
+              </span>
+            );
+          };
           return (
             <Card key={o.id} className={cn(isChosen && "border-primary", !accepted && o.recommended && "border-primary/50")} data-testid="estimate-option">
               <CardHeader className="flex-row items-start justify-between gap-3">
@@ -144,9 +163,9 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border text-sm">
-                  {o.lines.map((l, li) => (
+                  {lines.map((l, li) => (
                     <Fragment key={l.id}>
-                    {sectionHeading(o.lines, li) && <li className="pt-3 pb-1 text-label text-subtle" data-testid="line-section">{sectionHeading(o.lines, li)}</li>}
+                    {heading(li) && <li className="pt-3 pb-1 text-label text-subtle" data-testid="line-section">{heading(li)}</li>}
                     <li className="flex items-start justify-between gap-3 py-2">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 font-medium">

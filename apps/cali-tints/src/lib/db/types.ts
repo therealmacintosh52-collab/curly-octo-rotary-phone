@@ -28,6 +28,8 @@ export type Company = {
   state: string | null;
   postal_code: string | null;
   ein: string | null;
+  /** California BAR automotive repair dealer registration number; printed on retail invoices (0055). */
+  bar_license?: string | null;
   payment_terms: string;
   tax_rate: number;
   invoice_prefix: string;
@@ -147,6 +149,8 @@ export type RetailSettings = {
   signature_required_estimate: boolean;
   signature_required_receipt: boolean;
   policy_text: string | null;
+  /** Printed on the retail invoice under the totals (0055). */
+  warranty_text?: string | null;
   email_templates: Record<string, { subject?: string; body?: string }>;
   review_url: string | null;
   quiet_from: string;
@@ -224,6 +228,8 @@ export type EstimateLineView = {
   line_type?: EstimateLineType;
   /** Diagnosis or repair (0051). */
   section?: EstimateSection;
+  /** The named job this line belongs to (0054). */
+  estimate_job_id?: string | null;
   name: string;
   benefit_text: string | null;
   qty: number;
@@ -244,6 +250,10 @@ export type EstimateLineView = {
   /** Single option: the customer's answer per line (null until answered). */
   customer_approved?: boolean | null;
 };
+/** A named job on an estimate (0054): brakes, A/C, an oil change. Diagnosis is the first one. */
+export type EstimateJobPriority = "safety" | "soon" | "optional";
+export type EstimateJobStatus = "recommended" | "approved" | "declined" | "done";
+export type EstimateJobView = { id: string; title: string; kind: "diagnosis" | "repair"; priority: EstimateJobPriority; status: EstimateJobStatus; sort_order: number; cause?: string | null; correction?: string | null };
 export type EstimateAddonView = EstimateLineView & { default_on: boolean; customer_approved: boolean | null };
 export type EstimateOptionView = {
   id: string;
@@ -259,6 +269,8 @@ export type EstimateOptionView = {
   /** 0044 */
   labor_subtotal?: number | null;
   shop_supplies?: number | null;
+  /** Named jobs in the customer's order: Diagnosis, then safety, due soon, optional (0054). */
+  jobs?: EstimateJobView[];
   lines: EstimateLineView[];
 };
 export type EstimateAuthorizationView = {
@@ -366,11 +378,12 @@ export type EstimateListRow = {
 export type EstimateListResult = { count: number; rows: EstimateListRow[] };
 
 /** What the builder sends to create_estimate / update_estimate. A service line prices through the matrix; the others carry their own numbers (0044). */
-export type EstimateLineInput =
+export type EstimateLineInput = (
   | { line_type?: "service"; service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[]; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
   | { line_type: "labor"; label: string; hours: number; rate?: number | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
   | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
-  | { line_type: "fee" | "sublet"; label: string; qty?: number; price: number; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection };
+  | { line_type: "fee" | "sublet"; label: string; qty?: number; price: number; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
+) & { /** The key of the named job this line belongs to (0054). */ job?: string };
 export type EstimatePayload = {
   /** 0044: write the estimate on an open repair order (its customer and car are used). */
   job_id?: string | null;
@@ -385,7 +398,7 @@ export type EstimatePayload = {
   customer_notes?: string | null;
   /** The customer's concern in their own words (0052). */
   customer_concern?: string | null;
-  options?: { tier: EstimateTier; name: string; description?: string | null; recommended?: boolean; lines: EstimateLineInput[] }[];
+  options?: { tier: EstimateTier; name: string; description?: string | null; recommended?: boolean; /** Named jobs; lines point at them by key (0054). */ jobs?: { key: string; title: string; kind?: "diagnosis" | "repair"; priority?: EstimateJobPriority }[]; lines: EstimateLineInput[] }[];
   addons?: (EstimateLineInput & { default_on?: boolean })[];
 };
 
@@ -566,6 +579,18 @@ export type RetailCharge = {
   signature_required: boolean;
   payments: PaymentView[];
 };
+/** One named job on the invoice (0055). */
+export type InvoiceJob = {
+  id: string;
+  title: string;
+  kind: "diagnosis" | "repair";
+  priority: EstimateJobPriority;
+  status: EstimateJobStatus;
+  cause: string | null;
+  correction: string | null;
+  total: number;
+  lines: { name: string; type: string; qty: number | null; hours: number | null; rate: number | null; part_number: string | null; total: number }[];
+};
 /** job_receipt() / receipt_by_token(): the paid job's receipt. */
 export type ReceiptView = {
   id: string;
@@ -573,6 +598,7 @@ export type ReceiptView = {
   /** The mileage when the car came in and (staff only) its plate (0049). */
   odometer?: number | null;
   plate?: string | null;
+  vin?: string | null;
   /** What the tech found on this job (the customer's copy has the visible ones only; 0050). */
   findings?: JobFinding[];
   invoice_number?: string | null;
@@ -580,6 +606,22 @@ export type ReceiptView = {
   /** Set once the repair order is converted to the invoice (0052); the concern the customer gave. */
   invoiced_at?: string | null;
   concern?: string | null;
+  /** The invoice document (0055): named jobs with their lines, cause and correction; what was declined or only recommended; totals by kind; the authorization log. */
+  jobs?: InvoiceJob[];
+  extras?: { name: string; type: string; total: number }[];
+  declined?: { title: string; priority: EstimateJobPriority; total: number | null }[];
+  recommended?: { title: string; severity: FindingSeverity; recommendation: FindingRecommendation | null }[];
+  categories?: { labor: number; parts: number; fees: number; sublets: number; services: number };
+  taxable_types?: string[];
+  authorizations?: { kind: "initial" | "estimate" | "change_order"; method: "online" | "in_person" | "phone" | "email"; authorized_at: string; name: string; amount: number | null }[];
+  odometer_out?: number | null;
+  parts_disposition?: "offered" | "returned" | "declined" | null;
+  completed_at?: string | null;
+  /** Initials only: the no-names rule. */
+  advisor?: string | null;
+  tech?: string | null;
+  bar_license?: string | null;
+  warranty_text?: string | null;
   performed_at: string;
   paid_at: string | null;
   payment_method: "clover" | "cash" | "check" | "other" | null;
@@ -606,6 +648,8 @@ export type ReceiptView = {
 export type FoundVehicle = { vehicle_id: string; customer_id: string; name: string | null; color: string | null; trim?: string | null; year?: number | null; make?: string | null; model?: string | null; engine_size?: string | null; engine_code?: string | null; plate: string | null; vin: string | null; size_class: VehicleSize; customer: string | null; last_odometer: number | null };
 /** add_finding_lines(): the estimate a finding was priced onto, with its totals ("plus tax"). */
 export type PricedFinding = { estimate_id: string; display_number: string; job_id: string | null; subtotal: number; shop_supplies: number; tax: number; total: number; line_ids: string[] };
+/** ro_invoice_review(): what must be true before the repair order becomes an invoice (0055). */
+export type InvoiceReview = { lines: number; ro_total: number; approved_total: number; linked_total: number; matches: boolean; unauthorized: number; jobs_not_done: number; completed: boolean; qc: boolean; odometer_out: number | null; ready: boolean };
 /** One entry of a repair order's authorization record (0052). Amount only for those who price jobs. */
 export type RoAuthorization = { id: string; kind: "initial" | "estimate" | "change_order"; authorized_at: string; name: string; method: "online" | "in_person" | "phone" | "email"; by_staff: boolean; has_signature: boolean; estimate_id: string | null; amount: number | null };
 /** check_in_appointment(): mileage in, the customer's concern and the initial authorization (the signature is uploaded first). */
@@ -1308,6 +1352,7 @@ export type Database = {
       customers: Table<Customer>;
       vehicles: Table<Vehicle>;
       odometer_readings: Table<OdometerReading>;
+      estimate_jobs: Table<EstimateJobView & { company_id: string; estimate_id: string; option_id: string | null; done_at: string | null; created_at: string }>;
       job_findings: Table<Omit<JobFinding, "media" | "recommended_service" | "job_ro_number" | "job_performed_at">>;
       service_prices_by_size: Table<ServicePriceBySize>;
       price_modifiers: Table<PriceModifier>;
@@ -1418,6 +1463,9 @@ export type Database = {
       job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
       estimate_findings: { Args: { p_estimate: string }; Returns: JobFinding[] };
       add_finding_media: { Args: { p_finding: string; p: { path: string; mime: string; size: number; duration?: number | null } }; Returns: { id: string } };
+      complete_ro_work: { Args: { p_job: string; p: { odometer_out: number | string; parts_disposition?: "offered" | "returned" | "declined" | null; jobs: { id: string; cause: string; correction: string }[] } }; Returns: { job_id: string; completed_at: string; odometer_out: number } };
+      quality_check_ro: { Args: { p_job: string; p_note?: string | null }; Returns: { job_id: string; qc_at: string } };
+      ro_invoice_review: { Args: { p_job: string }; Returns: InvoiceReview };
       add_finding_lines: { Args: { p_finding: string; p_lines: { line_type: "labor" | "part" | "fee" | "sublet"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string }[] }; Returns: PricedFinding };
       convert_ro_to_invoice: { Args: { p_job: string }; Returns: { job_id: string; invoice_number: string; invoiced_at: string } };
       check_in_appointment: { Args: { p_id: string; p: CheckInPayload }; Returns: AppointmentView };

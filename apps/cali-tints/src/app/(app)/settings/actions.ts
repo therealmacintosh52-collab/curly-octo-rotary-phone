@@ -25,6 +25,7 @@ const companySchema = z.object({
   state: optionalText(40),
   postal_code: optionalText(20),
   ein: optionalText(40),
+  bar_license: optionalText(40),
   tax_rate: z.number().min(0).max(0.5),
   invoice_prefix: z.string().trim().max(12),
   reminder_days: z.number().int().min(1).max(365),

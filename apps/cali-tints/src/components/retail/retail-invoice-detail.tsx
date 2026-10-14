@@ -8,6 +8,7 @@ import { Page } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { RoLayout } from "@/components/jobs/ro-notes";
 import { RetailInvoiceStatusBadge } from "./retail-invoice-status-badge";
+import { InvoiceDocument } from "./invoice-document";
 
 const METHOD: Record<string, string> = { clover_online: "Card online", clover_flex: "Card at the counter", cash: "Cash", check: "Check", other: "Other" };
 
@@ -18,7 +19,20 @@ const METHOD: Record<string, string> = { clover_online: "Card online", clover_fl
  */
 export function RetailInvoiceDetail({ inv, notes, findingsCount }: { inv: Invoice; /** The findings side panel (same rows as on the estimate). */ notes?: React.ReactNode; findingsCount?: number }) {
   const due = inv.status === "unpaid" || inv.status === "partial";
-  const invoiceBody = (
+  const document = inv.jobs && inv.jobs.length > 0 ? (
+    <div className="max-w-2xl" data-testid="retail-invoice-document">
+      <InvoiceDocument r={inv}>
+        {inv.signed_name && (
+          <p className="mt-3 border-t border-border pt-3 text-caption text-subtle" data-testid="retail-invoice-signed">
+            Received by {inv.signed_name}{inv.signed_at ? ` · ${formatDateTime(inv.signed_at)}` : ""}{inv.has_signature ? " · signed" : ""}
+          </p>
+        )}
+      </InvoiceDocument>
+      <span className="sr-only" data-testid="retail-invoice-total">{formatMoney(inv.total)}</span>
+      <span className="sr-only" data-testid="retail-invoice-balance">{formatMoney(inv.balance)}</span>
+    </div>
+  ) : null;
+  const invoiceBody = document ?? (
     <section className="max-w-2xl rounded-2xl border border-border bg-card p-4">
       <ul className="divide-y divide-border text-sm" data-testid="retail-invoice-lines">
         {inv.lines.map((l, i) => (

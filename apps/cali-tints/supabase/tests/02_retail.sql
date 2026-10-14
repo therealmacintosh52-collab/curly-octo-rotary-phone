@@ -21,8 +21,23 @@ begin
   insert into public.job_authorizations (company_id, job_id, kind, amount, name, method, by_staff)
   select company_id, id, 'initial', 0, 'Test', 'in_person', true from public.jobs where id = p_job returning id into a;
   update public.job_services set authorization_id = a where job_id = p_job and authorization_id is null;
+  update public.jobs set completed_at = coalesce(completed_at, now()), qc_at = coalesce(qc_at, now()), odometer_out = coalesce(odometer_out, 1) where id = p_job;
   perform public.convert_ro_to_invoice(p_job);
 end $$;
+
+-- 0055: finished and checked (the tests that are not about completion skip the ceremony)
+create or replace function pg_temp.finish_it(p_job uuid) returns void language plpgsql security definer as $$
+begin
+  update public.estimate_jobs set cause = coalesce(cause, 'Worn'), correction = coalesce(correction, 'Replaced'), status = 'done', done_at = now() where id in (select estimate_job_id from public.job_services where job_id = p_job and estimate_job_id is not null);
+  update public.jobs set completed_at = coalesce(completed_at, now()), qc_at = coalesce(qc_at, now()), odometer_out = coalesce(odometer_out, 1) where id = p_job;
+end $$;
+
+create or replace function pg_temp.has_event(p_subject uuid, p_kind text) returns boolean language sql security definer as $$
+  select exists (select 1 from public.events where subject_id = p_subject and kind = p_kind)
+$$;
+create or replace function pg_temp.declined_list(p_job uuid) returns text language sql security definer as $$
+  select public._run_subject('job', p_job) ->> 'declined_list'
+$$;
 
 -- Retail work normally starts from an estimate (0048); these tests log retail jobs directly on purpose.
 select set_config('app.allow_retail_job', 'on', false);
@@ -915,9 +930,9 @@ begin
   select count(*) into n from public.events where kind = 'estimate.sent'; assert n >= 1, '0042: estimate sent recorded';
   select count(*) into n from public.events where kind = 'estimate.viewed'; assert n = 1, '0042: first view only: ' || n;
   select count(*) into n from public.events where kind = 'estimate.accepted'; assert n >= 2, '0042: approvals (online + staff) recorded: ' || n;
-  select count(*) into n from public.automation_rules where company_id = '00000000-0000-4000-8000-000000000001' and system; assert n = 11, '0042: eleven shipped rules: ' || n;
+  select count(*) into n from public.automation_rules where company_id = '00000000-0000-4000-8000-000000000001' and system; assert n = 13, '0042+0055: thirteen shipped rules: ' || n;
   perform public.seed_automation_defaults('00000000-0000-4000-8000-000000000001');
-  select count(*) into n from public.automation_rules where company_id = '00000000-0000-4000-8000-000000000001'; assert n = 11, '0042: seeding twice adds nothing';
+  select count(*) into n from public.automation_rules where company_id = '00000000-0000-4000-8000-000000000001'; assert n = 13, '0042: seeding twice adds nothing';
 end $$;
 
 -- The runner (service role): enqueue, claim, complete; quiet hours; the review skip rules; the text queue.
@@ -978,14 +993,14 @@ do $$
 declare rules jsonb; r jsonb; lg jsonb; q jsonb; n int;
 begin
   rules := public.automation_rules_list();
-  assert jsonb_array_length(rules) = 11, '0042: owner lists the rules';
+  assert jsonb_array_length(rules) = 13, '0042: owner lists the rules';
   select x into r from jsonb_array_elements(rules) x where x ->> 'key' = 'job_review';
   r := public.save_automation_rule(jsonb_build_object('id', r ->> 'id', 'enabled', false, 'delay_minutes', 60, 'event_kind', 'something.else'));
   assert (r ->> 'enabled')::boolean = false and (r ->> 'delay_minutes')::int = 60 and (r ->> 'event_kind') = 'job.paid', '0042: system rule keeps its kind';
   r := public.save_automation_rule(jsonb_build_object('name', 'Thank you a week later', 'event_kind', 'job.paid', 'delay_minutes', 10080, 'action', jsonb_build_object('kind', 'email', 'template', 'review_request')));
   assert (r ->> 'system')::boolean = false, '0042: custom rule';
   perform public.delete_automation_rule((r ->> 'id')::uuid);
-  assert jsonb_array_length(public.automation_rules_list()) = 11, '0042: custom rule deleted';
+  assert jsonb_array_length(public.automation_rules_list()) = 13, '0042: custom rule deleted';
   lg := public.automation_log(50);
   assert jsonb_array_length(lg) > 0 and (lg -> 0) ? 'status' and (lg -> 0) ? 'rule', '0042: the log';
   q := public.text_queue_list();
@@ -1406,6 +1421,7 @@ begin
   assert not exists (select 1 from jsonb_array_elements(public.retail_invoices_filtered(null, 'all') -> 'rows') x where (x ->> 'id')::uuid = j.id), '0052: work in progress is not in Retail → Invoices';
   begin perform public.retail_invoice_detail(j.id); raise exception 'expected no invoice yet'; exception when sqlstate 'P0002' then null; end;
   -- converting issues the invoice number once
+  perform pg_temp.finish_it(j.id);
   assert (public.convert_ro_to_invoice(j.id) ->> 'invoice_number') ~ '^RI-[0-9]{6}$', '0052: convert mints the RI number';
   select * into j from public.jobs where id = j.id;
   assert j.invoiced_at is not null and j.retail_invoice_number is not null, '0052: invoiced';
@@ -1710,6 +1726,7 @@ begin
   assert (select reading from public.odometer_readings where job_id = j.id) = 52100, '0052: mileage in is on the RO';
   assert (select count(*) from jsonb_array_elements(public.ro_authorizations(j.id)) x where x ->> 'kind' = 'initial' and x ->> 'name' = 'Ana Lopez' and (x ->> 'amount')::numeric = 120 and (x ->> 'has_signature')::boolean) = 1, '0052: the initial authorization is recorded';
   assert (select count(*) from public.job_services where job_id = j.id and authorization_id is null) = 0, '0052: the booked services are authorized by it';
+  perform pg_temp.finish_it(j.id);
   perform public.convert_ro_to_invoice(j.id);
   assert (select retail_invoice_number from public.jobs where id = j.id) like 'RI-%', '0052: an advisor converts an authorized RO';
   begin perform public.check_in_appointment(v_id, jsonb_build_object('name', 'Ana Lopez', 'signature_path', '00000000-0000-4000-8000-000000000001/checkins/' || v_id || '/s.png')); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
@@ -1815,3 +1832,153 @@ select pg_temp.logout();
 select pg_temp.login('10000000-0000-4000-8000-000000000001');
 do $$ begin update public.companies set tax_rate = 0 where id = public.current_company_id(); end $$;
 select pg_temp.logout();
+
+-- 0054: named jobs ---------------------------------------------------------------
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare
+  v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda'); e public.estimates; d jsonb; o jsonb;
+begin
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote',
+    'jobs', jsonb_build_array(
+      jsonb_build_object('key', 'oil', 'title', 'Oil change', 'priority', 'optional'),
+      jsonb_build_object('key', 'brakes', 'title', 'Front brake service', 'priority', 'safety')),
+    'lines', jsonb_build_array(
+      jsonb_build_object('line_type', 'labor', 'label', 'Diagnose the noise', 'hours', 1, 'rate', 100, 'section', 'diagnosis'),
+      jsonb_build_object('line_type', 'labor', 'label', 'Oil and filter', 'hours', 0.3, 'rate', 100, 'job', 'oil'),
+      jsonb_build_object('line_type', 'part', 'label', 'Synthetic oil', 'qty', 5, 'price', 8, 'job', 'oil'),
+      jsonb_build_object('line_type', 'labor', 'label', 'Pads and rotors', 'hours', 1.5, 'rate', 100, 'job', 'brakes'),
+      jsonb_build_object('line_type', 'part', 'label', 'Pad set', 'price', 89.99, 'job', 'brakes'))))));
+  insert into e50 values ('e54', e.id::text);
+  d := public.estimate_detail(e.id);
+  o := d -> 'options' -> 0;
+  assert jsonb_array_length(o -> 'jobs') = 3, '0054: three jobs: ' || (o -> 'jobs')::text;
+  assert (o -> 'jobs' -> 0 ->> 'kind') = 'diagnosis' and (o -> 'jobs' -> 1 ->> 'title') = 'Front brake service' and (o -> 'jobs' -> 1 ->> 'priority') = 'safety' and (o -> 'jobs' -> 2 ->> 'title') = 'Oil change', '0054: Diagnosis first, then safety, then optional';
+  assert (select count(*) from jsonb_array_elements(o -> 'lines') l where l ->> 'estimate_job_id' is not null) = 5, '0054: every line has its job';
+  assert (select count(distinct l ->> 'estimate_job_id') from jsonb_array_elements(o -> 'lines') l) = 3, '0054: lines group into three jobs';
+  -- an older caller with no jobs: a default Repairs job
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', jsonb_build_array(jsonb_build_object('line_type', 'fee', 'label', 'Fee', 'price', 5))))));
+  d := public.estimate_detail(e.id);
+  assert jsonb_array_length(d -> 'options' -> 0 -> 'jobs') = 1 and (d -> 'options' -> 0 -> 'jobs' -> 0 ->> 'title') = 'Repairs', '0054: lines with no job land in Repairs';
+  -- the findings priced from the side panel made a job per finding
+  assert exists (select 1 from public.estimate_jobs j where j.estimate_id = (select v from e50 where k = 'e53')::uuid and j.title = 'Front brake pads' and j.priority = 'safety'), '0054: a priced finding is a job with its severity as priority';
+  insert into e50 values ('e54tok', public.estimate_link((select v from e50 where k = 'e54')::uuid));
+  perform public.send_estimate((select v from e50 where k = 'e54')::uuid);
+end $$;
+select pg_temp.logout();
+select pg_temp.anon();
+do $$
+declare v_token text := (select v from e50 where k = 'e54tok'); d jsonb; v_ids jsonb;
+begin
+  d := public.estimate_by_token(v_token);
+  -- approve the diagnosis and the brakes; decline the oil change
+  select jsonb_agg(l ->> 'id') into v_ids from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l
+   where l ->> 'estimate_job_id' in (select j ->> 'id' from jsonb_array_elements(d -> 'options' -> 0 -> 'jobs') j where j ->> 'title' in ('Diagnosis', 'Front brake service'));
+  perform public.estimate_respond(v_token, jsonb_build_object('option_id', d -> 'options' -> 0 ->> 'id', 'approved_line_ids', v_ids, 'name', 'Ana Lopez',
+          'signature_path', '00000000-0000-4000-8000-000000000001/estimates/' || (d ->> 'id') || '/s.png'));
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from e50 where k = 'e54')::uuid; d jsonb; v_job uuid;
+begin
+  d := public.estimate_detail(v_est);
+  assert (select status from public.estimate_jobs where estimate_id = v_est and title = 'Diagnosis') = 'approved'
+     and (select status from public.estimate_jobs where estimate_id = v_est and title = 'Front brake service') = 'approved'
+     and (select status from public.estimate_jobs where estimate_id = v_est and title = 'Oil change') = 'declined', '0054: approved, approved, declined';
+  assert (select count(*) from jsonb_array_elements(d -> 'options' -> 0 -> 'jobs') j where j ->> 'status' = 'declined') = 1 and (select count(*) from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'name' = 'Synthetic oil') = 1, '0054: the declined job stays on the record with its lines';
+  v_job := (d ->> 'job_id')::uuid;
+  assert (select count(*) from public.job_services where job_id = v_job and estimate_job_id is not null) >= 3, '0054: the approved lines carry their job onto the RO';
+  assert not exists (select 1 from public.job_services js join public.estimate_jobs j on j.id = js.estimate_job_id where js.job_id = v_job and j.title = 'Oil change'), '0054: the declined job is not on the RO';
+end $$;
+select pg_temp.logout();
+
+-- 0055: finish, check, invoice, follow up ------------------------------------------
+select set_config('app.allow_retail_job', 'off', false);
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare
+  v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda'); e public.estimates; d jsonb; v_job uuid; v_ids jsonb; v_jobs jsonb;
+begin
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh, 'odometer', 52000, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote',
+    'jobs', jsonb_build_array(jsonb_build_object('key', 'brakes', 'title', 'Front brake service', 'priority', 'safety'), jsonb_build_object('key', 'oil', 'title', 'Oil change', 'priority', 'optional')),
+    'lines', jsonb_build_array(
+      jsonb_build_object('line_type', 'labor', 'label', 'Diagnose the noise', 'hours', 1, 'rate', 100, 'section', 'diagnosis'),
+      jsonb_build_object('line_type', 'labor', 'label', 'Pads and rotors', 'hours', 1.5, 'rate', 100, 'job', 'brakes'),
+      jsonb_build_object('line_type', 'part', 'label', 'Pad set', 'price', 90, 'job', 'brakes'),
+      jsonb_build_object('line_type', 'labor', 'label', 'Oil and filter', 'hours', 0.5, 'rate', 100, 'job', 'oil'))))));
+  insert into e50 values ('e55', e.id::text);
+  perform public.send_estimate(e.id);
+  d := public.estimate_detail(e.id);
+  -- the customer approves the diagnosis and the brakes, declines the oil change
+  select jsonb_agg((l ->> 'id')::uuid) into v_ids from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'name' <> 'Oil and filter';
+  perform public.mark_estimate_accepted(e.id, (d -> 'options' -> 0 ->> 'id')::uuid, (select array_agg(x::uuid) from jsonb_array_elements_text(v_ids) x), 'Ana at the counter', 'in_person');
+  v_job := (public.estimate_detail(e.id) ->> 'job_id')::uuid;
+  insert into r_ids values ('job55', v_job);
+  assert (select count(*) from public.job_services where job_id = v_job) = 3, '0055: three approved lines on the RO';
+  -- nothing is invoiced before the work is done and checked
+  begin perform public.convert_ro_to_invoice(v_job); raise exception 'expected refused'; exception when sqlstate 'P0001' then assert sqlerrm like 'Finish the work first%', '0055: ' || sqlerrm; end;
+  select jsonb_agg(jsonb_build_object('id', ej.id, 'cause', 'Pads worn to 2mm', 'correction', 'Replaced pads and rotors')) into v_jobs from public.estimate_jobs ej where ej.id in (select estimate_job_id from public.job_services where job_id = v_job);
+  begin perform public.complete_ro_work(v_job, jsonb_build_object('jobs', v_jobs)); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  begin perform public.complete_ro_work(v_job, jsonb_build_object('odometer_out', 51000, 'jobs', v_jobs)); raise exception 'expected refused'; exception when sqlstate '22023' then assert sqlerrm like 'Mileage out%', '0055: ' || sqlerrm; end;
+  begin perform public.complete_ro_work(v_job, jsonb_build_object('odometer_out', 52010, 'jobs', '[]'::jsonb)); raise exception 'expected refused'; exception when sqlstate '22023' then assert sqlerrm like 'Say what caused it%', '0055: ' || sqlerrm; end;
+  begin perform public.complete_ro_work(v_job, jsonb_build_object('odometer_out', 52010, 'parts_disposition', 'sold', 'jobs', v_jobs)); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+end $$;
+select pg_temp.logout();
+-- a detailer who is not on the job cannot finish it
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  begin perform public.complete_ro_work((select v from r_ids where k = 'job55'), jsonb_build_object('odometer_out', 52010)); raise exception 'expected refused'; exception when sqlstate 'P0002' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job55'); v_jobs jsonb; r jsonb;
+begin
+  select jsonb_agg(jsonb_build_object('id', ej.id, 'cause', 'Pads worn to 2mm', 'correction', 'Replaced pads and rotors')) into v_jobs from public.estimate_jobs ej where ej.id in (select estimate_job_id from public.job_services where job_id = v_job);
+  r := public.complete_ro_work(v_job, jsonb_build_object('odometer_out', 52010, 'parts_disposition', 'returned', 'jobs', v_jobs));
+  assert (r ->> 'odometer_out')::int = 52010, '0055: completed with the mileage out';
+  assert (select count(*) from public.estimate_jobs where id in (select estimate_job_id from public.job_services where job_id = v_job) and status = 'done' and cause is not null and correction is not null) = 2, '0055: cause and correction saved, the jobs are done';
+  assert (select parts_disposition from public.jobs where id = v_job) = 'returned' and (select odometer_out from public.jobs where id = v_job) = 52010, '0055: mileage out and the replaced-parts choice are on the RO';
+  assert (select reading from public.odometer_readings where job_id = v_job limit 1) = 52000, '0055: mileage in is still the check-in reading';
+  -- the quality check is a second person's: the owner holds this RO, so the advisor signs it
+  begin perform public.convert_ro_to_invoice(v_job); raise exception 'expected refused'; exception when sqlstate 'P0001' then assert sqlerrm like 'The quality check%', '0055: ' || sqlerrm; end;
+  begin perform public.quality_check_ro(v_job, 'ok'); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+  r := public.ro_invoice_review(v_job);
+  assert (r ->> 'completed')::boolean and not (r ->> 'qc')::boolean and not (r ->> 'ready')::boolean and (r ->> 'matches')::boolean, '0055: the review says not ready yet: ' || r::text;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job55'); r jsonb; d jsonb;
+begin
+  perform public.quality_check_ro(v_job, 'Road tested');
+  assert pg_temp.has_event(v_job, 'ro.ready'), '0055: the quality check emits ro.ready';
+  r := public.ro_invoice_review(v_job);
+  assert (r ->> 'ready')::boolean and (r ->> 'approved_total')::numeric = (r ->> 'linked_total')::numeric and (r ->> 'jobs_not_done')::int = 0, '0055: the review is ready and matches the approved amounts: ' || r::text;
+  perform public.convert_ro_to_invoice(v_job);
+  d := public.job_receipt(v_job);
+  assert jsonb_array_length(d -> 'jobs') = 2 and (d -> 'jobs' -> 0 ->> 'kind') = 'diagnosis' and (d -> 'jobs' -> 1 ->> 'title') = 'Front brake service' and (d -> 'jobs' -> 1 ->> 'cause') = 'Pads worn to 2mm', '0055: the invoice carries the jobs with cause and correction: ' || (d -> 'jobs')::text;
+  assert (d -> 'jobs' -> 1 ->> 'total')::numeric = 240 and jsonb_array_length(d -> 'jobs' -> 1 -> 'lines') = 2, '0055: a job total and its lines';
+  assert (d -> 'categories' ->> 'labor')::numeric = 250 and (d -> 'categories' ->> 'parts')::numeric = 90, '0055: category totals: ' || (d -> 'categories')::text;
+  assert (d ->> 'odometer_out')::int = 52010 and (d ->> 'odometer')::int = 52000 and (d ->> 'parts_disposition') = 'returned', '0055: mileage in and out, parts choice';
+  assert jsonb_array_length(d -> 'declined') = 1 and (d -> 'declined' -> 0 ->> 'title') = 'Oil change' and (d -> 'declined' -> 0 ->> 'total')::numeric = 50, '0055: the declined job with its price: ' || (d -> 'declined')::text;
+  assert jsonb_array_length(d -> 'authorizations') >= 1 and (d -> 'authorizations' -> 0 ->> 'method') = 'in_person', '0055: the authorization log';
+  assert (d ->> 'advisor') is not null and jsonb_typeof(d -> 'taxable_types') = 'array', '0055: advisor initials and taxable types';
+end $$;
+select pg_temp.logout();
+-- paying in full closes the RO and, with declined work, starts the follow-up
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job55'); d jsonb;
+begin
+  d := public.retail_charge(v_job);
+  perform public.record_retail_payment(v_job, (d ->> 'balance')::numeric, 'cash');
+  assert (select closed_at from public.jobs where id = v_job) is not null, '0055: paid in full closes the RO';
+  assert pg_temp.has_event(v_job, 'ro.closed'), '0055: ro.closed is emitted when work was declined';
+  assert pg_temp.declined_list(v_job) like 'Oil change%', '0055: the follow-up knows what was declined: ' || coalesce(pg_temp.declined_list(v_job), 'null');
+  assert (select count(*) from public.automation_rules where company_id = public.current_company_id() and key in ('ro_ready', 'declined_followup') and delay_minutes in (0, 20160)) = 2, '0055: the two rules are shipped';
+end $$;
+select pg_temp.logout();
+select set_config('app.allow_retail_job', 'on', false);

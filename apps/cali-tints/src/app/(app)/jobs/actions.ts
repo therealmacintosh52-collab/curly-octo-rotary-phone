@@ -150,6 +150,34 @@ export async function convertRoToInvoiceAction(jobId: string): Promise<ActionRes
   return { ok: true, data: { invoice_number: data.invoice_number } };
 }
 
+const completeSchema = z.object({
+  odometer_out: z.union([z.number().int().min(0).max(2000000), z.string().regex(/^[\d,\s]+$/, "Enter the mileage out")]),
+  parts_disposition: z.enum(["offered", "returned", "declined"]).nullable().optional(),
+  jobs: z.array(z.object({ id: z.uuid(), cause: z.string().trim().max(600), correction: z.string().trim().max(600) })).max(60),
+});
+
+/** The tech finishes the work: mileage out, cause and correction for every job, what happens to the replaced parts (0055). */
+export async function completeRoWorkAction(jobId: string, input: z.input<typeof completeSchema>): Promise<ActionResult<{ completed_at: string }>> {
+  const parsed = completeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("complete_ro_work", { p_job: jobId, p: { ...parsed.data, odometer_out: String(parsed.data.odometer_out).replace(/[^\d]/g, "") } });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidateJob(jobId);
+  return { ok: true, data: { completed_at: data.completed_at } };
+}
+
+/** A second person signs off the finished work (0055). */
+export async function qualityCheckAction(jobId: string, note: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session.isAdmin) return { ok: false, error: "Only the owner, an admin, an advisor or a manager signs off the work" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("quality_check_ro", { p_job: jobId, p_note: note.trim() || null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidateJob(jobId);
+  return { ok: true, data: undefined };
+}
+
 /** The customer's receipt link, for texting (owner/admin/manager). */
 export async function receiptLinkAction(jobId: string): Promise<ActionResult<{ url: string }>> {
   const supabase = await createClient();

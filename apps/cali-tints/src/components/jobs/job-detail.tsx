@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArchiveIcon, ArrowLeftIcon, CameraIcon, CarFrontIcon, CheckIcon, CircleIcon, ClockIcon, XIcon } from "lucide-react";
-import type { JobEstimate, JobFinding, PriceListRow, RoAuthorization } from "@/lib/db/types";
+import type { InvoiceReview, JobEstimate, JobFinding, PriceListRow, RoAuthorization } from "@/lib/db/types";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { Page } from "@/components/app/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import type { RetailCharge } from "@/lib/db/types";
 import { RetailPayment, type RetailPaymentInfo } from "./retail-payment";
 import { RoLayout, RoNotes } from "./ro-notes";
 import { RoInvoiceCard } from "./ro-invoice-card";
+import { RoWorkCard, type RoWork } from "./ro-work-card";
 import { RoStageBar } from "@/components/retail/ro-stage-bar";
 import type { ShareContext } from "./finding-actions";
 import type { FindingPricing } from "@/lib/retail/finding-quote";
@@ -70,6 +71,13 @@ export interface JobDetailProps {
   /** Price a finding on the spot and share one with the customer (owner, admin, advisor; 0053). */
   pricing?: FindingPricing | null;
   share?: ShareContext | null;
+  /** The named job each service line belongs to (same order as job.services), and the completion state of the RO (0054/0055). */
+  serviceJobIds?: (string | null)[];
+  work?: RoWork | null;
+  canComplete?: boolean;
+  canQc?: boolean;
+  /** The convert-to-invoice review against the approved amounts (owner, admin, advisor). */
+  review?: InvoiceReview | null;
 }
 
 const vehicle = (v: { year: number | null; make: string | null; model: string | null }) => [v.year, v.make, v.model].filter(Boolean).join(" ");
@@ -256,22 +264,40 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="divide-y divide-border text-sm" data-testid="job-services">
-                {job.services.map((s, i) => (
-                  <li key={i} className="flex items-baseline justify-between gap-4 py-2">
-                    <div className="min-w-0">
-                      <div>{s.label || s.name}{retail && !job.invoiced_at && s.authorized === false && <Badge variant="warning" className="ml-2 align-middle" data-testid="line-unauthorized">Not authorized</Badge>}</div>
-                      {canSetAmount && s.needs_price && <div className="text-caption text-warning">Needs a price: tap Edit job and set the amount</div>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {(() => {
+                const groups = serviceGroups(p);
+                return (
+                  <div className="grid gap-4" data-testid="job-services">
+                    {groups.map((g) => (
+                      <div key={g.id ?? "none"} data-testid={g.title ? "service-job" : undefined}>
+                        {g.title && (
+                          <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                            <span className="font-medium">{g.title}</span>
+                            {g.priority && g.priority !== "soon" && <Badge variant={g.priority === "safety" ? "destructive" : "muted"}>{g.priority === "safety" ? "Safety" : "Optional"}</Badge>}
+                          </div>
+                        )}
+                        <ul className="divide-y divide-border text-sm">
+                          {g.lines.map((s, i) => (
+                            <li key={i} className="flex items-baseline justify-between gap-4 py-2">
+                              <div className="min-w-0">
+                                <div>{s.label || s.name}{retail && !job.invoiced_at && s.authorized === false && <Badge variant="warning" className="ml-2 align-middle" data-testid="line-unauthorized">Not authorized</Badge>}</div>
+                                {canSetAmount && s.needs_price && <div className="text-caption text-warning">Needs a price: tap Edit job and set the amount</div>}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          {retail && !deleted && <RoInvoiceCard jobId={job.id} authorizations={p.authorizations ?? []} unauthorized={p.unauthorized ?? 0} lineCount={job.services.length} invoiced={!!job.invoiced_at} canConvert={!!p.canConvert} showMoney={canSetAmount} />}
+          {retail && !deleted && p.work && <RoWorkCard jobId={job.id} work={p.work} canComplete={!!p.canComplete} canQc={!!p.canQc} unauthorized={p.unauthorized ?? 0} invoiced={!!job.invoiced_at} />}
+          {retail && !deleted && <RoInvoiceCard jobId={job.id} authorizations={p.authorizations ?? []} unauthorized={p.unauthorized ?? 0} lineCount={job.services.length} invoiced={!!job.invoiced_at} canConvert={!!p.canConvert} showMoney={canSetAmount} review={p.review ?? null} />}
           {retail && job.payment && job.invoiced_at && <RetailPayment jobId={job.id} payment={job.payment} charge={p.charge ?? null} canRecordByHand={isAdmin && canSetAmount} open={!deleted} />}
           {retail && job.payment && !job.invoiced_at && !deleted && (
             <Card>
@@ -292,6 +318,24 @@ function body(p: JobDetailProps, steps: { label: string; detail: string; state: 
         </div>
       </div>
   );
+}
+
+/** The service lines grouped by their named job (Diagnosis first, then safety → due soon → optional); older lines with no job stay in one plain list. */
+function serviceGroups(p: JobDetailProps) {
+  const lines = p.job.services.map((s, i) => ({ ...s, jobId: p.serviceJobIds?.[i] ?? null }));
+  const named = new Map((p.work?.jobs ?? []).map((j, i) => [j.id, { ...j, order: i }]));
+  const groups: { id: string | null; title: string | null; priority: string | null; order: number; lines: typeof lines }[] = [];
+  for (const l of lines) {
+    const j = l.jobId ? named.get(l.jobId) : undefined;
+    const key = j ? j.id : null;
+    let g = groups.find((x) => x.id === key);
+    if (!g) {
+      g = { id: key, title: j?.title ?? null, priority: j?.priority ?? null, order: j ? j.order : 999, lines: [] };
+      groups.push(g);
+    }
+    g.lines.push(l);
+  }
+  return groups.sort((a, b) => a.order - b.order);
 }
 
 function Fact({ label, value }: { label: string; value: React.ReactNode }) {

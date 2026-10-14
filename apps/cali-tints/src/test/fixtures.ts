@@ -319,7 +319,7 @@ export function jobListFixture(): JobListRow[] {
       ...FUL,
       detailer_id: "u2",
       detailer: "Victor",
-      services: ["Used"],
+      services: state === "wip" ? ["Diagnose the brake squeal", "Replace front pads"] : ["Used"],
       invoice_id: null,
       display_number: null,
       invoice_status: null,

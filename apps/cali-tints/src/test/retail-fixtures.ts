@@ -364,12 +364,29 @@ const COMPANY = { name: "Cali Tints", phone: "(916) 555-0110", email: "mike@cali
 const POLICY = { policy_text: "Deposits are non-refundable. Reschedule or cancel up to 24 hours before your appointment.", deposit_kind: "percent" as const, deposit_value: 20, deposit_refundable: false, signature_required: true, cancel_hours: 24, shop_supplies_pct: 5, shop_supplies_cap: 10, shop_supplies_taxable: false, tax_rate: 0 };
 const suppliesFor = (lines: ReturnType<typeof line>[]) => Math.min(Math.round(lines.filter((l) => l.line_type === "labor").reduce((s, l) => s + (l.line_total ?? 0), 0) * 5) / 100, 10);
 
+/** Named jobs (0054) for a fixture option: Diagnosis first, then one job per finding (priority from its severity), then the rest as "Repairs". */
+const jobIdFor = (o: { id: string }, l: L) => `${o.id}-${l.section === "diagnosis" ? "diag" : l.finding_id ? `f-${l.finding_id}` : "repairs"}`;
+function jobsFor(o: { id: string; lines: L[] }, findings: JobFinding[], status: EstimateStatus): NonNullable<EstimateView["options"][number]["jobs"]> {
+  const seen = new Set<string>();
+  const out: NonNullable<EstimateView["options"][number]["jobs"]> = [];
+  const state = status === "accepted" ? "approved" : status === "declined" ? "declined" : "recommended";
+  for (const l of o.lines) {
+    const id = jobIdFor(o, l);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const f = l.finding_id ? findings.find((x) => x.id === l.finding_id) : null;
+    const diag = l.section === "diagnosis";
+    out.push({ id, title: diag ? "Diagnosis" : (f?.title ?? "Repairs"), kind: diag ? "diagnosis" : "repair", priority: f ? (f.severity === "urgent" ? "safety" : f.severity === "soon" ? "soon" : "optional") : "soon", status: state, sort_order: out.length + 1 });
+  }
+  return out.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "diagnosis" ? -1 : 1) || ["safety", "soon", "optional"].indexOf(a.priority) - ["safety", "soon", "optional"].indexOf(b.priority));
+}
+
 function build(money: boolean, pub: boolean, base: { id: string; n: number; status: EstimateStatus; customer: Customer; vehicle: Vehicle; options: { id: string; tier: EstimateView["options"][number]["tier"]; name: string; description: string | null; recommended: boolean; lines: L[] }[]; addons: (L & { default_on: boolean; customer_approved: boolean | null })[]; selected?: string; created: string; expires: string; sent?: string | null; viewed?: { first: string; last: string; count: number }; accepted?: string | null; auth?: EstimateView["authorizations"][number] | null; customer_notes?: string | null; internal_notes?: string | null; po?: string | null; odometer?: number | null; job?: EstimateView["job"]; kind?: "quote" | "supplement"; applied?: string | null; findings?: JobFinding[]; token?: string; concern?: string | null; ro?: string | null }): EstimateView {
   const options = base.options.map((o) => {
     const lines = o.lines.map((l) => line(true, l));
     const subtotal = sum(lines);
     const supplies = suppliesFor(lines);
-    return { id: o.id, tier: o.tier, name: o.name, description: o.description, recommended: o.recommended, sort_order: 0, duration_minutes: lines.reduce((s, l) => s + l.duration_minutes, 0), subtotal: money ? subtotal : null, labor_subtotal: money ? lines.filter((l) => l.line_type === "labor").reduce((s, l) => s + (l.line_total ?? 0), 0) : null, shop_supplies: money ? supplies : null, tax: money ? 0 : null, total: money ? subtotal + supplies : null, lines: o.lines.map((l) => line(money, l)) };
+    return { id: o.id, tier: o.tier, name: o.name, description: o.description, recommended: o.recommended, sort_order: 0, duration_minutes: lines.reduce((s, l) => s + l.duration_minutes, 0), subtotal: money ? subtotal : null, labor_subtotal: money ? lines.filter((l) => l.line_type === "labor").reduce((s, l) => s + (l.line_total ?? 0), 0) : null, shop_supplies: money ? supplies : null, tax: money ? 0 : null, total: money ? subtotal + supplies : null, jobs: jobsFor(o, base.findings ?? [], base.status), lines: o.lines.map((l) => ({ ...line(money, l), estimate_job_id: jobIdFor(o, l) })) };
   });
   const addons = base.addons.map((a) => ({ ...line(money, a), default_on: a.default_on, customer_approved: a.customer_approved }));
   const headlineId = base.selected ?? base.options.find((o) => o.recommended)?.id ?? base.options[0].id;
@@ -489,7 +506,7 @@ function estimateBase(id: string) {
         findings: found,
         options: [{ id: "o4-single", tier: "single" as const, name: "While it is here", description: "What the tech found during the detail", recommended: true, lines: [
           { id: "l11", svc: null, type: "labor" as const, name: "Replace rear brake pads", hours: 1.5, price: 120, finding_id: FINDING_IDS.pads },
-          { id: "l12", svc: null, type: "part" as const, name: "Rear brake pads", qty: 1, price: 68, part_number: "BP-4412", vendor: "NAPA", cost: 34, taxable: true },
+          { id: "l12", svc: null, type: "part" as const, name: "Rear brake pads", qty: 1, price: 68, part_number: "BP-4412", vendor: "NAPA", cost: 34, taxable: true, finding_id: FINDING_IDS.pads },
           { id: "l13", svc: 4, price: 90, finding_id: FINDING_IDS.spots },
           { id: "l14", svc: null, type: "fee" as const, name: "Brake fluid disposal", price: 8 },
         ] }],
@@ -671,6 +688,7 @@ export const INVOICE_TOKEN = "demo-invoice-token-marcus-tesla-0002";
 
 export function receiptFixture(token: string, money: boolean): ReceiptView | null {
   if (token === WIP_TOKEN) return wipReceiptFixture(money);
+  if (token === DOC_TOKEN) return invoiceDocFixture(false);
   if (token === INVOICE_TOKEN) {
     // The customer's copy of the unpaid invoice (RI-000042): what is due and what the tech found (internal notes left out).
     const inv = retailInvoiceDetailFixture(JOBS[C2][0].id)!;
@@ -695,7 +713,7 @@ export function receiptFixture(token: string, money: boolean): ReceiptView | nul
 // ---------------------------------------------------------------------------
 // 0052: one repair order through its stages: header facts, the authorization record, a job in progress (R-103, not invoiced yet).
 // ---------------------------------------------------------------------------
-import type { RoAuthorization } from "@/lib/db/types";
+import type { InvoiceJob, RoAuthorization } from "@/lib/db/types";
 
 export const WIP_JOB_ID = "40000000-0000-4000-8000-000000000997";
 export const WIP_TOKEN = "demo-ro-token-priya-f150-0003";
@@ -721,6 +739,32 @@ export function roAuthorizationsFixture(jobId: string, money: boolean): RoAuthor
   return [];
 }
 
+/**
+ * The completion state of the in-progress RO (R-103): ?work=none (default), done (the tech finished, waiting for the check) or qc (signed off, ready to convert).
+ * Two named jobs: the Diagnosis and the front pads.
+ */
+export const WIP_JOB_IDS = { diag: "50000000-0000-4000-8000-000000000a01", pads: "50000000-0000-4000-8000-000000000a02" };
+export function roWorkFixture(jobId: string, state: "none" | "done" | "qc"): { jobs: { id: string; title: string; priority: "safety" | "soon" | "optional"; cause: string | null; correction: string | null }[]; mileageIn: number | null; odometerOut: number | null; completedAt: string | null; qcAt: string | null; qcNote: string | null; parts: "offered" | "returned" | "declined" | null } | null {
+  if (jobId !== WIP_JOB_ID) return null;
+  const written = state !== "none";
+  return {
+    jobs: [
+      { id: WIP_JOB_IDS.diag, title: "Diagnosis", priority: "soon", cause: written ? "Front pads worn to the wear indicator" : null, correction: written ? "Inspected all four corners; rotors within spec" : null },
+      { id: WIP_JOB_IDS.pads, title: "Front brake pads", priority: "safety", cause: written ? "Pad material gone, metal-on-metal squeal" : null, correction: written ? "Replaced front pads, cleaned and lubed slides, road-tested" : null },
+    ],
+    mileageIn: 61400,
+    odometerOut: written ? 61412 : null,
+    completedAt: written ? ago(0, 0.1) : null,
+    qcAt: state === "qc" ? ago(0, 0.05) : null,
+    qcNote: state === "qc" ? "Test drive clean, no noise" : null,
+    parts: written ? "returned" : null,
+  };
+}
+export function roReviewFixture(state: "none" | "done" | "qc"): import("@/lib/db/types").InvoiceReview {
+  const ready = state === "qc";
+  return { lines: 2, ro_total: 480, approved_total: 480, linked_total: 480, matches: true, unauthorized: 0, jobs_not_done: state === "none" ? 2 : 0, completed: state !== "none", qc: state === "qc", odometer_out: state === "none" ? null : 61412, ready };
+}
+
 /** The customer's page on a repair order in progress: what they said and what is approved so far; no amount due. */
 export function wipReceiptFixture(money: boolean): ReceiptView {
   const c = cust(C3);
@@ -732,6 +776,44 @@ export function wipReceiptFixture(money: boolean): ReceiptView {
     subtotal: 480, tax: 0, total: 480, deposit_paid: 0, paid: 0, balance: 480, tax_rate: 0, payments: [],
     signed_name: null, signed_at: null, has_signature: false, token: money ? null : WIP_TOKEN,
     company: { ...COMPANY, address_line2: null, logo_path: null },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 0055: the finished invoice, laid out the way the shop prints it (a paid RO with two jobs, a declined one, cause and correction).
+// Reached by its own link and id: it is not in the lists, so their counts stay as they were.
+// ---------------------------------------------------------------------------
+export const DOC_JOB_ID = "40000000-0000-4000-8000-000000000996";
+export const DOC_TOKEN = "demo-invoice-token-john-accord-0004";
+
+export function invoiceDocFixture(staff: boolean): ReceiptView {
+  const doc = new Date(Date.now() - 26 * 3600 * 1000).toISOString();
+  const ln = (name: string, type: string, total: number, extra: Partial<{ qty: number; hours: number; rate: number }> = {}) => ({ name, type, qty: extra.qty ?? null, hours: extra.hours ?? null, rate: extra.rate ?? null, part_number: null, total });
+  return {
+    id: DOC_JOB_ID, tag: "R-100", invoice_number: "RI-000044", invoiced_at: doc, ro_number: "RO-000046", concern: "Grinding noise when braking", performed_at: doc, paid_at: doc, payment_method: "clover",
+    vehicle: "2018 Honda Accord EX", color: "Gray", odometer: 84210, odometer_out: 84212, vin: staff ? "1HGCV1F3XJA000000" : null, plate: staff ? "8ABC123" : null,
+    customer: { id: "doc-john", display_name: staff ? "John Doe" : "John", first_name: "John", email: staff ? "john@email.com" : null, phone: staff ? "(916) 555-0199" : null },
+    jobs: [
+      { id: "doc-diag", title: "Diagnosis", kind: "diagnosis", priority: "safety", status: "done", cause: "Pads worn to 2mm, rotors scored", correction: "Confirmed with a road test and a wheel-off inspection", total: 0, lines: [] },
+      { id: "doc-brakes", title: "Front Brake Service", kind: "repair", priority: "safety", status: "done", cause: "Pads worn to 2mm, rotors scored", correction: "Replaced pads & rotors", total: 486.97,
+        lines: [ln("Brake pads/rotors", "labor", 225, { hours: 1.5, rate: 150 }), ln("Brake pad set", "part", 89.99, { qty: 1 }), ln("Front rotor", "part", 159.98, { qty: 2 }), ln("Shop supplies", "fee", 12)] },
+      { id: "doc-oil", title: "Oil Change", kind: "repair", priority: "optional", status: "done", cause: "Due by mileage", correction: "Changed oil and filter", total: 94.94,
+        lines: [ln("Oil & filter", "labor", 45, { hours: 0.3, rate: 150 }), ln("0W-20 Synthetic", "part", 39.95, { qty: 5 }), ln("Oil filter", "part", 9.99, { qty: 1 })] },
+    ].filter((j) => j.lines.length > 0) as InvoiceJob[],
+    extras: [],
+    declined: [{ title: "Rear brakes (4mm) · next 3-6 months", priority: "soon", total: 410 }, { title: "Cabin air filter", priority: "optional", total: 65 }],
+    recommended: [],
+    categories: { labor: 270, parts: 299.91, fees: 12, sublets: 0, services: 0 },
+    taxable_types: ["part"],
+    authorizations: [
+      { kind: "initial", method: "phone", authorized_at: ago(1.2), name: "John Doe", amount: 150 },
+      { kind: "estimate", method: "online", authorized_at: ago(1.1), name: "John Doe", amount: 608.15 },
+    ],
+    parts_disposition: "returned", completed_at: doc, advisor: "JS", tech: "ML", bar_license: "ARD000000", warranty_text: "12 mo / 12,000 mi parts & labor",
+    lines: [], subtotal: 581.91, tax: 26.24, total: 608.15, deposit_paid: 0, paid: 608.15, balance: 0, tax_rate: 0.0875,
+    payments: [{ kind: "balance", method: "clover_flex", amount: 608.15, paid_at: doc, provider_ref: null }],
+    signed_name: "John Doe", signed_at: doc, has_signature: true, token: staff ? null : DOC_TOKEN,
+    company: { ...COMPANY, address_line1: "123 Main St", address_line2: null, city: "Elk Grove", state: "CA", postal_code: "95624", phone: "(916) 555-0100", logo_path: null },
   };
 }
 
@@ -755,6 +837,8 @@ export function automationRulesFixture(): AutomationRule[] {
     mk("lead_created", "Tell me about a new online booking", "booking.lead", 0, { kind: "notify_owner", owner_subject: "New online booking to confirm" }, 90),
     mk("lead_received", "Booking request received", "booking.lead", 0, { kind: "email", template: "booking_received" }, 95),
     mk("payment_receipt", "Receipt after a paid job", "job.paid", 0, { kind: "email", template: "receipt" }, 100),
+    mk("ro_ready", "Tell them the car is ready", "ro.ready", 0, { kind: "both", template: "status_ready" }, 110),
+    mk("declined_followup", "Remind them about work they declined", "ro.closed", 20160, { kind: "both", template: "declined_work" }, 120),
   ];
 }
 
@@ -861,6 +945,7 @@ export function retailInvoiceListFixture(q = "", status = "open"): RetailInvoice
 }
 
 export function retailInvoiceDetailFixture(id: string): RetailInvoiceDetail | null {
+  if (id === DOC_JOB_ID) return { ...invoiceDocFixture(true), status: "paid", invoice_number: "RI-000044", ro_number: "RO-000046", job_id: DOC_JOB_ID, deleted: false, findings: [] };
   const row = retailInvoiceRows().find((r) => r.id === id);
   if (!row) return null;
   const r101 = JOBS[C1][0];

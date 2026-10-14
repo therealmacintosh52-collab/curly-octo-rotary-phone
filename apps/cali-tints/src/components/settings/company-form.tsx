@@ -40,6 +40,7 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
     state: company.state ?? "",
     postal_code: company.postal_code ?? "",
     ein: company.ein ?? "",
+    bar_license: company.bar_license ?? "",
     tax_percent: String(Number(company.tax_rate) * 100),
     invoice_prefix: company.invoice_prefix,
     reminder_days: String(company.reminder_days),
@@ -95,6 +96,9 @@ export function CompanyForm({ company, logoUrl }: { company: Company; logoUrl: s
             </Field>
             <Field label="EIN / tax ID" id="ein">
               <Input id="ein" value={f.ein} onChange={set("ein")} placeholder="12-3456789" />
+            </Field>
+            <Field label="BAR license #" id="bar" hint="Your automotive repair dealer registration number. Prints at the top of every retail repair order and invoice.">
+              <Input id="bar" value={f.bar_license} onChange={set("bar_license")} placeholder="ARD000000" />
             </Field>
             <Field label="Billing email" id="email" hint="CC'd on every invoice email and used as reply-to.">
               <Input id="email" type="email" value={f.email} onChange={set("email")} />

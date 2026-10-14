@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileTextIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
+import { CheckCircle2Icon, CircleAlertIcon, FileTextIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { RoAuthorization } from "@/lib/db/types";
+import type { InvoiceReview, RoAuthorization } from "@/lib/db/types";
 import { convertRoToInvoiceAction } from "@/app/(app)/jobs/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDateTime } from "@/lib/dates";
@@ -23,12 +23,22 @@ const HOW: Record<RoAuthorization["method"], string> = { online: "on their phone
  * into the customer's invoice (advisor, admin, owner). Work nobody authorized
  * is flagged and blocks the invoice: that is where the disputes come from.
  */
-export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, invoiced, canConvert, showMoney }: { jobId: string; authorizations: RoAuthorization[]; unauthorized: number; lineCount: number; invoiced: boolean; canConvert: boolean; showMoney: boolean }) {
+export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, invoiced, canConvert, showMoney, review }: { jobId: string; authorizations: RoAuthorization[]; unauthorized: number; lineCount: number; invoiced: boolean; canConvert: boolean; showMoney: boolean; /** The review against the approved amounts; null when the viewer may not price. */ review?: InvoiceReview | null }) {
   const router = useRouter();
   const { demo } = useSession();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const blocked = unauthorized > 0 || lineCount === 0;
+  // The server decides (ro_invoice_review); without a review the older checks still gate the button.
+  const blocked = review ? !review.ready : unauthorized > 0 || lineCount === 0;
+  const checks: { ok: boolean; label: string }[] = review
+    ? [
+        { ok: review.unauthorized === 0, label: review.unauthorized === 0 ? "Every line is authorized" : `${review.unauthorized} ${review.unauthorized === 1 ? "line is" : "lines are"} not authorized` },
+        { ok: review.completed, label: review.completed ? "The tech finished the work" : "The tech has not marked the work done" },
+        { ok: review.jobs_not_done === 0, label: review.jobs_not_done === 0 ? "Every approved job has its cause and correction" : `${review.jobs_not_done} approved ${review.jobs_not_done === 1 ? "job is" : "jobs are"} not done` },
+        { ok: review.qc, label: review.qc ? "Quality check signed off" : "Quality check not signed off" },
+        { ok: review.matches, label: review.matches ? (showMoney ? `RO total ${formatMoney(review.ro_total)} matches the approved amounts` : "RO total matches the approved amounts") : "RO total does not match the approved amounts" },
+      ]
+    : [];
 
   function convert() {
     start(async () => {
@@ -74,6 +84,16 @@ export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, 
         {unauthorized > 0 && <p className="text-caption text-warning">Work on this RO is not covered by an approval. Write an estimate for it and get the customer to approve before it is invoiced.</p>}
         {!invoiced && canConvert && (
           <>
+            {checks.length > 0 && (
+              <ul className="grid gap-1 text-sm" data-testid="ro-review">
+                {checks.map((c, i) => (
+                  <li key={i} className={`flex items-start gap-2 ${c.ok ? "text-muted-foreground" : "text-foreground"}`} data-ok={c.ok}>
+                    {c.ok ? <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-success" /> : <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-warning" />}
+                    <span>{c.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Button onClick={() => setOpen(true)} disabled={blocked} data-testid="ro-convert"><FileTextIcon /> Convert to invoice</Button>
             {lineCount === 0 && <p className="text-caption text-subtle">No approved work on this RO yet.</p>}
           </>
@@ -89,7 +109,7 @@ export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, 
             <DialogDescription>The invoice is made from the approved lines on this RO, nothing retyped. After this the customer can pay at the counter.</DialogDescription>
           </DialogHeader>
           <ul className="grid gap-1 text-sm text-muted-foreground">
-            <li>{lineCount} approved {lineCount === 1 ? "line" : "lines"}, all covered by an authorization.</li>
+            <li>{lineCount} approved {lineCount === 1 ? "line" : "lines"}, all covered by an authorization{review ? ", the work done and checked" : ""}.</li>
             <li>It gets the next RI- number; it never goes to QuickBooks.</li>
           </ul>
           <DialogFooter>

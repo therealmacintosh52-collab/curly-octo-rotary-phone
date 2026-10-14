@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { JobEstimate, JobFinding, PriceListRow, RoAuthorization } from "@/lib/db/types";
+import type { EstimateJobPriority, InvoiceReview, JobEstimate, JobFinding, PriceListRow, RoAuthorization } from "@/lib/db/types";
 import { signedUrls } from "@/lib/media/signed";
 import { withoutPrices } from "@/lib/jobs/price-list";
 import { findingPricing } from "@/lib/retail/finding-quote";
@@ -32,6 +32,11 @@ type JobRow = {
   retail_invoice_number: string | null;
   invoiced_at: string | null;
   customer_concern: string | null;
+  odometer_out: number | null;
+  completed_at: string | null;
+  qc_at: string | null;
+  qc_note: string | null;
+  parts_disposition: "offered" | "returned" | "declined" | null;
   paid_at: string | null;
   paid_amount: number | null;
   payment_method: "clover" | "cash" | "check" | "other" | null;
@@ -41,8 +46,11 @@ type JobRow = {
   customer: { id: string; display_name: string | null; first_name: string; phone: string | null; email: string | null } | null;
   vehicle: { id: string; year: number | null; make: string | null; model: string | null } | null;
   invoice: { display_number: string; status: string } | null;
-  job_services: { id: string; service_id: string; label: string | null; needs_price: boolean; authorization_id: string | null; service: { name: string } | null }[];
+  job_services: { id: string; service_id: string; label: string | null; needs_price: boolean; authorization_id: string | null; estimate_job_id: string | null; service: { name: string } | null }[];
 };
+
+type WorkRow = { id: string; title: string; priority: EstimateJobPriority; kind: "diagnosis" | "repair"; sort_order: number; cause: string | null; correction: string | null };
+const PRIORITY_RANK: Record<EstimateJobPriority, number> = { safety: 0, soon: 1, optional: 2 };
 
 /**
  * One job: the car, the services, the photos, where it stands (open, on an
@@ -58,7 +66,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .from("jobs")
     .select(
       // No prices on a job: job_services.price stays unread (column privileges); the lines carry only name, label and the Needs-a-price flag.
-      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, ro_number, retail_invoice_number, invoiced_at, customer_concern, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), customer:customers(id, display_name, first_name, phone, email), vehicle:vehicles(id, year, make, model), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, authorization_id, service:services(name))",
+      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, ro_number, retail_invoice_number, invoiced_at, customer_concern, odometer_out, completed_at, qc_at, qc_note, parts_disposition, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), customer:customers(id, display_name, first_name, phone, email), vehicle:vehicles(id, year, make, model), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, authorization_id, estimate_job_id, service:services(name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -66,9 +74,10 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   if (!job) notFound();
 
   const open = !job.invoice_id && !job.deleted_at;
+  const jobIds = [...new Set(job.job_services.map((s) => s.estimate_job_id).filter((x): x is string => !!x))];
   const retail = !!job.dealership?.retail;
   const own = session.isAdmin || job.detailer_id === session.userId;
-  const [{ data: photoRows }, priceListRes, { data: detailers }, { data: charge }, { data: invoiceNumber }, { data: findingRows }, { data: lastTimeRows }, { data: catalog }, { data: estimateRows }, { data: authRows }, { data: odoRows }] = await Promise.all([
+  const [{ data: photoRows }, priceListRes, { data: detailers }, { data: charge }, { data: invoiceNumber }, { data: findingRows }, { data: lastTimeRows }, { data: catalog }, { data: estimateRows }, { data: authRows }, { data: odoRows }, { data: workRows }, { data: reviewData }] = await Promise.all([
     supabase.from("job_photos").select("id, kind, storage_path, created_at, finding_id").eq("job_id", id).order("created_at"),
     supabase.rpc("dealership_price_list", { p_dealership_id: job.dealership_id }),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [{ id: session.profile.id, full_name: session.profile.full_name }] }),
@@ -82,7 +91,11 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     retail ? supabase.rpc("retail_catalog") : Promise.resolve({ data: null }),
     retail ? supabase.rpc("job_estimates", { p_job: id }) : Promise.resolve({ data: [] as JobEstimate[] }),
     retail ? supabase.rpc("ro_authorizations", { p_job: id }) : Promise.resolve({ data: [] as RoAuthorization[] }),
-    retail ? supabase.from("odometer_readings").select("reading").eq("job_id", id).order("read_at", { ascending: false }).limit(1) : Promise.resolve({ data: [] as { reading: number }[] }),
+    retail ? supabase.from("odometer_readings").select("reading").eq("job_id", id).order("read_at", { ascending: true }).limit(1) : Promise.resolve({ data: [] as { reading: number }[] }),
+    // The named jobs on this RO with their cause and correction (no money on this table).
+    retail && jobIds.length ? supabase.from("estimate_jobs").select("id, title, priority, kind, sort_order, cause, correction").in("id", jobIds) : Promise.resolve({ data: [] as WorkRow[] }),
+    // The convert-to-invoice review against the approved amounts (pricers only).
+    session.canPrices && retail && !job.deleted_at && !job.invoiced_at ? supabase.rpc("ro_invoice_review", { p_job: id }) : Promise.resolve({ data: null as InvoiceReview | null }),
   ]);
   // Sharing one finding with the customer: their link (the invoice link, which also shows work in progress) and how to reach them.
   let share: { url: string; firstName: string; vehicle: string | null; phone: string | null; email: string | null } | null = null;
@@ -150,6 +163,23 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     canConvert: session.canPrices && retail && !job.deleted_at,
     pricing: session.canPrices && catalog ? findingPricing(catalog) : null,
     share,
+    serviceJobIds: job.job_services.map((s) => s.estimate_job_id),
+    work: retail
+      ? {
+          jobs: ((workRows ?? []) as WorkRow[])
+            .sort((a, b) => (a.kind === b.kind ? PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || a.sort_order - b.sort_order : a.kind === "diagnosis" ? -1 : 1))
+            .map((w) => ({ id: w.id, title: w.title, priority: w.priority, cause: w.cause, correction: w.correction })),
+          mileageIn: odoRows?.[0]?.reading ?? null,
+          odometerOut: job.odometer_out,
+          completedAt: job.completed_at,
+          qcAt: job.qc_at,
+          qcNote: job.qc_note,
+          parts: job.parts_disposition,
+        }
+      : null,
+    canComplete: own && retail && !job.deleted_at && !job.invoiced_at,
+    canQc: session.isAdmin && retail && !job.deleted_at && !job.invoiced_at,
+    review: (reviewData ?? null) as InvoiceReview | null,
   };
   return <JobDetail {...detail} />;
 }

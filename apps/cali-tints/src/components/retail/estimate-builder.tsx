@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, CheckIcon, ClockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
+import type { EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { createEstimateAction, deleteDraftEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { decodeVinAction, lookupPlateAction, saveVehicleAction } from "@/app/(app)/retail/actions";
 import { isVinShape, normalizeVin } from "@/lib/vin";
@@ -34,14 +34,16 @@ import { CustomerPicker, type CustomerPick, type PickedCustomer } from "./custom
 type LineDraft = EstimateLineDraft;
 type CarFields = { year: string; make: string; model: string; trim: string; vin: string; plate: string; engine_size: string; engine_code: string };
 type AddonDraft = LineDraft & { default_on: boolean };
-type OptionDraft = { key: string; tier: EstimateTier; name: string; description: string; recommended: boolean; lines: LineDraft[] };
+type JobDraft = { key: string; title: string; priority: EstimateJobPriority };
+type OptionDraft = { key: string; tier: EstimateTier; name: string; description: string; recommended: boolean; jobs: JobDraft[]; lines: LineDraft[] };
+const PRIORITY_LABEL: Record<EstimateJobPriority, string> = { safety: "Safety", soon: "Due soon", optional: "Optional" };
 
 const TIER_NAMES: Record<EstimateTier, string> = { single: "Quote", good: "Good", better: "Better", best: "Best" };
 const TYPE_LABEL: Record<LineType, string> = { service: "Service", labor: "Labor", part: "Part", fee: "Fee", sublet: "Sublet" };
 const tierFor = (i: number, n: number): EstimateTier => (n === 1 ? "single" : (["good", "better", "best"] as const)[i]);
 let keySeq = 0;
 const nextKey = () => `o${++keySeq}-${Date.now()}`;
-const lineKey = (l: LineDraft) => `${l.section ?? "repair"}:${l.line_type}:${l.service_id ?? ""}:${l.label ?? ""}:${l.part_number ?? ""}:${l.finding_id ?? ""}`;
+const lineKey = (l: LineDraft) => `${l.job ?? ""}:${l.section ?? "repair"}:${l.line_type}:${l.service_id ?? ""}:${l.label ?? ""}:${l.part_number ?? ""}:${l.finding_id ?? ""}`;
 
 function toQuoteCatalog(catalog: RetailCatalog) {
   return {
@@ -62,13 +64,17 @@ function fromView(e: EstimateView, services: RetailCatalogService[]): { options:
     return emptyLine(type, { section: l.section ?? "repair", label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, part_number: l.part_number ?? null, vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
   };
   return {
-    options: e.options.map((o) => ({ key: o.id, tier: o.tier, name: o.name, description: o.description ?? "", recommended: o.recommended, lines: o.lines.map(line) })),
+    options: e.options.map((o) => {
+      // Repair jobs become cards; the Diagnosis job is the fixed block (its lines carry section diagnosis).
+      const repair = (o.jobs ?? []).filter((j) => j.kind === "repair");
+      return { key: o.id, tier: o.tier, name: o.name, description: o.description ?? "", recommended: o.recommended, jobs: repair.map((j) => ({ key: j.id, title: j.title, priority: j.priority })), lines: o.lines.map((l) => ({ ...line(l), job: l.section !== "diagnosis" && l.estimate_job_id && repair.some((j) => j.id === l.estimate_job_id) ? l.estimate_job_id : undefined })) };
+    }),
     addons: e.addons.map((a) => ({ ...line(a), default_on: a.default_on })),
   };
 }
 
 function toInput(l: LineDraft): EstimateLineInput {
-  const extra = { cost: l.cost, finding_id: l.finding_id, section: l.section };
+  const extra = { cost: l.cost, finding_id: l.finding_id, section: l.section, job: l.job };
   if (l.line_type === "service") return { line_type: "service", service_id: l.service_id ?? "", qty: l.qty, label: l.label, price: l.price, modifiers: l.modifiers, ...extra };
   if (l.line_type === "labor") return { line_type: "labor", label: l.label ?? "", hours: Number(l.hours ?? 0), rate: l.rate, taxable: l.taxable, ...extra };
   if (l.line_type === "part") return { line_type: "part", label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), part_number: l.part_number, vendor: l.vendor, taxable: l.taxable, ...extra };
@@ -84,12 +90,25 @@ function toInput(l: LineDraft): EstimateLineInput {
  * prices everything again when it saves. Written on an open repair order it
  * is a supplement: the findings it quotes arrive prefilled.
  */
+/** A finding quoted from the notes panel becomes its own job, named after what the tech found (labor lines carry that title). */
+function jobsForLines(lines: LineDraft[]): JobDraft[] {
+  const seen = new Set<string>();
+  const out: JobDraft[] = [];
+  for (const l of lines) {
+    if (!l.finding_id || seen.has(l.finding_id)) continue;
+    seen.add(l.finding_id);
+    out.push({ key: `f-${l.finding_id}`, title: (l.label ?? "Repair").slice(0, 80), priority: "soon" });
+  }
+  return out;
+}
 /** Recommendations added from the findings panel go on the first option, once each. */
 function withExtra<T extends { options: OptionDraft[] }>(base: T, extra?: LineDraft[]): T {
   if (!extra?.length || !base.options[0]) return base;
   const have = new Set(base.options[0].lines.map(lineKey));
   const add = extra.filter((l) => !have.has(lineKey(l)));
-  return { ...base, options: [{ ...base.options[0], lines: [...base.options[0].lines, ...add] }, ...base.options.slice(1)] };
+  const jobs = jobsForLines(add);
+  const keyed = add.map((l) => (l.finding_id ? { ...l, job: `f-${l.finding_id}` } : l));
+  return { ...base, options: [{ ...base.options[0], jobs: [...base.options[0].jobs, ...jobs], lines: [...base.options[0].lines, ...keyed] }, ...base.options.slice(1)] };
 }
 
 export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines, findingsPanel, findingsCount }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; trim?: string; engine_size?: string; engine_code?: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[]; /** The findings side tab (server-rendered notes panel) and how many findings it holds. */ findingsPanel?: React.ReactNode; findingsCount?: number }) {
@@ -163,7 +182,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   const [side, setSide] = useState<"summary" | "findings">("summary");
   const creating = useRef(false);
   const [size, setSize] = useState<VehicleSize>(estimate?.size_class ?? pickedVehicle?.size_class ?? "sedan");
-  const initial = useMemo(() => (estimate ? withExtra(fromView(estimate, catalog.services), extraLines) : { options: [{ key: nextKey(), tier: "single" as EstimateTier, name: "Quote", description: "", recommended: true, lines: initialLines ?? [] }], addons: [] }), [estimate, catalog.services, initialLines, extraLines]);
+  const initial = useMemo(() => (estimate ? withExtra(fromView(estimate, catalog.services), extraLines) : { options: [{ key: nextKey(), tier: "single" as EstimateTier, name: "Quote", description: "", recommended: true, jobs: jobsForLines(initialLines ?? []), lines: (initialLines ?? []).map((l) => (l.finding_id ? { ...l, job: `f-${l.finding_id}` } : l)) }], addons: [] }), [estimate, catalog.services, initialLines, extraLines]);
   const [options, setOptions] = useState<OptionDraft[]>(initial.options);
   const [addons, setAddons] = useState<AddonDraft[]>(initial.addons);
   const [expires, setExpires] = useState(estimate?.expires_at ? toDateInput(new Date(estimate.expires_at)) : addDaysYmd(toDateInput(new Date()), validDays));
@@ -172,7 +191,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   const [customerNotes, setCustomerNotes] = useState(estimate?.customer_notes ?? "");
   const [concern, setConcern] = useState(estimate?.customer_concern ?? "");
   const [internalNotes, setInternalNotes] = useState(estimate?.internal_notes ?? "");
-  const [adding, setAdding] = useState<{ scope: "option" | "addon"; key?: string; section?: "diagnosis" | "repair"; type: LineType } | null>(null);
+  const [adding, setAdding] = useState<{ scope: "option" | "addon"; key?: string; section?: "diagnosis" | "repair"; job?: string; type: LineType } | null>(null);
 
   // Live totals: never thrown away on a bad line, just shown as 0 for that option.
   const totals = useMemo(() => {
@@ -200,7 +219,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   function addOption() {
     if (options.length >= 3) return;
     const n = options.length + 1;
-    setOptions((prev) => prev.map((o, i) => ({ ...o, tier: tierFor(i, n), name: o.name === TIER_NAMES[o.tier] ? TIER_NAMES[tierFor(i, n)] : o.name })).concat({ key: nextKey(), tier: tierFor(n - 1, n), name: TIER_NAMES[tierFor(n - 1, n)], description: "", recommended: false, lines: [...(prev.at(-1)?.lines ?? [])] }));
+    setOptions((prev) => prev.map((o, i) => ({ ...o, tier: tierFor(i, n), name: o.name === TIER_NAMES[o.tier] ? TIER_NAMES[tierFor(i, n)] : o.name })).concat({ key: nextKey(), tier: tierFor(n - 1, n), name: TIER_NAMES[tierFor(n - 1, n)], description: "", recommended: false, jobs: [...(prev.at(-1)?.jobs ?? [])], lines: [...(prev.at(-1)?.lines ?? [])] }));
   }
   function removeOption(key: string) {
     setOptions((prev) => {
@@ -211,11 +230,27 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
       return out;
     });
   }
+  /** A menu service is a one-tap job: tapping it makes a job named after it with that one line; tapping again removes both. */
   function toggleLine(key: string, svc: RetailCatalogService) {
     setOption(key, (o) => {
-      const has = o.lines.some((l) => l.line_type === "service" && l.service_id === svc.id);
-      return { ...o, lines: has ? o.lines.filter((l) => !(l.line_type === "service" && l.service_id === svc.id)) : [...o.lines, emptyLine("service", { service_id: svc.id })] };
+      const existing = o.lines.find((l) => l.line_type === "service" && l.service_id === svc.id);
+      if (existing) {
+        const lines = o.lines.filter((l) => l !== existing);
+        const jobs = existing.job && !lines.some((l) => l.job === existing.job) ? o.jobs.filter((j) => j.key !== existing.job) : o.jobs;
+        return { ...o, jobs, lines };
+      }
+      const jobKey = nextKey();
+      return { ...o, jobs: [...o.jobs, { key: jobKey, title: svc.name, priority: "soon" }], lines: [...o.lines, emptyLine("service", { service_id: svc.id, job: jobKey })] };
     });
+  }
+  function addJob(key: string) {
+    setOption(key, (o) => ({ ...o, jobs: [...o.jobs, { key: nextKey(), title: "", priority: "soon" }] }));
+  }
+  function setJob(key: string, jobKey: string, patch: Partial<JobDraft>) {
+    setOption(key, (o) => ({ ...o, jobs: o.jobs.map((j) => (j.key === jobKey ? { ...j, ...patch } : j)) }));
+  }
+  function removeJob(key: string, jobKey: string) {
+    setOption(key, (o) => ({ ...o, jobs: o.jobs.filter((j) => j.key !== jobKey), lines: o.lines.filter((l) => l.job !== jobKey) }));
   }
   function toggleModifier(key: string, serviceId: string, code: string) {
     setOption(key, (o) => ({ ...o, lines: o.lines.map((l) => (l.line_type === "service" && l.service_id === serviceId ? { ...l, modifiers: l.modifiers.includes(code) ? l.modifiers.filter((c) => c !== code) : [...l.modifiers, code] } : l)) }));
@@ -225,7 +260,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   }
   function addLine(line: LineDraft) {
     if (!adding) return;
-    const placed = { ...line, section: adding.section ?? "repair" } as LineDraft;
+    const placed = { ...line, section: adding.section ?? "repair", job: adding.section === "diagnosis" ? undefined : adding.job } as LineDraft;
     if (adding.scope === "addon") setAddons((prev) => [...prev, { ...placed, default_on: false }]);
     else if (adding.key) setOption(adding.key, (o) => ({ ...o, lines: [...o.lines.filter((l) => lineKey(l) !== lineKey(placed)), placed] }));
     setAdding(null);
@@ -249,7 +284,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
       customer_notes: customerNotes.trim() || null,
       customer_concern: concern.trim() || null,
       internal_notes: internalNotes.trim() || null,
-      options: options.map((o, i) => ({ tier: tierFor(i, options.length), name: o.name.trim() || TIER_NAMES[tierFor(i, options.length)], description: o.description.trim() || null, recommended: o.recommended, lines: diagnosisFirst(o.lines).map(toInput) })),
+      options: options.map((o, i) => ({ tier: tierFor(i, options.length), name: o.name.trim() || TIER_NAMES[tierFor(i, options.length)], description: o.description.trim() || null, recommended: o.recommended, jobs: o.jobs.map((j, ji) => ({ key: j.key, title: j.title.trim() || `Job ${ji + 1}`, kind: "repair" as const, priority: j.priority })), lines: diagnosisFirst(o.lines).map(toInput) })),
       addons: addons.map((a) => ({ ...(toInput(a) as Extract<EstimateLineInput, { service_id: string }>), default_on: a.default_on })),
     };
   }
@@ -429,64 +464,32 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
 
           {options.map((o, idx) => {
             const t = totals.options[idx];
-            return (
-              <Card key={o.key} data-testid="estimate-option" className={cn(o.recommended && "border-primary/50")}>
-                <CardHeader className="gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={o.recommended ? "default" : "outline"}>{options.length === 1 ? "Option" : TIER_NAMES[tierFor(idx, options.length)]}</Badge>
-                    <Input value={o.name} onChange={(e) => setOption(o.key, { name: e.target.value })} aria-label={`Option ${idx + 1} name`} className="h-9 max-w-56 font-semibold" />
-                    <label className="ml-auto inline-flex items-center gap-2 text-sm">
-                      <Switch checked={o.recommended} onCheckedChange={(v) => setOptions((prev) => prev.map((x) => ({ ...x, recommended: x.key === o.key ? v : v ? false : x.recommended })))} aria-label={`Recommend ${o.name}`} />
-                      <StarIcon className="size-3.5 text-warning" /> Recommended
-                    </label>
-                    {options.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove ${o.name}`} onClick={() => removeOption(o.key)}>
-                        <Trash2Icon />
-                      </Button>
-                    )}
-                  </div>
-                  <Input value={o.description} onChange={(e) => setOption(o.key, { description: e.target.value })} placeholder="One line the customer reads under the name (optional)" aria-label={`Option ${idx + 1} description`} className="h-9" />
-                </CardHeader>
-                <CardContent className="grid gap-5">
-                  {(["diagnosis", "repair"] as const).map((sec) => {
-                    const rows = o.lines.map((l, i) => ({ l, i })).filter((x) => (x.l.section ?? "repair") === sec);
-                    const secTotal = rows.reduce((sum, r) => sum + (t?.lines[r.i]?.line_total ?? 0), 0);
-                    return (
-                      <section key={sec} className="grid gap-3" data-testid={`section-${sec}`}>
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-label text-subtle">{sec === "diagnosis" ? "Diagnosis" : "Repairs"}</h3>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-border-strong" data-testid="add-line">
-                                          <PlusIcon className="size-3.5" /> Add a line
-                                        </button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="start">
-                                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "labor" })}>Labor (hours × rate)</DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "part" })}>Part</DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "fee" })}>Fee</DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "sublet" })}>Sublet (outside work)</DropdownMenuItem>
-                                        {other && <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, type: "service" })}>Other (not on the menu)</DropdownMenuItem>}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                        </div>
-                        {sec === "repair" && (
-                                    <div className="flex flex-wrap gap-2" data-testid="estimate-chips">
-                                      {menu.map((s) => {
-                                        const on = o.lines.some((l) => l.line_type === "service" && l.service_id === s.id);
-                                        const price = catalog.services.length ? (s.prices?.[size] ?? s.default_price) : null;
-                                        return (
-                                          <button key={s.id} type="button" aria-pressed={on} onClick={() => toggleLine(o.key, s)} className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors", on ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong")}>
-                                            {on && <CheckIcon className="size-3.5" />}
-                                            {s.name}
-                                            {price !== null && price !== undefined && <span className={cn("tabular-nums", on ? "text-primary/80" : "text-muted-foreground")}>{formatMoney(price)}</span>}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                        )}
-                                    {rows.length > 0 && (
-                                      <ul className="divide-y divide-border rounded-xl border border-border text-sm" data-testid="estimate-lines">
+            const allRows = o.lines.map((l, i) => ({ l, i }));
+            const diagRows = allRows.filter((x) => (x.l.section ?? "repair") === "diagnosis");
+            const repairRows = allRows.filter((x) => (x.l.section ?? "repair") !== "diagnosis");
+            const diagTotal = diagRows.reduce((sum, r) => sum + (t?.lines[r.i]?.line_total ?? 0), 0);
+            const repairTotal = repairRows.reduce((sum, r) => sum + (t?.lines[r.i]?.line_total ?? 0), 0);
+            const hasLoose = repairRows.some((r) => !r.l.job || !o.jobs.some((j) => j.key === r.l.job));
+            const groups: { key: string; job: JobDraft | null }[] = [...o.jobs.map((j) => ({ key: j.key, job: j })), ...(hasLoose ? [{ key: "_repairs", job: null }] : [])];
+            const addLineMenu = (optKey: string, sec: "diagnosis" | "repair", jobKey: string | undefined) => (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-border-strong" data-testid="add-line">
+                  <PlusIcon className="size-3.5" /> Add a line
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "labor" })}>Labor (hours × rate)</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "part" })}>Part</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "fee" })}>Fee</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "sublet" })}>Sublet (outside work)</DropdownMenuItem>
+                {other && <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "service" })}>Other (not on the menu)</DropdownMenuItem>}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            );
+            const lineList = (rows: { l: LineDraft; i: number }[]) =>
+              rows.length > 0 && (
+                <ul className="divide-y divide-border rounded-xl border border-border text-sm" data-testid="estimate-lines">
                                         {rows.map(({ l, i: li }) => {
                                           const svc = l.line_type === "service" ? catalog.services.find((s) => s.id === l.service_id) : undefined;
                                           const ql: PricedLine | undefined = t?.lines[li];
@@ -533,17 +536,99 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                                           );
                                         })}
                                       </ul>
-                                    )}
-                        {rows.length > 0 && (
-                          <div className="flex items-center justify-between text-sm text-muted-foreground" data-testid={`section-total-${sec}`}>
-                            <span>{sec === "diagnosis" ? "Diagnosis" : "Repairs"} subtotal</span>
-                            <span className="tabular-nums">{formatMoney(secTotal)}</span>
-                          </div>
+              );
+            return (
+              <Card key={o.key} data-testid="estimate-option" className={cn(o.recommended && "border-primary/50")}>
+                <CardHeader className="gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={o.recommended ? "default" : "outline"}>{options.length === 1 ? "Option" : TIER_NAMES[tierFor(idx, options.length)]}</Badge>
+                    <Input value={o.name} onChange={(e) => setOption(o.key, { name: e.target.value })} aria-label={`Option ${idx + 1} name`} className="h-9 max-w-56 font-semibold" />
+                    <label className="ml-auto inline-flex items-center gap-2 text-sm">
+                      <Switch checked={o.recommended} onCheckedChange={(v) => setOptions((prev) => prev.map((x) => ({ ...x, recommended: x.key === o.key ? v : v ? false : x.recommended })))} aria-label={`Recommend ${o.name}`} />
+                      <StarIcon className="size-3.5 text-warning" /> Recommended
+                    </label>
+                    {options.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove ${o.name}`} onClick={() => removeOption(o.key)}>
+                        <Trash2Icon />
+                      </Button>
+                    )}
+                  </div>
+                  <Input value={o.description} onChange={(e) => setOption(o.key, { description: e.target.value })} placeholder="One line the customer reads under the name (optional)" aria-label={`Option ${idx + 1} description`} className="h-9" />
+                </CardHeader>
+                <CardContent className="grid gap-5">
+                  <section className="grid gap-3" data-testid="section-diagnosis">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-label text-subtle">Diagnosis</h3>
+                      {addLineMenu(o.key, "diagnosis", undefined)}
+                    </div>
+                    {lineList(diagRows)}
+                    {diagRows.length > 0 && (
+                      <div className="flex items-center justify-between text-sm text-muted-foreground" data-testid="section-total-diagnosis">
+                        <span>Diagnosis subtotal</span>
+                        <span className="tabular-nums">{formatMoney(diagTotal)}</span>
+                      </div>
+                    )}
+                    {diagRows.length === 0 && <p className="text-caption text-subtle">Nothing here yet: add the diagnosis time (labor hours) or a diagnostic fee.</p>}
+                  </section>
+
+                  <section className="grid gap-3" data-testid="section-repair">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-label text-subtle">Repairs</h3>
+                      <button type="button" onClick={() => addJob(o.key)} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-border-strong" data-testid="add-job">
+                        <PlusIcon className="size-3.5" /> Add a job
+                      </button>
+                    </div>
+                        {(
+                                    <div className="flex flex-wrap gap-2" data-testid="estimate-chips">
+                                      {menu.map((s) => {
+                                        const on = o.lines.some((l) => l.line_type === "service" && l.service_id === s.id);
+                                        const price = catalog.services.length ? (s.prices?.[size] ?? s.default_price) : null;
+                                        return (
+                                          <button key={s.id} type="button" aria-pressed={on} onClick={() => toggleLine(o.key, s)} className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors", on ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong")}>
+                                            {on && <CheckIcon className="size-3.5" />}
+                                            {s.name}
+                                            {price !== null && price !== undefined && <span className={cn("tabular-nums", on ? "text-primary/80" : "text-muted-foreground")}>{formatMoney(price)}</span>}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
                         )}
-                        {rows.length === 0 && sec === "diagnosis" && <p className="text-caption text-subtle">Nothing here yet: add the diagnosis time (labor hours) or a diagnostic fee.</p>}
-                      </section>
-                    );
-                  })}
+                    {groups.map((g) => {
+                      const jr = repairRows.filter((r) => (g.job ? r.l.job === g.job.key : !r.l.job || !o.jobs.some((j) => j.key === r.l.job)));
+                      const jt = jr.reduce((sum, r) => sum + (t?.lines[r.i]?.line_total ?? 0), 0);
+                      return (
+                        <div key={g.key} className="grid gap-3 rounded-xl border border-border bg-card/40 p-3" data-testid="job-card" data-priority={g.job?.priority ?? "soon"}>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {g.job ? (
+                              <Input value={g.job.title} onChange={(e) => setJob(o.key, g.job!.key, { title: e.target.value })} placeholder="Name the job (Front brakes, A/C…)" aria-label="Job name" maxLength={80} className="h-9 min-w-0 flex-1 font-semibold" data-testid="job-title" />
+                            ) : (
+                              <span className="min-w-0 flex-1 font-semibold">Repairs</span>
+                            )}
+                            {g.job && (
+                              <Segmented size="sm" aria-label="Priority" value={g.job.priority} onValueChange={(v) => setJob(o.key, g.job!.key, { priority: v as EstimateJobPriority })} items={(["safety", "soon", "optional"] as const).map((pr) => ({ value: pr, label: PRIORITY_LABEL[pr] }))} />
+                            )}
+                            {g.job && (
+                              <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove the job ${g.job.title || ""}`} onClick={() => removeJob(o.key, g.job!.key)} data-testid="job-remove">
+                                <Trash2Icon />
+                              </Button>
+                            )}
+                          </div>
+                          {lineList(jr)}
+                          <div className="flex items-center justify-between gap-2">
+                            {addLineMenu(o.key, "repair", g.job?.key)}
+                            {jr.length > 0 && <span className="text-sm tabular-nums text-muted-foreground" data-testid="job-total">Job total {formatMoney(jt)}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {groups.length === 0 && <p className="text-caption text-subtle">Tap a service above, or add a job: each one has its own labor, parts and fees, a priority, and the customer approves or declines it on its own.</p>}
+                    {repairRows.length > 0 && (
+                      <div className="flex items-center justify-between text-sm text-muted-foreground" data-testid="section-total-repair">
+                        <span>Repairs subtotal</span>
+                        <span className="tabular-nums">{formatMoney(repairTotal)}</span>
+                      </div>
+                    )}
+                  </section>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-muted-foreground">{t ? `${Math.round((t.duration_minutes / 60) * 10) / 10} h · subtotal ${formatMoney(t.subtotal)}${t.shop_supplies > 0 ? ` · supplies ${formatMoney(t.shop_supplies)}` : ""} · tax ${formatMoney(t.tax)}` : o.lines.length ? "A line is incomplete" : "Pick services or add a line"}</span>
                     <span className="text-lg font-semibold tabular-nums" data-testid="option-total">{formatMoney(t?.total ?? 0)}</span>

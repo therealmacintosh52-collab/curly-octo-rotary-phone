@@ -1,5 +1,6 @@
 import { FindingsPdfSection } from "./findings-pdf";
 import { sectionHeading } from "@/lib/retail/sections";
+import type { EstimateOptionView } from "@/lib/db/types";
 import "server-only";
 
 import React from "react";
@@ -108,9 +109,9 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
               <Text style={s.optionTotal}>{formatMoney(o.total ?? 0)}</Text>
             </View>
             {o.description ? <Text style={[s.small, { marginBottom: 4 }]}>{o.description}</Text> : null}
-            {o.lines.filter((l) => !(accepted && o.tier === "single" && l.customer_approved === false)).map((l, li, shown) => (
+            {orderedLines(o).filter((l) => !(accepted && o.tier === "single" && l.customer_approved === false)).map((l, li, shown) => (
               <React.Fragment key={l.id}>
-              {sectionHeading(shown, li) ? <Text style={[s.small, { marginTop: 6, marginBottom: 2, fontFamily: "Helvetica-Bold" }]}>{sectionHeading(shown, li)}</Text> : null}
+              {jobHeading(o, shown, li) ? <Text style={[s.small, { marginTop: 6, marginBottom: 2, fontFamily: "Helvetica-Bold" }]}>{jobHeading(o, shown, li)}</Text> : null}
               <View style={s.line}>
                 <View style={s.lineName}>
                   <Text>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</Text>
@@ -205,4 +206,25 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
 export async function estimatePdf(e: EstimateView, logoDataUri: string | null, signatureDataUri: string | null): Promise<Buffer> {
   const buf = await renderToBuffer(<EstimateDocument e={e} logoDataUri={logoDataUri} signatureDataUri={signatureDataUri} />);
   return Buffer.from(buf);
+}
+
+
+const PRIORITY_TEXT = { safety: "SAFETY", soon: "DUE SOON", optional: "OPTIONAL" } as const;
+
+/** The option's lines with each named job's lines together (Diagnosis first, then safety, due soon, optional); no jobs: as saved. */
+function orderedLines(o: EstimateOptionView) {
+  const jobs = o.jobs ?? [];
+  if (!jobs.length) return o.lines;
+  return [...jobs.flatMap((j) => o.lines.filter((l) => l.estimate_job_id === j.id)), ...o.lines.filter((l) => !jobs.some((j) => j.id === l.estimate_job_id))];
+}
+
+/** A line starts a new heading when its job changes: "Front brake service · SAFETY"; with no jobs, Diagnosis / Repairs as before. */
+function jobHeading(o: EstimateOptionView, shown: EstimateOptionView["lines"], li: number): string | null {
+  const jobs = o.jobs ?? [];
+  if (!jobs.length) return sectionHeading(shown, li);
+  const l = shown[li];
+  if (li > 0 && shown[li - 1].estimate_job_id === l.estimate_job_id) return null;
+  const j = jobs.find((x) => x.id === l.estimate_job_id);
+  if (!j) return "Other items";
+  return j.kind === "diagnosis" ? j.title : `${j.title} · ${PRIORITY_TEXT[j.priority]}`;
 }

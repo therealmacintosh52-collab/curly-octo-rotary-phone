@@ -3,7 +3,7 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { jobListFixture, priceListFixture } from "@/test/fixtures";
-import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailCatalogFixture, retailChargeFixture, retailServicesFixture, roAuthorizationsFixture, roHeaderFixture } from "@/test/retail-fixtures";
+import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailCatalogFixture, retailChargeFixture, retailServicesFixture, roAuthorizationsFixture, roHeaderFixture, roReviewFixture, roWorkFixture, WIP_JOB_IDS } from "@/test/retail-fixtures";
 import { previewSession } from "@/test/preview-session";
 import { findingPricing } from "@/lib/retail/finding-quote";
 
@@ -20,6 +20,11 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
   const header = row.retail ? roHeaderFixture(row.id) : { concern: null, mileage_in: null };
   // ?unauth=1 shows a line nothing authorizes (it blocks the invoice).
   const unauthorized = row.retail && !row.retail_invoice_number && sp.unauth === "1" ? 1 : 0;
+
+  // ?work=done|qc shows the in-progress RO after the tech finished / after the quality check.
+  const workState = sp.work === "qc" ? "qc" : sp.work === "done" ? "done" : "none";
+  const work = row.retail ? roWorkFixture(row.id, workState) : null;
+  const wipLine = row.retail && work && !row.retail_invoice_number;
 
   return (
     <SessionProvider value={session}>
@@ -87,6 +92,11 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
             unauthorized={unauthorized}
             canConvert={!!row.retail && session.canPrices}
             pricing={row.retail && session.canPrices ? findingPricing(retailCatalogFixture(true)) : null}
+            serviceJobIds={wipLine ? row.services.map((_, i) => (i === 0 ? WIP_JOB_IDS.diag : WIP_JOB_IDS.pads)) : undefined}
+            work={work}
+            canComplete={!!work && open && (isAdmin || row.detailer_id === "u5")}
+            canQc={!!work && open && isAdmin}
+            review={wipLine && session.canPrices ? (() => { const rv = roReviewFixture(workState); return { ...rv, unauthorized, ready: rv.ready && unauthorized === 0 }; })() : null}
             share={row.retail && session.canPrices ? { url: `/r/demo-ro-token-priya-f150-0003`, firstName: (row.customer ?? "").split(" ")[0] || "there", vehicle: row.vehicle ?? null, phone: "(916) 555-0100", email: "customer@example.com" } : null}
           />
         </AppShell>

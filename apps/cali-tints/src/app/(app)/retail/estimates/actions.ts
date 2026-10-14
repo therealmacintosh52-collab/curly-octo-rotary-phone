@@ -13,7 +13,7 @@ import { errorMessage } from "@/lib/utils";
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
 const money = z.number().min(0).max(100000);
-const extra = { section: z.enum(["diagnosis", "repair"]).optional(), taxable: z.boolean().nullable().optional(), cost: money.nullable().optional(), finding_id: z.uuid().nullable().optional() };
+const extra = { job: z.string().max(40).optional(), section: z.enum(["diagnosis", "repair"]).optional(), taxable: z.boolean().nullable().optional(), cost: money.nullable().optional(), finding_id: z.uuid().nullable().optional() };
 /** A service line prices through the size matrix; labor, parts, fees and sublets carry their own numbers (0044). */
 const lineSchema = z.discriminatedUnion("line_type", [
   z.object({ line_type: z.literal("service"), service_id: z.uuid(), qty: z.number().positive().max(99).optional(), label: z.string().trim().max(120).nullable().optional(), price: money.nullable().optional(), modifiers: z.array(z.string().trim().max(40)).max(10).optional(), ...extra }),
@@ -34,7 +34,7 @@ const payloadSchema = z.object({
   customer_notes: z.string().trim().max(4000).nullable().optional(),
   customer_concern: z.string().trim().max(2000).nullable().optional(),
   options: z
-    .array(z.object({ tier: z.enum(["good", "better", "best", "single"]), name: z.string().trim().min(1).max(60), description: z.string().trim().max(300).nullable().optional(), recommended: z.boolean().optional(), lines: z.array(lineInput).max(60) }))
+    .array(z.object({ tier: z.enum(["good", "better", "best", "single"]), name: z.string().trim().min(1).max(60), description: z.string().trim().max(300).nullable().optional(), recommended: z.boolean().optional(), jobs: z.array(z.object({ key: z.string().min(1).max(40), title: z.string().trim().min(1).max(80), kind: z.enum(["diagnosis", "repair"]).optional(), priority: z.enum(["safety", "soon", "optional"]).optional() })).max(30).optional(), lines: z.array(lineInput).max(60) }))
     .min(1)
     .max(3)
     .optional(),

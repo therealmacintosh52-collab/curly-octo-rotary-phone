@@ -138,6 +138,8 @@ export type EstimateLineDraft = {
   finding_id: string | null;
   /** Itemized under Diagnosis or Repairs. */
   section: "diagnosis" | "repair";
+  /** The key of the named job (brakes, A/C…) this line belongs to; none = the default Repairs job (0054). */
+  job?: string;
 };
 
 export interface SuppliesPolicy {

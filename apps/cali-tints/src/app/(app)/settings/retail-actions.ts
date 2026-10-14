@@ -151,6 +151,7 @@ const settingsSchema = z.object({
   signature_required_estimate: z.boolean(),
   signature_required_receipt: z.boolean(),
   policy_text: optionalText(2000),
+  warranty_text: optionalText(1000),
   review_url: optionalText(300),
   quiet_from: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   quiet_to: z.string().regex(/^\d{2}:\d{2}$/).optional(),

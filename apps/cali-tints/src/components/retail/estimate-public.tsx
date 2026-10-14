@@ -4,7 +4,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "r
 import { useRouter } from "next/navigation";
 import { CheckCircle2Icon, CheckIcon, ClockIcon, FileDownIcon, PlayIcon, StarIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateView } from "@/lib/db/types";
+import type { EstimateJobPriority, EstimateOptionView, EstimateView, JobFinding } from "@/lib/db/types";
 import { markEstimateViewedAction, respondEstimateAction } from "@/app/e/[token]/actions";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney, formatTaxRate } from "@/lib/money";
@@ -225,6 +225,9 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
                     <div className="text-caption text-subtle">about {Math.round((o.duration_minutes / 60) * 10) / 10} h</div>
                   </div>
                 </div>
+                {single && o.id === single.id && (o.jobs?.length ?? 0) > 0 ? (
+                  <PublicJobs o={o} kept={kept} setKept={setKept} locked={locked} findings={e.findings ?? []} />
+                ) : (
                 <ul className="mt-3 grid gap-1.5 text-sm">
                   {o.lines.map((l, li) => {
                     const type = l.line_type ?? "service";
@@ -251,6 +254,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
                     );
                   })}
                 </ul>
+                )}
               </Wrap>
             );
           })}
@@ -354,5 +358,110 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
         {e.company.name}{e.company.phone ? ` · ${e.company.phone}` : ""}{e.company.email ? ` · ${e.company.email}` : ""}
       </footer>
     </main>
+  );
+}
+
+
+const PRIORITY: Record<EstimateJobPriority, { label: string; cls: string }> = {
+  safety: { label: "Safety", cls: "bg-destructive/15 text-destructive" },
+  soon: { label: "Due soon", cls: "bg-warning/15 text-warning" },
+  optional: { label: "Optional", cls: "bg-muted text-muted-foreground" },
+};
+
+/**
+ * The estimate as named jobs, safety first, then due soon, then optional:
+ * each with what the tech found (photos, the note, what we recommend), its
+ * lines, and its own approve / decline. Diagnosis is the first job.
+ */
+function PublicJobs({ o, kept, setKept, locked, findings }: { o: EstimateOptionView; kept: string[]; setKept: (f: (prev: string[]) => string[]) => void; locked: boolean; findings: JobFinding[] }) {
+  const [open, setOpen] = useState<JobFinding["media"][number] | null>(null);
+  const jobs = o.jobs ?? [];
+  const loose = o.lines.filter((l) => !jobs.some((j) => j.id === l.estimate_job_id));
+  return (
+    <div className="mt-3 grid gap-3" data-testid="public-jobs">
+      {jobs.map((j) => {
+        const lines = o.lines.filter((l) => l.estimate_job_id === j.id);
+        if (lines.length === 0) return null;
+        const ids = lines.map((l) => l.id);
+        const on = ids.every((id) => kept.includes(id));
+        const total = lines.reduce((s, l) => s + (l.line_total ?? 0), 0);
+        const mine = findings.filter((f) => lines.some((l) => l.finding_id === f.id));
+        const pr = PRIORITY[j.priority];
+        return (
+          <section key={j.id} className={cn("rounded-xl border p-3", on ? "border-primary/40 bg-card" : "border-border bg-muted/30")} data-testid="public-job" data-priority={j.priority} data-job={j.title}>
+            <div className="flex items-start gap-2">
+              <Checkbox checked={on} disabled={locked} onCheckedChange={(v) => setKept((prev) => (v ? [...new Set([...prev, ...ids])] : prev.filter((x) => !ids.includes(x))))} onClick={(ev) => ev.stopPropagation()} aria-label={`Approve ${j.title}`} className="mt-1" data-testid="public-job-check" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={cn("font-semibold", !on && "text-muted-foreground line-through")}>{j.title}</span>
+                  {j.kind !== "diagnosis" && <span className={cn("rounded-full px-2 py-0.5 text-caption font-medium", pr.cls)} data-testid="public-job-priority">{pr.label}</span>}
+                  {j.status === "declined" && <Badge variant="muted">Declined</Badge>}
+                  {j.status === "approved" && <Badge variant="success">Approved</Badge>}
+                </div>
+              </div>
+              <span className={cn("shrink-0 font-semibold tabular-nums", !on && "text-muted-foreground line-through")}>{formatMoney(total)}</span>
+            </div>
+            {mine.map((f) => (
+              <div key={f.id} className="mt-2 rounded-lg bg-muted/50 px-3 py-2 text-sm" data-testid="public-job-finding">
+                <div className="font-medium">{f.title}</div>
+                {f.body && <p className="text-muted-foreground">{f.body}</p>}
+                {f.recommendation && <p className="text-caption font-semibold tracking-wide">{{ replace: "RECOMMEND REPLACE", diagnose: "RECOMMEND DIAG", monitor: "RECOMMEND MONITOR" }[f.recommendation]}</p>}
+                {f.media.length > 0 && (
+                  <div className="mt-1.5 flex gap-2 overflow-x-auto">
+                    {f.media.map((m) => (
+                      <button key={m.id} type="button" onClick={() => setOpen(m)} aria-label={isVideoMime(m.mime) || m.kind === "video" ? "Play the clip" : "Open the photo"} className="relative size-16 shrink-0 overflow-hidden rounded-lg border border-border bg-card">
+                        {isVideoMime(m.mime) || m.kind === "video" ? (
+                          <span className="flex size-full flex-col items-center justify-center gap-0.5 text-muted-foreground"><PlayIcon className="size-4" /><span className="text-caption">{formatClipLength(m.duration_s) || "Clip"}</span></span>
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          m.url && <img src={m.url} alt="" className="size-full object-cover" loading="lazy" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            <ul className="mt-2 grid gap-1 text-sm">
+              {lines.map((l) => {
+                const type = l.line_type ?? "service";
+                const meta = type === "labor" ? `${l.hours} h${l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}` : type === "part" ? [l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number].filter(Boolean).join(" · ") : "";
+                return (
+                  <li key={l.id} className={cn("flex items-baseline justify-between gap-3", !on && "text-muted-foreground line-through")}>
+                    <span className="min-w-0"><span className="font-medium">{l.name}</span>{meta && <span className="text-muted-foreground"> · {meta}</span>}</span>
+                    <span className="shrink-0 tabular-nums">{formatMoney(l.line_total ?? 0)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+      {loose.length > 0 && (
+        <ul className="grid gap-1 text-sm">
+          {loose.map((l) => {
+            const keep = kept.includes(l.id);
+            return (
+              <li key={l.id} className="flex items-start gap-2">
+                <Checkbox checked={keep} disabled={locked} onCheckedChange={(v) => setKept((prev) => (v ? [...prev, l.id] : prev.filter((x) => x !== l.id)))} onClick={(ev) => ev.stopPropagation()} aria-label={l.name} className="mt-0.5" />
+                <span className={cn("min-w-0 flex-1 font-medium", !keep && "text-muted-foreground line-through")}>{l.name}</span>
+                <span className="shrink-0 tabular-nums">{formatMoney(l.line_total ?? 0)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
+        <DialogContent>
+          <DialogTitle className="sr-only">Photo or clip</DialogTitle>
+          {open && (isVideoMime(open.mime) || open.kind === "video" ? (
+            open.url ? <video src={open.url} controls playsInline className="max-h-[80vh] w-full rounded-lg bg-black" /> : <p className="text-sm text-muted-foreground">The clip is not available in the preview.</p>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            open.url && <img src={open.url} alt="" className="max-h-[80vh] w-full rounded-lg object-contain" />
+          ))}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

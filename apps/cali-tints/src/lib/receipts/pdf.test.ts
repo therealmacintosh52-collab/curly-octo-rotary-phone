@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { INVOICE_TOKEN, receiptFixture, RECEIPT_TOKEN, retailInvoiceDetailFixture, retailInvoiceListFixture } from "@/test/retail-fixtures";
+import { INVOICE_TOKEN, invoiceDocFixture, receiptFixture, RECEIPT_TOKEN, retailInvoiceDetailFixture, retailInvoiceListFixture } from "@/test/retail-fixtures";
 import { receiptPdf } from "./pdf";
 import { receiptFileStem } from "./load";
+import { taxLabel } from "@/components/retail/invoice-document";
+import { DEFAULT_TEMPLATES, renderTemplate } from "@/lib/retail/templates";
 
 const SIG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
@@ -48,5 +50,32 @@ describe("retail invoice fixtures", () => {
     expect(retailInvoiceListFixture("", "paid").rows).toHaveLength(1);
     expect(retailInvoiceListFixture("ana", "all").rows[0].number).toBe("RI-000041");
     expect(new Set(retailInvoiceListFixture("", "all").rows.map((r) => r.number)).size).toBe(5);
+  });
+});
+
+describe("the invoice laid out like the shop prints it", () => {
+  it("renders jobs with cause and correction, declined work, the authorization log and the warranty", async () => {
+    const r = invoiceDocFixture(true);
+    expect((r.jobs ?? []).length).toBeGreaterThan(1);
+    expect((r.jobs ?? []).some((j) => j.cause && j.correction)).toBe(true);
+    expect((r.declined ?? []).length).toBeGreaterThan(0);
+    expect(r.bar_license).toBeTruthy();
+    const buf = await receiptPdf(r, null, null);
+    expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(buf.length).toBeGreaterThan(2000);
+  });
+
+  it("labels the tax by the kinds of line that were taxed", () => {
+    expect(taxLabel({ taxable_types: ["part"], tax_rate: 0.0875 })).toBe("Tax (parts only, 8.75%)");
+    expect(taxLabel({ taxable_types: ["part", "labor"], tax_rate: 0.0875 })).toBe("Tax (8.75%)");
+    expect(taxLabel({ taxable_types: [], tax_rate: 0.0875 })).toBe("Tax (8.75%)");
+  });
+
+  it("has a message for the car being ready and for the work they put off", () => {
+    const ready = renderTemplate(DEFAULT_TEMPLATES.status_ready.body, { first_name: "Ana", vehicle: "Camry", receipt_url: "https://x/r/t", company: "Cali" });
+    expect(ready).toContain("https://x/r/t");
+    const later = renderTemplate(DEFAULT_TEMPLATES.declined_work.body, { first_name: "Ana", vehicle: "Camry", declined_list: "Rear pads ($240.00)", book_url: "https://x/book", company: "Cali" });
+    expect(later).toContain("Rear pads ($240.00)");
+    expect(later).not.toContain("{{");
   });
 });
