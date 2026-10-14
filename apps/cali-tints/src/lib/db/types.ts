@@ -243,6 +243,7 @@ export type EstimateLineView = {
   hours?: number | null;
   rate?: number | null;
   part_number?: string | null;
+  part_condition?: PartCondition;
   vendor?: string | null;
   finding_id?: string | null;
   /** Staff money only, never on the public view. */
@@ -426,7 +427,7 @@ export type EstimateListResult = { count: number; counts?: Partial<Record<Estima
 export type EstimateLineInput = (
   | { line_type?: "service"; service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[]; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
   | { line_type: "labor"; label: string; hours: number; rate?: number | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
-  | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
+  | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; part_condition?: PartCondition; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
   | { line_type: "fee" | "sublet"; label: string; qty?: number; price: number; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
 ) & { /** The key of the named job this line belongs to (0054). */ job?: string };
 export type EstimatePayload = {
@@ -636,7 +637,7 @@ export type InvoiceJob = {
   cause: string | null;
   correction: string | null;
   total: number;
-  lines: { name: string; type: string; qty: number | null; hours: number | null; rate: number | null; part_number: string | null; total: number }[];
+  lines: { name: string; type: string; qty: number | null; hours: number | null; rate: number | null; part_number: string | null; part_condition?: PartCondition | null; total: number }[];
 };
 /** job_receipt() / receipt_by_token(): the paid job's receipt. */
 export type ReceiptView = {
@@ -704,6 +705,8 @@ export type InvoiceReview = { lines: number; ro_total: number; approved_total: n
 /** One entry of a repair order's authorization record (0052). Amount only for those who price jobs. */
 /** A coworker a visit can be handed to (the picker shows names; every list shows initials) (0058). */
 export type RetailTechnician = { id: string; name: string; initials: string };
+/** What a part is: new unless said otherwise (0065). */
+export type PartCondition = "new" | "used" | "rebuilt" | "reconditioned";
 export type TransferCandidate = { id: string; name: string; initials: string; role: string };
 export type TransferRow = { id: string; estimate_id: string; number: string; customer: string | null; vehicle: string | null; from: string; to: string; status_label: string; message: string | null; created_at: string };
 export type MyTransfers = { incoming: TransferRow[]; outgoing: TransferRow[] };

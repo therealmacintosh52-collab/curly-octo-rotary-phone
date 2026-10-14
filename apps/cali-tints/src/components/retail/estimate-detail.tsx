@@ -1,5 +1,6 @@
 "use client";
 
+import { estimateConditionNote } from "@/lib/retail/part-condition";
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -98,7 +99,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
   const lineMeta = (l: EstimateView["options"][number]["lines"][number]) => {
     const t = l.line_type ?? "service";
     if (t === "labor") return `${l.hours} h${showMoney && l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}`;
-    if (t === "part") return [l.qty !== 1 ? `${l.qty} ×${showMoney && l.unit_price !== null ? ` ${formatMoney(l.unit_price)}` : ""}` : null, l.part_number, l.vendor].filter(Boolean).join(" · ");
+    if (t === "part") return [l.qty !== 1 ? `${l.qty} ×${showMoney && l.unit_price !== null ? ` ${formatMoney(l.unit_price)}` : ""}` : null, l.part_number, l.vendor, estimateConditionNote(l.part_condition)].filter(Boolean).join(" · ");
     if (t === "sublet") return l.vendor ?? "";
     return "";
   };

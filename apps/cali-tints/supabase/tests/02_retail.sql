@@ -2283,3 +2283,33 @@ begin
   perform public.set_estimate_meta(v_est, '{"label":"Waiting"}'::jsonb);
 end $$;
 select pg_temp.logout();
+
+-- 0065: part condition (new / used / rebuilt / reconditioned)
+create or replace function pg_temp.set_condition(p_line uuid, p_cond text) returns void language sql security definer as $$ update public.estimate_lines set part_condition = p_cond where id = p_line $$;
+create or replace function pg_temp.a_part_line_on_a_job() returns uuid language sql security definer as $$
+  select el.id from public.estimate_lines el join public.job_services js on js.estimate_line_id = el.id where el.line_type = 'part' limit 1 $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job_unauth'); v_ana uuid := (select v from r_ids where k = 'cust_ana'); e public.estimates; d jsonb; v_line uuid := pg_temp.a_part_line_on_a_job(); r jsonb;
+begin
+  e := public.create_estimate(jsonb_build_object('job_id', v_job, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Extra', 'lines', jsonb_build_array(
+         jsonb_build_object('line_type', 'part', 'label', 'Wiper blades', 'price', 20),
+         jsonb_build_object('line_type', 'part', 'label', 'Alternator', 'price', 150, 'part_condition', 'rebuilt'),
+         jsonb_build_object('line_type', 'fee', 'label', 'Disposal', 'price', 5, 'part_condition', 'used'))))));
+  d := public.estimate_detail(e.id);
+  assert (select l ->> 'part_condition' from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'name' = 'Wiper blades') = 'new', '0065: a part with no condition is new';
+  assert (select l ->> 'part_condition' from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'name' = 'Alternator') = 'rebuilt', '0065: a rebuilt part says so';
+  assert (select l ->> 'part_condition' from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'name' = 'Disposal') = 'new', '0065: only a part has a condition';
+  begin
+    perform public.create_estimate(jsonb_build_object('job_id', v_job, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'x', 'lines', jsonb_build_array(jsonb_build_object('line_type', 'part', 'label', 'Pads', 'price', 10, 'part_condition', 'salvaged'))))));
+    raise exception 'expected refused';
+  exception when sqlstate '22023' then null; end;
+  -- the invoice JSON carries the condition of a part that is on a repair order
+  assert v_line is not null, '0065: a part line is on a repair order in the test data';
+  if v_line is not null then
+    perform pg_temp.set_condition(v_line, 'used');
+    r := public.job_receipt((select job_id from public.estimates where id = (select estimate_id from public.estimate_lines where id = v_line)));
+    assert exists (select 1 from jsonb_array_elements(coalesce(r -> 'jobs', '[]'::jsonb)) j, jsonb_array_elements(coalesce(j -> 'lines', '[]'::jsonb)) l where l ->> 'part_condition' = 'used') or position('"part_condition": "used"' in r::text) > 0, '0065: the invoice shows the part condition';
+  end if;
+end $$;
+select pg_temp.logout();

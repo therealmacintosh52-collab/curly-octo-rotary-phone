@@ -336,7 +336,7 @@ export const ESTIMATE_TOKEN_RO = "demo-estimate-token-marcus-tesla-0004";
 /** A draft: the link can go out with findings only ("your quote is being prepared"). */
 export const ESTIMATE_TOKEN_DRAFT = "demo-estimate-token-dana-odyssey-0003";
 
-type L = { id: string; svc: number | "other" | null; name?: string; qty?: number; price: number; modifiers?: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; taxable?: boolean; type?: EstimateLineType; hours?: number; part_number?: string; vendor?: string; cost?: number; finding_id?: string; section?: "diagnosis" | "repair"; customer_approved?: boolean | null };
+type L = { id: string; svc: number | "other" | null; name?: string; qty?: number; price: number; modifiers?: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; taxable?: boolean; type?: EstimateLineType; hours?: number; part_number?: string; part_condition?: "new" | "used" | "rebuilt" | "reconditioned"; vendor?: string; cost?: number; finding_id?: string; section?: "diagnosis" | "repair"; customer_approved?: boolean | null };
 const seedName = (i: number) => RETAIL_SEED[i][0];
 const seedBenefit = (i: number) => RETAIL_SEED[i][1];
 const seedMinutes = (i: number) => RETAIL_SEED[i][2];
@@ -360,6 +360,7 @@ const line = (money: boolean, l: L) => {
     hours: type === "labor" ? (l.hours ?? 1) : null,
     rate: type === "labor" && money ? l.price : null,
     part_number: l.part_number ?? null,
+    part_condition: type === "part" ? (l.part_condition ?? "new") : "new",
     vendor: l.vendor ?? null,
     finding_id: l.finding_id ?? null,
     cost: money ? (l.cost ?? null) : null,
@@ -496,7 +497,7 @@ function estimateBase(id: string) {
         options: [{ id: "o5-single", tier: "single" as const, name: "Quote", description: null, recommended: true, lines: [
           { id: "l14", svc: null, type: "labor" as const, name: "Diagnose the cold-start rattle", hours: 1, price: 120, section: "diagnosis" as const },
           { id: "l15", svc: null, type: "labor" as const, name: "Replace the timing chain tensioner", hours: 3, price: 120 },
-          { id: "l16", svc: null, type: "part" as const, name: "Tensioner kit", qty: 1, price: 185, part_number: "TK-2711", vendor: "FordParts", cost: 110, taxable: true },
+          { id: "l16", svc: null, type: "part" as const, name: "Tensioner kit", qty: 1, price: 185, part_number: "TK-2711", part_condition: "rebuilt" as const, vendor: "FordParts", cost: 110, taxable: true },
         ] }],
         addons: [],
         findings: [
@@ -884,7 +885,7 @@ export const DOC_TOKEN = "demo-invoice-token-john-accord-0004";
 
 export function invoiceDocFixture(staff: boolean): ReceiptView {
   const doc = new Date(Date.now() - 26 * 3600 * 1000).toISOString();
-  const ln = (name: string, type: string, total: number, extra: Partial<{ qty: number; hours: number; rate: number }> = {}) => ({ name, type, qty: extra.qty ?? null, hours: extra.hours ?? null, rate: extra.rate ?? null, part_number: null, total });
+  const ln = (name: string, type: string, total: number, extra: Partial<{ qty: number; hours: number; rate: number; cond: "new" | "used" | "rebuilt" | "reconditioned" }> = {}) => ({ name, type, qty: extra.qty ?? null, hours: extra.hours ?? null, rate: extra.rate ?? null, part_number: null, part_condition: type === "part" ? (extra.cond ?? "new") : null, total });
   return {
     id: DOC_JOB_ID, tag: "R-100", invoice_number: "RI-000044", invoiced_at: doc, ro_number: "RO-000046", estimate_number: "EST-000009", concern: "Grinding noise when braking", performed_at: doc, paid_at: doc, payment_method: "clover",
     vehicle: "2018 Honda Accord EX", color: "Gray", odometer: 84210, odometer_out: 84212, vin: staff ? "1HGCV1F3XJA000000" : null, plate: staff ? "8ABC123" : null,
@@ -892,7 +893,7 @@ export function invoiceDocFixture(staff: boolean): ReceiptView {
     jobs: [
       { id: "doc-diag", title: "Diagnosis", kind: "diagnosis", priority: "safety", status: "done", cause: "Pads worn to 2mm, rotors scored", correction: "Confirmed with a road test and a wheel-off inspection", total: 0, lines: [] },
       { id: "doc-brakes", title: "Front Brake Service", kind: "repair", priority: "safety", status: "done", cause: "Pads worn to 2mm, rotors scored", correction: "Replaced pads & rotors", total: 486.97,
-        lines: [ln("Brake pads/rotors", "labor", 225, { hours: 1.5, rate: 150 }), ln("Brake pad set", "part", 89.99, { qty: 1 }), ln("Front rotor", "part", 159.98, { qty: 2 }), ln("Shop supplies", "fee", 12)] },
+        lines: [ln("Brake pads/rotors", "labor", 225, { hours: 1.5, rate: 150 }), ln("Brake pad set", "part", 89.99, { qty: 1 }), ln("Front rotor", "part", 159.98, { qty: 2, cond: "reconditioned" }), ln("Shop supplies", "fee", 12)] },
       { id: "doc-oil", title: "Oil Change", kind: "repair", priority: "optional", status: "done", cause: "Due by mileage", correction: "Changed oil and filter", total: 94.94,
         lines: [ln("Oil & filter", "labor", 45, { hours: 0.3, rate: 150 }), ln("0W-20 Synthetic", "part", 39.95, { qty: 5 }), ln("Oil filter", "part", 9.99, { qty: 1 })] },
     ].filter((j) => j.lines.length > 0) as InvoiceJob[],

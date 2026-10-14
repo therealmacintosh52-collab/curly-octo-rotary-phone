@@ -10,6 +10,7 @@ import { LOGO_PNG_BASE64 } from "@/lib/invoices/logo";
 import { FindingsPdfSection } from "@/lib/estimates/findings-pdf";
 import { taxLabel } from "@/components/retail/invoice-document";
 import { PAYMENT_METHOD } from "@/lib/retail/payment-labels";
+import { invoiceConditionNote, MIXED_CONDITION_NOTE, mixesConditions } from "@/lib/retail/part-condition";
 
 const accent = "#3f8f1f";
 const rule = "#d7dbde";
@@ -131,11 +132,12 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
                     {j.lines.map((l, k) => (
                       <View key={k} style={x.jobLine}>
                         <Text style={x.jobType}>{TYPE_LABEL[l.type] ?? "Item"}</Text>
-                        <Text style={x.jobName}>{l.name}{l.type === "labor" && l.hours ? ` · ${l.hours} h` : l.type === "part" && l.qty && l.qty !== 1 ? ` × ${l.qty}` : ""}</Text>
+                        <Text style={x.jobName}>{l.name}{l.type === "labor" && l.hours ? ` · ${l.hours} h` : l.type === "part" ? `${l.qty && l.qty !== 1 ? ` × ${l.qty}` : ""} · ${invoiceConditionNote(l.part_condition)}` : ""}</Text>
                         <Text style={x.jobAmt}>{formatMoney(l.total)}</Text>
                       </View>
                     ))}
                   </View>
+                  {mixesConditions(j.lines) ? <Text style={s.small}>{MIXED_CONDITION_NOTE}</Text> : null}
                   <Text style={x.jobTotal}>Job Total: {formatMoney(j.total)}</Text>
                 </View>
               );

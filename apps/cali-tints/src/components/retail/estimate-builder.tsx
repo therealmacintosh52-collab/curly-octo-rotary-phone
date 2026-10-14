@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, ClockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
+import type { EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, PartCondition, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { createEstimateAction, deleteDraftEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { decodeVinAction, lookupPlateAction, saveVehicleAction } from "@/app/(app)/retail/actions";
 import { isVinShape, normalizeVin } from "@/lib/vin";
@@ -15,6 +15,7 @@ import { useSession } from "@/components/app/session-provider";
 import { addDaysYmd, toDateInput } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { depositFor, emptyLine, optionTotals, priceLine, type EstimateLineDraft, type LineType, type PricedLine, type QuoteModifier, type QuoteService } from "@/lib/retail/quote";
+import { estimateConditionNote, PART_CONDITIONS } from "@/lib/retail/part-condition";
 import { SIZE_CLASSES, SIZE_LABEL } from "@/lib/retail/size-class";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,7 @@ function fromView(e: EstimateView, services: RetailCatalogService[]): { options:
   const line = (l: EstimateView["options"][number]["lines"][number]): LineDraft => {
     const type = l.line_type ?? "service";
     if (type === "service") return emptyLine("service", { section: l.section ?? "repair", service_id: l.service_id ?? "", qty: l.qty, label: isOpen(l.service_id) ? l.name : null, price: isOpen(l.service_id) ? l.unit_price : null, modifiers: l.modifiers.map((m) => m.code), cost: l.cost ?? null, finding_id: l.finding_id ?? null });
-    return emptyLine(type, { section: l.section ?? "repair", label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, part_number: l.part_number ?? null, vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
+    return emptyLine(type, { section: l.section ?? "repair", label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, part_number: l.part_number ?? null, part_condition: l.part_condition ?? "new", vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
   };
   return {
     options: e.options.map((o) => {
@@ -77,7 +78,7 @@ function toInput(l: LineDraft): EstimateLineInput {
   const extra = { cost: l.cost, finding_id: l.finding_id, section: l.section, job: l.job };
   if (l.line_type === "service") return { line_type: "service", service_id: l.service_id ?? "", qty: l.qty, label: l.label, price: l.price, modifiers: l.modifiers, ...extra };
   if (l.line_type === "labor") return { line_type: "labor", label: l.label ?? "", hours: Number(l.hours ?? 0), rate: l.rate, taxable: l.taxable, ...extra };
-  if (l.line_type === "part") return { line_type: "part", label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), part_number: l.part_number, vendor: l.vendor, taxable: l.taxable, ...extra };
+  if (l.line_type === "part") return { line_type: "part", label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), part_number: l.part_number, part_condition: l.part_condition ?? "new", vendor: l.vendor, taxable: l.taxable, ...extra };
   return { line_type: l.line_type, label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), vendor: l.vendor, taxable: l.taxable, ...extra };
 }
 
@@ -520,7 +521,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                                                   </div>
                                                   {l.line_type === "service" && svc?.benefit_text && !l.label && <div className="truncate text-caption text-subtle">{svc.benefit_text}</div>}
                                                   {l.line_type === "labor" && <div className="text-caption text-subtle">{l.hours} h × {formatMoney(l.rate ?? quoteCatalog.defaultRate ?? 0)}{l.taxable ? " · taxed" : ""}</div>}
-                                                  {l.line_type === "part" && <div className="text-caption text-subtle">{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.price ?? 0)}` : null, l.part_number, l.vendor, l.taxable === false ? "no tax" : "taxed"].filter(Boolean).join(" · ")}</div>}
+                                                  {l.line_type === "part" && <div className="text-caption text-subtle">{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.price ?? 0)}` : null, l.part_number, l.vendor, estimateConditionNote(l.part_condition), l.taxable === false ? "no tax" : "taxed"].filter(Boolean).join(" · ")}</div>}
                                                   {(l.line_type === "fee" || l.line_type === "sublet") && <div className="text-caption text-subtle">{[l.vendor, l.taxable ? "taxed" : null].filter(Boolean).join(" · ")}</div>}
                                                   {l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}{ql ? ` · margin ${formatMoney(ql.line_total - Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}` : ""}</div>}
                                                 </div>
@@ -744,6 +745,7 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
   const [price, setPrice] = useState(initial?.price != null ? String(initial.price) : "");
   const [partNumber, setPartNumber] = useState(initial?.part_number ?? "");
   const [vendor, setVendor] = useState(initial?.vendor ?? "");
+  const [condition, setCondition] = useState<PartCondition>(initial?.part_condition ?? "new");
   const [taxable, setTaxable] = useState(initial?.taxable != null ? !!initial.taxable : type === "part" ? (policy?.parts_taxable_default ?? true) : type === "labor" ? !!policy?.labor_taxable_default : false);
   const [cost, setCost] = useState(initial?.cost != null ? String(initial.cost) : "");
   const title = initial ? "Change this line" : type === "labor" ? "Labor" : type === "part" ? "A part" : type === "fee" ? "A fee" : type === "sublet" ? "Outside work (sublet)" : "Something not on the menu";
@@ -766,7 +768,7 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
       return onAdd(emptyLine("service", { service_id: other.id, label: name, price: Math.round(n * 100) / 100, cost: c }));
     }
     const q = Math.max(Number(qty) || 1, 0.01);
-    onAdd(emptyLine(type, { label: name, qty: type === "part" ? q : 1, price: Math.round(n * 100) / 100, part_number: partNumber.trim() || null, vendor: vendor.trim() || null, taxable, cost: c }));
+    onAdd(emptyLine(type, { label: name, qty: type === "part" ? q : 1, price: Math.round(n * 100) / 100, part_number: partNumber.trim() || null, part_condition: type === "part" ? condition : undefined, vendor: vendor.trim() || null, taxable, cost: c }));
   }
 
   return (
@@ -803,6 +805,19 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
               {type === "part" && <div className="grid gap-1.5"><Label htmlFor="ln-qty">Quantity</Label><Input id="ln-qty" type="number" inputMode="decimal" min={1} step="1" value={qty} onChange={(e) => setQty(e.target.value)} /></div>}
               <div className="grid gap-1.5"><Label htmlFor="ln-price">{type === "part" ? "Price each" : "Amount"}</Label><Input id="ln-price" type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" data-testid="line-price" /></div>
               {type === "part" && <div className="grid gap-1.5"><Label htmlFor="ln-part">Part number (optional)</Label><Input id="ln-part" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} maxLength={60} /></div>}
+              {type === "part" && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ln-condition">Condition</Label>
+                  <Select value={condition} onValueChange={(v) => setCondition(v as PartCondition)}>
+                    <SelectTrigger id="ln-condition" data-testid="line-condition"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PART_CONDITIONS.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               {(type === "part" || type === "sublet") && <div className="grid gap-1.5"><Label htmlFor="ln-vendor">{type === "part" ? "Vendor (optional)" : "Who does it (optional)"}</Label><Input id="ln-vendor" value={vendor} onChange={(e) => setVendor(e.target.value)} maxLength={80} /></div>}
             </div>
           )}

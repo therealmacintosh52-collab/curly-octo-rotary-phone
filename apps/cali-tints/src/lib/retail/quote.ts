@@ -1,3 +1,4 @@
+import type { PartCondition } from "@/lib/db/types";
 import type { VehicleSize } from "./size-class";
 
 /**
@@ -132,6 +133,8 @@ export type EstimateLineDraft = {
   hours: number | null;
   rate: number | null;
   part_number: string | null;
+  /** Parts only; new unless said otherwise (0065). */
+  part_condition?: PartCondition;
   vendor: string | null;
   taxable: boolean | null;
   cost: number | null;

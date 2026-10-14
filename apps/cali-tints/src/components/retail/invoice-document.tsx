@@ -4,6 +4,7 @@ import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney, formatTaxRate } from "@/lib/money";
 import { formatAddress } from "@/lib/address";
 import { paymentMethodLower } from "@/lib/retail/payment-labels";
+import { invoiceConditionNote, MIXED_CONDITION_NOTE, mixesConditions } from "@/lib/retail/part-condition";
 import { cn } from "@/lib/utils";
 
 const TYPE_LABEL: Record<string, string> = { labor: "Labor", part: "Part", fee: "Fee", shop_supplies: "Fee", sublet: "Sublet", service: "Service" };
@@ -24,7 +25,8 @@ export function taxLabel(r: Pick<ReceiptView, "taxable_types" | "tax_rate">): st
 
 function lineDetail(l: InvoiceJob["lines"][number]): string {
   if (l.type === "labor" && l.hours) return `${l.hours} h`;
-  if (l.type === "part" && l.qty && l.qty !== 1) return `× ${l.qty}`;
+  // Every part says whether it is new, used, rebuilt or reconditioned (16 CCR §3356)
+  if (l.type === "part") return [l.qty && l.qty !== 1 ? `× ${l.qty}` : null, invoiceConditionNote(l.part_condition)].filter(Boolean).join(" · ");
   return "";
 }
 
@@ -107,6 +109,7 @@ export function InvoiceDocument({ r, children }: { r: ReceiptView; children?: Re
                   </li>
                 ))}
               </ul>
+              {mixesConditions(j.lines) && <p className="mt-1 text-caption text-subtle" data-testid="doc-mixed-parts">{MIXED_CONDITION_NOTE}</p>}
               <div className="mt-1 text-right font-medium tabular-nums" data-testid="doc-job-total">Job Total: {formatMoney(j.total)}</div>
             </section>
           );

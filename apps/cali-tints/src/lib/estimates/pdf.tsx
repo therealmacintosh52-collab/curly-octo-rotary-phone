@@ -1,4 +1,5 @@
 import { FindingsPdfSection } from "./findings-pdf";
+import { estimateConditionNote } from "@/lib/retail/part-condition";
 import { sectionHeading } from "@/lib/retail/sections";
 import type { EstimateOptionView } from "@/lib/db/types";
 import "server-only";
@@ -116,7 +117,7 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
                 <View style={s.lineName}>
                   <Text>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</Text>
                   {l.line_type === "labor" ? <Text style={s.small}>{`${l.hours} h × ${formatMoney(l.rate ?? 0)}`}</Text> : null}
-                  {l.line_type === "part" ? <Text style={s.small}>{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number, l.vendor].filter(Boolean).join(" · ")}</Text> : null}
+                  {l.line_type === "part" ? <Text style={s.small}>{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number, l.vendor, estimateConditionNote(l.part_condition)].filter(Boolean).join(" · ")}</Text> : null}
                   {l.line_type === "sublet" && l.vendor ? <Text style={s.small}>{l.vendor}</Text> : null}
                   {l.benefit_text ? <Text style={s.small}>{l.benefit_text}</Text> : null}
                   {l.modifiers.length ? <Text style={s.small}>{l.modifiers.map((m) => m.label).join(", ")}</Text> : null}

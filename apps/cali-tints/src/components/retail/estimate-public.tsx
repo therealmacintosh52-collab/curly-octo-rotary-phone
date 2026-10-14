@@ -1,5 +1,6 @@
 "use client";
 
+import { estimateConditionNote } from "@/lib/retail/part-condition";
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2Icon, CheckIcon, ClockIcon, FileDownIcon, PlayIcon, StarIcon } from "lucide-react";
@@ -231,7 +232,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
                 <ul className="mt-3 grid gap-1.5 text-sm">
                   {o.lines.map((l, li) => {
                     const type = l.line_type ?? "service";
-                    const meta = type === "labor" ? `${l.hours} h${l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}` : type === "part" ? [l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number].filter(Boolean).join(" · ") : type === "service" && l.qty !== 1 ? `× ${l.qty}` : "";
+                    const meta = type === "labor" ? `${l.hours} h${l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}` : type === "part" ? [l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number, estimateConditionNote(l.part_condition)].filter(Boolean).join(" · ") : type === "service" && l.qty !== 1 ? `× ${l.qty}` : "";
                     const on = single ? kept.includes(l.id) : true;
                     return (
                       <Fragment key={l.id}>
@@ -425,7 +426,7 @@ function PublicJobs({ o, kept, setKept, locked, findings }: { o: EstimateOptionV
             <ul className="mt-2 grid gap-1 text-sm">
               {lines.map((l) => {
                 const type = l.line_type ?? "service";
-                const meta = type === "labor" ? `${l.hours} h${l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}` : type === "part" ? [l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number].filter(Boolean).join(" · ") : "";
+                const meta = type === "labor" ? `${l.hours} h${l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}` : type === "part" ? [l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number, estimateConditionNote(l.part_condition)].filter(Boolean).join(" · ") : "";
                 return (
                   <li key={l.id} className={cn("flex items-baseline justify-between gap-3", !on && "text-muted-foreground line-through")}>
                     <span className="min-w-0"><span className="font-medium">{l.name}</span>{meta && <span className="text-muted-foreground"> · {meta}</span>}</span>
