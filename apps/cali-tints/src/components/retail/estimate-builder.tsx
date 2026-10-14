@@ -78,7 +78,15 @@ function toInput(l: LineDraft): EstimateLineInput {
  * prices everything again when it saves. Written on an open repair order it
  * is a supplement: the findings it quotes arrive prefilled.
  */
-export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[] }) {
+/** Recommendations added from the findings panel go on the first option, once each. */
+function withExtra<T extends { options: OptionDraft[] }>(base: T, extra?: LineDraft[]): T {
+  if (!extra?.length || !base.options[0]) return base;
+  const have = new Set(base.options[0].lines.map(lineKey));
+  const add = extra.filter((l) => !have.has(lineKey(l)));
+  return { ...base, options: [{ ...base.options[0], lines: [...base.options[0].lines, ...add] }, ...base.options.slice(1)] };
+}
+
+export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[] }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -95,7 +103,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   const [pick, setPick] = useState<CustomerPick>(initialCustomer);
   const pickedVehicle = pick.customer?.vehicles.find((v) => v.id === pick.vehicleId) ?? null;
   const [size, setSize] = useState<VehicleSize>(estimate?.size_class ?? pickedVehicle?.size_class ?? "sedan");
-  const initial = useMemo(() => (estimate ? fromView(estimate, catalog.services) : { options: [{ key: nextKey(), tier: "single" as EstimateTier, name: "Quote", description: "", recommended: true, lines: initialLines ?? [] }], addons: [] }), [estimate, catalog.services, initialLines]);
+  const initial = useMemo(() => (estimate ? withExtra(fromView(estimate, catalog.services), extraLines) : { options: [{ key: nextKey(), tier: "single" as EstimateTier, name: "Quote", description: "", recommended: true, lines: initialLines ?? [] }], addons: [] }), [estimate, catalog.services, initialLines, extraLines]);
   const [options, setOptions] = useState<OptionDraft[]>(initial.options);
   const [addons, setAddons] = useState<AddonDraft[]>(initial.addons);
   const [expires, setExpires] = useState(estimate?.expires_at ? toDateInput(new Date(estimate.expires_at)) : addDaysYmd(toDateInput(new Date()), validDays));

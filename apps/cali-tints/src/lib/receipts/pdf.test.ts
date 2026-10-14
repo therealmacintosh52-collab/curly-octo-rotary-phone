@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { receiptFixture, RECEIPT_TOKEN, retailInvoiceDetailFixture, retailInvoiceListFixture } from "@/test/retail-fixtures";
+import { INVOICE_TOKEN, receiptFixture, RECEIPT_TOKEN, retailInvoiceDetailFixture, retailInvoiceListFixture } from "@/test/retail-fixtures";
 import { receiptPdf } from "./pdf";
 import { receiptFileStem } from "./load";
 
@@ -24,6 +24,18 @@ describe("receipt pdf", () => {
     expect(inv.balance).toBe(160);
     expect(inv.has_signature).toBe(false);
     const buf = await receiptPdf(inv, null, null);
+    expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
+  });
+});
+
+describe("the customer's unpaid invoice", () => {
+  it("shows what is due and the findings the customer may see", async () => {
+    const r = receiptFixture(INVOICE_TOKEN, false)!;
+    expect(r.paid_at).toBeNull();
+    expect(r.balance).toBe(160);
+    expect((r.findings ?? []).length).toBeGreaterThan(0);
+    expect((r.findings ?? []).every((f) => f.customer_visible !== false)).toBe(true);
+    const buf = await receiptPdf(r, null, null);
     expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
   });
 });

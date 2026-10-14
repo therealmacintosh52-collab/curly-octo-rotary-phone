@@ -6,6 +6,7 @@ import { formatMoney, formatTaxRate } from "@/lib/money";
 import { formatAddress } from "@/lib/address";
 import { Page } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
+import { RoLayout } from "@/components/jobs/ro-notes";
 import { RetailInvoiceStatusBadge } from "./retail-invoice-status-badge";
 
 const METHOD: Record<string, string> = { clover_online: "Card online", clover_flex: "Card at the counter", cash: "Cash", check: "Check", other: "Other" };
@@ -15,8 +16,39 @@ const METHOD: Record<string, string> = { clover_online: "Card online", clover_fl
  * and how, the signature at pickup. Taking the payment stays on the repair
  * order (the counter card on the Clover); this page is the document.
  */
-export function RetailInvoiceDetail({ inv }: { inv: Invoice }) {
+export function RetailInvoiceDetail({ inv, notes, findingsCount }: { inv: Invoice; /** The findings side panel (same rows as on the estimate). */ notes?: React.ReactNode; findingsCount?: number }) {
   const due = inv.status === "unpaid" || inv.status === "partial";
+  const invoiceBody = (
+    <section className="max-w-2xl rounded-2xl border border-border bg-card p-4">
+      <ul className="divide-y divide-border text-sm" data-testid="retail-invoice-lines">
+        {inv.lines.map((l, i) => (
+          <li key={i} className="flex items-center justify-between gap-3 py-2">
+            <span>{l.name}</span>
+            <span className="tabular-nums">{formatMoney(l.price)}</span>
+          </li>
+        ))}
+        {inv.lines.length === 0 && <li className="py-2 text-muted-foreground">No services on the repair order yet.</li>}
+      </ul>
+      <div className="mt-2 grid gap-1 border-t border-border pt-2 text-sm">
+        <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatMoney(inv.subtotal)}</span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(inv.tax_rate ?? 0))})</span><span className="tabular-nums">{formatMoney(inv.tax)}</span></div>
+        <div className="flex justify-between text-base font-semibold"><span>Total</span><span className="tabular-nums" data-testid="retail-invoice-total">{formatMoney(inv.total)}</span></div>
+        {inv.payments.map((p, i) => (
+          <div key={i} className="flex justify-between text-muted-foreground">
+            <span>{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Paid"} · {METHOD[p.method] ?? p.method}{p.paid_at ? ` · ${formatDateTime(p.paid_at)}` : ""}</span>
+            <span className="tabular-nums">{p.kind === "refund" ? "+" : "−"}{formatMoney(p.amount)}</span>
+          </div>
+        ))}
+        <div className="flex justify-between font-semibold"><span>Balance due</span><span className="tabular-nums" data-testid="retail-invoice-balance">{formatMoney(inv.balance)}</span></div>
+      </div>
+      {inv.signed_name && (
+        <p className="mt-3 text-caption text-subtle" data-testid="retail-invoice-signed">
+          Received by {inv.signed_name}{inv.signed_at ? ` · ${formatDateTime(inv.signed_at)}` : ""}{inv.has_signature ? " · signed" : ""}
+        </p>
+      )}
+    </section>
+  );
+
   return (
     <Page>
       <Link href="/retail/invoices" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -57,34 +89,13 @@ export function RetailInvoiceDetail({ inv }: { inv: Invoice }) {
         </div>
       </div>
 
-      <section className="mt-6 max-w-2xl rounded-2xl border border-border bg-card p-4">
-        <ul className="divide-y divide-border text-sm" data-testid="retail-invoice-lines">
-          {inv.lines.map((l, i) => (
-            <li key={i} className="flex items-center justify-between gap-3 py-2">
-              <span>{l.name}</span>
-              <span className="tabular-nums">{formatMoney(l.price)}</span>
-            </li>
-          ))}
-          {inv.lines.length === 0 && <li className="py-2 text-muted-foreground">No services on the repair order yet.</li>}
-        </ul>
-        <div className="mt-2 grid gap-1 border-t border-border pt-2 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatMoney(inv.subtotal)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(inv.tax_rate ?? 0))})</span><span className="tabular-nums">{formatMoney(inv.tax)}</span></div>
-          <div className="flex justify-between text-base font-semibold"><span>Total</span><span className="tabular-nums" data-testid="retail-invoice-total">{formatMoney(inv.total)}</span></div>
-          {inv.payments.map((p, i) => (
-            <div key={i} className="flex justify-between text-muted-foreground">
-              <span>{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Paid"} · {METHOD[p.method] ?? p.method}{p.paid_at ? ` · ${formatDateTime(p.paid_at)}` : ""}</span>
-              <span className="tabular-nums">{p.kind === "refund" ? "+" : "−"}{formatMoney(p.amount)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between font-semibold"><span>Balance due</span><span className="tabular-nums" data-testid="retail-invoice-balance">{formatMoney(inv.balance)}</span></div>
-        </div>
-        {inv.signed_name && (
-          <p className="mt-3 text-caption text-subtle" data-testid="retail-invoice-signed">
-            Received by {inv.signed_name}{inv.signed_at ? ` · ${formatDateTime(inv.signed_at)}` : ""}{inv.has_signature ? " · signed" : ""}
-          </p>
-        )}
-      </section>
+      {notes ? (
+        <RoLayout initialTab="job" jobLabel="Invoice" count={findingsCount ?? 0} notes={notes}>
+          {invoiceBody}
+        </RoLayout>
+      ) : (
+        <div className="mt-6">{invoiceBody}</div>
+      )}
       <p className="mt-4 text-caption text-subtle">{inv.company.name} · {formatAddress(inv.company).join(", ")}</p>
     </Page>
   );

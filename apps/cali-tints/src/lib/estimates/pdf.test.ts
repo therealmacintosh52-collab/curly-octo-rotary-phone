@@ -18,6 +18,16 @@ describe("estimate pdf", () => {
     if (OUT) writeFileSync(`${OUT}/estimate-sent.pdf`, buf);
   });
 
+  it("lists what the tech found (visible ones only) on the estimate", async () => {
+    const e = estimateViewFixture(ESTIMATE_IDS.ana, true)!;
+    expect(e.findings).toHaveLength(3); // staff see the internal note too
+    const withFindings = await estimatePdf(e, null, null);
+    const without = await estimatePdf({ ...e, findings: [] }, null, null);
+    expect(withFindings.length).toBeGreaterThan(without.length);
+    // the customer's copy has no internal note
+    expect(estimatePublicFixture(ESTIMATE_TOKEN)!.findings).toHaveLength(2);
+  });
+
   it("renders an approved estimate with the signature", async () => {
     const e = estimateViewFixture(ESTIMATE_IDS.luis, true)!;
     const buf = await estimatePdf(e, null, SIG);

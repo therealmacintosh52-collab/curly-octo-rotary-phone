@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { RoLayout } from "@/components/jobs/ro-notes";
 import { cn } from "@/lib/utils";
 import { EstimateStatusBadge } from "./estimate-status-badge";
 
@@ -33,7 +34,7 @@ const money = (n: number | null | undefined) => (n === null || n === undefined ?
  * send it, record an approval taken in person or by phone, decline it, turn
  * it into the job. Managers and detailers see everything but the money.
  */
-export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; showMoney: boolean; publicUrl: string | null }) {
+export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount }: { e: EstimateView; showMoney: boolean; publicUrl: string | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { canPrices, isAdmin, demo } = useSession();
   const [pending, start] = useTransition();
@@ -121,6 +122,265 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
     });
   }
 
+  const mainGrid = (
+    <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <div className="flex min-w-0 flex-col gap-4">
+        {e.options.map((o) => {
+          const isChosen = chosen?.id === o.id;
+          return (
+            <Card key={o.id} className={cn(isChosen && "border-primary", !accepted && o.recommended && "border-primary/50")} data-testid="estimate-option">
+              <CardHeader className="flex-row items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="flex flex-wrap items-center gap-2">
+                    {o.name}
+                    {isChosen && <Badge variant="success"><CheckIcon /> Chosen</Badge>}
+                    {!accepted && o.recommended && e.options.length > 1 && <Badge variant="outline"><StarIcon /> Recommended</Badge>}
+                  </CardTitle>
+                  {o.description && <p className="mt-1 text-sm text-muted-foreground">{o.description}</p>}
+                </div>
+                {showMoney && <div className="shrink-0 text-lg font-semibold tabular-nums">{money(o.total)}</div>}
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y divide-border text-sm">
+                  {o.lines.map((l) => (
+                    <li key={l.id} className="flex items-start justify-between gap-3 py-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 font-medium">
+                          {(l.line_type ?? "service") !== "service" && <Badge variant="muted">{l.line_type}</Badge>}
+                          <span>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</span>
+                          {accepted && o.tier === "single" && l.customer_approved === false && <Badge variant="muted">Declined</Badge>}
+                        </div>
+                        {lineMeta(l) && <div className="text-caption text-subtle">{lineMeta(l)}</div>}
+                        {l.benefit_text && <div className="text-caption text-subtle">{l.benefit_text}</div>}
+                        {l.modifiers.length > 0 && <div className="text-caption text-warning">{l.modifiers.map((m) => m.label).join(", ")}</div>}
+                        {showMoney && l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * ((l.line_type ?? "service") === "labor" ? 1 : l.qty))}</div>}
+                      </div>
+                      {showMoney && <span className={cn("shrink-0 tabular-nums", accepted && o.tier === "single" && l.customer_approved === false && "line-through text-muted-foreground")}>{money(l.line_total)}</span>}
+                    </li>
+                  ))}
+                </ul>
+                {showMoney && (o.shop_supplies ?? 0) > 0 && <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-sm"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums">{money(o.shop_supplies)}</span></div>}
+                <div className="mt-2 text-caption text-subtle">About {Math.round((o.duration_minutes / 60) * 10) / 10} h of work</div>
+              </CardContent>
+            </Card>
+          );
+        })}
+
+        {e.addons.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{accepted ? "Add-ons" : "Add-ons offered"}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="divide-y divide-border text-sm" data-testid="estimate-addons">
+                {e.addons.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <div className="font-medium">{a.name}</div>
+                      {a.benefit_text && <div className="text-caption text-subtle">{a.benefit_text}</div>}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {accepted ? <Badge variant={a.customer_approved ? "success" : "muted"}>{a.customer_approved ? "Yes" : "No"}</Badge> : a.default_on ? <Badge variant="outline">On by default</Badge> : null}
+                      {showMoney && <span className="w-16 text-right tabular-nums">{money(a.line_total)}</span>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {!notes && (e.findings ?? []).length > 0 && (
+          <Card data-testid="estimate-findings">
+            <CardHeader>
+              <CardTitle>What the tech found</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="divide-y divide-border text-sm">
+                {e.findings!.map((f) => (
+                  <li key={f.id} className="flex items-start justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2"><span className={cn("inline-block size-2.5 shrink-0 rounded-full", f.severity === "urgent" ? "bg-destructive" : f.severity === "soon" ? "bg-warning" : "bg-success")} /><span className="font-medium">{f.title}</span></div>
+                      {f.body && <p className="mt-0.5 text-caption text-subtle">{f.body}</p>}
+                      {f.media.length > 0 && <div className="mt-1 text-caption text-subtle">{f.media.length} {f.media.length === 1 ? "photo or clip" : "photos / clips"} on the RO</div>}
+                    </div>
+                    <Badge variant={f.status === "approved" ? "success" : f.status === "declined" ? "muted" : "info"}>{f.status === "approved" ? "Approved" : f.status === "declined" ? "Declined" : "Quoted"}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {(e.customer_notes || e.internal_notes) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Notes</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm">
+              {e.customer_notes && <div><div className="text-caption text-muted-foreground">To the customer</div><p className="whitespace-pre-wrap">{e.customer_notes}</p></div>}
+              {e.internal_notes && <div><div className="text-caption text-muted-foreground">Staff only</div><p className="whitespace-pre-wrap">{e.internal_notes}</p></div>}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-4">
+        {showMoney && (
+          <Card data-testid="estimate-money">
+            <CardContent className="grid gap-1.5 pt-5 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">{accepted ? "Subtotal" : e.options.length > 1 ? "Subtotal (recommended)" : "Subtotal"}</span><span className="tabular-nums">{money(e.subtotal)}</span></div>
+              {(e.shop_supplies ?? 0) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums" data-testid="estimate-supplies">{money(e.shop_supplies)}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(e.tax_rate ?? 0))})</span><span className="tabular-nums">{money(e.tax)}</span></div>
+              <div className="flex justify-between border-t border-border pt-2 text-base font-semibold"><span>Total</span><span className="tabular-nums" data-testid="estimate-total">{money(e.total)}</span></div>
+              {(e.deposit_required ?? 0) > 0 && <div className="flex justify-between text-caption text-subtle"><span>Deposit to book</span><span className="tabular-nums">{money(e.deposit_required)}</span></div>}
+              {e.po_number && <div className="flex justify-between text-caption text-subtle"><span>PO</span><span>{e.po_number}</span></div>}
+            </CardContent>
+          </Card>
+        )}
+
+        {canPrices && open && (
+          <Card data-testid="estimate-send">
+            <CardHeader>
+              <CardTitle>{e.status === "draft" ? "Send it" : "Sent"}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              {e.status === "draft" && <p className="text-caption text-subtle">The customer opens a link, picks an option, signs and approves. Nothing goes out until you tap.</p>}
+              {url && e.status !== "draft" && (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-caption">
+                  <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 truncate" data-testid="estimate-link">{url}</span>
+                  <button type="button" onClick={copy} className="ml-auto shrink-0 text-muted-foreground hover:text-foreground" aria-label="Copy link"><CopyIcon className="size-4" /></button>
+                </div>
+              )}
+              <Button onClick={() => send("email")} loading={pending} disabled={!e.customer.email} data-testid="send-email">
+                <MailIcon /> {e.status === "draft" ? "Email the link" : "Email it again"}
+              </Button>
+              {!e.customer.email && <p className="text-caption text-subtle">No email on file: text the link instead.</p>}
+              {e.status === "draft" ? (
+                <Button variant="outline" onClick={() => send("link")} loading={pending} data-testid="send-link">
+                  <SendIcon /> Mark sent, give me the link
+                </Button>
+              ) : (
+                <>
+                  {e.customer.phone && (
+                    <Button asChild variant="outline">
+                      <a href={smsHref(e.customer.phone, smsBody, platform) ?? "#"} data-testid="text-link">
+                        <MessageSquareTextIcon /> Text the link
+                      </a>
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={copy}>
+                    <CopyIcon /> Copy the link
+                  </Button>
+                </>
+              )}
+              {e.status !== "draft" && (
+                <p className="text-caption text-subtle">
+                  Sent {formatDateTime(e.sent_at)}{e.view_count ? ` · opened ${e.view_count}× · last ${formatDateTime(e.last_viewed_at)}` : " · not opened yet"}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {canPrices && open && (
+          <Card>
+            <CardHeader>
+              <CardTitle>They answered in person?</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <Button variant="secondary" onClick={() => setAccepting(true)} data-testid="mark-accepted">
+                <CheckIcon /> Mark approved
+              </Button>
+              <Button variant="ghost" onClick={() => setDeclining(true)} data-testid="mark-declined">
+                <ThumbsDownIcon /> Declined
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {auth && (
+          <Card data-testid="estimate-authorization">
+            <CardHeader>
+              <CardTitle>{accepted ? "Approved" : "Answer"}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm">
+              <div className="font-medium">{auth.name}</div>
+              <div className="text-caption text-subtle">{formatDateTime(auth.authorized_at)} · {auth.method === "online" ? "signed online" : `in ${auth.method.replace("_", " ")}`}{auth.pay_choice ? ` · ${auth.pay_choice === "deposit" ? "pays the deposit online" : "pays at the shop"}` : ""}</div>
+              {auth.signature_path && <Badge variant="success"><PencilIcon /> Signature on file{showMoney ? " · on the PDF" : ""}</Badge>}
+              {showMoney && auth.total !== null && <div className="text-caption text-subtle">Approved total {money(auth.total)}</div>}
+            </CardContent>
+          </Card>
+        )}
+        {e.status === "declined" && (
+          <Card>
+            <CardContent className="pt-5 text-sm">
+              <div className="font-medium">Declined {formatDateTime(e.declined_at)}</div>
+              {e.decline_reason && <p className="mt-1 text-muted-foreground">{e.decline_reason}</p>}
+            </CardContent>
+          </Card>
+        )}
+
+        {supplement && ro && accepted && (
+          <Card data-testid="estimate-apply">
+            <CardHeader>
+              <CardTitle>Next</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              {e.applied_at ? (
+                <p className="text-sm text-muted-foreground">The approved work is on {ro.ro_number ?? ro.tag_number}; the counter collects it with the rest.</p>
+              ) : canPrices ? (
+                <Button onClick={applyToRo} loading={applying} data-testid="apply-to-ro"><ClipboardCheckIcon /> Add the approved work to {ro.ro_number ?? ro.tag_number}</Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">Approved; the advisor adds it to the RO.</p>
+              )}
+              <Button asChild variant="outline"><Link href={`/jobs/${ro.id}?tab=notes`}><WrenchIcon /> Open the RO</Link></Button>
+            </CardContent>
+          </Card>
+        )}
+        {accepted && !supplement && (
+          <Card data-testid="estimate-invoice">
+            <CardHeader>
+              <CardTitle>Invoice</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              {ro ? (
+                <>
+                  <p className="text-sm text-muted-foreground">Approved and signed: {ro.invoice_number ?? ro.ro_number ?? ro.tag_number} was created with the approved lines. Payment is collected at the counter, never through QuickBooks.</p>
+                  {canPrices && ro.invoice_number && (
+                    <Button asChild data-testid="estimate-open-invoice"><Link href={`/retail/invoices/${ro.id}`}><FileTextIcon /> Open the invoice {ro.invoice_number}</Link></Button>
+                  )}
+                  <Button asChild variant="outline"><Link href={`/jobs/${ro.id}?tab=notes`}><WrenchIcon /> Open the work</Link></Button>
+                </>
+              ) : canPrices ? (
+                <>
+                  <p className="text-sm text-muted-foreground">Approved, but the invoice could not be created (is a retail location set up in Settings → Dealerships?).</p>
+                  <Button onClick={createInvoice} loading={applying} data-testid="create-invoice"><FileTextIcon /> Create the invoice</Button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Approved; the advisor creates the invoice.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+        {isAdmin && accepted && !supplement && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Next</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <Button asChild data-testid="schedule-estimate">
+                <Link href={`/retail/calendar?estimate=${e.id}`}><CalendarPlusIcon /> Schedule it</Link>
+              </Button>
+              <p className="text-caption text-subtle">Pick a time on the calendar; the invoice and the work are already open.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <Page>
       <Link href="/retail/estimates" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -171,262 +431,13 @@ export function EstimateDetail({ e, showMoney, publicUrl }: { e: EstimateView; s
         )}
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          {e.options.map((o) => {
-            const isChosen = chosen?.id === o.id;
-            return (
-              <Card key={o.id} className={cn(isChosen && "border-primary", !accepted && o.recommended && "border-primary/50")} data-testid="estimate-option">
-                <CardHeader className="flex-row items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="flex flex-wrap items-center gap-2">
-                      {o.name}
-                      {isChosen && <Badge variant="success"><CheckIcon /> Chosen</Badge>}
-                      {!accepted && o.recommended && e.options.length > 1 && <Badge variant="outline"><StarIcon /> Recommended</Badge>}
-                    </CardTitle>
-                    {o.description && <p className="mt-1 text-sm text-muted-foreground">{o.description}</p>}
-                  </div>
-                  {showMoney && <div className="shrink-0 text-lg font-semibold tabular-nums">{money(o.total)}</div>}
-                </CardHeader>
-                <CardContent>
-                  <ul className="divide-y divide-border text-sm">
-                    {o.lines.map((l) => (
-                      <li key={l.id} className="flex items-start justify-between gap-3 py-2">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 font-medium">
-                            {(l.line_type ?? "service") !== "service" && <Badge variant="muted">{l.line_type}</Badge>}
-                            <span>{l.name}{(l.line_type ?? "service") === "service" && l.qty !== 1 ? ` × ${l.qty}` : ""}</span>
-                            {accepted && o.tier === "single" && l.customer_approved === false && <Badge variant="muted">Declined</Badge>}
-                          </div>
-                          {lineMeta(l) && <div className="text-caption text-subtle">{lineMeta(l)}</div>}
-                          {l.benefit_text && <div className="text-caption text-subtle">{l.benefit_text}</div>}
-                          {l.modifiers.length > 0 && <div className="text-caption text-warning">{l.modifiers.map((m) => m.label).join(", ")}</div>}
-                          {showMoney && l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * ((l.line_type ?? "service") === "labor" ? 1 : l.qty))}</div>}
-                        </div>
-                        {showMoney && <span className={cn("shrink-0 tabular-nums", accepted && o.tier === "single" && l.customer_approved === false && "line-through text-muted-foreground")}>{money(l.line_total)}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                  {showMoney && (o.shop_supplies ?? 0) > 0 && <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-sm"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums">{money(o.shop_supplies)}</span></div>}
-                  <div className="mt-2 text-caption text-subtle">About {Math.round((o.duration_minutes / 60) * 10) / 10} h of work</div>
-                </CardContent>
-              </Card>
-            );
-          })}
-
-          {e.addons.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{accepted ? "Add-ons" : "Add-ons offered"}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="divide-y divide-border text-sm" data-testid="estimate-addons">
-                  {e.addons.map((a) => (
-                    <li key={a.id} className="flex items-center justify-between gap-3 py-2">
-                      <div className="min-w-0">
-                        <div className="font-medium">{a.name}</div>
-                        {a.benefit_text && <div className="text-caption text-subtle">{a.benefit_text}</div>}
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {accepted ? <Badge variant={a.customer_approved ? "success" : "muted"}>{a.customer_approved ? "Yes" : "No"}</Badge> : a.default_on ? <Badge variant="outline">On by default</Badge> : null}
-                        {showMoney && <span className="w-16 text-right tabular-nums">{money(a.line_total)}</span>}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {(e.findings ?? []).length > 0 && (
-            <Card data-testid="estimate-findings">
-              <CardHeader>
-                <CardTitle>What the tech found</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="divide-y divide-border text-sm">
-                  {e.findings!.map((f) => (
-                    <li key={f.id} className="flex items-start justify-between gap-3 py-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2"><span className={cn("inline-block size-2.5 shrink-0 rounded-full", f.severity === "urgent" ? "bg-destructive" : f.severity === "soon" ? "bg-warning" : "bg-success")} /><span className="font-medium">{f.title}</span></div>
-                        {f.body && <p className="mt-0.5 text-caption text-subtle">{f.body}</p>}
-                        {f.media.length > 0 && <div className="mt-1 text-caption text-subtle">{f.media.length} {f.media.length === 1 ? "photo or clip" : "photos / clips"} on the RO</div>}
-                      </div>
-                      <Badge variant={f.status === "approved" ? "success" : f.status === "declined" ? "muted" : "info"}>{f.status === "approved" ? "Approved" : f.status === "declined" ? "Declined" : "Quoted"}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {(e.customer_notes || e.internal_notes) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notes</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-3 text-sm">
-                {e.customer_notes && <div><div className="text-caption text-muted-foreground">To the customer</div><p className="whitespace-pre-wrap">{e.customer_notes}</p></div>}
-                {e.internal_notes && <div><div className="text-caption text-muted-foreground">Staff only</div><p className="whitespace-pre-wrap">{e.internal_notes}</p></div>}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-4">
-          {showMoney && (
-            <Card data-testid="estimate-money">
-              <CardContent className="grid gap-1.5 pt-5 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">{accepted ? "Subtotal" : e.options.length > 1 ? "Subtotal (recommended)" : "Subtotal"}</span><span className="tabular-nums">{money(e.subtotal)}</span></div>
-                {(e.shop_supplies ?? 0) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums" data-testid="estimate-supplies">{money(e.shop_supplies)}</span></div>}
-                <div className="flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(e.tax_rate ?? 0))})</span><span className="tabular-nums">{money(e.tax)}</span></div>
-                <div className="flex justify-between border-t border-border pt-2 text-base font-semibold"><span>Total</span><span className="tabular-nums" data-testid="estimate-total">{money(e.total)}</span></div>
-                {(e.deposit_required ?? 0) > 0 && <div className="flex justify-between text-caption text-subtle"><span>Deposit to book</span><span className="tabular-nums">{money(e.deposit_required)}</span></div>}
-                {e.po_number && <div className="flex justify-between text-caption text-subtle"><span>PO</span><span>{e.po_number}</span></div>}
-              </CardContent>
-            </Card>
-          )}
-
-          {canPrices && open && (
-            <Card data-testid="estimate-send">
-              <CardHeader>
-                <CardTitle>{e.status === "draft" ? "Send it" : "Sent"}</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2">
-                {e.status === "draft" && <p className="text-caption text-subtle">The customer opens a link, picks an option, signs and approves. Nothing goes out until you tap.</p>}
-                {url && e.status !== "draft" && (
-                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-caption">
-                    <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 truncate" data-testid="estimate-link">{url}</span>
-                    <button type="button" onClick={copy} className="ml-auto shrink-0 text-muted-foreground hover:text-foreground" aria-label="Copy link"><CopyIcon className="size-4" /></button>
-                  </div>
-                )}
-                <Button onClick={() => send("email")} loading={pending} disabled={!e.customer.email} data-testid="send-email">
-                  <MailIcon /> {e.status === "draft" ? "Email the link" : "Email it again"}
-                </Button>
-                {!e.customer.email && <p className="text-caption text-subtle">No email on file: text the link instead.</p>}
-                {e.status === "draft" ? (
-                  <Button variant="outline" onClick={() => send("link")} loading={pending} data-testid="send-link">
-                    <SendIcon /> Mark sent, give me the link
-                  </Button>
-                ) : (
-                  <>
-                    {e.customer.phone && (
-                      <Button asChild variant="outline">
-                        <a href={smsHref(e.customer.phone, smsBody, platform) ?? "#"} data-testid="text-link">
-                          <MessageSquareTextIcon /> Text the link
-                        </a>
-                      </Button>
-                    )}
-                    <Button variant="outline" onClick={copy}>
-                      <CopyIcon /> Copy the link
-                    </Button>
-                  </>
-                )}
-                {e.status !== "draft" && (
-                  <p className="text-caption text-subtle">
-                    Sent {formatDateTime(e.sent_at)}{e.view_count ? ` · opened ${e.view_count}× · last ${formatDateTime(e.last_viewed_at)}` : " · not opened yet"}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {canPrices && open && (
-            <Card>
-              <CardHeader>
-                <CardTitle>They answered in person?</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2">
-                <Button variant="secondary" onClick={() => setAccepting(true)} data-testid="mark-accepted">
-                  <CheckIcon /> Mark approved
-                </Button>
-                <Button variant="ghost" onClick={() => setDeclining(true)} data-testid="mark-declined">
-                  <ThumbsDownIcon /> Declined
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {auth && (
-            <Card data-testid="estimate-authorization">
-              <CardHeader>
-                <CardTitle>{accepted ? "Approved" : "Answer"}</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2 text-sm">
-                <div className="font-medium">{auth.name}</div>
-                <div className="text-caption text-subtle">{formatDateTime(auth.authorized_at)} · {auth.method === "online" ? "signed online" : `in ${auth.method.replace("_", " ")}`}{auth.pay_choice ? ` · ${auth.pay_choice === "deposit" ? "pays the deposit online" : "pays at the shop"}` : ""}</div>
-                {auth.signature_path && <Badge variant="success"><PencilIcon /> Signature on file{showMoney ? " · on the PDF" : ""}</Badge>}
-                {showMoney && auth.total !== null && <div className="text-caption text-subtle">Approved total {money(auth.total)}</div>}
-              </CardContent>
-            </Card>
-          )}
-          {e.status === "declined" && (
-            <Card>
-              <CardContent className="pt-5 text-sm">
-                <div className="font-medium">Declined {formatDateTime(e.declined_at)}</div>
-                {e.decline_reason && <p className="mt-1 text-muted-foreground">{e.decline_reason}</p>}
-              </CardContent>
-            </Card>
-          )}
-
-          {supplement && ro && accepted && (
-            <Card data-testid="estimate-apply">
-              <CardHeader>
-                <CardTitle>Next</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2">
-                {e.applied_at ? (
-                  <p className="text-sm text-muted-foreground">The approved work is on {ro.ro_number ?? ro.tag_number}; the counter collects it with the rest.</p>
-                ) : canPrices ? (
-                  <Button onClick={applyToRo} loading={applying} data-testid="apply-to-ro"><ClipboardCheckIcon /> Add the approved work to {ro.ro_number ?? ro.tag_number}</Button>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Approved; the advisor adds it to the RO.</p>
-                )}
-                <Button asChild variant="outline"><Link href={`/jobs/${ro.id}?tab=notes`}><WrenchIcon /> Open the RO</Link></Button>
-              </CardContent>
-            </Card>
-          )}
-          {accepted && !supplement && (
-            <Card data-testid="estimate-invoice">
-              <CardHeader>
-                <CardTitle>Invoice</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2">
-                {ro ? (
-                  <>
-                    <p className="text-sm text-muted-foreground">Approved and signed: {ro.invoice_number ?? ro.ro_number ?? ro.tag_number} was created with the approved lines. Payment is collected at the counter, never through QuickBooks.</p>
-                    {canPrices && ro.invoice_number && (
-                      <Button asChild data-testid="estimate-open-invoice"><Link href={`/retail/invoices/${ro.id}`}><FileTextIcon /> Open the invoice {ro.invoice_number}</Link></Button>
-                    )}
-                    <Button asChild variant="outline"><Link href={`/jobs/${ro.id}?tab=notes`}><WrenchIcon /> Open the work</Link></Button>
-                  </>
-                ) : canPrices ? (
-                  <>
-                    <p className="text-sm text-muted-foreground">Approved, but the invoice could not be created (is a retail location set up in Settings → Dealerships?).</p>
-                    <Button onClick={createInvoice} loading={applying} data-testid="create-invoice"><FileTextIcon /> Create the invoice</Button>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Approved; the advisor creates the invoice.</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-          {isAdmin && accepted && !supplement && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Next</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2">
-                <Button asChild data-testid="schedule-estimate">
-                  <Link href={`/retail/calendar?estimate=${e.id}`}><CalendarPlusIcon /> Schedule it</Link>
-                </Button>
-                <p className="text-caption text-subtle">Pick a time on the calendar; the invoice and the work are already open.</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+      {notes ? (
+        <RoLayout initialTab="job" jobLabel="Estimate" count={findingsCount ?? 0} notes={notes}>
+          {mainGrid}
+        </RoLayout>
+      ) : (
+        <div className="mt-6">{mainGrid}</div>
+      )}
 
       {canPrices && <MarkAcceptedDialog e={e} open={accepting} onOpenChange={setAccepting} />}
       <DeclineDialog open={declining} onOpenChange={setDeclining} onDecline={decline} pending={pending} />

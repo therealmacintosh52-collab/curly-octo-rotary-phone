@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { CircleAlertIcon, ClipboardCheckIcon, EllipsisVerticalIcon, FileTextIcon, FilmIcon, PlayIcon, PlusIcon, StickyNoteIcon, VideoIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { FindingSeverity, FindingStatus, JobEstimate, JobFinding } from "@/lib/db/types";
-import { addFindingAction, addFindingPhotosAction, deleteFindingAction, registerFindingMediaAction, updateFindingAction } from "@/app/(app)/jobs/actions";
+import { addEstimateFindingPhotosAction, addFindingAction, addFindingPhotosAction, deleteFindingAction, registerEstimateFindingMediaAction, registerFindingMediaAction, updateFindingAction, type FindingRef } from "@/app/(app)/jobs/actions";
 import { convertEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { formatMoney } from "@/lib/money";
 import { EstimateStatusBadge } from "@/components/retail/estimate-status-badge";
@@ -28,8 +28,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { PhotoPicker, type PendingPhoto } from "./photo-picker";
 
 export interface RoNotesProps {
-  jobId: string;
+  /** The panel belongs to a repair order (the job page, the invoice) or to an estimate that is not approved yet. */
+  jobId?: string;
+  estimateId?: string;
   roNumber: string | null;
+  /** Estimate panel: the estimate is still open (a recommendation can be added to it). */
+  estimateOpen?: boolean;
+  /** Rendered at the top of the panel: "Send findings" and when they last went out. */
+  extra?: React.ReactNode;
   /** Everything on this RO's notes tab, oldest first. */
   findings: JobFinding[];
   /** Findings on the same car from earlier visits that were never done. */
@@ -71,6 +77,7 @@ export function RoNotes(p: RoNotesProps) {
   const urgent = p.findings.filter((f) => f.kind === "finding" && f.severity === "urgent" && f.status === "open").length;
   const quotable = p.findings.filter((f) => f.kind === "finding" && (f.status === "open" || f.status === "declined")).map((f) => f.id);
   const estimates = p.estimates ?? [];
+  const ref: FindingRef = p.jobId ?? { estimateId: p.estimateId! };
   function applyEstimate(e: JobEstimate) {
     start(async () => {
       if (demo) return void toast.success(`Approved work added to ${p.roNumber ?? "the RO"}`, { description: "Guest preview — nothing changed" });
@@ -84,7 +91,15 @@ export function RoNotes(p: RoNotesProps) {
   function setStatus(f: JobFinding, status: "open" | "declined" | "done") {
     start(async () => {
       if (demo) return void toast.success("Updated", { description: "Guest preview — nothing changed" });
-      const r = await updateFindingAction(f.id, p.jobId, { status });
+      const r = await updateFindingAction(f.id, ref, { status });
+      if (!r.ok) return void toast.error(r.error);
+      router.refresh();
+    });
+  }
+  function setVisible(f: JobFinding, visible: boolean) {
+    start(async () => {
+      if (demo) return void toast.success(visible ? "Now shown to the customer" : "Now internal only", { description: "Guest preview — nothing changed" });
+      const r = await updateFindingAction(f.id, ref, { customer_visible: visible });
       if (!r.ok) return void toast.error(r.error);
       router.refresh();
     });
@@ -92,7 +107,7 @@ export function RoNotes(p: RoNotesProps) {
   function remove(f: JobFinding) {
     start(async () => {
       if (demo) return void toast.success("Removed", { description: "Guest preview — nothing changed" });
-      const r = await deleteFindingAction(f.id, p.jobId);
+      const r = await deleteFindingAction(f.id, ref);
       if (!r.ok) return void toast.error(r.error);
       toast.success("Removed");
       router.refresh();
@@ -101,6 +116,7 @@ export function RoNotes(p: RoNotesProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {p.extra}
       {p.fromLastTime.length > 0 && (
         <Card data-testid="ro-from-last-time">
           <CardHeader>
@@ -151,9 +167,17 @@ export function RoNotes(p: RoNotesProps) {
                         <span className="font-medium">{f.title}</span>
                         {f.kind === "finding" && <span className="text-caption text-subtle">{SEVERITY_LABEL[f.severity]}</span>}
                         {STATUS_BADGE[f.status] && <Badge variant={STATUS_BADGE[f.status]!.variant}>{STATUS_BADGE[f.status]!.label}</Badge>}
+                        {f.customer_visible === false && <Badge variant="outline" title="The customer does not see this">Internal</Badge>}
                       </div>
                       {f.body && <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{f.body}</p>}
-                      {f.recommended_service && <p className="mt-1 text-caption text-subtle">Suggests: {f.recommended_service}</p>}
+                      {f.recommended_service && (
+                        <p className="mt-1 text-caption text-subtle">
+                          Recommends: {f.recommended_service}
+                          {p.estimateId && p.canQuote && p.estimateOpen && f.kind === "finding" && f.status === "open" && (
+                            <> · <Link href={`/retail/estimates/${p.estimateId}/edit?findings=${f.id}`} className="font-medium text-primary hover:underline" data-testid="finding-add-to-estimate">Add to this estimate</Link></>
+                          )}
+                        </p>
+                      )}
                     </div>
                     {p.canWrite && (
                       <DropdownMenu>
@@ -163,6 +187,7 @@ export function RoNotes(p: RoNotesProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setVisible(f, f.customer_visible === false)}>{f.customer_visible === false ? "Show to the customer" : "Internal only"}</DropdownMenuItem>
                           {f.status !== "done" && <DropdownMenuItem onSelect={() => setStatus(f, "done")}>Mark done</DropdownMenuItem>}
                           {f.kind === "finding" && f.status === "open" && <DropdownMenuItem onSelect={() => setStatus(f, "declined")}>Customer declined</DropdownMenuItem>}
                           {(f.status === "done" || f.status === "declined") && <DropdownMenuItem onSelect={() => setStatus(f, "open")}>Reopen</DropdownMenuItem>}
@@ -203,7 +228,7 @@ export function RoNotes(p: RoNotesProps) {
                 <PlusIcon /> Add a finding
               </Button>
             )}
-            {p.canQuote && p.jobOpen !== false && quotable.length > 0 && (
+            {p.canQuote && p.jobId && p.jobOpen !== false && quotable.length > 0 && (
               <Button asChild size="sm" data-testid="build-estimate">
                 <Link href={`/retail/estimates/new?job=${p.jobId}&findings=${quotable.join(",")}`}><FileTextIcon /> Build the estimate ({quotable.length})</Link>
               </Button>
@@ -256,7 +281,7 @@ export function RoNotes(p: RoNotesProps) {
         </DialogContent>
       </Dialog>
 
-      {adding && <AddFindingSheet jobId={p.jobId} services={p.services} onClose={() => setAdding(false)} />}
+      {adding && <AddFindingSheet subject={p.jobId ? { jobId: p.jobId } : { estimateId: p.estimateId! }} services={p.services} onClose={() => setAdding(false)} />}
     </div>
   );
 }
@@ -265,7 +290,9 @@ function SeverityDot({ severity }: { severity: FindingSeverity }) {
   return <span aria-label={SEVERITY_LABEL[severity]} className={cn("inline-block size-2.5 shrink-0 rounded-full", severity === "urgent" ? "bg-destructive" : severity === "soon" ? "bg-warning" : "bg-success")} />;
 }
 
-function AddFindingSheet({ jobId, services, onClose }: { jobId: string; services: { id: string; name: string }[]; onClose: () => void }) {
+function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: string } | { estimateId: string }; services: { id: string; name: string }[]; onClose: () => void }) {
+  const jobId = "jobId" in subject ? subject.jobId : null;
+  const estimateId = "estimateId" in subject ? subject.estimateId : null;
   const router = useRouter();
   const { demo, company } = useSession();
   const [kind, setKind] = useState<"finding" | "note">("finding");
@@ -273,6 +300,7 @@ function AddFindingSheet({ jobId, services, onClose }: { jobId: string; services
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [service, setService] = useState("none");
+  const [internal, setInternal] = useState(false);
   const [photos, setPhotos] = useState<PendingPhoto[]>([]);
   const [clip, setClip] = useState<{ file: File; mime: string; duration: number | null } | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
@@ -301,23 +329,24 @@ function AddFindingSheet({ jobId, services, onClose }: { jobId: string; services
         onClose();
         return;
       }
-      const r = await addFindingAction({ job_id: jobId, kind, severity, title, body: body || null, recommended_service_id: service === "none" ? null : service });
+      const r = await addFindingAction({ ...(jobId ? { job_id: jobId } : { estimate_id: estimateId! }), customer_visible: !internal, kind, severity, title, body: body || null, recommended_service_id: service === "none" ? null : service });
       if (!r.ok) return void toast.error(r.error);
       const findingId = r.data.id;
       if (photos.length) {
         setProgress(`Uploading ${photos.length} ${photos.length === 1 ? "photo" : "photos"}…`);
         const form = new FormData();
         for (const ph of photos) form.append("photo", new File([ph.blob], ph.name || "photo.jpg", { type: "image/jpeg" }));
-        const pr = await addFindingPhotosAction(jobId, findingId, form);
+        const pr = jobId ? await addFindingPhotosAction(jobId, findingId, form) : await addEstimateFindingPhotosAction(estimateId!, findingId, form);
         if (!pr.ok) toast.error(pr.error);
       }
       if (clip) {
         const { uploadJobMedia } = await import("@/lib/media/upload");
-        const path = `${company.id}/${jobId}/${crypto.randomUUID()}.${extensionFor(clip.mime as Parameters<typeof extensionFor>[0])}`;
+        const path = `${company.id}/${jobId ? jobId : `estimates/${estimateId}`}/${crypto.randomUUID()}.${extensionFor(clip.mime as Parameters<typeof extensionFor>[0])}`;
         setProgress("Uploading the clip… 0%");
         try {
           await uploadJobMedia(path, clip.file, clip.mime, (pct) => setProgress(`Uploading the clip… ${pct}%`));
-          const reg = await registerFindingMediaAction(jobId, findingId, { path, mime: clip.mime, size: clip.file.size, duration: clip.duration });
+          const meta = { path, mime: clip.mime, size: clip.file.size, duration: clip.duration };
+          const reg = jobId ? await registerFindingMediaAction(jobId, findingId, meta) : await registerEstimateFindingMediaAction(estimateId!, findingId, meta);
           if (!reg.ok) toast.error(reg.error);
         } catch (err) {
           toast.error(err instanceof Error ? err.message : "The clip did not upload; the finding is saved, try the clip again");
@@ -337,7 +366,7 @@ function AddFindingSheet({ jobId, services, onClose }: { jobId: string; services
       <SheetContent side="bottom" className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{kind === "note" ? "Add a note" : "Add a finding"}</SheetTitle>
-          <SheetDescription>What you saw on the car. A finding carries a severity and can suggest a service; the advisor quotes from it.</SheetDescription>
+          <SheetDescription>What you saw on the car, with photos or a short clip. A finding carries a severity and can recommend a service; the customer sees it with the quote.</SheetDescription>
         </SheetHeader>
         <div className="grid gap-3 px-4 pb-2">
           <Segmented size="sm" aria-label="Note or finding" value={kind} onValueChange={(v) => setKind(v as "finding" | "note")} items={[{ value: "finding", label: "Finding" }, { value: "note", label: "Note" }]} />
@@ -391,6 +420,13 @@ function AddFindingSheet({ jobId, services, onClose }: { jobId: string; services
             )}
             <input ref={videoRef} type="file" accept="video/*" capture="environment" className="hidden" aria-label="Video file" onChange={(e) => void pickClip(e.target.files)} />
           </div>
+          <label className="flex items-start gap-2 text-sm" data-testid="finding-internal">
+            <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} className="mt-1 size-4 accent-[var(--primary)]" />
+            <span>
+              Internal only
+              <span className="block text-caption text-subtle">Everything else here is shown to the customer in the text or email.</span>
+            </span>
+          </label>
           {progress && <p className="text-caption text-subtle" aria-live="polite">{progress}</p>}
         </div>
         <SheetFooter>
@@ -406,7 +442,7 @@ function AddFindingSheet({ jobId, services, onClose }: { jobId: string; services
  * On a phone the RO is two tabs, Job and Notes; from 1280 px the notes sit
  * beside the job. The same children render either way.
  */
-export function RoLayout({ initialTab = "job", count, notes, children }: { initialTab?: "job" | "notes"; count: number; notes: React.ReactNode; children: React.ReactNode }) {
+export function RoLayout({ initialTab = "job", count, notes, children, jobLabel = "Job" }: { initialTab?: "job" | "notes"; count: number; notes: React.ReactNode; children: React.ReactNode; /** The first tab's name on a phone: Job, Estimate, Invoice. */ jobLabel?: string }) {
   const [tab, setTab] = useState<"job" | "notes">(initialTab);
   return (
     <>
@@ -416,7 +452,7 @@ export function RoLayout({ initialTab = "job", count, notes, children }: { initi
           value={tab}
           onValueChange={(v) => setTab(v as "job" | "notes")}
           items={[
-            { value: "job", label: "Job" },
+            { value: "job", label: jobLabel },
             { value: "notes", label: <span className="flex items-center gap-1.5">Notes {count > 0 && <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">{count}</span>}</span> },
           ]}
         />

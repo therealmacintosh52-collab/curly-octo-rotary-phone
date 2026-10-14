@@ -296,6 +296,8 @@ export type EstimateView = {
   po_number: string | null;
   /** The mileage when the car came in (0049). */
   odometer?: number | null;
+  /** When the findings were last texted / emailed to the customer (0050). */
+  findings_sent_at?: string | null;
   internal_notes: string | null;
   customer_notes: string | null;
   selected_option_id: string | null;
@@ -561,6 +563,8 @@ export type ReceiptView = {
   /** The mileage when the car came in and (staff only) its plate (0049). */
   odometer?: number | null;
   plate?: string | null;
+  /** What the tech found on this job (the customer's copy has the visible ones only; 0050). */
+  findings?: JobFinding[];
   invoice_number?: string | null;
   ro_number?: string | null;
   performed_at: string;
@@ -773,7 +777,11 @@ export type FindingMedia = { id: string; kind: PhotoKind; storage_path: string; 
 /** job_findings(): one note or finding on the repair order's notes tab, with its media. */
 export type JobFinding = {
   id: string;
-  job_id: string;
+  /** On the repair order once there is one; null while the finding lives on an open estimate (0050). */
+  job_id: string | null;
+  estimate_id?: string | null;
+  /** False: an internal note the customer never sees. */
+  customer_visible?: boolean;
   vehicle_id: string | null;
   kind: FindingKind;
   severity: FindingSeverity;
@@ -787,7 +795,7 @@ export type JobFinding = {
   created_at: string;
   updated_at: string;
   job_ro_number: string | null;
-  job_performed_at: string;
+  job_performed_at: string | null;
   media: FindingMedia[];
 };
 
@@ -1377,10 +1385,13 @@ export type Database = {
       release_expired_holds: { Args: Record<string, never>; Returns: number };
       quote_total: { Args: { p_size: VehicleSize; p_lines: { service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[] }[] }; Returns: QuoteResult };
       add_odometer: { Args: { p_vehicle: string; p_reading: number; p_read_at?: string | null; p_job?: string | null }; Returns: OdometerReading };
-      add_finding: { Args: { p: { job_id: string; kind?: FindingKind; severity?: FindingSeverity; title: string; body?: string | null; recommended_service_id?: string | null } }; Returns: JobFinding };
-      update_finding: { Args: { p_id: string; p: { title?: string; body?: string | null; severity?: FindingSeverity; status?: "open" | "declined" | "done"; recommended_service_id?: string | null } }; Returns: JobFinding };
+      add_finding: { Args: { p: { job_id?: string; estimate_id?: string; customer_visible?: boolean; kind?: FindingKind; severity?: FindingSeverity; title: string; body?: string | null; recommended_service_id?: string | null } }; Returns: JobFinding };
+      update_finding: { Args: { p_id: string; p: { customer_visible?: boolean; title?: string; body?: string | null; severity?: FindingSeverity; status?: "open" | "declined" | "done"; recommended_service_id?: string | null } }; Returns: JobFinding };
       delete_finding: { Args: { p_id: string }; Returns: { id: string; paths: string[] } };
       job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
+      estimate_findings: { Args: { p_estimate: string }; Returns: JobFinding[] };
+      add_finding_media: { Args: { p_finding: string; p: { path: string; mime: string; size: number; duration?: number | null } }; Returns: { id: string } };
+      mark_findings_sent: { Args: { p_estimate: string }; Returns: { token: string; job_id: string | null; findings_sent_at: string } };
       vehicle_open_findings: { Args: { p_vehicle: string; p_exclude_job?: string | null }; Returns: JobFinding[] };
       job_estimates: { Args: { p_job: string }; Returns: JobEstimate[] };
       is_member: { Args: Record<string, never>; Returns: boolean };

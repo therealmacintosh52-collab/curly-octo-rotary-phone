@@ -69,6 +69,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
     const deposit = e.policy ? depositFor(total, e.policy) : 0;
     return { subtotal, supplies, tax, total, deposit };
   }, [chosen, single, kept, addons, e.addons, e.tax_rate, e.policy]);
+  const draft = e.status === "draft";
   const sigRequired = e.policy?.signature_required ?? true;
   const depositOffered = (e.policy?.deposit_kind ?? "none") !== "none" && totals.deposit > 0;
 
@@ -131,7 +132,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
       <section className="rounded-2xl border border-border bg-card p-4 surface-raised">
         <h1 className="text-heading">Hi {e.customer.first_name || "there"},</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {e.job ? `While the ${e.vehicle?.name ?? "car"} is in the shop we found a few things. ` : `Here is your estimate${e.vehicle?.name ? ` for the ${e.vehicle.name}` : ""}.`}{e.options.length > 1 ? " Pick the option you want, add anything extra, then sign to approve." : single ? " Keep what you want done, untick the rest, then sign to approve." : " Add anything extra, then sign to approve."}
+          {draft ? `Our tech went over the ${e.vehicle?.name ?? "car"} and wrote up what they found.` : e.job ? `While the ${e.vehicle?.name ?? "car"} is in the shop we found a few things. ` : `Here is your estimate${e.vehicle?.name ? ` for the ${e.vehicle.name}` : ""}.`}{draft ? "" : e.options.length > 1 ? " Pick the option you want, add anything extra, then sign to approve." : single ? " Keep what you want done, untick the rest, then sign to approve." : " Add anything extra, then sign to approve."}
         </p>
         {e.customer_notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-muted/50 px-3 py-2 text-sm">{e.customer_notes}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-caption text-subtle">
@@ -169,7 +170,8 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
             {e.findings!.map((f) => (
               <li key={f.id} className="text-sm">
                 <div className="flex items-center gap-2"><span className={cn("inline-block size-2.5 shrink-0 rounded-full", f.severity === "urgent" ? "bg-destructive" : f.severity === "soon" ? "bg-warning" : "bg-success")} /><span className="font-medium">{f.title}</span><span className="text-caption text-subtle">{f.severity === "urgent" ? "needs attention now" : f.severity === "soon" ? "soon" : "for your information"}</span></div>
-                {f.body && <p className="mt-0.5 text-muted-foreground">{f.body}</p>}
+                {f.body && <p className="mt-0.5 whitespace-pre-wrap text-muted-foreground">{f.body}</p>}
+                {f.recommended_service && <p className="mt-0.5 text-caption font-medium">We recommend: {f.recommended_service}</p>}
                 {f.media.length > 0 && (
                   <div className="mt-2 flex gap-2 overflow-x-auto">
                     {f.media.map((m) => {
@@ -191,146 +193,155 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
         </section>
       )}
 
-      <section className="grid gap-3" data-testid="public-options">
-        {e.options.map((o) => {
-          const sel = o.id === optionId;
-          const locked = answered || expired;
-          const Wrap: "div" | "button" = single ? "div" : "button";
-          return (
-            <Wrap key={o.id} {...(single ? {} : { type: "button" as const, disabled: locked, "aria-pressed": sel, onClick: () => setOptionId(o.id) })} className={cn("w-full rounded-2xl border p-4 text-left transition-colors", sel ? "border-primary bg-accent-soft/40 ring-2 ring-primary/30" : "border-border bg-card hover:border-border-strong", locked && "cursor-default")}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-base font-semibold">{o.name}</span>
-                    {o.recommended && e.options.length > 1 && !answered && <Badge variant="outline"><StarIcon /> Recommended</Badge>}
-                    {answered && e.selected_option_id === o.id && <Badge variant="success"><CheckIcon /> Chosen</Badge>}
+      {draft ? (
+        <section className="rounded-2xl border border-border bg-card p-4 text-sm" data-testid="public-draft">
+          <div className="font-semibold">Your quote is being prepared.</div>
+          <div className="text-muted-foreground">This is what our tech found so far. We will send the quote with prices as soon as it is ready{e.company.phone ? `, or call us at ${e.company.phone}` : ""}.</div>
+        </section>
+      ) : (
+        <>
+        <section className="grid gap-3" data-testid="public-options">
+          {e.options.map((o) => {
+            const sel = o.id === optionId;
+            const locked = answered || expired;
+            const Wrap: "div" | "button" = single ? "div" : "button";
+            return (
+              <Wrap key={o.id} {...(single ? {} : { type: "button" as const, disabled: locked, "aria-pressed": sel, onClick: () => setOptionId(o.id) })} className={cn("w-full rounded-2xl border p-4 text-left transition-colors", sel ? "border-primary bg-accent-soft/40 ring-2 ring-primary/30" : "border-border bg-card hover:border-border-strong", locked && "cursor-default")}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-base font-semibold">{o.name}</span>
+                      {o.recommended && e.options.length > 1 && !answered && <Badge variant="outline"><StarIcon /> Recommended</Badge>}
+                      {answered && e.selected_option_id === o.id && <Badge variant="success"><CheckIcon /> Chosen</Badge>}
+                    </div>
+                    {o.description && <p className="mt-0.5 text-sm text-muted-foreground">{o.description}</p>}
                   </div>
-                  {o.description && <p className="mt-0.5 text-sm text-muted-foreground">{o.description}</p>}
+                  <div className="shrink-0 text-right">
+                    <div className="text-lg font-semibold tabular-nums">{formatMoney(single && o.id === single.id ? totals.total - e.addons.filter((a) => addons.includes(a.id)).reduce((s, a) => s + (a.line_total ?? 0) + (a.taxable ? round2((a.line_total ?? 0) * Number(e.tax_rate ?? e.policy?.tax_rate ?? 0)) : 0), 0) : (o.total ?? 0))}</div>
+                    <div className="text-caption text-subtle">about {Math.round((o.duration_minutes / 60) * 10) / 10} h</div>
+                  </div>
                 </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-lg font-semibold tabular-nums">{formatMoney(single && o.id === single.id ? totals.total - e.addons.filter((a) => addons.includes(a.id)).reduce((s, a) => s + (a.line_total ?? 0) + (a.taxable ? round2((a.line_total ?? 0) * Number(e.tax_rate ?? e.policy?.tax_rate ?? 0)) : 0), 0) : (o.total ?? 0))}</div>
-                  <div className="text-caption text-subtle">about {Math.round((o.duration_minutes / 60) * 10) / 10} h</div>
+                <ul className="mt-3 grid gap-1.5 text-sm">
+                  {o.lines.map((l) => {
+                    const type = l.line_type ?? "service";
+                    const meta = type === "labor" ? `${l.hours} h${l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}` : type === "part" ? [l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number].filter(Boolean).join(" · ") : type === "service" && l.qty !== 1 ? `× ${l.qty}` : "";
+                    const on = single ? kept.includes(l.id) : true;
+                    return (
+                      <li key={l.id} className="flex items-start gap-2">
+                        {single ? (
+                          <Checkbox checked={on} disabled={locked} onCheckedChange={(v) => setKept((prev) => (v ? [...prev, l.id] : prev.filter((x) => x !== l.id)))} onClick={(ev) => ev.stopPropagation()} aria-label={l.name} className="mt-0.5" />
+                        ) : (
+                          <CheckIcon className={cn("mt-0.5 size-4 shrink-0", sel ? "text-primary" : "text-muted-foreground")} />
+                        )}
+                        <div className={cn("min-w-0 flex-1", !on && "text-muted-foreground line-through")}>
+                          <span className="font-medium">{l.name}</span>
+                          {meta && <span className="text-muted-foreground"> · {meta}</span>}
+                          {l.benefit_text && <span className="text-muted-foreground"> · {l.benefit_text}</span>}
+                          {l.modifiers.length > 0 && <span className="text-muted-foreground"> ({l.modifiers.map((m) => m.label).join(", ")})</span>}
+                        </div>
+                        {single && <span className={cn("shrink-0 tabular-nums", !on && "text-muted-foreground line-through")}>{formatMoney(l.line_total ?? 0)}</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Wrap>
+            );
+          })}
+        </section>
+
+        {e.addons.length > 0 && (
+          <section className="rounded-2xl border border-border bg-card p-4" data-testid="public-addons">
+            <h2 className="font-semibold">Add to it</h2>
+            <ul className="mt-2 grid gap-2">
+              {e.addons.map((a) => {
+                const on = addons.includes(a.id);
+                return (
+                  <li key={a.id}>
+                    <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 text-sm", on ? "border-primary/50 bg-accent-soft/30" : "border-border", (answered || expired) && "cursor-default")}>
+                      <Checkbox checked={on} disabled={answered || expired} onCheckedChange={(v) => setAddons((prev) => (v ? [...prev, a.id] : prev.filter((x) => x !== a.id)))} aria-label={a.name} className="mt-0.5" />
+                      <span className="min-w-0 flex-1">
+                        <span className="font-medium">{a.name}</span>
+                        {a.benefit_text && <span className="block text-caption text-subtle">{a.benefit_text}</span>}
+                      </span>
+                      <span className="shrink-0 font-semibold tabular-nums">+{formatMoney(a.line_total ?? 0)}</span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        <section className="rounded-2xl border border-border bg-card p-4 text-sm" data-testid="public-totals">
+          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatMoney(totals.subtotal)}</span></div>
+          {totals.supplies > 0 && <div className="mt-1 flex justify-between"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums" data-testid="public-supplies">{formatMoney(totals.supplies)}</span></div>}
+          <div className="mt-1 flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(e.tax_rate ?? 0))})</span><span className="tabular-nums">{formatMoney(totals.tax)}</span></div>
+          <div className="mt-2 flex justify-between border-t border-border pt-2 text-lg font-semibold"><span>Total</span><span className="tabular-nums" data-testid="public-total">{formatMoney(totals.total)}</span></div>
+          {depositOffered && <div className="mt-1 flex justify-between text-caption text-subtle"><span>Deposit to book{e.policy?.deposit_refundable ? "" : " (non-refundable)"}</span><span className="tabular-nums">{formatMoney(totals.deposit)}</span></div>}
+        </section>
+
+        {!answered && !expired && (
+          <section className="grid gap-4 rounded-2xl border border-border bg-card p-4" data-testid="public-approve">
+            <h2 className="font-semibold">Approve this estimate</h2>
+            {depositOffered && (
+              <div className="grid gap-2">
+                <Label>How would you like to pay?</Label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {([
+                    { v: "at_shop", title: "Pay at the shop", hint: "Card, cash or check when you drop off." },
+                    { v: "deposit", title: `Pay the ${formatMoney(totals.deposit)} deposit now`, hint: "Online deposit is coming soon; the shop will take it at drop-off for now." },
+                  ] as const).map((c) => (
+                    <button key={c.v} type="button" aria-pressed={pay === c.v} onClick={() => setPay(c.v)} className={cn("rounded-xl border px-3 py-2.5 text-left text-sm", pay === c.v ? "border-primary bg-accent-soft/40" : "border-border hover:border-border-strong")}>
+                      <div className="font-medium">{c.title}</div>
+                      <div className="text-caption text-subtle">{c.hint}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
-              <ul className="mt-3 grid gap-1.5 text-sm">
-                {o.lines.map((l) => {
-                  const type = l.line_type ?? "service";
-                  const meta = type === "labor" ? `${l.hours} h${l.rate !== null && l.rate !== undefined ? ` × ${formatMoney(l.rate)}` : ""}` : type === "part" ? [l.qty !== 1 ? `${l.qty} × ${formatMoney(l.unit_price ?? 0)}` : null, l.part_number].filter(Boolean).join(" · ") : type === "service" && l.qty !== 1 ? `× ${l.qty}` : "";
-                  const on = single ? kept.includes(l.id) : true;
-                  return (
-                    <li key={l.id} className="flex items-start gap-2">
-                      {single ? (
-                        <Checkbox checked={on} disabled={locked} onCheckedChange={(v) => setKept((prev) => (v ? [...prev, l.id] : prev.filter((x) => x !== l.id)))} onClick={(ev) => ev.stopPropagation()} aria-label={l.name} className="mt-0.5" />
-                      ) : (
-                        <CheckIcon className={cn("mt-0.5 size-4 shrink-0", sel ? "text-primary" : "text-muted-foreground")} />
-                      )}
-                      <div className={cn("min-w-0 flex-1", !on && "text-muted-foreground line-through")}>
-                        <span className="font-medium">{l.name}</span>
-                        {meta && <span className="text-muted-foreground"> · {meta}</span>}
-                        {l.benefit_text && <span className="text-muted-foreground"> · {l.benefit_text}</span>}
-                        {l.modifiers.length > 0 && <span className="text-muted-foreground"> ({l.modifiers.map((m) => m.label).join(", ")})</span>}
-                      </div>
-                      {single && <span className={cn("shrink-0 tabular-nums", !on && "text-muted-foreground line-through")}>{formatMoney(l.line_total ?? 0)}</span>}
-                    </li>
-                  );
-                })}
-              </ul>
-            </Wrap>
-          );
-        })}
-      </section>
-
-      {e.addons.length > 0 && (
-        <section className="rounded-2xl border border-border bg-card p-4" data-testid="public-addons">
-          <h2 className="font-semibold">Add to it</h2>
-          <ul className="mt-2 grid gap-2">
-            {e.addons.map((a) => {
-              const on = addons.includes(a.id);
-              return (
-                <li key={a.id}>
-                  <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 text-sm", on ? "border-primary/50 bg-accent-soft/30" : "border-border", (answered || expired) && "cursor-default")}>
-                    <Checkbox checked={on} disabled={answered || expired} onCheckedChange={(v) => setAddons((prev) => (v ? [...prev, a.id] : prev.filter((x) => x !== a.id)))} aria-label={a.name} className="mt-0.5" />
-                    <span className="min-w-0 flex-1">
-                      <span className="font-medium">{a.name}</span>
-                      {a.benefit_text && <span className="block text-caption text-subtle">{a.benefit_text}</span>}
-                    </span>
-                    <span className="shrink-0 font-semibold tabular-nums">+{formatMoney(a.line_total ?? 0)}</span>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-
-      <section className="rounded-2xl border border-border bg-card p-4 text-sm" data-testid="public-totals">
-        <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatMoney(totals.subtotal)}</span></div>
-        {totals.supplies > 0 && <div className="mt-1 flex justify-between"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums" data-testid="public-supplies">{formatMoney(totals.supplies)}</span></div>}
-        <div className="mt-1 flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(e.tax_rate ?? 0))})</span><span className="tabular-nums">{formatMoney(totals.tax)}</span></div>
-        <div className="mt-2 flex justify-between border-t border-border pt-2 text-lg font-semibold"><span>Total</span><span className="tabular-nums" data-testid="public-total">{formatMoney(totals.total)}</span></div>
-        {depositOffered && <div className="mt-1 flex justify-between text-caption text-subtle"><span>Deposit to book{e.policy?.deposit_refundable ? "" : " (non-refundable)"}</span><span className="tabular-nums">{formatMoney(totals.deposit)}</span></div>}
-      </section>
-
-      {!answered && !expired && (
-        <section className="grid gap-4 rounded-2xl border border-border bg-card p-4" data-testid="public-approve">
-          <h2 className="font-semibold">Approve this estimate</h2>
-          {depositOffered && (
-            <div className="grid gap-2">
-              <Label>How would you like to pay?</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {([
-                  { v: "at_shop", title: "Pay at the shop", hint: "Card, cash or check when you drop off." },
-                  { v: "deposit", title: `Pay the ${formatMoney(totals.deposit)} deposit now`, hint: "Online deposit is coming soon; the shop will take it at drop-off for now." },
-                ] as const).map((c) => (
-                  <button key={c.v} type="button" aria-pressed={pay === c.v} onClick={() => setPay(c.v)} className={cn("rounded-xl border px-3 py-2.5 text-left text-sm", pay === c.v ? "border-primary bg-accent-soft/40" : "border-border hover:border-border-strong")}>
-                    <div className="font-medium">{c.title}</div>
-                    <div className="text-caption text-subtle">{c.hint}</div>
-                  </button>
-                ))}
-              </div>
+            )}
+            <div className="grid gap-1.5">
+              <Label htmlFor="pub-name">Your name</Label>
+              <Input id="pub-name" value={name} onChange={(ev) => setName(ev.target.value)} autoComplete="name" maxLength={120} placeholder="First and last name" />
             </div>
-          )}
-          <div className="grid gap-1.5">
-            <Label htmlFor="pub-name">Your name</Label>
-            <Input id="pub-name" value={name} onChange={(ev) => setName(ev.target.value)} autoComplete="name" maxLength={120} placeholder="First and last name" />
-          </div>
-          <div className="grid gap-1.5" ref={padRef}>
-            <Label>Signature{sigRequired ? "" : " (optional)"}</Label>
-            <SignaturePad onChange={setHasInk} />
-          </div>
-          {e.policy?.policy_text && <p className="whitespace-pre-wrap text-caption text-subtle">{e.policy.policy_text}</p>}
-          <p className="text-caption text-subtle">By approving you agree to the work {single ? "you kept ticked" : "in the option you picked"}{addons.length ? " and the add-ons you ticked" : ""} at the total shown. Your name, signature, the time and this device are recorded with the approval.</p>
-          <Button size="lg" onClick={approve} loading={pending} disabled={!chosen} data-testid="public-approve-button">
-            <CheckIcon /> Approve {formatMoney(totals.total)}
-          </Button>
-          {!declining ? (
-            <button type="button" onClick={() => setDeclining(true)} className="text-center text-sm text-muted-foreground underline-offset-2 hover:underline" data-testid="public-decline">
-              No thanks
-            </button>
-          ) : (
-            <div className="grid gap-2 rounded-xl border border-border p-3">
-              <Label htmlFor="pub-reason">Anything we should know? (optional)</Label>
-              <Textarea id="pub-reason" value={reason} onChange={(ev) => setReason(ev.target.value)} className="min-h-16" maxLength={300} />
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setDeclining(false)}>Back</Button>
-                <Button variant="outline" size="sm" onClick={decline} loading={pending} data-testid="public-decline-confirm">Decline the estimate</Button>
-              </div>
+            <div className="grid gap-1.5" ref={padRef}>
+              <Label>Signature{sigRequired ? "" : " (optional)"}</Label>
+              <SignaturePad onChange={setHasInk} />
             </div>
-          )}
-        </section>
-      )}
+            {e.policy?.policy_text && <p className="whitespace-pre-wrap text-caption text-subtle">{e.policy.policy_text}</p>}
+            <p className="text-caption text-subtle">By approving you agree to the work {single ? "you kept ticked" : "in the option you picked"}{addons.length ? " and the add-ons you ticked" : ""} at the total shown. Your name, signature, the time and this device are recorded with the approval.</p>
+            <Button size="lg" onClick={approve} loading={pending} disabled={!chosen} data-testid="public-approve-button">
+              <CheckIcon /> Approve {formatMoney(totals.total)}
+            </Button>
+            {!declining ? (
+              <button type="button" onClick={() => setDeclining(true)} className="text-center text-sm text-muted-foreground underline-offset-2 hover:underline" data-testid="public-decline">
+                No thanks
+              </button>
+            ) : (
+              <div className="grid gap-2 rounded-xl border border-border p-3">
+                <Label htmlFor="pub-reason">Anything we should know? (optional)</Label>
+                <Textarea id="pub-reason" value={reason} onChange={(ev) => setReason(ev.target.value)} className="min-h-16" maxLength={300} />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setDeclining(false)}>Back</Button>
+                  <Button variant="outline" size="sm" onClick={decline} loading={pending} data-testid="public-decline-confirm">Decline the estimate</Button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
-      <Dialog open={!!media} onOpenChange={(o) => !o && setMedia(null)}>
-        <DialogContent className="max-w-3xl p-2">
-          <DialogTitle className="sr-only">Media</DialogTitle>
-          {media?.video ? (
-            media.url ? <video src={media.url} controls playsInline className="max-h-[80vh] w-full rounded-lg bg-black" /> : <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">The clip is not available in the preview.</div>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            media?.url && <img src={media.url} alt="" className="max-h-[80vh] w-full rounded-lg object-contain" />
-          )}
-        </DialogContent>
-      </Dialog>
+        <Dialog open={!!media} onOpenChange={(o) => !o && setMedia(null)}>
+          <DialogContent className="max-w-3xl p-2">
+            <DialogTitle className="sr-only">Media</DialogTitle>
+            {media?.video ? (
+              media.url ? <video src={media.url} controls playsInline className="max-h-[80vh] w-full rounded-lg bg-black" /> : <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">The clip is not available in the preview.</div>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              media?.url && <img src={media.url} alt="" className="max-h-[80vh] w-full rounded-lg object-contain" />
+            )}
+          </DialogContent>
+        </Dialog>
+        </>
+      )}
 
       <footer className="mt-auto pt-4 text-center text-caption text-subtle">
         {e.company.name}{e.company.phone ? ` · ${e.company.phone}` : ""}{e.company.email ? ` · ${e.company.email}` : ""}

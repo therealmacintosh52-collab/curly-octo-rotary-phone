@@ -135,3 +135,43 @@ export async function convertEstimateAction(id: string, input: { tag_number?: st
 }
 
 export type EstimateStatusFilter = "all" | "open" | EstimateStatus;
+
+
+/**
+ * "Send findings": what the tech found (photos, clips, recommendations) goes to
+ * the customer by email or text, as a link to the estimate or, once it is
+ * approved, to the invoice. Text is the phone's own messaging app (`sms:` link
+ * opened by the button); this records that it went out and builds the link.
+ */
+export async function sendFindingsAction(estimateId: string, via: "email" | "text"): Promise<ActionResult<{ url: string; emailed: boolean; note: string | null }>> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner, an admin or an advisor sends findings" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("mark_findings_sent", { p_estimate: estimateId });
+  if (error) return { ok: false, error: errorMessage(error) };
+  const base = appUrl() ?? "";
+  let url = `${base}/e/${data.token}`;
+  if (data.job_id) {
+    const { data: rt } = await supabase.rpc("receipt_link", { p_job_id: data.job_id });
+    if (rt) url = `${base}/r/${rt}`;
+  }
+  let emailed = false;
+  let note: string | null = null;
+  if (via === "email") {
+    const { data: e } = await supabase.rpc("estimate_detail", { p_id: estimateId });
+    const { data: rs } = await supabase.from("retail_settings").select("email_templates").eq("company_id", session.company.id).maybeSingle();
+    const r = await sendRetailEmail({
+      to: e?.customer.email,
+      key: "findings_ready",
+      templates: rs?.email_templates ?? null,
+      vars: { first_name: e?.customer.first_name || e?.customer.display_name || "there", vehicle: e?.vehicle?.name ?? "car", findings_url: url, company: session.company.name },
+      companyName: session.company.name,
+      replyTo: session.company.email,
+      refId: estimateId,
+    });
+    emailed = r.ok;
+    if (!r.ok) note = r.error;
+  }
+  revalidate(estimateId);
+  return { ok: true, data: { url, emailed, note } };
+}

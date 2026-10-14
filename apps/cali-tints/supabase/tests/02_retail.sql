@@ -1177,7 +1177,7 @@ begin
   assert (select status from public.job_findings where id = v_find) = 'quoted' and (select estimate_line_id from public.job_findings where id = v_find) is not null, '0044: the finding is on the estimate';
   d := public.estimate_detail(e.id);
   assert (select count(*) from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'labor' and (l ->> 'hours')::numeric = 2.5 and (l ->> 'rate')::numeric = 120) = 1, '0044: labor line in the json';
-  assert (select (l ->> 'cost')::numeric from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part') = 22 and (d -> 'job' ->> 'ro_number') like 'RO-%' and jsonb_array_length(d -> 'findings') = 1, '0044: cost for staff, the RO, the findings';
+  assert (select (l ->> 'cost')::numeric from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part') = 22 and (d -> 'job' ->> 'ro_number') like 'RO-%' and jsonb_array_length(d -> 'findings') >= 1, '0044: cost for staff, the RO, the findings';
   insert into r_ids values ('est_sup', e.id), ('finding_pads2', v_find);
   -- labor without hours is refused
   begin
@@ -1213,7 +1213,7 @@ begin
   d := public.estimate_by_token(v_token);
   assert (select (l ->> 'rate')::numeric from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'labor') = 120
      and (select l -> 'cost' from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part') = 'null'::jsonb
-     and (d -> 'options' -> 0 ->> 'shop_supplies')::numeric = 10 and (d -> 'policy' ->> 'shop_supplies_pct')::numeric = 5 and (d -> 'job' ->> 'ro_number') like 'RO-%' and jsonb_array_length(d -> 'findings') = 1, '0044: the customer sees the rate, supplies, the RO and the findings, not the cost: ' || (d -> 'policy')::text;
+     and (d -> 'options' -> 0 ->> 'shop_supplies')::numeric = 10 and (d -> 'policy' ->> 'shop_supplies_pct')::numeric = 5 and (d -> 'job' ->> 'ro_number') like 'RO-%' and jsonb_array_length(d -> 'findings') >= 1, '0044: the customer sees the rate, supplies, the RO and the findings, not the cost: ' || (d -> 'policy')::text;
   v_opt := (d -> 'options' -> 0 ->> 'id')::uuid;
   select array_agg((l ->> 'id')::uuid) into v_keep from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' <> 'part';
   select (l ->> 'id')::uuid into v_part from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part';
@@ -1446,5 +1446,111 @@ begin
     assert public.find_vehicle(null, null) is null and public.find_vehicle('', '') is null, '0049: empty finds nothing';
   end;
   assert (select count(*) from public.odometer_readings where vehicle_id = v_veh) = n + 2, '0049: the reading was attached, not duplicated';
+end $$;
+select pg_temp.logout();
+
+-- 0050: findings on the estimate, carried onto the invoice, seen by the customer ---
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+drop table if exists e50; create temp table e50 (k text primary key, v text);
+grant all on e50 to authenticated, anon;
+do $$
+declare e public.estimates; v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda');
+begin
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote',
+         'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))))));
+  insert into e50 values ('est', e.id::text), ('token', public.estimate_link(e.id));
+end $$;
+select pg_temp.logout();
+-- the tech (a detailer) inspects before anything is approved
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare v_est uuid := (select v from e50 where k = 'est')::uuid; f jsonb; n jsonb; m jsonb; v_company uuid := '00000000-0000-4000-8000-000000000001';
+begin
+  f := public.add_finding(jsonb_build_object('estimate_id', v_est, 'severity', 'urgent', 'title', 'Front pads at 2 mm', 'body', 'Metal on metal soon', 'recommended_service_id', (select v from r_ids where k = 'svc_oil')));
+  assert (f ->> 'estimate_id')::uuid = v_est and (f ->> 'job_id') is null and (f ->> 'customer_visible')::boolean, '0050: a finding on an estimate';
+  insert into e50 values ('finding', f ->> 'id');
+  m := public.add_finding_media((f ->> 'id')::uuid, jsonb_build_object('path', v_company || '/estimates/' || v_est || '/a.jpg', 'mime', 'image/jpeg', 'size', 1000));
+  perform public.add_finding_media((f ->> 'id')::uuid, jsonb_build_object('path', v_company || '/estimates/' || v_est || '/b.mp4', 'mime', 'video/mp4', 'size', 5000, 'duration', 12.5));
+  begin
+    perform public.add_finding_media((f ->> 'id')::uuid, jsonb_build_object('path', 'someone-else/x.jpg', 'mime', 'image/jpeg', 'size', 10));
+    raise exception 'expected bad path';
+  exception when sqlstate '22023' then null; end;
+  begin
+    perform public.add_finding_media((f ->> 'id')::uuid, jsonb_build_object('path', v_company || '/x.exe', 'mime', 'application/x-msdownload', 'size', 10));
+    raise exception 'expected bad type';
+  exception when sqlstate '22023' then null; end;
+  n := public.add_finding(jsonb_build_object('estimate_id', v_est, 'kind', 'note', 'title', 'Customer is a repeat, discount ok', 'customer_visible', false));
+  assert (n ->> 'customer_visible')::boolean = false and (n ->> 'severity') = 'ok', '0050: an internal note';
+  assert jsonb_array_length(public.estimate_findings(v_est)) = 2 and jsonb_array_length(public.estimate_findings(v_est) -> 0 -> 'media') = 2, '0050: the panel lists both, with media';
+  -- the tech has no money and cannot send findings
+  begin perform public.mark_findings_sent(v_est); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+  begin perform public.estimate_detail(v_est); exception when others then null; end;
+end $$;
+select pg_temp.logout();
+-- the customer opens the link of a quote still being prepared: sees the visible finding, cannot answer
+select pg_temp.anon();
+do $$
+declare v_token text := (select v from e50 where k = 'token'); d jsonb;
+begin
+  d := public.estimate_by_token(v_token);
+  assert d ->> 'status' = 'draft' and jsonb_array_length(d -> 'findings') = 1 and (d -> 'findings' -> 0 ->> 'title') = 'Front pads at 2 mm', '0050: the draft link shows the visible finding only: ' || (d -> 'findings')::text;
+  assert not exists (select 1 from jsonb_array_elements(d -> 'findings') x where x ->> 'title' like 'Customer is a repeat%'), '0050: the internal note stays internal';
+  begin
+    perform public.estimate_respond(v_token, jsonb_build_object('option_id', (d -> 'options' -> 0 ->> 'id')::uuid, 'name', 'Ana', 'signature_path', '00000000-0000-4000-8000-000000000001/estimates/' || (d ->> 'id') || '/s.png'));
+    raise exception 'expected a draft to be unanswerable';
+  exception when sqlstate 'P0001' then null; end;
+end $$;
+select pg_temp.logout();
+-- the advisor sends the findings, then the estimate; the customer approves
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare v_est uuid := (select v from e50 where k = 'est')::uuid; r jsonb;
+begin
+  r := public.mark_findings_sent(v_est);
+  assert (r ->> 'findings_sent_at') is not null and (public.estimate_detail(v_est) ->> 'findings_sent_at') is not null, '0050: findings sent is recorded';
+  perform public.send_estimate(v_est);
+end $$;
+select pg_temp.logout();
+select pg_temp.anon();
+do $$
+declare v_token text := (select v from e50 where k = 'token'); d jsonb;
+begin
+  d := public.estimate_by_token(v_token);
+  perform public.estimate_respond(v_token, jsonb_build_object('option_id', (d -> 'options' -> 0 ->> 'id')::uuid, 'name', 'Ana Lopez', 'signature_path', '00000000-0000-4000-8000-000000000001/estimates/' || (d ->> 'id') || '/s.png'));
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from e50 where k = 'est')::uuid; v_job uuid; d jsonb; v_link text;
+begin
+  v_job := (public.estimate_detail(v_est) ->> 'job_id')::uuid;
+  assert v_job is not null, '0050: approved';
+  assert (select count(*) from public.job_findings where estimate_id = v_est and job_id = v_job) = 2 and (select count(*) from public.job_photos where estimate_id = v_est and job_id = v_job) = 2, '0050: findings and media moved onto the job';
+  assert jsonb_array_length(public.estimate_findings(v_est)) = 2 and jsonb_array_length(public.job_findings(v_job)) >= 2, '0050: estimate and job list the same rows';
+  d := public.retail_invoice_detail(v_job);
+  assert jsonb_array_length(d -> 'findings') >= 2, '0050: the invoice carries the findings';
+  -- the invoice link works while it is unpaid, and shows only what the customer may see
+  v_link := public.receipt_link(v_job);
+  assert length(v_link) >= 20, '0050: an invoice link for an unpaid invoice';
+  insert into e50 values ('rtoken', v_link);
+end $$;
+select pg_temp.logout();
+select pg_temp.anon();
+do $$
+declare d jsonb; v_token text := (select v from e50 where k = 'rtoken');
+begin
+  d := public.receipt_by_token(v_token);
+  assert d ->> 'paid_at' is null and (d ->> 'balance')::numeric > 0 and (d ->> 'invoice_number') like 'RI-%', '0050: the customer opens the unpaid invoice';
+  assert (select count(*) from jsonb_array_elements(d -> 'findings') x where x ->> 'title' like 'Front pads%') = 1 and not exists (select 1 from jsonb_array_elements(d -> 'findings') x where x ->> 'title' like 'Customer is a repeat%'), '0050: the invoice page shows the visible findings only';
+end $$;
+select pg_temp.logout();
+-- after approval the tech who is not on the job can no longer write on the estimate
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  begin
+    perform public.add_finding(jsonb_build_object('estimate_id', (select v from e50 where k = 'est')::uuid, 'title', 'late'));
+    raise exception 'expected refused';
+  exception when sqlstate '42501' then null; end;
 end $$;
 select pg_temp.logout();

@@ -321,6 +321,8 @@ export const ESTIMATE_TOKEN = "demo-estimate-token-ana-camry-0001";
 /** The supplement written on RO-000042 (Marcus, the Tesla) from the tech's findings. */
 const E4 = "90000000-0000-4000-8000-000000000004";
 export const ESTIMATE_TOKEN_RO = "demo-estimate-token-marcus-tesla-0004";
+/** A draft: the link can go out with findings only ("your quote is being prepared"). */
+export const ESTIMATE_TOKEN_DRAFT = "demo-estimate-token-dana-odyssey-0003";
 
 type L = { id: string; svc: number | "other" | null; name?: string; qty?: number; price: number; modifiers?: { code: string; label: string; kind: "percent" | "flat"; amount: number }[]; taxable?: boolean; type?: EstimateLineType; hours?: number; part_number?: string; vendor?: string; cost?: number; finding_id?: string; customer_approved?: boolean | null };
 const seedName = (i: number) => RETAIL_SEED[i][0];
@@ -391,7 +393,7 @@ function build(money: boolean, pub: boolean, base: { id: string; n: number; stat
     job: base.job ?? null,
     kind: base.kind ?? "quote",
     applied_at: base.applied ?? null,
-    findings: base.findings ?? [],
+    findings: (base.findings ?? []).filter((f) => !pub || f.customer_visible !== false),
     created_at: base.created,
     updated_at: base.created,
     token: pub ? (base.token ?? ESTIMATE_TOKEN) : null,
@@ -421,6 +423,13 @@ function estimateBase(id: string) {
     case E1:
       return {
         id: E1, n: 1, status: "viewed" as EstimateStatus, customer: cust(C1), vehicle: veh(V1), odometer: 48210,
+        findings: [
+          finding({ id: "93000000-0000-4000-8000-000000000001", job_id: null, estimate_id: E1, severity: "soon", title: "Swirl marks on the hood and trunk", body: "Light to medium. A one-stage correction takes most of them out.", recommended_service_id: RETAIL_SERVICE_ID(1), recommended_service: "Paint correction (1-stage)", job_ro_number: null, job_performed_at: null, created_at: ago(1, 3), updated_at: ago(1, 3),
+            media: [{ id: "93100000-0000-4000-8000-000000000001", kind: "finding", storage_path: "demo/swirls.jpg", mime: "image/jpeg", duration_s: null, size_bytes: 390000, created_at: ago(1, 3), url: "/demo/before.svg" }] }),
+          finding({ id: "93000000-0000-4000-8000-000000000002", job_id: null, estimate_id: E1, kind: "note", severity: "ok", title: "Old scratch on the rear bumper", body: "Photographed at intake so it is on record.", job_ro_number: null, job_performed_at: null, created_at: ago(1, 3), updated_at: ago(1, 3),
+            media: [{ id: "93100000-0000-4000-8000-000000000002", kind: "finding", storage_path: "demo/bumper.jpg", mime: "image/jpeg", duration_s: null, size_bytes: 360000, created_at: ago(1, 3), url: "/demo/after.svg" }] }),
+          finding({ id: "93000000-0000-4000-8000-000000000003", job_id: null, estimate_id: E1, kind: "note", severity: "ok", title: "Repeat customer, fine to match last time's price", customer_visible: false, job_ro_number: null, job_performed_at: null, created_at: ago(1, 2), updated_at: ago(1, 2) }),
+        ],
         options: [
           { id: "o1-good", tier: "good" as const, name: "Good", description: "The full detail, inside and out", recommended: false, lines: [{ id: "l1", svc: 0, price: 200 }] },
           { id: "o1-better", tier: "better" as const, name: "Better", description: "Adds the clay bar so the paint feels like glass", recommended: true, lines: [{ id: "l2", svc: 0, price: 200 }, { id: "l3", svc: 3, price: 70 }] },
@@ -477,6 +486,7 @@ export function estimateViewFixture(id: string, money: boolean): EstimateView | 
 export function estimatePublicFixture(token: string): EstimateView | null {
   if (token === ESTIMATE_TOKEN) return build(true, true, estimateBase(E1)!);
   if (token === ESTIMATE_TOKEN_RO) return build(true, true, estimateBase(E4)!);
+  if (token === ESTIMATE_TOKEN_DRAFT) return build(true, true, estimateBase(E3)!);
   return null;
 }
 
@@ -632,7 +642,15 @@ export function retailChargeFixture(jobId: string, money: boolean): RetailCharge
   return null;
 }
 
+export const INVOICE_TOKEN = "demo-invoice-token-marcus-tesla-0002";
+
 export function receiptFixture(token: string, money: boolean): ReceiptView | null {
+  if (token === INVOICE_TOKEN) {
+    // The customer's copy of the unpaid invoice (RI-000042): what is due and what the tech found (internal notes left out).
+    const inv = retailInvoiceDetailFixture(JOBS[C2][0].id)!;
+    const visible = jobFindingsFixture(JOBS[C2][0].id).filter((f) => f.customer_visible !== false);
+    return { ...inv, customer: { ...inv.customer!, display_name: inv.customer!.first_name }, plate: null, token, findings: visible, payments: inv.payments.map((p) => ({ ...p, provider_ref: null })) };
+  }
   if (token !== RECEIPT_TOKEN) return null;
   const r101 = JOBS[C1][0];
   const c = cust(C1);
@@ -787,6 +805,7 @@ export function retailInvoiceDetailFixture(id: string): RetailInvoiceDetail | nu
     lines, subtotal: row.total, tax: 0, total: row.total, deposit_paid: row.deposit_paid, paid: row.paid, balance: row.balance, status: row.status, deleted: row.status === "void",
     payments: paid ? base.payments : row.deposit_paid > 0 ? [{ kind: "deposit", method: "cash", amount: row.deposit_paid, paid_at: ago(1), provider_ref: null }] : [],
     signed_name: paid ? "Ana Lopez" : null, signed_at: paid ? r101.paid_at : null, has_signature: paid, token: null,
+    findings: jobFindingsFixture(row.id),
   };
 }
 

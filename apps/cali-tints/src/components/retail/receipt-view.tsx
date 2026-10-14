@@ -5,6 +5,7 @@ import { formatMoney, formatTaxRate } from "@/lib/money";
 import { formatAddress } from "@/lib/address";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { PublicFindings } from "./public-findings";
 
 const METHOD: Record<string, string> = { clover_online: "Card online", clover_flex: "Card at the counter", cash: "Cash", check: "Check", other: "Other" };
 
@@ -22,11 +23,11 @@ export function ReceiptView({ r, token }: { r: Receipt; token: string }) {
       <section className="rounded-2xl border border-border bg-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-caption text-subtle">Receipt · {r.tag}</div>
-            <h1 className="text-heading">Thanks{r.customer?.first_name ? `, ${r.customer.first_name}` : ""}!</h1>
+            <div className="text-caption text-subtle">{r.paid_at ? "Receipt" : "Invoice"} · {r.invoice_number ?? r.tag}</div>
+            <h1 className="text-heading">{r.paid_at ? `Thanks${r.customer?.first_name ? `, ${r.customer.first_name}` : ""}!` : `Hi${r.customer?.first_name ? ` ${r.customer.first_name}` : ""}, here is your invoice`}</h1>
             <div className="text-sm text-muted-foreground">{[r.vehicle, r.color, r.odometer ? `${r.odometer.toLocaleString()} mi` : null].filter(Boolean).join(" · ")}{r.paid_at ? ` · paid ${formatDateTime(r.paid_at)}` : ""}</div>
           </div>
-          <CheckCircle2Icon className="size-6 shrink-0 text-success" />
+          {r.paid_at && <CheckCircle2Icon className="size-6 shrink-0 text-success" />}
         </div>
         <ul className="mt-3 divide-y divide-border text-sm" data-testid="receipt-lines">
           {r.lines.map((l, i) => (
@@ -40,10 +41,12 @@ export function ReceiptView({ r, token }: { r: Receipt; token: string }) {
           {r.payments.map((p, i) => (
             <div key={i} className="flex justify-between text-muted-foreground"><span>{p.kind === "refund" ? "Refund" : p.kind === "deposit" ? "Deposit" : "Paid"} · {METHOD[p.method] ?? p.method}{p.paid_at ? ` · ${formatDateTime(p.paid_at)}` : ""}</span><span className="tabular-nums">{p.kind === "refund" ? "+" : "−"}{formatMoney(p.amount)}</span></div>
           ))}
-          <div className="flex justify-between font-semibold"><span>Balance</span><span className="tabular-nums">{formatMoney(r.balance)}</span></div>
+          <div className="flex justify-between font-semibold"><span>{r.paid_at ? "Balance" : "Amount due"}</span><span className="tabular-nums">{formatMoney(r.balance)}</span></div>
         </div>
         {r.signed_name && <p className="mt-3 text-caption text-subtle" data-testid="receipt-signed">Received by {r.signed_name}{r.signed_at ? ` · ${formatDateTime(r.signed_at)}` : ""}{r.has_signature ? " · signed" : ""}</p>}
       </section>
+      {!r.paid_at && <p className="text-sm text-muted-foreground" data-testid="receipt-unpaid">Nothing to pay online: you pay at the shop when you pick up the car{r.company.phone ? `, or call us at ${r.company.phone}` : ""}.</p>}
+      <PublicFindings findings={r.findings ?? []} />
       <Button asChild variant="outline">
         <a href={`/api/r/${token}/pdf`} data-testid="receipt-pdf"><FileDownIcon /> Download the PDF</a>
       </Button>

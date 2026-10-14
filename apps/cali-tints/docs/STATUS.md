@@ -9,6 +9,7 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 | 3 | Booking, capacity | **Done** | `0040` · `0ceb6a0` | Multi-tech / line-item scheduling; an embeddable widget; drag-and-drop calendar grid |
 | 4 | Payments, deposits | **Done** (Clover only) | `0041` · `23f7828` | First real run in the Clover sandbox from the owner's side; tipping, BNPL, memberships, gift cards (all need a decision on a processor feature) |
 | 5 | Intake, photos, inspections | Partial (photos; the RO notes tab with findings, photos, clips, declined work kept) | `0030`, `0043` | Fuel / keys at check-in; SVG damage pins; DVI templates; condition sign-off |
+| 4e | Findings on estimates and invoices | **Built**: side panel with notes / photos / clips / recommendations, Send findings by text or email, customer sees them on the estimate and invoice links, PDFs list them | `0050` | A "ready for pickup" text rule; plate OCR |
 | 4d | Retail car lookup bar (plate / VIN / mileage) | **Built**: finds a car by plate or VIN, starts the estimate with the mileage; mileage on estimate and invoice | `0049` | Plate OCR from a photo |
 | 4c | Retail starts with an estimate | **Built**: no New job in Retail; approval of an estimate creates the invoice + work; New job form is dealership-only | `0048` | Fallback "Create the invoice" if the retail location is missing |
 | 4b | Retail invoices (RI-…) | **Built**: one per retail repair order, own numbers and list (Retail → Invoices), PDF, apart from dealership invoices and QuickBooks; retail jobs have their own list; the dashboard shows both side by side | `0047` | Void by hand (today: delete the repair order); emailing the invoice before it is paid |
@@ -31,7 +32,7 @@ As of 2026-10-12. The first slice (Customers + Vehicles + Quotes + Booking + Dep
 
 ## Verified on every commit
 
-`pnpm typecheck` · `pnpm lint` · `pnpm test` (79) · `supabase/tests/run.sh` (01_flows + 02_retail) · `pnpm build` · Playwright at 390 px in guest mode (`.dev/redesign-e2e.mjs`, `.dev/retail-e2e.mjs`) · GitHub Actions green · Vercel READY on the demo.
+`pnpm typecheck` · `pnpm lint` · `pnpm test` (81) · `supabase/tests/run.sh` (01_flows + 02_retail) · `pnpm build` · Playwright at 390 px in guest mode (`.dev/redesign-e2e.mjs`, `.dev/retail-e2e.mjs`) · GitHub Actions green · Vercel READY on the demo.
 
 ## Known gaps in the first slice (by design)
 

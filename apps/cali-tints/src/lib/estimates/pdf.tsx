@@ -1,3 +1,4 @@
+import { FindingsPdfSection } from "./findings-pdf";
 import "server-only";
 
 import React from "react";
@@ -94,6 +95,8 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
             <Text style={s.small}>{[e.vehicle?.color, e.vehicle?.plate ? `Plate ${e.vehicle.plate}` : null, e.odometer ? `${e.odometer.toLocaleString("en-US")} mi` : null, SIZE_LABEL[e.size_class]].filter(Boolean).join(" · ")}</Text>
           </View>
         </View>
+
+        <FindingsPdfSection findings={e.findings} />
 
         {e.options.map((o) => (
           <View key={o.id} style={[s.option, chosen === o.id ? s.optionChosen : {}]} wrap={false}>

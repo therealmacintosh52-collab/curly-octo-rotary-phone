@@ -7,6 +7,7 @@ import type { ReceiptView } from "@/lib/db/types";
 import { formatMoney, formatTaxRate } from "@/lib/money";
 import { formatAddress } from "@/lib/address";
 import { LOGO_PNG_BASE64 } from "@/lib/invoices/logo";
+import { FindingsPdfSection } from "@/lib/estimates/findings-pdf";
 
 const accent = "#3f8f1f";
 const rule = "#d7dbde";
@@ -80,6 +81,8 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
             {r.color || r.plate || r.odometer ? <Text style={s.small}>{[r.color, r.plate ? `Plate ${r.plate}` : null, r.odometer ? `${r.odometer.toLocaleString("en-US")} mi` : null].filter(Boolean).join(" · ")}</Text> : null}
           </View>
         </View>
+
+        <FindingsPdfSection findings={r.findings} />
 
         {r.lines.map((l, i) => (
           <View key={i} style={s.line}>
