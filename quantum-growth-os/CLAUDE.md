@@ -221,7 +221,7 @@ Finished-phase summaries (replace re-reading old files; keep each to a few lines
 
 # Part 4: Decisions log
 
-Empty by design. Add one entry per decision, newest last, in this format:
+Add one entry per decision, newest last, in this format:
 
 ```
 ## D-NNN: short title (Phase X, YYYY-MM-DD)
