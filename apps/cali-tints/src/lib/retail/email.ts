@@ -55,6 +55,8 @@ export async function sendRetailEmail(opts: {
   companyName: string;
   replyTo?: string | null;
   refId?: string;
+  /** Extra text after the template's body (a single finding the advisor is sharing). */
+  append?: string;
 }): Promise<RetailMailResult> {
   const to = opts.to?.trim();
   if (!to) return { ok: false, error: "No email on file", skipped: true };
@@ -63,7 +65,7 @@ export async function sendRetailEmail(opts: {
   if (!apiKey || !from) return { ok: false, error: "Email is not configured (RESEND_API_KEY, EMAIL_FROM)", skipped: true };
   const t = templateFor(opts.key, opts.templates);
   const subject = renderTemplate(t.subject, opts.vars);
-  const body = renderTemplate(t.body, opts.vars);
+  const body = renderTemplate(t.body, opts.vars) + (opts.append ? `\n\n${opts.append}` : "");
   try {
     const resend = new Resend(apiKey);
     const { data, error } = await resend.emails.send({

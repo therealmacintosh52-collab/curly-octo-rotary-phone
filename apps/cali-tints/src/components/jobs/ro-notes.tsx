@@ -5,14 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CircleAlertIcon, ClipboardCheckIcon, EllipsisVerticalIcon, FileTextIcon, FilmIcon, PlayIcon, PlusIcon, StickyNoteIcon, VideoIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { FindingSeverity, FindingStatus, JobEstimate, JobFinding } from "@/lib/db/types";
-import { addEstimateFindingPhotosAction, addFindingAction, addFindingPhotosAction, deleteFindingAction, registerEstimateFindingMediaAction, registerFindingMediaAction, updateFindingAction, type FindingRef } from "@/app/(app)/jobs/actions";
+import type { FindingRecommendation, FindingSeverity, FindingStatus, JobEstimate, JobFinding } from "@/lib/db/types";
+import { addFindingAction, deleteFindingAction, updateFindingAction, type FindingRef } from "@/app/(app)/jobs/actions";
 import { convertEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { formatMoney } from "@/lib/money";
 import { EstimateStatusBadge } from "@/components/retail/estimate-status-badge";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateTime } from "@/lib/dates";
-import { MAX_VIDEO_BYTES, MAX_VIDEO_SECONDS, extensionFor, formatClipLength, isVideoMime, mediaMime } from "@/lib/media/kind";
+import { MAX_VIDEO_SECONDS, formatClipLength, isVideoMime } from "@/lib/media/kind";
+import { readClip, uploadFindingMedia } from "@/lib/media/finding-upload";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { PhotoPicker, type PendingPhoto } from "./photo-picker";
+import { FindingActions, type ShareContext } from "./finding-actions";
+import type { FindingPricing } from "@/lib/retail/finding-quote";
 
 export interface RoNotesProps {
   /** The panel belongs to a repair order (the job page, the invoice) or to an estimate that is not approved yet. */
@@ -51,9 +54,16 @@ export interface RoNotesProps {
   estimates?: JobEstimate[];
   canQuote?: boolean;
   jobOpen?: boolean;
+  /** The shop's labor rate, tax and supplies, so a finding can be priced on the spot (0053). */
+  pricing?: FindingPricing | null;
+  /** The customer's link and contact, for sharing one finding by text or email. */
+  share?: ShareContext | null;
+  /** What the estimate adds up to so far (staff with prices): "$X plus tax". */
+  estimateSoFar?: { display_number: string; subtotal: number; tax: number; total: number } | null;
 }
 
 const SEVERITY_LABEL: Record<FindingSeverity, string> = { ok: "Looks fine", soon: "Soon", urgent: "Urgent" };
+const REC_LABEL: Record<FindingRecommendation, string> = { replace: "RECOMMEND REPLACE", diagnose: "RECOMMEND DIAG", monitor: "RECOMMEND MONITOR" };
 const STATUS_BADGE: Record<FindingStatus, { label: string; variant: "muted" | "info" | "success" | "warning" | "destructive" } | null> = {
   open: null,
   quoted: { label: "On an estimate", variant: "info" },
@@ -148,6 +158,14 @@ export function RoNotes(p: RoNotesProps) {
 
       <Card>
         <CardHeader>
+          {p.estimateSoFar && (
+            <p className="mb-1 text-sm" data-testid="estimate-so-far">
+              <span className="text-muted-foreground">Estimate so far ({p.estimateSoFar.display_number}): </span>
+              <span className="font-semibold tabular-nums">{formatMoney(p.estimateSoFar.subtotal)}</span>
+              <span className="text-muted-foreground"> plus tax {formatMoney(p.estimateSoFar.tax)} = </span>
+              <span className="font-semibold tabular-nums">{formatMoney(p.estimateSoFar.total)}</span>
+            </p>
+          )}
           <CardTitle className="flex items-center gap-2">
             <StickyNoteIcon className="size-4 text-primary" /> Notes {p.findings.length > 0 && <Badge variant="muted">{p.findings.length}</Badge>}
             {urgent > 0 && <Badge variant="destructive">{urgent} urgent</Badge>}
@@ -170,6 +188,8 @@ export function RoNotes(p: RoNotesProps) {
                         {f.customer_visible === false && <Badge variant="outline" title="The customer does not see this">Internal</Badge>}
                       </div>
                       {f.body && <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{f.body}</p>}
+                      {f.media.length > 0 && <p className="mt-1 text-caption text-subtle" data-testid="finding-counts">{mediaCounts(f)}</p>}
+                      {f.kind === "finding" && f.recommendation && <p className="mt-1" data-testid="finding-recommendation"><Badge variant={f.recommendation === "replace" ? "destructive" : f.recommendation === "diagnose" ? "warning" : "muted"}>{REC_LABEL[f.recommendation]}</Badge></p>}
                       {f.recommended_service && (
                         <p className="mt-1 text-caption text-subtle">
                           Recommends: {f.recommended_service}
@@ -217,6 +237,7 @@ export function RoNotes(p: RoNotesProps) {
                       ))}
                     </div>
                   )}
+                  <FindingActions f={f} subject={f.job_id ? { jobId: f.job_id } : { estimateId: f.estimate_id ?? p.estimateId! }} canWrite={p.canWrite && ["open", "quoted", "declined"].includes(f.status)} canQuote={!!p.canQuote} pricing={p.pricing} share={p.share} />
                   <div className="mt-2 text-caption text-subtle">{formatDateTime(f.created_at)}</div>
                 </li>
               ))}
@@ -290,6 +311,13 @@ function SeverityDot({ severity }: { severity: FindingSeverity }) {
   return <span aria-label={SEVERITY_LABEL[severity]} className={cn("inline-block size-2.5 shrink-0 rounded-full", severity === "urgent" ? "bg-destructive" : severity === "soon" ? "bg-warning" : "bg-success")} />;
 }
 
+/** "2 photos · 1 video" for a finding's media. */
+function mediaCounts(f: JobFinding): string {
+  const videos = f.media.filter((m) => isVideoMime(m.mime) || m.kind === "video").length;
+  const photos = f.media.length - videos;
+  return [photos ? `${photos} ${photos === 1 ? "photo" : "photos"}` : null, videos ? `${videos} ${videos === 1 ? "video" : "videos"}` : null].filter(Boolean).join(" · ");
+}
+
 function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: string } | { estimateId: string }; services: { id: string; name: string }[]; onClose: () => void }) {
   const jobId = "jobId" in subject ? subject.jobId : null;
   const estimateId = "estimateId" in subject ? subject.estimateId : null;
@@ -300,6 +328,7 @@ function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: str
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [service, setService] = useState("none");
+  const [recommendation, setRecommendation] = useState<"none" | FindingRecommendation>("none");
   const [internal, setInternal] = useState(false);
   const [photos, setPhotos] = useState<PendingPhoto[]>([]);
   const [clip, setClip] = useState<{ file: File; mime: string; duration: number | null } | null>(null);
@@ -311,13 +340,9 @@ function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: str
     const file = files?.[0];
     if (videoRef.current) videoRef.current.value = "";
     if (!file) return;
-    const mime = mediaMime(file.type, file.name);
-    if (!mime || !isVideoMime(mime)) return void toast.error("That is not a video the app can keep (mp4, webm or mov)");
-    if (file.size > MAX_VIDEO_BYTES) return void toast.error("Keep clips under 100 MB (about a minute at 720p)");
-    const { clipDuration } = await import("@/lib/media/upload");
-    const duration = await clipDuration(file);
-    if (duration && duration > MAX_VIDEO_SECONDS + 1) return void toast.error(`Keep clips under ${MAX_VIDEO_SECONDS} seconds`);
-    setClip({ file, mime, duration });
+    const r = await readClip(file);
+    if ("error" in r) return void toast.error(r.error);
+    setClip(r.clip);
   }
 
   async function save() {
@@ -329,29 +354,11 @@ function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: str
         onClose();
         return;
       }
-      const r = await addFindingAction({ ...(jobId ? { job_id: jobId } : { estimate_id: estimateId! }), customer_visible: !internal, kind, severity, title, body: body || null, recommended_service_id: service === "none" ? null : service });
+      const r = await addFindingAction({ ...(jobId ? { job_id: jobId } : { estimate_id: estimateId! }), customer_visible: !internal, kind, severity, title, body: body || null, recommended_service_id: service === "none" ? null : service, recommendation: kind === "finding" && recommendation !== "none" ? recommendation : null });
       if (!r.ok) return void toast.error(r.error);
       const findingId = r.data.id;
-      if (photos.length) {
-        setProgress(`Uploading ${photos.length} ${photos.length === 1 ? "photo" : "photos"}…`);
-        const form = new FormData();
-        for (const ph of photos) form.append("photo", new File([ph.blob], ph.name || "photo.jpg", { type: "image/jpeg" }));
-        const pr = jobId ? await addFindingPhotosAction(jobId, findingId, form) : await addEstimateFindingPhotosAction(estimateId!, findingId, form);
-        if (!pr.ok) toast.error(pr.error);
-      }
-      if (clip) {
-        const { uploadJobMedia } = await import("@/lib/media/upload");
-        const path = `${company.id}/${jobId ? jobId : `estimates/${estimateId}`}/${crypto.randomUUID()}.${extensionFor(clip.mime as Parameters<typeof extensionFor>[0])}`;
-        setProgress("Uploading the clip… 0%");
-        try {
-          await uploadJobMedia(path, clip.file, clip.mime, (pct) => setProgress(`Uploading the clip… ${pct}%`));
-          const meta = { path, mime: clip.mime, size: clip.file.size, duration: clip.duration };
-          const reg = jobId ? await registerFindingMediaAction(jobId, findingId, meta) : await registerEstimateFindingMediaAction(estimateId!, findingId, meta);
-          if (!reg.ok) toast.error(reg.error);
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : "The clip did not upload; the finding is saved, try the clip again");
-        }
-      }
+      const problems = await uploadFindingMedia({ subject, companyId: company.id, findingId, photos: photos.map((ph) => new File([ph.blob], ph.name || "photo.jpg", { type: "image/jpeg" })), clip, onProgress: setProgress });
+      for (const msg of problems) toast.error(msg);
       toast.success(kind === "note" ? "Note added" : "Finding added");
       onClose();
       router.refresh();
@@ -388,6 +395,17 @@ function AddFindingSheet({ subject, services, onClose }: { subject: { jobId: str
             <Label htmlFor="f-body">Details</Label>
             <Textarea id="f-body" value={body} onChange={(e) => setBody(e.target.value)} maxLength={4000} rows={3} placeholder="Where, how bad, what it needs" />
           </div>
+          {kind === "finding" && (
+            <div className="grid gap-1.5">
+              <Label>What we recommend</Label>
+              <Segmented size="sm" aria-label="Recommendation" value={recommendation} onValueChange={(v) => setRecommendation(v as typeof recommendation)} items={[
+                { value: "none", label: "Not sure" },
+                { value: "replace", label: "Replace" },
+                { value: "diagnose", label: "Diagnose" },
+                { value: "monitor", label: "Monitor" },
+              ]} />
+            </div>
+          )}
           {kind === "finding" && services.length > 0 && (
             <div className="grid gap-1.5">
               <Label htmlFor="f-service">Suggest a service</Label>

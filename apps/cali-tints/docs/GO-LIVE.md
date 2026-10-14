@@ -100,3 +100,6 @@ Until the Clover app is approved, the team can use the web app on their phones (
 - **New employee / device**: Settings → Users; install the Clover app on the new Flex.
 - **Updates**: push to the repo → Vercel deploys the web app; for the Clover app, run the workflow with a higher version code and upload the APK in the Developer Dashboard (devices update themselves).
 - **Backups**: Supabase daily; Export → CSV any time for the accountant.
+
+## Plate → VIN (optional, paid)
+Out of the box a plate is looked up in your own records (free). To add a paid plate-to-VIN service later: choose a vendor (any real one is a paid API; prices change, ask the vendor), then it needs an adapter written against its documentation (`src/lib/retail/plate-provider.ts` → `PLATE_ADAPTERS`), and in Vercel: `PLATE_PROVIDER=<vendor>` and `PLATE_PROVIDER_KEY=<key>`. Vehicle data only, never owner details (California DPPA). Until then leave both unset.

@@ -3,8 +3,9 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { JobDetail } from "@/components/jobs/job-detail";
 import { jobListFixture, priceListFixture } from "@/test/fixtures";
-import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailChargeFixture, retailServicesFixture, roAuthorizationsFixture, roHeaderFixture } from "@/test/retail-fixtures";
+import { fromLastTimeFixture, jobEstimatesFixture, jobFindingsFixture, retailCatalogFixture, retailChargeFixture, retailServicesFixture, roAuthorizationsFixture, roHeaderFixture } from "@/test/retail-fixtures";
 import { previewSession } from "@/test/preview-session";
+import { findingPricing } from "@/lib/retail/finding-quote";
 
 /** Every row of the demo Jobs list opens as its own page (guest demo in production). */
 export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/job/[id]">) {
@@ -85,6 +86,8 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
             authorizations={row.retail ? roAuthorizationsFixture(row.id, session.canPrices) : []}
             unauthorized={unauthorized}
             canConvert={!!row.retail && session.canPrices}
+            pricing={row.retail && session.canPrices ? findingPricing(retailCatalogFixture(true)) : null}
+            share={row.retail && session.canPrices ? { url: `/r/demo-ro-token-priya-f150-0003`, firstName: (row.customer ?? "").split(" ")[0] || "there", vehicle: row.vehicle ?? null, phone: "(916) 555-0100", email: "customer@example.com" } : null}
           />
         </AppShell>
       </SyncProvider>

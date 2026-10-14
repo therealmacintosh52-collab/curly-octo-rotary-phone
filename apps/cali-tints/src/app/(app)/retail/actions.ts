@@ -10,6 +10,7 @@ import { isVinShape, mapNhtsaRow, NHTSA_DECODE_URL, normalizeVin, type NhtsaDeco
 import { customersFixture, vehiclesFixture } from "@/test/retail-fixtures";
 import { customerSchema, vehicleSchema, type CustomerInput, type VehicleInput } from "@/lib/retail/schema";
 import { errorMessage } from "@/lib/utils";
+import { isPlateShape, normalizePlate, plateProvider } from "@/lib/retail/plate-provider";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -86,7 +87,7 @@ export async function findCarAction(input: { plate?: string; vin?: string }): Pr
     const v = vehiclesFixture.find((x) => (vin && squash(x.vin ?? "") === vin) || (plate && squash(x.plate ?? "") === plate));
     if (!v) return { ok: true, data: null };
     const c = customersFixture.find((x) => x.id === v.customer_id);
-    return { ok: true, data: { vehicle_id: v.id, customer_id: v.customer_id, name: [v.year, v.make, v.model].filter(Boolean).join(" ") || null, color: v.color, plate: v.plate, vin: v.vin, size_class: v.size_class, customer: c?.display_name ?? null, last_odometer: v.id === "70000000-0000-4000-8000-000000000001" ? 48210 : null } };
+    return { ok: true, data: { vehicle_id: v.id, customer_id: v.customer_id, name: [v.year, v.make, v.model].filter(Boolean).join(" ") || null, year: v.year, make: v.make, model: v.model, trim: v.trim ?? null, engine_size: v.engine_size ?? null, engine_code: v.engine_code ?? null, color: v.color, plate: v.plate, vin: v.vin, size_class: v.size_class, customer: c?.display_name ?? null, last_odometer: v.id === "70000000-0000-4000-8000-000000000001" ? 48210 : null } };
   }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("find_vehicle", { p_plate: plate || null, p_vin: vin || null });
@@ -99,6 +100,13 @@ export type DecodedCar = { year: number | null; make: string | null; model: stri
 export async function decodeVinAction(raw: string): Promise<DecodedCar | null> {
   const vin = normalizeVin(raw);
   if (!isVinShape(vin)) return null;
+  // The guest demo has no network to NHTSA: a couple of sample VINs decode, everything else is "unknown".
+  if (isDemoCookieValid((await cookies()).get(DEMO_COOKIE)?.value)) {
+    const own = vehiclesFixture.find((x) => normalizeVin(x.vin ?? "") === vin);
+    if (own) return { year: own.year, make: own.make, model: own.model, trim: own.trim ?? null, engine_size: own.engine_size ?? null, engine_code: own.engine_code ?? null };
+    if (vin === "1HGCM82633A004352") return { year: 2003, make: "Honda", model: "Accord", trim: "EX", engine_size: "3.0L", engine_code: "J30A4" };
+    return null;
+  }
   try {
     const res = await fetch(NHTSA_DECODE_URL(vin), { headers: { accept: "application/json" }, signal: AbortSignal.timeout(6000) });
     const body = (await res.json()) as { Results?: NhtsaDecodeRow[] };
@@ -106,6 +114,29 @@ export async function decodeVinAction(raw: string): Promise<DecodedCar | null> {
     return d.make ? { year: d.year, make: d.make, model: d.model, trim: d.trim, engine_size: d.engineSize ?? null, engine_code: d.engineCode ?? null } : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * A plate in, the car out: your own records first (any past customer's car, with its VIN), then the paid provider if the shop switched one on
+ * (off by default). A plate nobody knows answers `source: null`: the VIN is typed or scanned and decoded from there. Vehicle data only, never an owner.
+ */
+export type PlateLookup = { car: FoundVehicle | null; vin: string | null; source: "records" | "provider" | null; decoded: DecodedCar | null; note: string | null };
+export async function lookupPlateAction(input: { plate: string; state?: string | null }): Promise<ActionResult<PlateLookup>> {
+  const plate = normalizePlate(input.plate ?? "");
+  if (!isPlateShape(plate)) return { ok: false, error: "Type the plate (2 to 8 letters and numbers)" };
+  const own = await findCarAction({ plate });
+  if (!own.ok) return own;
+  if (own.data) return { ok: true, data: { car: own.data, vin: own.data.vin, source: "records", decoded: null, note: null } };
+  const prov = plateProvider();
+  if (prov.kind === "off") return { ok: true, data: { car: null, vin: null, source: null, decoded: null, note: null } };
+  if (prov.kind === "unavailable") return { ok: true, data: { car: null, vin: null, source: null, decoded: null, note: prov.reason } };
+  try {
+    const hit = await prov.provider.lookup(plate, (input.state ?? (await getSession()).company.state ?? "CA").toUpperCase());
+    if (!hit) return { ok: true, data: { car: null, vin: null, source: null, decoded: null, note: null } };
+    return { ok: true, data: { car: null, vin: hit.vin, source: "provider", decoded: await decodeVinAction(hit.vin), note: null } };
+  } catch {
+    return { ok: true, data: { car: null, vin: null, source: null, decoded: null, note: "The plate service did not answer; type the VIN instead" } };
   }
 }
 

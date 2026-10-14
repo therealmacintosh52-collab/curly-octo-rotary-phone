@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { JobFinding } from "@/lib/db/types";
+import type { JobFinding, PricedFinding } from "@/lib/db/types";
 import { extensionFor, isVideoMime, MAX_VIDEO_BYTES, mediaMime } from "@/lib/media/kind";
 import { updateJobSchema } from "@/lib/jobs/schema";
 import type { UpdateJobInput } from "@/lib/jobs/schema";
@@ -11,7 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { syncJobToQuickBooks } from "@/lib/quickbooks/live";
 import { errorMessage } from "@/lib/utils";
-import { appUrl } from "@/lib/retail/email";
+import { appUrl, sendRetailEmail } from "@/lib/retail/email";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
@@ -189,6 +189,7 @@ const findingInput = z.object({
   title: z.string().trim().min(1, "Give it a title").max(120),
   body: z.string().trim().max(4000).optional().nullable(),
   recommended_service_id: z.uuid().optional().nullable(),
+  recommendation: z.enum(["replace", "diagnose", "monitor"]).optional().nullable(),
 }).refine((v) => !!v.job_id !== !!v.estimate_id, "A finding belongs to a repair order or an estimate");
 export type FindingInput = z.input<typeof findingInput>;
 
@@ -203,9 +204,9 @@ export async function addFindingAction(input: FindingInput): Promise<ActionResul
   return { ok: true, data };
 }
 
-export async function updateFindingAction(id: string, ref: FindingRef, input: { customer_visible?: boolean; title?: string; body?: string | null; severity?: "ok" | "soon" | "urgent"; status?: "open" | "declined" | "done"; recommended_service_id?: string | null }): Promise<ActionResult<JobFinding>> {
+export async function updateFindingAction(id: string, ref: FindingRef, input: { customer_visible?: boolean; title?: string; body?: string | null; severity?: "ok" | "soon" | "urgent"; status?: "open" | "declined" | "done"; recommended_service_id?: string | null; recommendation?: "replace" | "diagnose" | "monitor" | null }): Promise<ActionResult<JobFinding>> {
   const parsed = z
-    .object({ customer_visible: z.boolean().optional(), title: z.string().trim().min(1).max(120).optional(), body: z.string().trim().max(4000).nullable().optional(), severity: z.enum(["ok", "soon", "urgent"]).optional(), status: z.enum(["open", "declined", "done"]).optional(), recommended_service_id: z.uuid().nullable().optional() })
+    .object({ customer_visible: z.boolean().optional(), title: z.string().trim().min(1).max(120).optional(), body: z.string().trim().max(4000).nullable().optional(), severity: z.enum(["ok", "soon", "urgent"]).optional(), status: z.enum(["open", "declined", "done"]).optional(), recommended_service_id: z.uuid().nullable().optional(), recommendation: z.enum(["replace", "diagnose", "monitor"]).nullable().optional() })
     .safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const supabase = await createClient();
@@ -213,6 +214,66 @@ export async function updateFindingAction(id: string, ref: FindingRef, input: { 
   if (error) return { ok: false, error: errorMessage(error) };
   revalidateRef(ref);
   return { ok: true, data };
+}
+
+const findingLineSchema = z.object({
+  line_type: z.enum(["labor", "part", "fee", "sublet"]),
+  label: z.string().trim().min(1, "Name every line").max(120),
+  hours: z.number().positive().max(200).optional(),
+  rate: z.number().min(0).max(5000).optional(),
+  qty: z.number().positive().max(999).optional(),
+  price: z.number().min(0).max(100000).optional(),
+  part_number: z.string().trim().max(60).optional(),
+});
+
+/** Price a finding on the spot: labor, parts and fees go onto one estimate (its own, or a supplement draft on the RO). Owner, admin, advisor. */
+export async function priceFindingAction(findingId: string, lines: z.input<typeof findingLineSchema>[]): Promise<ActionResult<PricedFinding>> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner, an admin or an advisor prices a finding" };
+  const parsed = z.array(findingLineSchema).min(1, "Add at least one line").max(30).safeParse(lines);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_finding_lines", { p_finding: findingId, p_lines: parsed.data });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath(`/retail/estimates/${data.estimate_id}`);
+  revalidatePath("/retail/estimates");
+  if (data.job_id) revalidateJob(data.job_id);
+  return { ok: true, data };
+}
+
+const REC_WORD = { replace: "We recommend replacing it.", diagnose: "We recommend a diagnosis.", monitor: "We recommend keeping an eye on it." } as const;
+
+/** Email one finding to the customer (what it is, what we recommend, the link to see the photos). Owner, admin, advisor. */
+export async function emailFindingAction(findingId: string): Promise<ActionResult<{ emailed: boolean; note: string | null; url: string }>> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner, an admin or an advisor sends findings" };
+  const supabase = await createClient();
+  const { data: f } = await supabase.from("job_findings").select("id, title, body, recommendation, customer_visible, kind, estimate_id, job_id").eq("id", findingId).maybeSingle();
+  if (!f) return { ok: false, error: "Finding not found" };
+  if (f.customer_visible === false) return { ok: false, error: "That one is marked internal only" };
+  const base = appUrl() ?? "";
+  let url = "";
+  let contact: { first_name: string; email: string | null; vehicle: string | null } | null = null;
+  const { data: est } = f.estimate_id ? await supabase.rpc("estimate_detail", { p_id: f.estimate_id }) : { data: null };
+  if (est && !est.applied_at && ["draft", "sent", "viewed"].includes(est.status)) {
+    const { data: token } = await supabase.rpc("estimate_link", { p_id: est.id });
+    if (token) url = `${base}/e/${token}`;
+    contact = { first_name: est.customer.first_name || est.customer.display_name || "there", email: est.customer.email, vehicle: est.vehicle?.name ?? null };
+    await supabase.rpc("mark_findings_sent", { p_estimate: est.id });
+  }
+  const jobId = f.job_id;
+  if (!url && jobId) {
+    const { data: rt } = await supabase.rpc("receipt_link", { p_job_id: jobId });
+    if (rt) url = `${base}/r/${rt}`;
+    const { data: j } = await supabase.from("jobs").select("year, make, model, customer:customers(first_name, display_name, email)").eq("id", jobId).maybeSingle();
+    const c = (j as unknown as { year: number | null; make: string | null; model: string | null; customer: { first_name: string; display_name: string | null; email: string | null } | null } | null);
+    if (c) contact = { first_name: c.customer?.first_name || c.customer?.display_name || "there", email: c.customer?.email ?? null, vehicle: [c.year, c.make, c.model].filter(Boolean).join(" ") || null };
+  }
+  if (!url || !contact) return { ok: false, error: "There is no customer link for this finding yet" };
+  const { data: rs } = await supabase.from("retail_settings").select("email_templates").eq("company_id", session.company.id).maybeSingle();
+  const about = [`About: ${f.title}`, f.body ? f.body : null, f.recommendation ? REC_WORD[f.recommendation as keyof typeof REC_WORD] : null].filter(Boolean).join("\n");
+  const r = await sendRetailEmail({ to: contact.email, key: "findings_ready", templates: rs?.email_templates ?? null, vars: { first_name: contact.first_name, vehicle: contact.vehicle ?? "car", findings_url: url, company: session.company.name }, companyName: session.company.name, replyTo: session.company.email, refId: findingId, append: about });
+  return { ok: true, data: { emailed: r.ok, note: r.ok ? null : r.error, url } };
 }
 
 /** Remove a note or finding and its files (the RPC decides who may; the files go afterwards, best effort). */

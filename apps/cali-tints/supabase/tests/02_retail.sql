@@ -1741,3 +1741,77 @@ begin
   assert (d -> 'money' ->> 'unpaid_invoices')::int = (select count(*) from public.jobs j join public.dealerships dd on dd.id = j.dealership_id where dd.retail and j.deleted_at is null and j.invoiced_at is not null and j.paid_at is null), '0052: unpaid invoices count converted ROs only: ' || d::text;
 end $$;
 select pg_temp.logout();
+
+-- 0053: what the tech writes on the side, priced in place -----------------------
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda'); f jsonb; e public.estimates;
+begin
+  -- the owner opens an estimate; the tech (a detailer) documents on it
+  perform pg_temp.logout();
+  perform pg_temp.login('10000000-0000-4000-8000-000000000001');
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', '[]'::jsonb))));
+  insert into e50 values ('e53', e.id::text);
+  perform pg_temp.logout();
+  perform pg_temp.login('10000000-0000-4000-8000-000000000002');
+  f := public.add_finding(jsonb_build_object('estimate_id', e.id, 'title', 'Front brake pads', 'body', 'Pads at 2mm, rotors scored.', 'severity', 'urgent', 'recommendation', 'replace'));
+  assert (f ->> 'recommendation') = 'replace', '0053: the recommendation is saved';
+  insert into e50 values ('f53', f ->> 'id');
+  begin perform public.add_finding(jsonb_build_object('estimate_id', e.id, 'title', 'x', 'recommendation', 'junk')); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  f := public.add_finding(jsonb_build_object('estimate_id', e.id, 'kind', 'note', 'title', 'A note', 'recommendation', 'replace'));
+  assert (f ->> 'recommendation') is null, '0053: a note carries no recommendation';
+  insert into e50 values ('n53', f ->> 'id');
+  f := public.update_finding((select v from e50 where k = 'f53')::uuid, jsonb_build_object('recommendation', 'diagnose'));
+  assert (f ->> 'recommendation') = 'diagnose', '0053: the recommendation is editable';
+  f := public.update_finding((select v from e50 where k = 'f53')::uuid, jsonb_build_object('recommendation', 'replace'));
+  -- a detailer cannot price
+  begin perform public.add_finding_lines((select v from e50 where k = 'f53')::uuid, jsonb_build_array(jsonb_build_object('line_type', 'labor', 'label', 'x', 'hours', 1))); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();
+
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_f uuid := (select v from e50 where k = 'f53')::uuid; v_e uuid := (select v from e50 where k = 'e53')::uuid; r jsonb; d jsonb; v_rate numeric;
+begin
+  update public.companies set tax_rate = 0.0875 where id = public.current_company_id();
+  update public.retail_settings set shop_supplies_pct = 0, shop_supplies_cap = null, tax_all_lines = false, parts_taxable_default = true, labor_taxable_default = false where company_id = public.current_company_id();
+  begin perform public.add_finding_lines((select v from e50 where k = 'n53')::uuid, jsonb_build_array(jsonb_build_object('line_type', 'labor', 'label', 'x', 'hours', 1))); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  begin perform public.add_finding_lines(v_f, jsonb_build_array(jsonb_build_object('line_type', 'service', 'label', 'x'))); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  begin perform public.add_finding_lines(v_f, '[]'::jsonb); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  r := public.add_finding_lines(v_f, jsonb_build_array(
+         jsonb_build_object('line_type', 'labor', 'label', 'Replace front pads and rotors', 'hours', 1.5, 'rate', 100),
+         jsonb_build_object('line_type', 'part', 'label', 'Front rotor', 'qty', 2, 'price', 40, 'part_number', 'FR-22'),
+         jsonb_build_object('line_type', 'fee', 'label', 'Brake fluid disposal', 'price', 12)));
+  assert (r ->> 'estimate_id')::uuid = v_e and (r ->> 'subtotal')::numeric = 242, '0053: lines land on the finding''s own estimate: ' || r::text;
+  assert (r ->> 'tax')::numeric = 7 and (r ->> 'total')::numeric = 249, '0053: "plus tax": tax on the part only (80 × 8.75 % = 7), total 249: ' || r::text;
+  d := public.estimate_detail(v_e);
+  assert jsonb_array_length(d -> 'options' -> 0 -> 'lines') = 3 and (d ->> 'total')::numeric = 249, '0053: the estimate carries the three lines';
+  assert (select status from public.job_findings where id = v_f) = 'quoted' and (select estimate_line_id from public.job_findings where id = v_f) is not null, '0053: the finding is quoted';
+  assert (select count(*) from public.estimate_lines where estimate_id = v_e and finding_id = v_f) = 3, '0053: every line points back to the finding';
+  -- an estimate that was already out goes back to draft when it grows
+  perform public.send_estimate(v_e);
+  r := public.add_finding_lines(v_f, jsonb_build_array(jsonb_build_object('line_type', 'sublet', 'label', 'Machine shop', 'price', 30, 'vendor', 'Sac Machine')));
+  assert (select status from public.estimates where id = v_e) = 'draft' and (r ->> 'subtotal')::numeric = 272, '0053: a sent estimate returns to draft when a line is added: ' || r::text;
+end $$;
+-- a finding on a repair order lands on one open supplement draft
+do $$
+declare v_job uuid := (select v from r_ids where k = 'job_unauth'); f jsonb; f2 jsonb; r jsonb; r2 jsonb;
+begin
+  f := public.add_finding(jsonb_build_object('job_id', v_job, 'title', 'Serpentine belt', 'severity', 'soon', 'recommendation', 'replace'));
+  f2 := public.add_finding(jsonb_build_object('job_id', v_job, 'title', 'Cabin air filter', 'severity', 'ok', 'recommendation', 'monitor'));
+  r := public.add_finding_lines((f ->> 'id')::uuid, jsonb_build_array(jsonb_build_object('line_type', 'labor', 'label', 'Replace serpentine belt', 'hours', 0.5, 'rate', 100), jsonb_build_object('line_type', 'part', 'label', 'Belt', 'price', 45)));
+  assert (select kind from public.estimates where id = (r ->> 'estimate_id')::uuid) = 'supplement' and (r ->> 'job_id')::uuid = v_job, '0053: an RO finding opens a supplement draft';
+  r2 := public.add_finding_lines((f2 ->> 'id')::uuid, jsonb_build_array(jsonb_build_object('line_type', 'part', 'label', 'Cabin filter', 'price', 20)));
+  assert (r2 ->> 'estimate_id') = (r ->> 'estimate_id') and (select count(*) from public.estimates where job_id = v_job and kind = 'supplement' and status = 'draft') = 1, '0053: the next finding joins the same draft: one estimate';
+  assert (r2 ->> 'total')::numeric = 50 + 45 + 20 + round(65 * 0.0875, 2), '0053: totals add up with tax on the parts: ' || r2::text;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+begin
+  begin perform public.add_finding_lines((select v from e50 where k = 'f53')::uuid, jsonb_build_array(jsonb_build_object('line_type', 'labor', 'label', 'x', 'hours', 1))); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$ begin update public.companies set tax_rate = 0 where id = public.current_company_id(); end $$;
+select pg_temp.logout();

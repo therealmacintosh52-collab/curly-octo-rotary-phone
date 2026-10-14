@@ -475,7 +475,7 @@ function estimateBase(id: string) {
         ] }],
         addons: [],
         findings: [
-          finding({ id: "94000000-0000-4000-8000-000000000001", job_id: null, estimate_id: E5, severity: "urgent", title: "Rattle for two seconds on a cold start", body: "Timing chain tensioner. Recorded the sound; do not wait on this one.", job_ro_number: null, job_performed_at: null, created_at: ago(0, 2), updated_at: ago(0, 2),
+          finding({ id: "94000000-0000-4000-8000-000000000001", job_id: null, estimate_id: E5, severity: "urgent", recommendation: "diagnose", title: "Rattle for two seconds on a cold start", body: "Timing chain tensioner. Recorded the sound; do not wait on this one.", job_ro_number: null, job_performed_at: null, created_at: ago(0, 2), updated_at: ago(0, 2),
             media: [{ id: "94100000-0000-4000-8000-000000000001", kind: "video", storage_path: "demo/rattle.mp4", mime: "video/mp4", duration_s: 9.2, size_bytes: 9000000, created_at: ago(0, 2), url: null }] }),
         ],
         created: ago(0, 3), expires: new Date(Date.now() + 14 * 86400000).toISOString(), customer_notes: "The rattle is the tensioner; the diagnosis confirms it before we take anything apart.", internal_notes: null, po: null,
@@ -794,6 +794,7 @@ const finding = (f: Partial<JobFinding> & Pick<JobFinding, "id" | "job_id" | "ti
   body: null,
   recommended_service_id: null,
   recommended_service: null,
+  recommendation: null,
   status: "open",
   estimate_line_id: null,
   created_by: "u2",
@@ -809,14 +810,14 @@ export function jobFindingsFixture(jobId: string): JobFinding[] {
     return [
       finding({ id: FINDING_IDS.note, job_id: jobId, kind: "note", severity: "ok", title: "Customer waits in the lobby", body: "Wants a call before anything beyond the detail.", created_at: ago(0, 0.6), updated_at: ago(0, 0.6) }),
       finding({
-        id: FINDING_IDS.pads, job_id: jobId, severity: "urgent", title: "Rear brake pads at 2 mm", body: "Both sides. Rotors look fine. Metal within a month.",
+        id: FINDING_IDS.pads, job_id: jobId, severity: "urgent", recommendation: "replace", title: "Rear brake pads at 2 mm", body: "Both sides. Rotors look fine. Metal within a month.",
         recommended_service_id: RETAIL_SERVICE_ID(10), recommended_service: "Brakes (per axle)",
         media: [
           { id: "91000000-0000-4000-8000-000000000001", kind: "finding", storage_path: "demo/pads.jpg", mime: "image/jpeg", duration_s: null, size_bytes: 380000, created_at: ago(0, 0.5), url: "/demo/before.svg" },
           { id: "91000000-0000-4000-8000-000000000002", kind: "video", storage_path: "demo/pads.mp4", mime: "video/mp4", duration_s: 12.4, size_bytes: 18400000, created_at: ago(0, 0.5), url: null },
         ],
       }),
-      finding({ id: FINDING_IDS.filter, job_id: jobId, severity: "ok", title: "Cabin air filter is dirty", body: "Worth doing at the next oil change.", created_at: ago(0, 0.35), updated_at: ago(0, 0.35) }),
+      finding({ id: FINDING_IDS.filter, job_id: jobId, severity: "ok", recommendation: "monitor", title: "Cabin air filter is dirty", body: "Worth doing at the next oil change.", created_at: ago(0, 0.35), updated_at: ago(0, 0.35) }),
       finding({ id: FINDING_IDS.spots, job_id: jobId, severity: "soon", title: "Water spots on the hood and roof", body: "Hard-water etching, light.", recommended_service_id: RETAIL_SERVICE_ID(4), recommended_service: "Water spot removal", created_at: ago(0, 0.4), updated_at: ago(0, 0.4),
         media: [{ id: "91000000-0000-4000-8000-000000000003", kind: "finding", storage_path: "demo/spots.jpg", mime: "image/jpeg", duration_s: null, size_bytes: 410000, created_at: ago(0, 0.4), url: "/demo/after.svg" }] }),
     ];

@@ -23,6 +23,7 @@ export function PublicFindings({ findings, title = "What we found" }: { findings
               {f.kind === "finding" && <span className="text-caption text-subtle">{f.severity === "urgent" ? "needs attention now" : f.severity === "soon" ? "soon" : "for your information"}</span>}
             </div>
             {f.body && <p className="mt-0.5 whitespace-pre-wrap text-muted-foreground">{f.body}</p>}
+            {f.recommendation && <p className="mt-0.5 text-caption font-semibold tracking-wide" data-testid="public-recommendation">{{ replace: "RECOMMEND REPLACE", diagnose: "RECOMMEND DIAG", monitor: "RECOMMEND MONITOR" }[f.recommendation]}</p>}
             {f.recommended_service && <p className="mt-0.5 text-caption font-medium">We recommend: {f.recommended_service}</p>}
             {f.media.length > 0 && (
               <div className="mt-2 flex gap-2 overflow-x-auto">

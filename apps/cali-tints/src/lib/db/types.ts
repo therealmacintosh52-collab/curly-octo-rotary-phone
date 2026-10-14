@@ -604,6 +604,8 @@ export type ReceiptView = {
 /** Retail's own invoices (0047): one per retail job, numbered RI-…, never in QuickBooks. */
 /** find_vehicle(): the car behind a plate or VIN typed in the bar at the top of Retail (0049). */
 export type FoundVehicle = { vehicle_id: string; customer_id: string; name: string | null; color: string | null; trim?: string | null; year?: number | null; make?: string | null; model?: string | null; engine_size?: string | null; engine_code?: string | null; plate: string | null; vin: string | null; size_class: VehicleSize; customer: string | null; last_odometer: number | null };
+/** add_finding_lines(): the estimate a finding was priced onto, with its totals ("plus tax"). */
+export type PricedFinding = { estimate_id: string; display_number: string; job_id: string | null; subtotal: number; shop_supplies: number; tax: number; total: number; line_ids: string[] };
 /** One entry of a repair order's authorization record (0052). Amount only for those who price jobs. */
 export type RoAuthorization = { id: string; kind: "initial" | "estimate" | "change_order"; authorized_at: string; name: string; method: "online" | "in_person" | "phone" | "email"; by_staff: boolean; has_signature: boolean; estimate_id: string | null; amount: number | null };
 /** check_in_appointment(): mileage in, the customer's concern and the initial authorization (the signature is uploaded first). */
@@ -787,6 +789,8 @@ export type JobPhoto = {
 
 export type FindingKind = "note" | "finding";
 /** Green / yellow / red. A note is always "ok". */
+/** What we recommend for a finding (0053): shown as RECOMMEND REPLACE / DIAG / MONITOR. */
+export type FindingRecommendation = "replace" | "diagnose" | "monitor";
 export type FindingSeverity = "ok" | "soon" | "urgent";
 /** open → quoted (on an estimate) → approved / declined (by the customer) → done. Staff may set open, declined, done. */
 export type FindingStatus = "open" | "quoted" | "approved" | "declined" | "done";
@@ -806,6 +810,7 @@ export type JobFinding = {
   body: string | null;
   recommended_service_id: string | null;
   recommended_service: string | null;
+  recommendation?: FindingRecommendation | null;
   status: FindingStatus;
   estimate_line_id: string | null;
   created_by: string | null;
@@ -1303,6 +1308,7 @@ export type Database = {
       customers: Table<Customer>;
       vehicles: Table<Vehicle>;
       odometer_readings: Table<OdometerReading>;
+      job_findings: Table<Omit<JobFinding, "media" | "recommended_service" | "job_ro_number" | "job_performed_at">>;
       service_prices_by_size: Table<ServicePriceBySize>;
       price_modifiers: Table<PriceModifier>;
       retail_settings: Table<RetailSettings>;
@@ -1412,6 +1418,7 @@ export type Database = {
       job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
       estimate_findings: { Args: { p_estimate: string }; Returns: JobFinding[] };
       add_finding_media: { Args: { p_finding: string; p: { path: string; mime: string; size: number; duration?: number | null } }; Returns: { id: string } };
+      add_finding_lines: { Args: { p_finding: string; p_lines: { line_type: "labor" | "part" | "fee" | "sublet"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string }[] }; Returns: PricedFinding };
       convert_ro_to_invoice: { Args: { p_job: string }; Returns: { job_id: string; invoice_number: string; invoiced_at: string } };
       check_in_appointment: { Args: { p_id: string; p: CheckInPayload }; Returns: AppointmentView };
       ro_authorizations: { Args: { p_job: string }; Returns: RoAuthorization[] };

@@ -4,7 +4,8 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { RetailNav } from "@/components/retail/retail-nav";
 import { EstimateDetail } from "@/components/retail/estimate-detail";
-import { ESTIMATE_TOKEN, estimateViewFixture, retailServicesFixture } from "@/test/retail-fixtures";
+import { ESTIMATE_TOKEN, estimateViewFixture, retailCatalogFixture, retailServicesFixture } from "@/test/retail-fixtures";
+import { findingPricing } from "@/lib/retail/finding-quote";
 import { RoNotes } from "@/components/jobs/ro-notes";
 import { SendFindings } from "@/components/retail/send-findings";
 import { previewSession } from "@/test/preview-session";
@@ -38,6 +39,9 @@ export default async function DevEstimatePreview(props: PageProps<"/dev/preview/
                 canDeleteAny={canPrices}
                 userId="u2"
                 canQuote={canPrices}
+                pricing={canPrices ? findingPricing(retailCatalogFixture(true)) : null}
+                share={canPrices ? { url: `/e/${ESTIMATE_TOKEN}`, firstName: e.customer.first_name, vehicle: e.vehicle?.name ?? null, phone: e.customer.phone ?? null, email: e.customer.email ?? null } : null}
+                estimateSoFar={canPrices && e.subtotal ? { display_number: e.display_number, subtotal: e.subtotal, tax: e.tax ?? 0, total: e.total ?? e.subtotal } : null}
                 estimateOpen={e.status === "draft" || e.status === "sent" || e.status === "viewed"}
                 extra={canPrices ? <SendFindings estimateId={e.id} firstName={e.customer.first_name} vehicle={e.vehicle?.name ?? null} phone={e.customer.phone ?? null} email={e.customer.email ?? null} url={`/e/${ESTIMATE_TOKEN}`} sentAt={null} count={(e.findings ?? []).filter((f) => f.customer_visible !== false).length} /> : null}
               />

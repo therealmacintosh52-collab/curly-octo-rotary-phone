@@ -6,7 +6,7 @@ import Link from "next/link";
 import { CarFrontIcon, FileTextIcon, ScanLineIcon, SearchIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { FoundVehicle } from "@/lib/db/types";
-import { decodeVinAction, findCarAction } from "@/app/(app)/retail/actions";
+import { decodeVinAction, findCarAction, lookupPlateAction } from "@/app/(app)/retail/actions";
 import { isVinShape, normalizeVin, vinStatus } from "@/lib/vin";
 import { useSession } from "@/components/app/session-provider";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 // The barcode engine is ~200 KB; it only loads the first time the scanner opens.
 const VinScanner = dynamic(() => import("@/components/jobs/vin-scanner").then((m) => m.VinScanner), { ssr: false });
 
-type Result = { kind: "found"; car: FoundVehicle } | { kind: "new"; vin: string; plate: string; year?: number | null; make?: string | null; model?: string | null; trim?: string | null; engine_size?: string | null; engine_code?: string | null };
+type Result = { kind: "found"; car: FoundVehicle } | { kind: "new"; vin: string; plate: string; source?: "provider" | null; note?: string | null; year?: number | null; make?: string | null; model?: string | null; trim?: string | null; engine_size?: string | null; engine_code?: string | null };
 
 /**
  * The bar at the top of Retail: the car in front of you. Type the plate or the
@@ -43,10 +43,32 @@ export function CarLookupBar() {
     start(async () => {
       const r = await findCarAction({ plate, vin: v });
       if (!r.ok) return void toast.error(r.error);
-      if (r.data) return void setResult({ kind: "found", car: r.data });
-      // Not on file: decode the VIN so the estimate starts with the car filled in.
-      const decoded = v ? await decodeVinAction(v) : null;
-      setResult({ kind: "new", vin: v, plate: plate.trim(), year: decoded?.year, make: decoded?.make, model: decoded?.model, trim: decoded?.trim, engine_size: decoded?.engine_size, engine_code: decoded?.engine_code });
+      if (r.data) {
+        // On file: the VIN and plate fill in by themselves.
+        if (r.data.vin) setVin(r.data.vin);
+        if (r.data.plate && !plate.trim()) setPlate(r.data.plate);
+        return void setResult({ kind: "found", car: r.data });
+      }
+      // Not on file. A plate alone: ask the paid plate service if the shop switched one on (off by default).
+      let vinUse = v;
+      let decoded = null as Awaited<ReturnType<typeof decodeVinAction>>;
+      let source: "provider" | null = null;
+      let note: string | null = null;
+      if (!v && plate.trim()) {
+        const p = await lookupPlateAction({ plate });
+        if (p.ok) {
+          note = p.data.note;
+          if (p.data.vin) {
+            vinUse = p.data.vin;
+            setVin(p.data.vin);
+            decoded = p.data.decoded;
+            source = "provider";
+          }
+        }
+      }
+      // Decode the VIN so the estimate starts with the car filled in.
+      if (vinUse && !decoded) decoded = await decodeVinAction(vinUse);
+      setResult({ kind: "new", vin: vinUse, plate: plate.trim(), source, note, year: decoded?.year, make: decoded?.make, model: decoded?.model, trim: decoded?.trim, engine_size: decoded?.engine_size, engine_code: decoded?.engine_code });
     });
   }
 
@@ -117,13 +139,22 @@ export function CarLookupBar() {
                 <div className="truncate text-muted-foreground">
                   {result.car.customer ?? "Customer"}
                   {result.car.plate ? ` · ${result.car.plate}` : ""}
+                  {result.car.vin ? ` · VIN ${result.car.vin}` : ""}
                   {result.car.last_odometer ? ` · last seen at ${result.car.last_odometer.toLocaleString()} mi` : ""}
                 </div>
               </>
             ) : (
               <>
                 <div className="font-semibold">Not on file yet{[result.year, result.make, result.model].filter(Boolean).length ? ` · ${[result.year, result.make, result.model].filter(Boolean).join(" ")}` : ""}</div>
-                <div className="text-muted-foreground">Start an estimate and add the car to its owner there.</div>
+                {result.vin ? (
+                  <div className="text-muted-foreground" data-testid="car-vin-found">VIN <span className="font-mono">{result.vin}</span>{result.source === "provider" ? " · from the plate service" : ""}. Start an estimate and add the car to its owner there.</div>
+                ) : (
+                  <div className="text-muted-foreground" data-testid="car-vin-missing">
+                    {result.note ?? "This plate is not on file, so there is no VIN yet."}{" "}
+                    <button type="button" className="font-medium text-primary hover:underline" onClick={() => document.getElementById("car-vin")?.focus()} data-testid="car-type-vin">Type or scan the VIN</button>
+                    {" "}and the rest fills in, or start the estimate and enter the car by hand.
+                  </div>
+                )}
               </>
             )}
           </div>

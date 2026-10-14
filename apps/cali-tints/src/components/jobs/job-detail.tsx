@@ -12,6 +12,8 @@ import { RetailPayment, type RetailPaymentInfo } from "./retail-payment";
 import { RoLayout, RoNotes } from "./ro-notes";
 import { RoInvoiceCard } from "./ro-invoice-card";
 import { RoStageBar } from "@/components/retail/ro-stage-bar";
+import type { ShareContext } from "./finding-actions";
+import type { FindingPricing } from "@/lib/retail/finding-quote";
 import type { EditableCar } from "./edit-car-sheet";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +67,9 @@ export interface JobDetailProps {
   unauthorized?: number;
   /** Owner, admin, advisor: converts the repair order to an invoice. */
   canConvert?: boolean;
+  /** Price a finding on the spot and share one with the customer (owner, admin, advisor; 0053). */
+  pricing?: FindingPricing | null;
+  share?: ShareContext | null;
 }
 
 const vehicle = (v: { year: number | null; make: string | null; model: string | null }) => [v.year, v.make, v.model].filter(Boolean).join(" ");
@@ -145,7 +150,7 @@ export function JobDetail(p: JobDetailProps) {
       )}
 
       {retail ? (
-        <RoLayout initialTab={p.initialTab} count={(p.findings ?? []).length} notes={<RoNotes jobId={job.id} roNumber={job.ro_number ?? null} findings={p.findings ?? []} fromLastTime={p.fromLastTime ?? []} services={p.retailServices ?? []} canWrite={!!p.canNote && !deleted} canDeleteAny={canSetAmount && isAdmin} userId={p.userId ?? ""} estimates={estimates} canQuote={canSetAmount} jobOpen={!deleted && !paidAtCounter} />}>
+        <RoLayout initialTab={p.initialTab} count={(p.findings ?? []).length} notes={<RoNotes jobId={job.id} roNumber={job.ro_number ?? null} findings={p.findings ?? []} fromLastTime={p.fromLastTime ?? []} services={p.retailServices ?? []} canWrite={!!p.canNote && !deleted} canDeleteAny={canSetAmount && isAdmin} userId={p.userId ?? ""} estimates={estimates} canQuote={canSetAmount} jobOpen={!deleted && !paidAtCounter} pricing={p.pricing} share={p.share} />}>
           {body(p, steps, retail, deleted, isAdmin, canSetAmount)}
         </RoLayout>
       ) : (

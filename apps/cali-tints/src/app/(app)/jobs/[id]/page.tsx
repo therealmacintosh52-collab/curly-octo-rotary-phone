@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { JobEstimate, JobFinding, PriceListRow, RoAuthorization } from "@/lib/db/types";
 import { signedUrls } from "@/lib/media/signed";
 import { withoutPrices } from "@/lib/jobs/price-list";
+import { findingPricing } from "@/lib/retail/finding-quote";
+import { appUrl } from "@/lib/retail/email";
 import { JobDetail, type JobDetailProps } from "@/components/jobs/job-detail";
 
 export const metadata: Metadata = { title: "Job" };
@@ -36,7 +38,7 @@ type JobRow = {
   payment_ref: string | null;
   created_at: string;
   dealership: { name: string; retail: boolean } | null;
-  customer: { id: string; display_name: string | null } | null;
+  customer: { id: string; display_name: string | null; first_name: string; phone: string | null; email: string | null } | null;
   vehicle: { id: string; year: number | null; make: string | null; model: string | null } | null;
   invoice: { display_number: string; status: string } | null;
   job_services: { id: string; service_id: string; label: string | null; needs_price: boolean; authorization_id: string | null; service: { name: string } | null }[];
@@ -56,7 +58,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .from("jobs")
     .select(
       // No prices on a job: job_services.price stays unread (column privileges); the lines carry only name, label and the Needs-a-price flag.
-      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, ro_number, retail_invoice_number, invoiced_at, customer_concern, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), customer:customers(id, display_name), vehicle:vehicles(id, year, make, model), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, authorization_id, service:services(name))",
+      "id, dealership_id, detailer_id, tag_number, vin, year, make, model, color, performed_at, ro_po_number, notes, invoice_id, deleted_at, delete_reason, quickbooks_doc_number, ro_number, retail_invoice_number, invoiced_at, customer_concern, paid_at, paid_amount, payment_method, payment_ref, created_at, dealership:dealerships(name, retail), customer:customers(id, display_name, first_name, phone, email), vehicle:vehicles(id, year, make, model), invoice:invoices(display_number, status), job_services(id, service_id, label, needs_price, authorization_id, service:services(name))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -82,6 +84,12 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     retail ? supabase.rpc("ro_authorizations", { p_job: id }) : Promise.resolve({ data: [] as RoAuthorization[] }),
     retail ? supabase.from("odometer_readings").select("reading").eq("job_id", id).order("read_at", { ascending: false }).limit(1) : Promise.resolve({ data: [] as { reading: number }[] }),
   ]);
+  // Sharing one finding with the customer: their link (the invoice link, which also shows work in progress) and how to reach them.
+  let share: { url: string; firstName: string; vehicle: string | null; phone: string | null; email: string | null } | null = null;
+  if (session.canPrices && retail && !job.deleted_at && job.customer) {
+    const { data: rt } = await supabase.rpc("receipt_link", { p_job_id: id });
+    if (rt) share = { url: `${appUrl() ?? ""}/r/${rt}`, firstName: job.customer.first_name, vehicle: [job.year, job.make, job.model].filter(Boolean).join(" ") || null, phone: job.customer.phone, email: job.customer.email };
+  }
   const findings = (findingRows ?? []) as JobFinding[];
   const fromLastTime = (lastTimeRows ?? []) as JobFinding[];
   // Plain job photos are the before/after gallery; media on a finding shows on the notes tab.
@@ -140,6 +148,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     authorizations: (authRows ?? []) as RoAuthorization[],
     unauthorized: job.invoiced_at ? 0 : job.job_services.filter((s) => s.authorization_id === null).length,
     canConvert: session.canPrices && retail && !job.deleted_at,
+    pricing: session.canPrices && catalog ? findingPricing(catalog) : null,
+    share,
   };
   return <JobDetail {...detail} />;
 }

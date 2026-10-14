@@ -7,8 +7,9 @@ import { ArrowLeftIcon, CheckIcon, ClockIcon, PackageIcon, PlusIcon, ReceiptIcon
 import { toast } from "sonner";
 import type { EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { createEstimateAction, deleteDraftEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
-import { saveVehicleAction } from "@/app/(app)/retail/actions";
-import { normalizeVin } from "@/lib/vin";
+import { decodeVinAction, lookupPlateAction, saveVehicleAction } from "@/app/(app)/retail/actions";
+import { isVinShape, normalizeVin } from "@/lib/vin";
+import { isPlateShape, normalizePlate } from "@/lib/retail/plate-provider";
 import { diagnosisFirst } from "@/lib/retail/sections";
 import { useSession } from "@/components/app/session-provider";
 import { addDaysYmd, toDateInput } from "@/lib/dates";
@@ -113,6 +114,52 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   const [car, setCar] = useState<CarFields>(() =>
     estimate?.vehicle ? carFrom(estimate.vehicle) : pickedVehicle ? carFrom(pickedVehicle) : { year: carHint?.year ?? "", make: carHint?.make ?? "", model: carHint?.model ?? "", trim: carHint?.trim ?? "", vin: carHint?.vin ?? "", plate: carHint?.plate ?? "", engine_size: carHint?.engine_size ?? "", engine_code: carHint?.engine_code ?? "" },
   );
+  // Plate and VIN: a plate on file brings the car (VIN included); a plate nobody knows leaves the VIN open to type or scan, and a typed VIN fills the rest.
+  const [plateNote, setPlateNote] = useState<{ kind: "mine" | "other" | "filled" | "none"; text: string; car?: { vehicle_id: string; customer_id: string; name: string | null; customer: string | null; vin: string | null; year?: number | null; make?: string | null; model?: string | null; trim?: string | null; engine_size?: string | null; engine_code?: string | null; plate: string | null; size_class: VehicleSize } } | null>(null);
+  const [vinNote, setVinNote] = useState<string | null>(null);
+  const checkedPlate = useRef("");
+  const decodedVin = useRef("");
+  async function checkPlate() {
+    const p = normalizePlate(car.plate);
+    if (!isPlateShape(p) || p === checkedPlate.current) return;
+    checkedPlate.current = p;
+    const r = await lookupPlateAction({ plate: p });
+    if (!r.ok) return;
+    const d = r.data;
+    if (d.car) {
+      const mine = pick.customer?.id === d.car.customer_id;
+      setPlateNote({ kind: mine ? "mine" : "other", car: d.car, text: mine ? `On file: ${d.car.name ?? "this car"}${d.car.vin ? ` · VIN ${d.car.vin}` : ""}.` : `This plate is on file for ${d.car.customer ?? "another customer"}${d.car.name ? ` (${d.car.name})` : ""}.` });
+      return;
+    }
+    if (d.vin) {
+      setCar((c) => ({ ...c, vin: c.vin || d.vin!, year: c.year || (d.decoded?.year ? String(d.decoded.year) : ""), make: c.make || (d.decoded?.make ?? ""), model: c.model || (d.decoded?.model ?? ""), trim: c.trim || (d.decoded?.trim ?? ""), engine_size: c.engine_size || (d.decoded?.engine_size ?? ""), engine_code: c.engine_code || (d.decoded?.engine_code ?? "") }));
+      decodedVin.current = d.vin;
+      setPlateNote({ kind: "filled", text: "The VIN and the car came from the plate service. Check them, you can edit any of it." });
+      return;
+    }
+    setPlateNote({ kind: "none", text: d.note ?? "Not on file. Type or scan the VIN and the rest of the car fills in, or enter it by hand." });
+  }
+  function useFoundCar() {
+    const found = plateNote?.car;
+    if (!found) return;
+    setCar(carFrom(found));
+    setSize(found.size_class);
+    if (pick.customer?.vehicles.some((v) => v.id === found.vehicle_id)) setPick({ customer: pick.customer, vehicleId: found.vehicle_id });
+    setPlateNote(null);
+  }
+  // A complete VIN fills the year, make, model, trim and engine (NHTSA, free).
+  useEffect(() => {
+    const v = normalizeVin(car.vin);
+    if (!isVinShape(v) || v === decodedVin.current || pickedVehicle?.vin === v || estimate?.vehicle?.vin === v || (carHint?.vin && normalizeVin(carHint.vin) === v)) return;
+    decodedVin.current = v;
+    void decodeVinAction(v).then((d) => {
+      if (!d) return void setVinNote("Could not read this VIN right now. Fill in the car by hand.");
+      // A new VIN is a new car: what the VIN says replaces what was there (anything it does not say stays), and every field remains editable.
+      setCar((c) => ({ ...c, year: d.year ? String(d.year) : c.year, make: d.make || c.make, model: d.model || c.model, trim: d.trim ?? "", engine_size: d.engine_size ?? "", engine_code: d.engine_code ?? "" }));
+      setVinNote(`Filled in from the VIN: ${[d.year, d.make, d.model].filter(Boolean).join(" ")}. Edit anything that is off.`);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [car.vin]);
   const [side, setSide] = useState<"summary" | "findings">("summary");
   const creating = useRef(false);
   const [size, setSize] = useState<VehicleSize>(estimate?.size_class ?? pickedVehicle?.size_class ?? "sedan");
@@ -345,9 +392,17 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2"><CarInput id="c-vin" label="VIN" value={car.vin} onChange={(v) => setCar((c) => ({ ...c, vin: v.toUpperCase() }))} mono maxLength={20} testId="car-vin-field" /></div>
-                  <CarInput id="c-plate" label="License plate" value={car.plate} onChange={(v) => setCar((c) => ({ ...c, plate: v.toUpperCase() }))} maxLength={12} testId="car-plate-field" />
+                  <CarInput id="c-plate" label="License plate" value={car.plate} onChange={(v) => { setPlateNote(null); setCar((c) => ({ ...c, plate: v.toUpperCase() })); }} onBlur={() => void checkPlate()} maxLength={12} testId="car-plate-field" />
                   <CarInput id="e-miles" label="Mileage" value={miles} onChange={(v) => setMiles(v.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="84200" testId="estimate-miles" />
                 </div>
+                {plateNote && (
+                  <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm" data-testid="plate-note" data-kind={plateNote.kind}>
+                    <span>{plateNote.text}</span>
+                    {plateNote.kind === "mine" && <Button type="button" size="sm" variant="outline" className="ml-2" onClick={useFoundCar} data-testid="plate-use-car">Use this car</Button>}
+                    {plateNote.kind === "other" && plateNote.car && <Link href={`/retail/estimates/new?customer=${plateNote.car.customer_id}&vehicle=${plateNote.car.vehicle_id}`} className="ml-2 font-medium text-primary hover:underline" data-testid="plate-open-customer">Start their estimate</Link>}
+                  </div>
+                )}
+                {vinNote && <p className="text-caption text-subtle" data-testid="vin-note">{vinNote}</p>}
                 <div className="grid grid-cols-2 gap-3">
                   <CarInput id="c-engine" label="Engine size" value={car.engine_size} onChange={(v) => setCar((c) => ({ ...c, engine_size: v }))} placeholder="2.0L" testId="car-engine-size" />
                   <CarInput id="c-engine-code" label="Engine code" value={car.engine_code} onChange={(v) => setCar((c) => ({ ...c, engine_code: v.toUpperCase() }))} placeholder="EJ25" testId="car-engine-code" />
@@ -722,11 +777,11 @@ function LineDialog({ type, rates, defaultRate, policy, other, onClose, onAdd }:
 
 
 /** One labelled field of the car on the estimate. */
-function CarInput({ id, label, value, onChange, placeholder, inputMode, mono, maxLength, testId }: { id: string; label: string; value: string; onChange: (v: string) => void; placeholder?: string; inputMode?: "numeric"; mono?: boolean; maxLength?: number; testId?: string }) {
+function CarInput({ id, label, value, onChange, onBlur, placeholder, inputMode, mono, maxLength, testId }: { id: string; label: string; value: string; onChange: (v: string) => void; onBlur?: () => void; placeholder?: string; inputMode?: "numeric"; mono?: boolean; maxLength?: number; testId?: string }) {
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength ?? 60} autoComplete="off" className={mono ? "font-mono" : undefined} data-testid={testId} />
+      <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength ?? 60} autoComplete="off" className={mono ? "font-mono" : undefined} data-testid={testId} />
     </div>
   );
 }

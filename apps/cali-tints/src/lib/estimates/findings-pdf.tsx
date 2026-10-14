@@ -40,6 +40,7 @@ export function FindingsPdfSection({ findings }: { findings: JobFinding[] | unde
               {f.kind === "finding" ? <Text style={s.small}>{`  ·  ${WORD[f.severity]}`}</Text> : null}
             </View>
             {f.body ? <Text style={s.small}>{f.body}</Text> : null}
+            {f.recommendation ? <Text style={[s.small, { fontFamily: "Helvetica-Bold" }]}>{{ replace: "RECOMMEND REPLACE", diagnose: "RECOMMEND DIAG", monitor: "RECOMMEND MONITOR" }[f.recommendation]}</Text> : null}
             {f.recommended_service ? <Text style={s.small}>{`We recommend: ${f.recommended_service}`}</Text> : null}
             {f.media.length ? <Text style={s.small}>{[photos ? `${photos} ${photos === 1 ? "photo" : "photos"}` : null, clips ? `${clips} ${clips === 1 ? "clip" : "clips"}` : null].filter(Boolean).join(", ")} on the online page</Text> : null}
           </View>
