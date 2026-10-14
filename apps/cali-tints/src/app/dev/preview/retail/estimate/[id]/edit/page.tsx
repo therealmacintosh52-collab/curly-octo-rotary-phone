@@ -35,6 +35,7 @@ export default async function DevEstimateEditPreview(props: PageProps<"/dev/prev
                 isAdmin={canPrices}
                 userId="u2"
                 findingsUrl={canPrices ? `/e/${ESTIMATE_TOKEN}` : null}
+                large
               />
             }
           />

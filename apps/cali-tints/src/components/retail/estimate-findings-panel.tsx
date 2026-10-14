@@ -8,11 +8,12 @@ import type { FindingPricing } from "@/lib/retail/finding-quote";
  * clips, recommendations), Send findings, and Add to this estimate. The same
  * panel sits beside the finished estimate and beside the invoice.
  */
-export function EstimateFindingsPanel({ e, findings, services, canPrices, isAdmin, userId, findingsUrl, pricing }: { e: EstimateView; findings: JobFinding[]; services: { id: string; name: string }[]; canPrices: boolean; isAdmin: boolean; userId: string; findingsUrl: string | null; /** The shop's rates, so a finding can be priced beside it (owner, admin, advisor). */ pricing?: FindingPricing | null }) {
+export function EstimateFindingsPanel({ e, findings, services, canPrices, isAdmin, userId, findingsUrl, pricing, large }: { large?: boolean; e: EstimateView; findings: JobFinding[]; services: { id: string; name: string }[]; canPrices: boolean; isAdmin: boolean; userId: string; findingsUrl: string | null; /** The shop's rates, so a finding can be priced beside it (owner, admin, advisor). */ pricing?: FindingPricing | null }) {
   const open = e.status === "draft" || e.status === "sent" || e.status === "viewed";
   return (
     <RoNotes
       estimateId={e.id}
+      large={large}
       roNumber={e.job?.ro_number ?? null}
       findings={findings}
       fromLastTime={[]}

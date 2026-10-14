@@ -60,6 +60,8 @@ export interface RoNotesProps {
   share?: ShareContext | null;
   /** What the estimate adds up to so far (staff with prices): "$X plus tax". */
   estimateSoFar?: { display_number: string; subtotal: number; tax: number; total: number } | null;
+  /** The findings block at the top of the estimate: wider cards in two columns, bigger photos, bigger text and buttons. */
+  large?: boolean;
 }
 
 const SEVERITY_LABEL: Record<FindingSeverity, string> = { ok: "Looks fine", soon: "Soon", urgent: "Urgent" };
@@ -175,19 +177,19 @@ export function RoNotes(p: RoNotesProps) {
           {p.findings.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing yet. What the tech sees goes here: a note, or a finding with a photo or a clip; the advisor quotes from it.</p>
           ) : (
-            <ol className="flex flex-col gap-3" data-testid="ro-findings">
+            <ol className={cn("gap-3", p.large ? "grid md:grid-cols-2" : "flex flex-col")} data-testid="ro-findings">
               {p.findings.map((f) => (
-                <li key={f.id} className="rounded-xl border border-border bg-card/60 p-3" data-testid={`finding-${f.kind}`}>
+                <li key={f.id} className={cn("rounded-xl border border-border bg-card/60", p.large ? "p-4" : "p-3")} data-testid={`finding-${f.kind}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         {f.kind === "finding" ? <SeverityDot severity={f.severity} /> : <StickyNoteIcon className="size-3.5 text-muted-foreground" />}
-                        <span className="font-medium">{f.title}</span>
+                        <span className={cn("font-medium", p.large && "text-base")}>{f.title}</span>
                         {f.kind === "finding" && <span className="text-caption text-subtle">{SEVERITY_LABEL[f.severity]}</span>}
                         {STATUS_BADGE[f.status] && <Badge variant={STATUS_BADGE[f.status]!.variant}>{STATUS_BADGE[f.status]!.label}</Badge>}
                         {f.customer_visible === false && <Badge variant="outline" title="The customer does not see this">Internal</Badge>}
                       </div>
-                      {f.body && <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{f.body}</p>}
+                      {f.body && <p className={cn("mt-1 whitespace-pre-wrap text-muted-foreground", p.large ? "text-base" : "text-sm")}>{f.body}</p>}
                       {f.media.length > 0 && <p className="mt-1 text-caption text-subtle" data-testid="finding-counts">{mediaCounts(f)}</p>}
                       {f.kind === "finding" && f.recommendation && <p className="mt-1" data-testid="finding-recommendation"><Badge variant={f.recommendation === "replace" ? "destructive" : f.recommendation === "diagnose" ? "warning" : "muted"}>{REC_LABEL[f.recommendation]}</Badge></p>}
                       {f.recommended_service && (
@@ -223,7 +225,7 @@ export function RoNotes(p: RoNotesProps) {
                   {f.media.length > 0 && (
                     <div className="mt-2 flex gap-2 overflow-x-auto" data-testid="finding-media">
                       {f.media.map((m) => (
-                        <button key={m.id} type="button" onClick={() => setOpen(m)} aria-label={isVideoMime(m.mime) || m.kind === "video" ? "Play the clip" : "Open the photo"} className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                        <button key={m.id} type="button" onClick={() => setOpen(m)} aria-label={isVideoMime(m.mime) || m.kind === "video" ? "Play the clip" : "Open the photo"} className={cn("relative shrink-0 overflow-hidden rounded-lg border border-border bg-muted", p.large ? "size-32 sm:size-36" : "size-20")}>
                           {isVideoMime(m.mime) || m.kind === "video" ? (
                             <span className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground">
                               <PlayIcon className="size-5" />
@@ -237,7 +239,7 @@ export function RoNotes(p: RoNotesProps) {
                       ))}
                     </div>
                   )}
-                  <FindingActions f={f} subject={f.job_id ? { jobId: f.job_id } : { estimateId: f.estimate_id ?? p.estimateId! }} canWrite={p.canWrite && ["open", "quoted", "declined"].includes(f.status)} canQuote={!!p.canQuote} pricing={p.pricing} share={p.share} />
+                  <FindingActions f={f} subject={f.job_id ? { jobId: f.job_id } : { estimateId: f.estimate_id ?? p.estimateId! }} canWrite={p.canWrite && ["open", "quoted", "declined"].includes(f.status)} canQuote={!!p.canQuote} pricing={p.pricing} share={p.share} large={p.large} />
                   <div className="mt-2 text-caption text-subtle">{formatDateTime(f.created_at)}</div>
                 </li>
               ))}

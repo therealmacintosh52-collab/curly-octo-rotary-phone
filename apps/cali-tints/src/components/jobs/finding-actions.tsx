@@ -31,7 +31,7 @@ const REC_TEXT = { replace: "we recommend replacing it", diagnose: "we recommend
  * "plus tax"), add a photo from the camera, upload from the phone, share it
  * with the customer by text or email.
  */
-export function FindingActions({ f, subject, canWrite, canQuote, pricing, share }: { f: JobFinding; subject: FindingSubject; canWrite: boolean; canQuote: boolean; pricing?: FindingPricing | null; share?: ShareContext | null }) {
+export function FindingActions({ f, subject, canWrite, canQuote, pricing, share, large }: { large?: boolean; f: JobFinding; subject: FindingSubject; canWrite: boolean; canQuote: boolean; pricing?: FindingPricing | null; share?: ShareContext | null }) {
   const router = useRouter();
   const { demo, company } = useSession();
   const [quoting, setQuoting] = useState(false);
@@ -112,7 +112,7 @@ export function FindingActions({ f, subject, canWrite, canQuote, pricing, share 
   }
 
   if (!canWrite && !quotable && !canShare) return null;
-  const icon = "size-8";
+  const icon = large ? "size-11" : "size-8";
   return (
     <div className="mt-2 flex items-center gap-1" data-testid="finding-actions" aria-label={`Actions for ${f.title}`}>
       {quotable && (

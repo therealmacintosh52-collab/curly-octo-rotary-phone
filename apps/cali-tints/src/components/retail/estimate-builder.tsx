@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CheckIcon, ClockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
+import { ArrowLeftIcon, ClockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { createEstimateAction, deleteDraftEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Segmented } from "@/components/ui/segmented";
@@ -30,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { CustomerPicker, type CustomerPick, type PickedCustomer } from "./customer-picker";
+import { ServiceMenu } from "./service-menu";
 
 type LineDraft = EstimateLineDraft;
 type CarFields = { year: string; make: string; model: string; trim: string; vin: string; plate: string; engine_size: string; engine_code: string };
@@ -111,7 +111,7 @@ function withExtra<T extends { options: OptionDraft[] }>(base: T, extra?: LineDr
   return { ...base, options: [{ ...base.options[0], jobs: [...base.options[0].jobs, ...jobs], lines: [...base.options[0].lines, ...keyed] }, ...base.options.slice(1)] };
 }
 
-export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines, findingsPanel, findingsCount }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; trim?: string; engine_size?: string; engine_code?: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[]; /** The findings side tab (server-rendered notes panel) and how many findings it holds. */ findingsPanel?: React.ReactNode; findingsCount?: number }) {
+export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines, findingsPanel }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; trim?: string; engine_size?: string; engine_code?: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[]; /** The findings side tab (server-rendered notes panel) and how many findings it holds. */ findingsPanel?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -179,7 +179,6 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [car.vin]);
-  const [side, setSide] = useState<"summary" | "findings">("summary");
   const creating = useRef(false);
   const [size, setSize] = useState<VehicleSize>(estimate?.size_class ?? pickedVehicle?.size_class ?? "sedan");
   const initial = useMemo(() => (estimate ? withExtra(fromView(estimate, catalog.services), extraLines) : { options: [{ key: nextKey(), tier: "single" as EstimateTier, name: "Quote", description: "", recommended: true, jobs: jobsForLines(initialLines ?? []), lines: (initialLines ?? []).map((l) => (l.finding_id ? { ...l, job: `f-${l.finding_id}` } : l)) }], addons: [] }), [estimate, catalog.services, initialLines, extraLines]);
@@ -192,6 +191,8 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   const [concern, setConcern] = useState(estimate?.customer_concern ?? "");
   const [internalNotes, setInternalNotes] = useState(estimate?.internal_notes ?? "");
   const [adding, setAdding] = useState<{ scope: "option" | "addon"; key?: string; section?: "diagnosis" | "repair"; job?: string; type: LineType } | null>(null);
+  /** A labor, part, fee, sublet or "Other" line being changed (tap it to edit). */
+  const [editing, setEditing] = useState<{ optKey: string; line: LineDraft } | null>(null);
 
   // Live totals: never thrown away on a bad line, just shown as 0 for that option.
   const totals = useMemo(() => {
@@ -264,6 +265,13 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
     if (adding.scope === "addon") setAddons((prev) => [...prev, { ...placed, default_on: false }]);
     else if (adding.key) setOption(adding.key, (o) => ({ ...o, lines: [...o.lines.filter((l) => lineKey(l) !== lineKey(placed)), placed] }));
     setAdding(null);
+  }
+  function replaceLine(next: LineDraft) {
+    if (!editing) return;
+    const old = editing.line;
+    const placed = { ...next, section: old.section, job: old.job, finding_id: old.finding_id } as LineDraft;
+    setOption(editing.optKey, (o) => ({ ...o, lines: o.lines.map((l) => (lineKey(l) === lineKey(old) ? placed : l)) }));
+    setEditing(null);
   }
   function removeLine(key: string, line: LineDraft) {
     setOption(key, (x) => ({ ...x, lines: x.lines.filter((y) => lineKey(y) !== lineKey(line)) }));
@@ -397,8 +405,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
       />
       {ro && <Badge variant="info" className="mt-2" data-testid="builder-ro">Repair order {ro.ro_number ?? ro.tag_number}</Badge>}
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_340px]">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="mt-5 flex flex-col gap-4">
           <div className="grid gap-4 xl:grid-cols-2" data-testid="estimate-top">
             <Card data-testid="estimate-customer-card">
               <CardHeader>
@@ -462,30 +469,32 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
             </Card>
           </div>
 
+          <div data-testid="estimate-side-findings">
+            {findingsPanel ?? (
+              <Card>
+                <CardContent className="pt-5 text-sm text-muted-foreground">Pick the customer: the draft starts, and the technician can add notes, photos, clips and recommendations here while you itemize. The customer sees them with the estimate.</CardContent>
+              </Card>
+            )}
+          </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
+        <div className="flex min-w-0 flex-col gap-4">
           {options.map((o, idx) => {
             const t = totals.options[idx];
             const allRows = o.lines.map((l, i) => ({ l, i }));
             const diagRows = allRows.filter((x) => (x.l.section ?? "repair") === "diagnosis");
             const repairRows = allRows.filter((x) => (x.l.section ?? "repair") !== "diagnosis");
-            const diagTotal = diagRows.reduce((sum, r) => sum + (t?.lines[r.i]?.line_total ?? 0), 0);
-            const repairTotal = repairRows.reduce((sum, r) => sum + (t?.lines[r.i]?.line_total ?? 0), 0);
             const hasLoose = repairRows.some((r) => !r.l.job || !o.jobs.some((j) => j.key === r.l.job));
             const groups: { key: string; job: JobDraft | null }[] = [...o.jobs.map((j) => ({ key: j.key, job: j })), ...(hasLoose ? [{ key: "_repairs", job: null }] : [])];
-            const addLineMenu = (optKey: string, sec: "diagnosis" | "repair", jobKey: string | undefined) => (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-border-strong" data-testid="add-line">
-                  <PlusIcon className="size-3.5" /> Add a line
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "labor" })}>Labor (hours × rate)</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "part" })}>Part</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "fee" })}>Fee</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "sublet" })}>Sublet (outside work)</DropdownMenuItem>
-                {other && <DropdownMenuItem onSelect={() => setAdding({ scope: "option", key: o.key, section: sec, job: jobKey, type: "service" })}>Other (not on the menu)</DropdownMenuItem>}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            // Labor, parts, fees and sublets sit right under the lines they belong to, one tap each: parts are never hidden in a menu.
+            const addLineButtons = (optKey: string, sec: "diagnosis" | "repair", jobKey: string | undefined) => (
+              <div className="flex flex-wrap gap-1.5" data-testid="add-line">
+                {([["labor", "Labor", ClockIcon], ["part", "Part", PackageIcon], ["fee", "Fee", ReceiptIcon], ["sublet", "Sublet", TruckIcon]] as const).map(([type, text, Icon]) => (
+                  <button key={type} type="button" onClick={() => setAdding({ scope: "option", key: optKey, section: sec, job: jobKey, type })} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm hover:border-border-strong" data-testid={`add-${type}`}>
+                    <PlusIcon className="size-3.5" /> <Icon className="size-3.5 text-muted-foreground" /> {text}
+                  </button>
+                ))}
+              </div>
             );
             const lineList = (rows: { l: LineDraft; i: number }[]) =>
               rows.length > 0 && (
@@ -500,7 +509,11 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                                                 <div className="min-w-0">
                                                   <div className="flex flex-wrap items-center gap-2 font-medium">
                                                     {l.line_type !== "service" && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-caption text-muted-foreground">{lineTypeIcon(l.line_type)} {TYPE_LABEL[l.line_type]}</span>}
-                                                    <span>{name}</span>
+                                                    {l.line_type === "service" && !svc?.open_amount ? (
+                                                      <span>{name}</span>
+                                                    ) : (
+                                                      <button type="button" onClick={() => setEditing({ optKey: o.key, line: l })} className="text-left underline-offset-2 hover:underline" aria-label={`Edit ${name}`} data-testid="line-edit">{name}</button>
+                                                    )}
                                                     {svc?.placeholder && <Badge variant="warning">placeholder price</Badge>}
                                                     {l.finding_id && <Badge variant="outline">from a finding</Badge>}
                                                   </div>
@@ -539,6 +552,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
               );
             return (
               <Card key={o.key} data-testid="estimate-option" className={cn(o.recommended && "border-primary/50")}>
+                {options.length > 1 && (
                 <CardHeader className="gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={o.recommended ? "default" : "outline"}>{options.length === 1 ? "Option" : TIER_NAMES[tierFor(idx, options.length)]}</Badge>
@@ -555,44 +569,20 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                   </div>
                   <Input value={o.description} onChange={(e) => setOption(o.key, { description: e.target.value })} placeholder="One line the customer reads under the name (optional)" aria-label={`Option ${idx + 1} description`} className="h-9" />
                 </CardHeader>
-                <CardContent className="grid gap-5">
-                  <section className="grid gap-3" data-testid="section-diagnosis">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-label text-subtle">Diagnosis</h3>
-                      {addLineMenu(o.key, "diagnosis", undefined)}
-                    </div>
+                )}
+                <CardContent className={cn("grid gap-5", options.length === 1 && "pt-5")}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold">The work</h2>
+                    <ServiceMenu services={menu} selected={new Set(o.lines.filter((l) => l.line_type === "service").map((l) => l.service_id ?? ""))} size={size} onToggle={(svc) => toggleLine(o.key, svc)} onBlankJob={() => addJob(o.key)} onOther={other ? () => setAdding({ scope: "option", key: o.key, section: "repair", job: undefined, type: "service" }) : undefined} label="Add a service" testId="service-menu" />
+                  </div>
+                  <section className="grid gap-3 rounded-xl border border-border bg-card/40 p-3" data-testid="section-diagnosis">
+                    <h3 className="font-semibold">Diagnosis</h3>
                     {lineList(diagRows)}
-                    {diagRows.length > 0 && (
-                      <div className="flex items-center justify-between text-sm text-muted-foreground" data-testid="section-total-diagnosis">
-                        <span>Diagnosis subtotal</span>
-                        <span className="tabular-nums">{formatMoney(diagTotal)}</span>
-                      </div>
-                    )}
-                    {diagRows.length === 0 && <p className="text-caption text-subtle">Nothing here yet: add the diagnosis time (labor hours) or a diagnostic fee.</p>}
+                    {diagRows.length === 0 && <p className="text-caption text-subtle">Add the diagnosis time (labor) or a diagnostic fee.</p>}
+                    {addLineButtons(o.key, "diagnosis", undefined)}
                   </section>
 
                   <section className="grid gap-3" data-testid="section-repair">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-label text-subtle">Repairs</h3>
-                      <button type="button" onClick={() => addJob(o.key)} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-border-strong" data-testid="add-job">
-                        <PlusIcon className="size-3.5" /> Add a job
-                      </button>
-                    </div>
-                        {(
-                                    <div className="flex flex-wrap gap-2" data-testid="estimate-chips">
-                                      {menu.map((s) => {
-                                        const on = o.lines.some((l) => l.line_type === "service" && l.service_id === s.id);
-                                        const price = catalog.services.length ? (s.prices?.[size] ?? s.default_price) : null;
-                                        return (
-                                          <button key={s.id} type="button" aria-pressed={on} onClick={() => toggleLine(o.key, s)} className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors", on ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong")}>
-                                            {on && <CheckIcon className="size-3.5" />}
-                                            {s.name}
-                                            {price !== null && price !== undefined && <span className={cn("tabular-nums", on ? "text-primary/80" : "text-muted-foreground")}>{formatMoney(price)}</span>}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                        )}
                     {groups.map((g) => {
                       const jr = repairRows.filter((r) => (g.job ? r.l.job === g.job.key : !r.l.job || !o.jobs.some((j) => j.key === r.l.job)));
                       const jt = jr.reduce((sum, r) => sum + (t?.lines[r.i]?.line_total ?? 0), 0);
@@ -600,7 +590,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                         <div key={g.key} className="grid gap-3 rounded-xl border border-border bg-card/40 p-3" data-testid="job-card" data-priority={g.job?.priority ?? "soon"}>
                           <div className="flex flex-wrap items-center gap-2">
                             {g.job ? (
-                              <Input value={g.job.title} onChange={(e) => setJob(o.key, g.job!.key, { title: e.target.value })} placeholder="Name the job (Front brakes, A/C…)" aria-label="Job name" maxLength={80} className="h-9 min-w-0 flex-1 font-semibold" data-testid="job-title" />
+                              <Input value={g.job.title} onChange={(e) => setJob(o.key, g.job!.key, { title: e.target.value })} placeholder="Name the job (Front brakes, A/C…)" aria-label="Job name" maxLength={80} className="h-9 min-w-0 basis-full font-semibold sm:flex-1 sm:basis-0" data-testid="job-title" />
                             ) : (
                               <span className="min-w-0 flex-1 font-semibold">Repairs</span>
                             )}
@@ -615,19 +605,13 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                           </div>
                           {lineList(jr)}
                           <div className="flex items-center justify-between gap-2">
-                            {addLineMenu(o.key, "repair", g.job?.key)}
+                            {addLineButtons(o.key, "repair", g.job?.key)}
                             {jr.length > 0 && <span className="text-sm tabular-nums text-muted-foreground" data-testid="job-total">Job total {formatMoney(jt)}</span>}
                           </div>
                         </div>
                       );
                     })}
-                    {groups.length === 0 && <p className="text-caption text-subtle">Tap a service above, or add a job: each one has its own labor, parts and fees, a priority, and the customer approves or declines it on its own.</p>}
-                    {repairRows.length > 0 && (
-                      <div className="flex items-center justify-between text-sm text-muted-foreground" data-testid="section-total-repair">
-                        <span>Repairs subtotal</span>
-                        <span className="tabular-nums">{formatMoney(repairTotal)}</span>
-                      </div>
-                    )}
+                    {groups.length === 0 && <p className="text-caption text-subtle">Pick services from the list above, or name a job yourself. Each job has its own labor, parts and fees and a priority, and the customer approves or declines it on its own.</p>}
                   </section>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-muted-foreground">{t ? `${Math.round((t.duration_minutes / 60) * 10) / 10} h · subtotal ${formatMoney(t.subtotal)}${t.shop_supplies > 0 ? ` · supplies ${formatMoney(t.shop_supplies)}` : ""} · tax ${formatMoney(t.tax)}` : o.lines.length ? "A line is incomplete" : "Pick services or add a line"}</span>
@@ -637,33 +621,15 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
               </Card>
             );
           })}
-          {options.length < 3 && (
-            <Button type="button" variant="outline" onClick={addOption} data-testid="add-option">
-              <PlusIcon /> {options.length === 1 ? "Offer Good / Better / Best" : "Add another option"}
-            </Button>
-          )}
-
+          {(options.length > 1 || addons.length > 0) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><SparklesIcon className="size-4 text-primary" /> Add-ons on every option</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               <p className="text-caption text-subtle">The customer can switch these on or off when they approve. &ldquo;On by default&rdquo; starts them ticked.</p>
-              <div className="flex flex-wrap gap-2" data-testid="addon-chips">
-                {menu.map((s) => {
-                  const on = addons.some((a) => a.service_id === s.id);
-                  return (
-                    <button key={s.id} type="button" aria-pressed={on} onClick={() => toggleAddon(s)} className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors", on ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong")}>
-                      {on && <CheckIcon className="size-3.5" />}
-                      {s.name}
-                    </button>
-                  );
-                })}
-                {other && (
-                  <button type="button" onClick={() => setAdding({ scope: "addon", type: "service" })} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-border-strong">
-                    <PlusIcon className="size-3.5" /> Other
-                  </button>
-                )}
+              <div data-testid="addon-chips">
+                <ServiceMenu services={menu} selected={new Set(addons.map((a) => a.service_id ?? ""))} size={size} onToggle={toggleAddon} onOther={other ? () => setAdding({ scope: "addon", type: "service" }) : undefined} label="Add an add-on" testId="addon-menu" />
               </div>
               {addons.length > 0 && (
                 <ul className="divide-y divide-border rounded-xl border border-border text-sm" data-testid="addon-lines">
@@ -688,6 +654,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
               )}
             </CardContent>
           </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -710,29 +677,18 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                 <Label htmlFor="e-internal-notes">Internal notes (staff only)</Label>
                 <Textarea id="e-internal-notes" value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} className="min-h-16" />
               </div>
+              {options.length < 3 && (
+                <div className="sm:col-span-2">
+                  <Button type="button" variant="ghost" size="sm" onClick={addOption} data-testid="add-option">
+                    <PlusIcon /> {options.length === 1 ? "Offer Good / Better / Best instead" : "Add another option"}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
         <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto" data-testid="estimate-side">
-          <Segmented
-            aria-label="Side tab"
-            size="sm"
-            value={side}
-            onValueChange={(v) => setSide(v as "summary" | "findings")}
-            items={[
-              { value: "summary", label: "Summary" },
-              { value: "findings", label: <span className="flex items-center gap-1.5">Findings {(findingsCount ?? 0) > 0 && <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">{findingsCount}</span>}</span> },
-            ]}
-          />
-          <div className={cn(side !== "findings" && "hidden")} data-testid="estimate-side-findings">
-            {findingsPanel ?? (
-              <Card>
-                <CardContent className="pt-5 text-sm text-muted-foreground">Pick the customer: the draft starts, and the technician can add notes, photos, clips and recommendations here while you itemize. The customer sees them with the estimate.</CardContent>
-              </Card>
-            )}
-          </div>
-          <div className={cn("flex flex-col gap-4", side !== "summary" && "hidden")}>
           <Card>
             <CardHeader>
               <CardTitle>Summary</CardTitle>
@@ -762,28 +718,30 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
               <Trash2Icon /> Delete this draft
             </Button>
           )}
-          </div>
         </div>
       </div>
+      </div>
 
+      {editing && <LineDialog type={editing.line.line_type} initial={editing.line} rates={rates} defaultRate={quoteCatalog.defaultRate} policy={catalog.settings} other={other} onClose={() => setEditing(null)} onAdd={replaceLine} />}
       {adding && <LineDialog type={adding.type} rates={rates} defaultRate={quoteCatalog.defaultRate} policy={catalog.settings} other={other} onClose={() => setAdding(null)} onAdd={addLine} />}
     </Page>
   );
 }
 
 /** One line that is not a priced menu service: labor (hours × rate), a part, a fee, a sublet, or "Other" with a typed amount. */
-function LineDialog({ type, rates, defaultRate, policy, other, onClose, onAdd }: { type: LineType; rates: { id: string; name: string; rate: number; is_default: boolean }[]; defaultRate: number | null; policy: RetailCatalog["settings"]; other: RetailCatalogService | null; onClose: () => void; onAdd: (l: LineDraft) => void }) {
-  const [label, setLabel] = useState("");
-  const [hours, setHours] = useState("1");
-  const [rateId, setRateId] = useState(rates.find((r) => r.is_default)?.id ?? rates[0]?.id ?? "custom");
-  const [customRate, setCustomRate] = useState(defaultRate ? String(defaultRate) : "");
-  const [qty, setQty] = useState("1");
-  const [price, setPrice] = useState("");
-  const [partNumber, setPartNumber] = useState("");
-  const [vendor, setVendor] = useState("");
-  const [taxable, setTaxable] = useState(type === "part" ? (policy?.parts_taxable_default ?? true) : type === "labor" ? !!policy?.labor_taxable_default : false);
-  const [cost, setCost] = useState("");
-  const title = type === "labor" ? "Labor" : type === "part" ? "A part" : type === "fee" ? "A fee" : type === "sublet" ? "Outside work (sublet)" : "Something not on the menu";
+function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose, onAdd }: { type: LineType; initial?: LineDraft; rates: { id: string; name: string; rate: number; is_default: boolean }[]; defaultRate: number | null; policy: RetailCatalog["settings"]; other: RetailCatalogService | null; onClose: () => void; onAdd: (l: LineDraft) => void }) {
+  const [label, setLabel] = useState(initial?.label ?? "");
+  const [hours, setHours] = useState(initial?.hours != null ? String(initial.hours) : "1");
+  const sameRate = initial?.rate != null ? rates.find((r) => Number(r.rate) === Number(initial.rate)) : undefined;
+  const [rateId, setRateId] = useState(initial?.rate != null ? (sameRate?.id ?? "custom") : (rates.find((r) => r.is_default)?.id ?? rates[0]?.id ?? "custom"));
+  const [customRate, setCustomRate] = useState(initial?.rate != null ? String(initial.rate) : defaultRate ? String(defaultRate) : "");
+  const [qty, setQty] = useState(initial && type === "part" ? String(initial.qty) : "1");
+  const [price, setPrice] = useState(initial?.price != null ? String(initial.price) : "");
+  const [partNumber, setPartNumber] = useState(initial?.part_number ?? "");
+  const [vendor, setVendor] = useState(initial?.vendor ?? "");
+  const [taxable, setTaxable] = useState(initial?.taxable != null ? !!initial.taxable : type === "part" ? (policy?.parts_taxable_default ?? true) : type === "labor" ? !!policy?.labor_taxable_default : false);
+  const [cost, setCost] = useState(initial?.cost != null ? String(initial.cost) : "");
+  const title = initial ? "Change this line" : type === "labor" ? "Labor" : type === "part" ? "A part" : type === "fee" ? "A fee" : type === "sublet" ? "Outside work (sublet)" : "Something not on the menu";
 
   function submit() {
     const name = label.trim();
@@ -853,7 +811,7 @@ function LineDialog({ type, rates, defaultRate, policy, other, onClose, onAdd }:
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} data-testid="line-add">Add</Button>
+          <Button onClick={submit} data-testid="line-add">{initial ? "Save" : "Add"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
