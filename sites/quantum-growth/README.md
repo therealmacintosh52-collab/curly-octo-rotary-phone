@@ -8,65 +8,17 @@ Three things, in order. Skip any of them and the page is broken in a way that
 costs money rather than looking wrong.
 
 1. **Stamp the domain.** `python3 set-domain.py yourdomain.com`
+   Then **set the lead address** (see the note below): `python3 set-lead-email.py you@yourdomain.com`
 2. **Check the share card.** Paste the live URL into a text message to yourself
    and confirm the picture appears.
 
-> **There is no form on this page.** Every enquiry has to come by phone. That
-> is a deliberate choice, but it is worth knowing: a visitor who is not ready
-> to call has no way to raise their hand, and there is no record of anyone who
-> looked. If leads ever feel thin, this is the first place to look.
-
-## Deploy
-
-```bash
-python3 set-domain.py yourdomain.com     # stamps canonical, OG and schema
-# then upload public/ to Cloudflare Pages and attach the domain
-```
-
-`set-domain.py` is not optional. Canonical tags, Open Graph URLs and the
-schema `@id` all carry an absolute domain; shipping the placeholder tells
-Google the page lives somewhere else. It rewrites nine references in
-`index.html` plus `robots.txt` and `sitemap.xml`.
-
-## Design
-
-Two typefaces: **Anton** for display, **Manrope** for body, both from Google
-Fonts. One hue family — gold `#F5A623` running into deep orange `#F26419` —
-with warm-biased neutrals so nothing reads as an unrelated stock grey. Blue
-survives only in the logo, as a cool counterpoint.
-
-Anton is condensed, so a missing webfont would reflow the headline into the
-next section. An `@font-face` block named `"Anton Fallback"` maps the local
-condensed faces with `size-adjust:78%` to keep the metrics close and remove
-the layout shift.
-
-Sections reveal on scroll. The hidden state (`.reveal .rv`) is only applied
-once an inline head script has confirmed this browser has
-`IntersectionObserver` and the visitor has not asked for reduced motion — so a
-blocked script costs the effect, never the content. There is also a belt-and-
-braces pass on `load` that un-hides anything still on screen.
-
-## Assets
-
-- `public/og.png` — the 1200x630 card that renders when the link is shared.
-  Regenerate with `python3 tools/make-og.py` after changing the wordmark,
-  palette or headline. Open Graph will not accept SVG, so this has to be a
-  raster file; the script builds it as HTML and screenshots it with Chromium.
-- `public/favicon.svg` — the logo mark on a dark rounded square.
-
-## What is in the head
-
-- Meta description, canonical, robots, theme-color, favicon
-- Open Graph and Twitter card, both pointing at `og.png`
-- `ProfessionalService` schema — name, phone, service types, and all five
-  plans as priced offers
-- `FAQPage` schema built from the ten questions on the page, so it can earn
-  rich results
-- `WebSite` schema
-
-The FAQ schema is generated from the page copy rather than written twice, so
-the two cannot drift apart. If you edit a question or answer in the HTML,
-regenerate the block rather than hand-editing the JSON.
+> **The lead form needs an address before it collects anything.** Until you
+> set one, the form tells the visitor it is not connected and posts nothing.
+> Run `python3 set-lead-email.py you@yourdomain.com`. FormSubmit emails that
+> address once to confirm it before the first lead arrives, so submit one test
+> lead yourself and click the confirmation. The address is stamped into the page
+> source; FormSubmit can give you a masked alias after activation if you would
+> rather it were not public.
 
 ## Still missing before this converts
 

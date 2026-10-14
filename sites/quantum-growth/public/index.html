@@ -550,6 +550,30 @@ h3{font-family:var(--body);font-weight:800;font-size:1.18rem;letter-spacing:-.02
 .reveal .compare tbody tr:nth-child(6).rv-in{transition-delay:.275s}
 .reveal .compare tbody tr:nth-child(7).rv-in{transition-delay:.33s}
 .reveal .compare tbody tr:nth-child(n+8).rv-in{transition-delay:.385s}
+/* ---------- lead form ---------- */
+.finale .lead-or{margin:26px auto 0;font-size:.78rem;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase}
+.lead{max-width:600px;margin:14px auto 0;text-align:left;display:grid;gap:14px;
+  background:rgba(255,255,255,.06);border:1px solid var(--rule-void);border-radius:var(--r-lg);
+  padding:clamp(20px,3vw,30px)}
+.lead-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.lead label{display:grid;gap:7px;font-size:.74rem;font-weight:800;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--on-void-2)}
+/* 16px keeps iOS Safari from zooming the page when a field takes focus. */
+.lead input,.lead select{font:inherit;font-size:16px;font-weight:600;letter-spacing:0;text-transform:none;
+  color:#fff;background:rgba(255,255,255,.08);border:1px solid var(--rule-void);border-radius:12px;
+  padding:13px 14px;min-height:48px;width:100%;box-sizing:border-box}
+.lead select option{color:#15110C}
+.lead input::placeholder{color:#8A8076}
+.lead input:focus,.lead select:focus{outline:2px solid var(--fire);outline-offset:2px;border-color:var(--fire)}
+.lead .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.lead .btn{width:100%}
+.finale .lead-status{margin:0 auto;max-width:none;min-height:1.4em;text-align:center;font-weight:700;font-size:.95rem}
+.lead-status.ok{color:#FFC078}
+.lead-status.err{color:#FF9B85}
+.finale .lead-note{margin:0 auto;max-width:none;text-align:center;font-size:.8rem}
+@media(max-width:560px){.lead-row{grid-template-columns:1fr}}
+
 /* ---------- services ----------
    Eighty-four items would undo the cut this page was given, so every one is on
    the page but only four per card are showing: the rest sit behind a native
@@ -993,11 +1017,12 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
         <p class="setup"><b>No build fee</b> — first month billed day one</p>
         <ul>
           <li>Everything in Local</li>
-          <li><strong>16 social posts a month</strong> across every channel</li>
+          <li><strong>Social media management</strong> — 16 posts a month across every channel</li>
           <li>Reviews and finished work reshared as social proof</li>
           <li>Local authority links — chamber, suppliers, associations, sponsorships</li>
           <li>Two new pages every month</li>
           <li>Follow-up campaigns for quotes and enquiries that went quiet</li>
+          <li><strong>Lead generation and CRM setup</strong> (HubSpot, GoHighLevel)</li>
           <li><strong>Maintenance:</strong> same-week changes, quarterly design refresh</li>
         </ul>
         <div class="vs">Comparable plans run <b>$800/mo</b> and up</div>
@@ -1011,9 +1036,11 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
         <ul>
           <li>Everything in Growth</li>
           <li><strong>24 social posts a month</strong> including video and seasonal campaigns</li>
+          <li>AI-assisted promotional content, video and localized ad copy</li>
           <li>Every town you serve written up properly, not just listed</li>
-          <li>Google Ads or LSA managed</li>
+          <li>Google and Meta ads (PPC) or LSA managed</li>
           <li>Missed-call text-back in seconds</li>
+          <li><strong>AI receptionist</strong> that answers your calls</li>
           <li><strong>Maintenance:</strong> priority same-day changes, direct line</li>
           <li>Quarterly strategy review</li>
         </ul>
@@ -1220,6 +1247,30 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
     <div class="btn-row" style="justify-content:center">
       <a class="btn btn-fire" href="tel:+19168682447">Call or text (916) 868-2447</a>
     </div>
+    <p class="lead-or">or leave your details</p>
+    <form class="lead" id="lead" action="https://formsubmit.co/replace-with-lead-email" method="POST">
+      <div class="lead-row">
+        <label>Name<input name="name" type="text" autocomplete="name" required></label>
+        <label>Phone<input name="phone" type="tel" inputmode="tel" autocomplete="tel" required></label>
+      </div>
+      <label>Business and town<input name="business" type="text" autocomplete="organization" placeholder="Your business name, and your town" required></label>
+      <label>What would help most?
+        <select name="interest">
+          <option>A website</option>
+          <option>An app</option>
+          <option>More customers finding me</option>
+          <option>My business is a mess</option>
+          <option>Not sure yet</option>
+        </select>
+      </label>
+      <input class="hp" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <input type="hidden" name="_subject" value="Quantum Growth: new lead">
+      <input type="hidden" name="_template" value="table">
+      <input type="hidden" name="_captcha" value="false">
+      <button class="btn btn-fire" type="submit">Get my free check</button>
+      <p class="lead-status" role="status" aria-live="polite"></p>
+      <p class="lead-note">We use your details only to reply to this request.</p>
+    </form>
   </div>
 </section>
 
@@ -1272,6 +1323,39 @@ section>.wrap,.site-footer>.wrap{position:relative;z-index:1}
     var o=n.classList.toggle('open');t.setAttribute('aria-expanded',o?'true':'false');
   });
   var y=document.querySelector('[data-year]'); if(y)y.textContent=new Date().getFullYear();
+
+  /* ---- Lead form ----
+     Above the reveal bail-out on purpose: a form that dies when someone has
+     reduced motion on would be a lead lost to a stylistic preference. The
+     address sits in one placeholder; until it is stamped the form says so and
+     posts nothing, because a form that looks like it sent and did not is worse
+     than no form. Without JS the form posts natively to FormSubmit. */
+  var lf=document.getElementById('lead');
+  if(lf){
+    var lst=lf.querySelector('.lead-status'),lbtn=lf.querySelector('button[type="submit"]'),
+        lph='(916) 868-2447';
+    var say=function(m,k){lst.textContent=m;lst.className='lead-status '+k};
+    lf.addEventListener('submit',function(e){
+      var hp=lf.querySelector('input[name="_honey"]');
+      if(hp&&hp.value){e.preventDefault();return}
+      var action=lf.getAttribute('action')||'';
+      if(action.indexOf('replace-with-lead-email')>-1){
+        e.preventDefault();
+        say("This form isn't connected yet. Please call or text "+lph+".",'err');return}
+      if(!window.fetch||!window.FormData)return;
+      e.preventDefault();
+      var label=lbtn.textContent;lbtn.disabled=true;lbtn.textContent='Sending\u2026';
+      fetch(action.replace('formsubmit.co/','formsubmit.co/ajax/'),
+            {method:'POST',body:new FormData(lf),headers:{Accept:'application/json'}})
+        .then(function(r){
+          if(!r.ok)throw 0;
+          return r.json().catch(function(){return {}}).then(function(d){
+            if(d&&String(d.success)==='false')throw 0;
+            lf.reset();say("Thanks, we got it. We'll call or text you.",'ok')})})
+        .catch(function(){say("That didn't go through. Please call or text "+lph+".",'err')})
+        .then(function(){lbtn.disabled=false;lbtn.textContent=label});
+    });
+  }
 
   /* ---- Motion control ----
      Wired before anything can bail out, so it is usable precisely on the
