@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CarIcon, ChevronDownIcon, UserIcon, ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateView, JobEstimate } from "@/lib/db/types";
+import type { EstimateView, JobEstimate, SignedDocumentRow } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateTime } from "@/lib/dates";
@@ -50,7 +50,7 @@ const money = (n: number | null | undefined) => (n === null || n === undefined ?
  * send it, record an approval taken in person or by phone, decline it, turn
  * it into the job. Managers and detailers see everything but the money.
  */
-export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit, supplements = [] }: { /** The extra-work estimates written on this visit (they appear in the Signatures card). */ supplements?: JobEstimate[]; e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
+export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit, supplements = [], documents = [] }: { /** The frozen signed copies of this visit (0062). */ documents?: SignedDocumentRow[]; /** The extra-work estimates written on this visit (they appear in the Signatures card). */ supplements?: JobEstimate[]; e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { canPrices, isAdmin, demo } = useSession();
   const [pending, start] = useTransition();
@@ -446,7 +446,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             </CardContent>
           </Card>
         )}
-        <SignaturesCard e={e} visit={visit ?? null} supplements={supplements.filter((x) => x.kind === "supplement")} showMoney={showMoney} canAct={!!canPrices} supplement={supplement} onSignHere={() => setAccepting(true)} onSend={() => (e.status === "draft" ? document.getElementById("estimate-send")?.scrollIntoView({ behavior: "smooth", block: "start" }) : void copy())} />
+        <SignaturesCard e={e} visit={visit ?? null} supplements={supplements.filter((x) => x.kind === "supplement")} showMoney={showMoney} canAct={!!canPrices} supplement={supplement} documents={documents} onSignHere={() => setAccepting(true)} onSend={() => (e.status === "draft" ? document.getElementById("estimate-send")?.scrollIntoView({ behavior: "smooth", block: "start" }) : void copy())} />
         {isAdmin && accepted && !supplement && !(visit?.invoiced || visit?.work.completedAt) && (
           <Card>
             <CardHeader>

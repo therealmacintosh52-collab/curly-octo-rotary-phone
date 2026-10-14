@@ -4,7 +4,7 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { RetailNav } from "@/components/retail/retail-nav";
 import { EstimateDetail } from "@/components/retail/estimate-detail";
-import { ESTIMATE_TOKEN, estimateViewFixture, retailCatalogFixture, retailServicesFixture, visitFixture, fromLastTimeFixture, jobEstimatesFixture } from "@/test/retail-fixtures";
+import { ESTIMATE_TOKEN, estimateViewFixture, retailCatalogFixture, retailServicesFixture, visitFixture, fromLastTimeFixture, jobEstimatesFixture, signedDocumentsFixture } from "@/test/retail-fixtures";
 import { findingPricing } from "@/lib/retail/finding-quote";
 import { RoNotes } from "@/components/jobs/ro-notes";
 import { SendFindings } from "@/components/retail/send-findings";
@@ -33,6 +33,7 @@ export default async function DevEstimatePreview(props: PageProps<"/dev/preview/
             showMoney={canPrices}
             publicUrl={canPrices ? `/e/${ESTIMATE_TOKEN}` : null}
             visit={visit}
+            documents={signedDocumentsFixture(e.id)}
             supplements={e.job_id && e.kind === "quote" ? jobEstimatesFixture(e.job_id, canPrices) : []}
             findingsCount={(e.findings ?? []).length}
             notes={

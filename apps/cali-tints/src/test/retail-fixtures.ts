@@ -1144,3 +1144,11 @@ export function visitFixture(estimateId: string, money: boolean, isAdmin: boolea
     invoiceDoc,
   };
 }
+
+/** The frozen signed copies on a demo visit (0062). */
+export function signedDocumentsFixture(estimateId: string): import("@/lib/db/types").SignedDocumentRow[] {
+  const row = (id: string, kind: "estimate" | "supplement" | "invoice", hoursAgo: number, kb: number, sha: string) => ({ id, kind, created_at: ago(0, hoursAgo), sha256: sha.padEnd(64, "0"), byte_size: kb * 1024 });
+  if (estimateId === E6) return [row("doc-e6-1", "estimate", 3, 58, "9f3a1c7e"), row("doc-e6-2", "invoice", 1, 74, "c04be912")];
+  if (estimateId === E7) return [row("doc-e7-1", "estimate", 1.2, 61, "5b8d20aa")];
+  return [];
+}

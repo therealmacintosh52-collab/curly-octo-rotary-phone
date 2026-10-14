@@ -9,6 +9,7 @@ import type { EstimatePayload, EstimateStatus } from "@/lib/db/types";
 import { appUrl, sendRetailEmail } from "@/lib/retail/email";
 import { formatDate } from "@/lib/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { freezeApproval } from "@/lib/documents/freeze";
 import { errorMessage } from "@/lib/utils";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
@@ -118,6 +119,13 @@ export async function markEstimateAcceptedAction(id: string, optionId: string, l
   const ip = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || null;
   const { error } = await supabase.rpc("mark_estimate_accepted", { p_id: id, p_option: optionId, p_line_ids: lineIds, p_name: name.trim() || null, p_method: method, p_signature_path: signaturePath, p_ip: ip, p_user_agent: h.get("user-agent") });
   if (error) return { ok: false, error: errorMessage(error) };
+  // The signed paper is frozen the moment it is signed (and mailed to the customer); a failure here never undoes the approval.
+  try {
+    const { data: e } = await supabase.rpc("estimate_detail", { p_id: id });
+    if (e) await freezeApproval(createAdminClient(), e, session.company.id);
+  } catch (err) {
+    console.error("freeze approval", err instanceof Error ? err.message : err);
+  }
   revalidate(id);
   return { ok: true, data: undefined };
 }

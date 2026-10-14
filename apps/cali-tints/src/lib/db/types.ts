@@ -303,6 +303,10 @@ export type EstimateRow = {
 };
 
 /** estimate_detail() / estimate_by_token(): one estimate, read top to bottom. */
+/** A frozen signed copy (0062): the PDF as it was the moment it was signed. */
+export type SignedDocumentKind = "estimate" | "supplement" | "invoice";
+export type RoDocument = { id: string; company_id: string; estimate_id: string | null; job_id: string | null; kind: SignedDocumentKind; source_id: string; path: string; sha256: string; byte_size: number; created_at: string };
+export type SignedDocumentRow = { id: string; kind: SignedDocumentKind; created_at: string; sha256: string; byte_size: number };
 export type EstimateLabel = "VIP Customer" | "Drop-off" | "Waiting" | "Fleet";
 export type PartsStatus = "none" | "needed" | "ordered" | "arrived";
 export type EstimateView = {
@@ -1394,6 +1398,7 @@ export type Database = {
   public: {
     Tables: {
       companies: Table<Company>;
+      ro_documents: Table<RoDocument>;
       profiles: Table<Profile>;
       dealerships: Table<Dealership>;
       services: Table<Service>;
@@ -1520,6 +1525,8 @@ export type Database = {
       add_finding_lines: { Args: { p_finding: string; p_lines: { line_type: "labor" | "part" | "fee" | "sublet"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string }[] }; Returns: PricedFinding };
       convert_ro_to_invoice: { Args: { p_job: string }; Returns: { job_id: string; invoice_number: string; invoiced_at: string } };
       check_in_appointment: { Args: { p_id: string; p: CheckInPayload }; Returns: AppointmentView };
+      signed_documents: { Args: { p_estimate: string }; Returns: SignedDocumentRow[] };
+      document_path_for: { Args: { p_id: string }; Returns: string | null };
       set_estimate_meta: { Args: { p_id: string; p: Record<string, string | null> }; Returns: undefined };
       transfer_candidates: { Args: Record<string, never>; Returns: TransferCandidate[] };
       transfer_estimate: { Args: { p_estimate: string; p_to: string; p_status?: string; p_message?: string | null }; Returns: string };

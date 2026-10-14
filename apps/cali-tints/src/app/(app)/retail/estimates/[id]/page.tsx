@@ -24,12 +24,13 @@ export default async function EstimatePage(props: PageProps<"/retail/estimates/[
     if (token) publicUrl = `${appUrl() ?? ""}/e/${token}`;
   }
   // The side panel: what the tech found, on the estimate now and on the invoice after approval. The customer sees it by link.
-  const [{ data: rawFindings }, services, { data: catalog }, { data: rawLast }, { data: jobEstimates }] = await Promise.all([
+  const [{ data: rawFindings }, services, { data: catalog }, { data: rawLast }, { data: jobEstimates }, { data: documents }] = await Promise.all([
     supabase.rpc("estimate_findings", { p_estimate: id }),
     recommendableServices(supabase),
     session.canPrices ? supabase.rpc("retail_catalog") : Promise.resolve({ data: null }),
     e.vehicle ? supabase.rpc("vehicle_open_findings", { p_vehicle: e.vehicle.id, p_exclude_job: e.job_id }) : Promise.resolve({ data: [] }),
     e.job_id && e.kind !== "supplement" ? supabase.rpc("job_estimates", { p_job: e.job_id }) : Promise.resolve({ data: [] }),
+    supabase.rpc("signed_documents", { p_estimate: id }),
   ]);
   const findings = await withMediaUrls(supabase, rawFindings ?? []);
   const fromLastTime = await withMediaUrls(supabase, rawLast ?? []);
@@ -41,5 +42,5 @@ export default async function EstimatePage(props: PageProps<"/retail/estimates/[
   const notes = <EstimateFindingsPanel e={e} findings={findings} services={services} canPrices={session.canPrices} isAdmin={session.isAdmin} userId={session.userId} findingsUrl={findingsUrl} pricing={catalog ? findingPricing(catalog) : null} fromLastTime={fromLastTime} estimates={jobEstimates ?? []} large side />;
   // Once approved, the same page carries the work, the payments and the invoice (the visit's hidden repair-order row, read through the estimate).
   const visit = e.job_id && e.kind !== "supplement" ? await loadVisit(supabase, session, e.job_id) : null;
-  return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} visit={visit} supplements={jobEstimates ?? []} />;
+  return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} visit={visit} supplements={jobEstimates ?? []} documents={documents ?? []} />;
 }

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2Icon, CircleDashedIcon, CopyIcon, MessageSquareTextIcon, PenLineIcon, SendIcon, XCircleIcon } from "lucide-react";
+import { CheckCircle2Icon, CircleDashedIcon, CopyIcon, FileDownIcon, MessageSquareTextIcon, PenLineIcon, SendIcon, XCircleIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateView, JobEstimate, RoAuthorization } from "@/lib/db/types";
+import type { EstimateView, JobEstimate, RoAuthorization, SignedDocumentRow } from "@/lib/db/types";
 import { estimateLinkAction } from "@/app/(app)/retail/estimates/actions";
 import { useSession } from "@/components/app/session-provider";
 import { RO_EVENTS } from "@/components/jobs/retail-payment";
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+const DOCUMENT_LABEL: Record<SignedDocumentRow["kind"], string> = { estimate: "Estimate & authorization", supplement: "Extra work approval", invoice: "Final invoice & receipt" };
 const HOW: Record<string, string> = { online: "on their phone", in_person: "in person", phone: "by phone", email: "by email" };
 
 /** The signature image, for staff only (the file sits in a private bucket and is streamed by a staff-only route). */
@@ -51,8 +52,8 @@ function Row({ done, declined, title, children, actions, testId }: { done: boole
  * (texted to the customer to approve or decline), and the signature at pickup
  * after payment. Each shows who signed, how, when and the image (staff only).
  */
-export function SignaturesCard({ e, visit, supplements, showMoney, canAct, onSignHere, onSend, supplement }: { e: EstimateView; visit: VisitPanel | null; supplements: JobEstimate[]; showMoney: boolean; canAct: boolean; onSignHere: () => void; onSend: () => void; supplement: boolean }) {
-  const { demo } = useSession();
+export function SignaturesCard({ e, visit, supplements, showMoney, canAct, onSignHere, onSend, supplement, documents = [] }: { documents?: SignedDocumentRow[]; e: EstimateView; visit: VisitPanel | null; supplements: JobEstimate[]; showMoney: boolean; canAct: boolean; onSignHere: () => void; onSend: () => void; supplement: boolean }) {
+  const { demo, isAdmin } = useSession();
   const [platform, setPlatform] = useState<"ios" | "android" | "unknown">("unknown");
   useEffect(() => {
     const t = setTimeout(() => setPlatform(detectPlatform(navigator.userAgent)), 0);
@@ -187,6 +188,27 @@ export function SignaturesCard({ e, visit, supplements, showMoney, canAct, onSig
             </Row>
           )}
         </ol>
+        {documents.length > 0 && (
+          <div className="mt-4 border-t border-border pt-3" data-testid="signed-copies">
+            <h3 className="text-sm font-medium">Signed copies</h3>
+            <p className="text-caption text-subtle">Frozen the moment each was signed, and emailed to the customer as a PDF. These are the shop&apos;s copies.</p>
+            <ul className="mt-2 grid gap-1.5 text-sm">
+              {documents.map((d) => (
+                <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2" data-testid="signed-copy-row" data-kind={d.kind}>
+                  <div className="min-w-0">
+                    <div className="font-medium">{DOCUMENT_LABEL[d.kind]}</div>
+                    <div className="text-caption text-subtle">{formatDateTime(d.created_at)} · {Math.max(1, Math.round(d.byte_size / 1024))} KB · fingerprint {d.sha256.slice(0, 8)}</div>
+                  </div>
+                  {isAdmin && (
+                    <Button asChild size="sm" variant="outline">
+                      <a href={demo ? `/api/estimates/${e.id}/pdf` : `/api/documents/${d.id}`} data-testid="signed-copy-download"><FileDownIcon /> Download</a>
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

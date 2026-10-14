@@ -2190,3 +2190,39 @@ begin
   begin perform public.set_estimate_meta(v_est, jsonb_build_object('due_out', '2026-10-21T09:00:00Z')); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
 end $$;
 select pg_temp.logout();
+
+-- 0062: frozen signed copies ---------------------------------------------------------------
+create or replace function pg_temp.add_doc(p_est uuid) returns uuid language plpgsql security definer as $$
+declare v uuid;
+begin
+  insert into public.ro_documents (company_id, estimate_id, job_id, kind, source_id, path, sha256, byte_size)
+  select e.company_id, e.id, e.job_id, 'estimate', gen_random_uuid(), e.company_id::text || '/estimate/x.pdf', repeat('a', 64), 1234 from public.estimates e where e.id = p_est returning id into v;
+  return v;
+end $$;
+create or replace function pg_temp.try_change_doc(p_id uuid) returns text language plpgsql security definer as $$
+begin
+  begin update public.ro_documents set sha256 = 'b' where id = p_id; return 'changed'; exception when sqlstate 'P0001' then null; end;
+  begin delete from public.ro_documents where id = p_id; return 'deleted'; exception when sqlstate 'P0001' then null; end;
+  return 'frozen';
+end $$;
+do $$
+declare v_est uuid := (select v from r_ids where k = 'transfer_est'); v_doc uuid := pg_temp.add_doc((select v from r_ids where k = 'transfer_est'));
+begin
+  assert pg_temp.try_change_doc(v_doc) = 'frozen', '0062: a signed copy cannot be changed or deleted';
+  insert into r_ids values ('doc_1', v_doc);
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'transfer_est'); l jsonb;
+begin
+  l := public.signed_documents(v_est);
+  assert jsonb_array_length(l) >= 1 and (l -> 0 ->> 'sha256') is not null, '0062: staff list the shop copies of a visit';
+  assert public.document_path_for((select v from r_ids where k = 'doc_1')) like '%/estimate/x.pdf', '0062: staff get the stored path';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  assert jsonb_array_length(public.signed_documents((select v from r_ids where k = 'transfer_est'))) = 0 and public.document_path_for((select v from r_ids where k = 'doc_1')) is null, '0062: a tech sees no copies and no path';
+end $$;
+select pg_temp.logout();

@@ -6,6 +6,8 @@ import { anonClient, isTokenShape } from "@/lib/estimates/public";
 import { errorMessage } from "@/lib/utils";
 import { createDepositLink } from "@/lib/clover/deposit";
 import { depositsOnline } from "@/lib/clover/env";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { freezeApproval } from "@/lib/documents/freeze";
 
 export type PublicResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -44,6 +46,17 @@ export async function respondEstimateAction(token: string, input: RespondInput):
   const { data, error } = await anonClient().rpc("estimate_respond", { p_token: token, p: { ...parsed.data, ip, user_agent } });
   if (error) return { ok: false, error: errorMessage(error) };
 
+  // The signed paper is frozen the moment it is signed and mailed to the customer; a failure never undoes the approval.
+  if (data.status === "accepted") {
+    try {
+      const { data: e } = await anonClient().rpc("estimate_by_token", { p_token: token });
+      const admin = createAdminClient();
+      const { data: row } = e ? await admin.from("estimates").select("company_id").eq("id", e.id).single() : { data: null };
+      if (e && row) await freezeApproval(admin, e, row.company_id);
+    } catch (err) {
+      console.error("freeze approval", err instanceof Error ? err.message : err);
+    }
+  }
   // The owner's "estimate approved" note goes out through the automation rules.
   return { ok: true, data: { status: data.status, total: data.total ?? null, deposit_required: data.deposit_required ?? null } };
 }

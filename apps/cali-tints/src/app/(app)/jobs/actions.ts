@@ -12,6 +12,7 @@ import { getSession } from "@/lib/auth";
 import { syncJobToQuickBooks } from "@/lib/quickbooks/live";
 import { errorMessage } from "@/lib/utils";
 import { appUrl, sendRetailEmail } from "@/lib/retail/email";
+import { freezeInvoice } from "@/lib/documents/freeze";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
@@ -133,6 +134,17 @@ export async function signReceiptAction(jobId: string, signaturePath: string, na
   const supabase = await createClient();
   const { error } = await supabase.rpc("sign_receipt", { p_job_id: jobId, p_signature_path: signaturePath, p_name: name.trim() });
   if (error) return { ok: false, error: errorMessage(error) };
+  // The final invoice and receipt are frozen with the signature and mailed to the customer; a failure never undoes the signature.
+  try {
+    const session = await getSession();
+    const { data: r } = await supabase.rpc("job_receipt", { p_job_id: jobId });
+    if (r) {
+      const { data: primary } = await supabase.rpc("job_primary_estimate", { p_job: jobId });
+      await freezeInvoice(createAdminClient(), r, session.company.id, primary ?? null);
+    }
+  } catch (err) {
+    console.error("freeze invoice", err instanceof Error ? err.message : err);
+  }
   revalidateJob(jobId);
   return { ok: true, data: undefined };
 }

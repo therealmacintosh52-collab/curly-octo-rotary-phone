@@ -3,7 +3,7 @@
  * the owner edits them in Settings → Booking. These defaults match what
  * migration 0038 seeds, and are what "Reset" restores.
  */
-export type TemplateKey = "estimate_sent" | "hold_created" | "hold_expiring" | "booking_confirmed" | "reminder" | "receipt" | "abandoned" | "cancelled" | "review_request" | "estimate_nudge" | "booking_received" | "findings_ready" | "status_ready" | "declined_work";
+export type TemplateKey = "estimate_sent" | "hold_created" | "hold_expiring" | "booking_confirmed" | "reminder" | "receipt" | "abandoned" | "cancelled" | "review_request" | "estimate_nudge" | "booking_received" | "findings_ready" | "status_ready" | "declined_work" | "signed_copy";
 
 export interface Template {
   subject: string;
@@ -23,6 +23,7 @@ export const TEMPLATE_META: { key: TemplateKey; label: string; when: string; var
   { key: "estimate_nudge", label: "Estimate not answered", when: "An estimate sits unanswered for a few days", vars: ["first_name", "vehicle", "estimate_url", "expires", "company"] },
   { key: "findings_ready", label: "Findings", when: "When you send what the tech found (before or with the quote)", vars: ["first_name", "vehicle", "findings_url", "company"] },
   { key: "status_ready", label: "Car is ready", when: "The work is done and checked", vars: ["first_name", "vehicle", "receipt_url", "company"] },
+  { key: "signed_copy", label: "Signed copy", when: "When the customer signs (the PDF is attached)", vars: ["first_name", "vehicle", "document", "company"] },
   { key: "declined_work", label: "Work you put off", when: "Two weeks after the repair order closes, if they declined work", vars: ["first_name", "vehicle", "declined_list", "book_url", "company"] },
   { key: "booking_received", label: "Booking request received", when: "A customer books online without a deposit (you confirm it)", vars: ["first_name", "vehicle", "starts_at", "manage_url", "company"] },
 ];
@@ -40,6 +41,7 @@ export const DEFAULT_TEMPLATES: Record<TemplateKey, Template> = {
   estimate_nudge: { subject: "Still thinking it over?", body: "Hi {{first_name}},\n\nYour estimate for the {{vehicle}} is still open: {{estimate_url}}\n\nQuestions? Just reply. It is good until {{expires}}.\n\n{{company}}" },
   findings_ready: { subject: "What we found on your {{vehicle}}", body: "Hi {{first_name}},\n\nOur tech went over the {{vehicle}} and wrote up what they found, with photos and short clips and what we recommend: {{findings_url}}\n\nQuestions? Just reply.\n\n{{company}}" },
   status_ready: { subject: "Your {{vehicle}} is ready", body: "Hi {{first_name}},\n\nThe work on the {{vehicle}} is done and checked. You can see what we did here: {{receipt_url}}\n\nCome by whenever suits you.\n\n{{company}}" },
+  signed_copy: { subject: "Your signed copy from {{company}}", body: "Hi {{first_name}},\n\nAttached is your signed {{document}} for the {{vehicle}}. Keep it for your records.\n\nQuestions? Just reply.\n\n{{company}}" },
   declined_work: { subject: "About the work we put off on your {{vehicle}}", body: "Hi {{first_name}},\n\nWhen the {{vehicle}} was in, you decided to wait on:\n\n{{declined_list}}\n\nIf you would like to take care of it now, book a time here: {{book_url}}\n\n{{company}}" },
   booking_received: { subject: "We got your booking request", body: "Hi {{first_name}},\n\nThanks! We have the {{vehicle}} down for {{starts_at}} and will confirm shortly. Move or cancel here: {{manage_url}}\n\n{{company}}" },
 };

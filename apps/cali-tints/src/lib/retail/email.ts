@@ -57,6 +57,8 @@ export async function sendRetailEmail(opts: {
   refId?: string;
   /** Extra text after the template's body (a single finding the advisor is sharing). */
   append?: string;
+  /** Files to attach (the frozen signed PDF). */
+  attachments?: { filename: string; content: Buffer }[];
 }): Promise<RetailMailResult> {
   const to = opts.to?.trim();
   if (!to) return { ok: false, error: "No email on file", skipped: true };
@@ -76,6 +78,7 @@ export async function sendRetailEmail(opts: {
       text: body,
       html: retailEmailHtml(body, opts.companyName),
       headers: opts.refId ? { "X-Entity-Ref-ID": opts.refId } : undefined,
+      attachments: opts.attachments?.map((a) => ({ filename: a.filename, content: a.content })),
     });
     if (error || !data) return { ok: false, error: error?.message ?? "Email provider returned no message id" };
     return { ok: true, messageId: data.id };
