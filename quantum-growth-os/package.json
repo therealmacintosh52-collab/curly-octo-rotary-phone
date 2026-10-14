@@ -1,0 +1,9 @@
+{
+  "name": "quantum-growth-os",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Back-office and fulfillment platform for Quantum Growth",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22" },
+  "workspaces": ["apps/*", "packages/*"]
+}

@@ -1,0 +1,13 @@
+# secrets: never commit; only .env.example is tracked
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+.vercel
+dist
+coverage
+supabase/.temp
+*.log
+.DS_Store
