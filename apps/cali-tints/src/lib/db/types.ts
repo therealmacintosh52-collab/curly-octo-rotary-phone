@@ -390,6 +390,8 @@ export type EstimateListRow = {
   tech?: string | null;
   /** What is still owed (owner, admin, advisor). */
   balance?: number | null;
+  /** The work order number once approved (0060). */
+  ro_number?: string | null;
   /** Initials of whoever holds the visit now, and whether that is me (0058). */
   holder?: string | null;
   mine?: boolean;

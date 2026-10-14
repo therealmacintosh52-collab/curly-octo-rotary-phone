@@ -13,8 +13,10 @@ describe("estimate stages", () => {
   });
 
   it("leads with the invoice number once there is one", () => {
-    expect(documentNumber({ display_number: "EST-000045", invoice_number: null })).toEqual({ primary: "EST-000045", secondary: null });
-    expect(documentNumber({ display_number: "EST-000045", invoice_number: "RI-000044" })).toEqual({ primary: "RI-000044", secondary: "EST-000045" });
+    expect(documentNumber({ display_number: "EST-000045", invoice_number: null })).toEqual({ primary: "EST-000045", secondary: null, kind: "Estimate" });
+    expect(documentNumber({ display_number: "EST-000045", invoice_number: null, ro_number: "RO-000044", stage: "in_progress" })).toEqual({ primary: "RO-000044", secondary: "EST-000045", kind: "Work Order" });
+    expect(documentNumber({ display_number: "EST-000045", invoice_number: null, ro_number: "RO-000044", stage: "sent" }).kind).toBe("Estimate");
+    expect(documentNumber({ display_number: "EST-000045", invoice_number: "RI-000044" })).toEqual({ primary: "RI-000044", secondary: "EST-000045", kind: "Invoice" });
   });
 
   it("only accepts the known filters", () => {

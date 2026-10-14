@@ -71,7 +71,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
   const supplement = e.kind === "supplement" && !!ro;
   const stage = viewStage(e);
   const invoiceDoc = visit?.invoiceDoc ?? null;
-  const num = documentNumber({ display_number: e.display_number, invoice_number: ro?.invoice_number ?? null });
+  const num = documentNumber({ display_number: e.display_number, invoice_number: ro?.invoice_number ?? null, ro_number: ro?.ro_number ?? e.ro_number ?? null, stage });
   const [applying, startApply] = useTransition();
   function applyToRo() {
     if (!ro) return;
@@ -470,7 +470,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
       : e.status === "draft"
         ? { action: { key: "send", label: supplement ? "Send the extra items" : "Send to customer", enabled: !!canPrices, hint: canPrices ? null : "The advisor sends it." }, onClick: toSend }
         : e.status === "sent" || e.status === "viewed"
-          ? { action: { key: "waiting", label: "Waiting on the customer", enabled: false, hint: `Sent ${formatDateTime(e.sent_at)}${e.view_count ? ` · opened ${e.view_count}×` : " · not opened yet"}` } }
+          ? { action: { key: "startro", label: "Start RO", enabled: !!canPrices, hint: `Waiting on the customer · sent ${formatDateTime(e.sent_at)}${e.view_count ? ` · opened ${e.view_count}×` : " · not opened yet"}. Tap when they approve.` }, onClick: () => setAccepting(true) }
           : accepted && supplement && !e.applied_at
             ? { action: { key: "apply", label: "Add the approved items", enabled: !!canPrices, hint: null }, onClick: applyToRo }
             : accepted && !ro
@@ -504,7 +504,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
           <>
             {open && (
               <Button asChild variant="outline" size="sm" data-testid="bar-edit">
-                <Link href={`/retail/estimates/${e.id}/edit`}><PencilIcon /> Edit</Link>
+                <Link href={`/retail/estimates/${e.id}/edit`}><PencilIcon /> Edit Mode</Link>
               </Button>
             )}
             {addServiceHref && !supplement && (
@@ -546,7 +546,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-title tracking-wide" data-testid="estimate-number">{num.primary}</h1>
+            <h1 className="text-title tracking-wide"><span className="font-medium text-muted-foreground" data-testid="estimate-kind">{num.kind} #</span><span data-testid="estimate-number">{num.primary}</span></h1>
             {num.secondary && <span className="text-sm text-muted-foreground" data-testid="estimate-number-secondary">({num.secondary})</span>}
             <EstimateStageBadge stage={stage} status={e.status} />
             {supplement && ro?.primary_estimate_id && (
@@ -573,7 +573,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             {open && (
               <Button asChild variant="outline">
                 <Link href={`/retail/estimates/${e.id}/edit`}>
-                  <PencilIcon /> Edit
+                  <PencilIcon /> Edit Mode
                 </Link>
               </Button>
             )}

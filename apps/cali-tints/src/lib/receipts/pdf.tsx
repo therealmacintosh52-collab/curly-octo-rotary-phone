@@ -38,7 +38,7 @@ const s = StyleSheet.create({
 });
 
 const TYPE_LABEL: Record<string, string> = { labor: "Labor", part: "Part", fee: "Fee", shop_supplies: "Fee", sublet: "Sublet", service: "Service" };
-const AUTH_KIND: Record<string, string> = { initial: "Diagnosis approved", estimate: "Estimate approved", change_order: "Change order approved" };
+const AUTH_KIND: Record<string, string> = { initial: "Diagnosis approved", estimate: "Work approved", change_order: "Change order approved" };
 const AUTH_HOW: Record<string, string> = { online: "link", in_person: "in person", phone: "phone or text", email: "email" };
 const PRIORITY: Record<string, string> = { safety: "safety", soon: "due soon", optional: "optional" };
 const REC: Record<string, string> = { replace: "recommend replace", diagnose: "recommend diagnosis", monitor: "keep an eye on it" };
@@ -85,7 +85,7 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
             <Text style={s.title}>{heading}</Text>
             <View style={{ marginTop: 8 }}>
               {r.invoice_number ? <View style={s.metaRow}><Text style={s.metaKey}>Invoice</Text><Text style={s.metaVal}>{r.invoice_number}</Text></View> : null}
-              {r.estimate_number ? <View style={s.metaRow}><Text style={s.metaKey}>Estimate</Text><Text style={s.metaVal}>{r.estimate_number}</Text></View> : null}
+              {r.ro_number ? <View style={s.metaRow}><Text style={s.metaKey}>RO</Text><Text style={s.metaVal}>{r.ro_number}</Text></View> : null}
               {r.advisor ? <View style={s.metaRow}><Text style={s.metaKey}>Advisor</Text><Text style={s.metaVal}>{r.advisor}</Text></View> : null}
               {r.tech ? <View style={s.metaRow}><Text style={s.metaKey}>Tech</Text><Text style={s.metaVal}>{r.tech}</Text></View> : null}
               <View style={s.metaRow}><Text style={s.metaKey}>Tag</Text><Text style={s.metaVal}>{r.tag}</Text></View>
@@ -122,7 +122,7 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
               return (
                 <View key={j.id} style={x.block} wrap={false}>
                   <View style={x.jobHead}>
-                    <Text style={x.h3}>{j.kind === "diagnosis" ? j.title : `${n}. ${j.title}`}</Text>
+                    <Text style={x.h3}>{j.kind === "diagnosis" ? j.title : `Job ${n}: ${j.title}`}</Text>
                     <Text style={s.small}>[{j.status === "declined" ? "DECLINED" : "APPROVED"}]</Text>
                   </View>
                   {j.cause ? <Text style={{ marginTop: 3 }}><Text style={{ fontFamily: "Helvetica-Bold" }}>Cause: </Text>{j.cause}</Text> : null}

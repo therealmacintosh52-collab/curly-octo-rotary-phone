@@ -69,16 +69,16 @@ const splitName = (name: string | null) => {
 export function RetailDashboard({ data, shopName, tz }: { data: RetailDashboardData; shopName: string; tz: string }) {
   const need = SECTIONS.reduce((n, s) => n + data.open.filter(s.pick).length, 0);
   const tabs: { value: DashboardTab; label: string; count?: number; href: string }[] = [
-    { value: "action", label: "Needs action", count: need, href: "/retail" },
+    { value: "action", label: "My Jobs", count: need, href: "/retail" },
     { value: "board", label: "Workflow", count: data.open.length, href: "/retail?tab=board" },
-    { value: "open", label: "Open", count: data.open.length, href: "/retail?tab=open" },
-    { value: "closed", label: "Closed", count: data.counts.closed, href: "/retail?tab=closed" },
+    { value: "open", label: "Open Jobs", count: data.open.length, href: "/retail?tab=open" },
+    { value: "closed", label: "Closed Jobs", count: data.counts.closed, href: "/retail?tab=closed" },
   ];
   return (
     <Page>
       <PageHeader
         eyebrow={shopName}
-        title="In the shop"
+        title="Jobs in the shop"
         actions={
           <>
             <Button asChild variant="outline">
@@ -107,7 +107,7 @@ export function RetailDashboard({ data, shopName, tz }: { data: RetailDashboardD
 
       {data.tab === "action" && <NeedsAction data={data} tz={tz} />}
       {data.tab === "board" && <Board rows={data.open} showMoney={data.showMoney} by={data.view ?? "tech"} />}
-      {data.tab === "open" && <VisitTable rows={data.open} showMoney={data.showMoney} testId="dash-open" empty="Nothing is open. Start an estimate from a customer or with New estimate." />}
+      {data.tab === "open" && <VisitTable rows={data.open} showMoney={data.showMoney} testId="dash-open" empty="Nothing is open. Start an estimate from a customer or with New Estimate." />}
       {data.tab === "closed" && <VisitTable rows={data.closed} showMoney={data.showMoney} testId="dash-closed" empty="Nothing closed yet." />}
     </Page>
   );
@@ -317,7 +317,7 @@ function VisitTable({ rows, showMoney, testId, empty }: { rows: EstimateListRow[
             <tr>
               <th scope="col" className={th}>Status</th>
               <th scope="col" className={th}>Started</th>
-              <th scope="col" className={th}>Number</th>
+              <th scope="col" className={th}>RO #</th>
               <th scope="col" className={th}>First</th>
               <th scope="col" className={th}>Last</th>
               <th scope="col" className={th}>Vehicle</th>

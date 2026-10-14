@@ -397,12 +397,14 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   return (
     <Page>
       <Link href={estimate ? `/retail/estimates/${estimate.id}` : ro ? `/jobs/${ro.id}` : "/retail/estimates"} className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeftIcon className="size-4" /> {estimate ? estimate.display_number : ro ? "Back to the estimate" : "Estimates"}
+        <ArrowLeftIcon className="size-4" /> {estimate ? estimate.display_number : ro ? (ro.ro_number ?? ro.tag_number) : "Estimates"}
       </Link>
       <PageHeader
-        title={estimate ? `Edit ${estimate.display_number}` : ro ? "Extra work" : "New estimate"}
+        title={estimate ? `Edit ${estimate.display_number}` : ro ? `Estimate on ${ro.ro_number ?? ro.tag_number}` : "New estimate"}
         description={ro ? "What the tech found, priced: labor by the hour, parts, fees, sublets, or a service from the menu. The customer approves each item and signs." : "Pick the customer and the car, build the options from the menu, send the link. Prices come from the size grid."}
       />
+
+      {ro && <Badge variant="info" className="mt-2" data-testid="builder-ro">Repair order {ro.ro_number ?? ro.tag_number}</Badge>}
 
       <div className="mt-5 flex flex-col gap-4">
           <div className="grid gap-4 xl:grid-cols-2" data-testid="estimate-top">
@@ -571,7 +573,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                 )}
                 <CardContent className={cn("grid gap-5", options.length === 1 && "pt-5")}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-base font-semibold">Services</h2>
+                    <h2 className="text-base font-semibold">The work</h2>
                     <ServiceMenu services={menu} selected={new Set(o.lines.filter((l) => l.line_type === "service").map((l) => l.service_id ?? ""))} size={size} onToggle={(svc) => toggleLine(o.key, svc)} onBlankJob={() => addJob(o.key)} onOther={other ? () => setAdding({ scope: "option", key: o.key, section: "repair", job: undefined, type: "service" }) : undefined} label="Add a service" testId="service-menu" />
                   </div>
                   <section className="grid gap-3 rounded-xl border border-border bg-card/40 p-3" data-testid="section-diagnosis">
@@ -589,7 +591,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                         <div key={g.key} className="grid gap-3 rounded-xl border border-border bg-card/40 p-3" data-testid="job-card" data-priority={g.job?.priority ?? "soon"}>
                           <div className="flex flex-wrap items-center gap-2">
                             {g.job ? (
-                              <Input value={g.job.title} onChange={(e) => setJob(o.key, g.job!.key, { title: e.target.value })} placeholder="Name it (Front brakes, A/C…)" aria-label="Name" maxLength={80} className="h-9 min-w-0 basis-full font-semibold sm:flex-1 sm:basis-0" data-testid="job-title" />
+                              <Input value={g.job.title} onChange={(e) => setJob(o.key, g.job!.key, { title: e.target.value })} placeholder="Name the job (Front brakes, A/C…)" aria-label="Name" maxLength={80} className="h-9 min-w-0 basis-full font-semibold sm:flex-1 sm:basis-0" data-testid="job-title" />
                             ) : (
                               <span className="min-w-0 flex-1 font-semibold">Repairs</span>
                             )}
@@ -605,12 +607,12 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                           {lineList(jr)}
                           <div className="flex items-center justify-between gap-2">
                             {addLineButtons(o.key, "repair", g.job?.key)}
-                            {jr.length > 0 && <span className="text-sm tabular-nums text-muted-foreground" data-testid="job-total">Total {formatMoney(jt)}</span>}
+                            {jr.length > 0 && <span className="text-sm tabular-nums text-muted-foreground" data-testid="job-total">Job total {formatMoney(jt)}</span>}
                           </div>
                         </div>
                       );
                     })}
-                    {groups.length === 0 && <p className="text-caption text-subtle">Pick services from the list above, or name one yourself. Each has its own labor, parts and fees and a priority, and the customer approves or declines it on its own.</p>}
+                    {groups.length === 0 && <p className="text-caption text-subtle">Pick services from the list above, or name a job yourself. Each job has its own labor, parts and fees and a priority, and the customer approves or declines it on its own.</p>}
                   </section>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-muted-foreground">{t ? `${Math.round((t.duration_minutes / 60) * 10) / 10} h · subtotal ${formatMoney(t.subtotal)}${t.shop_supplies > 0 ? ` · supplies ${formatMoney(t.shop_supplies)}` : ""} · tax ${formatMoney(t.tax)}` : o.lines.length ? "A line is incomplete" : "Pick services or add a line"}</span>
@@ -711,6 +713,11 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
             {estimate ? "Save estimate" : "Save draft"}
           </Button>
           <p className="text-center text-caption text-subtle">Nothing goes to the customer until you tap Send on the next screen.</p>
+          {ro && (
+            <Button asChild variant="outline" size="sm" data-testid="builder-open-job">
+              <Link href={`/jobs/${ro.id}`}>Open the job · {ro.ro_number ?? ro.tag_number}</Link>
+            </Button>
+          )}
           {estimate && estimate.status === "draft" && !estimate.sent_at && (
             <Button type="button" variant="ghost" size="sm" onClick={removeDraft} loading={pending} data-testid="estimate-delete-draft">
               <Trash2Icon /> Delete this draft
@@ -739,7 +746,7 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
   const [vendor, setVendor] = useState(initial?.vendor ?? "");
   const [taxable, setTaxable] = useState(initial?.taxable != null ? !!initial.taxable : type === "part" ? (policy?.parts_taxable_default ?? true) : type === "labor" ? !!policy?.labor_taxable_default : false);
   const [cost, setCost] = useState(initial?.cost != null ? String(initial.cost) : "");
-  const title = initial ? "Change this line" : type === "labor" ? "Labor" : type === "part" ? "A part" : type === "fee" ? "A fee" : type === "sublet" ? "Outside shop (sublet)" : "Something not on the menu";
+  const title = initial ? "Change this line" : type === "labor" ? "Labor" : type === "part" ? "A part" : type === "fee" ? "A fee" : type === "sublet" ? "Outside work (sublet)" : "Something not on the menu";
 
   function submit() {
     const name = label.trim();

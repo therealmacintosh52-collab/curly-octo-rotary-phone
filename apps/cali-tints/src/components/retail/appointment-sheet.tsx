@@ -97,7 +97,7 @@ export function AppointmentSheet({ open, onOpenChange, catalog, recent, tz, esti
       <SheetContent side="bottom" className="max-h-[94dvh] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{estimate ? `Schedule ${estimate.display_number}` : "New appointment"}</SheetTitle>
-          <SheetDescription>{estimate ? `${estimate.customer}${estimate.vehicle ? ` · ${estimate.vehicle}` : ""} · the approved services` : "Whose car, what service, when. The engine only offers times with a free bay, lift and tech."}</SheetDescription>
+          <SheetDescription>{estimate ? `${estimate.customer}${estimate.vehicle ? ` · ${estimate.vehicle}` : ""} · the approved services` : "Whose car, what work, when. The engine only offers times with a free bay, lift and tech."}</SheetDescription>
         </SheetHeader>
         <div className="grid gap-5 px-4 pb-6" data-testid="appointment-sheet">
           {!estimate && (

@@ -3,7 +3,7 @@ import type { EstimateStatus } from "@/lib/db/types";
 /** The four stages of one repair order: nothing is retyped between them, the same RO number follows it (0052). */
 export const RO_STAGES = [
   { key: "estimate", label: "Estimate" },
-  { key: "in_progress", label: "In progress" },
+  { key: "in_progress", label: "Work in progress" },
   { key: "invoice", label: "Invoice" },
   { key: "closed", label: "Paid / Closed" },
 ] as const;

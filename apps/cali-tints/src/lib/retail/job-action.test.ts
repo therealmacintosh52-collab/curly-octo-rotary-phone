@@ -12,7 +12,7 @@ describe("the button at the bottom of a job", () => {
     expect(nextJobAction({ ...base, invoiced: true, paid: true })?.key).toBe("sign");
     const close = nextJobAction({ ...base, invoiced: true, paid: true, signed: true });
     expect(close?.key).toBe("close");
-    expect(close?.label).toBe("Close job · Picked up");
+    expect(close?.label).toBe("Close Job");
     expect(nextJobAction({ ...base, invoiced: true, paid: true, signed: true, pickedUp: true })?.key).toBe("closed");
   });
 

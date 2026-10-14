@@ -44,9 +44,17 @@ export function ageLabel(iso: string, now = Date.now()): string {
   return days <= 0 ? "today" : days === 1 ? "1 day" : `${days} days`;
 }
 
-/** Estimate until it is invoiced, then the invoice number leads and the estimate number stays small beside it. */
-export function documentNumber(r: { display_number: string; invoice_number?: string | null }): { primary: string; secondary: string | null } {
-  return r.invoice_number ? { primary: r.invoice_number, secondary: r.display_number } : { primary: r.display_number, secondary: null };
+/**
+ * What the document is called now: an **Estimate** (EST-…) until the customer
+ * approves it, a **Work Order** (the RO number) while it is being worked, an
+ * **Invoice** (RI-…) once it is invoiced. The earlier numbers stay small beside it.
+ */
+export type DocKind = "Estimate" | "Work Order" | "Invoice";
+export function documentNumber(r: { display_number: string; invoice_number?: string | null; ro_number?: string | null; stage?: EstimateStage | null }): { primary: string; secondary: string | null; kind: DocKind } {
+  if (r.invoice_number) return { primary: r.invoice_number, secondary: [r.ro_number, r.display_number].filter(Boolean).join(" · ") || null, kind: "Invoice" };
+  const early = !r.stage || r.stage === "draft" || r.stage === "sent" || r.stage === "declined" || r.stage === "expired";
+  if (!early && r.ro_number) return { primary: r.ro_number, secondary: r.display_number, kind: "Work Order" };
+  return { primary: r.display_number, secondary: null, kind: "Estimate" };
 }
 
 /** The stage of one estimate, from what its page knows (the database derives the same word for lists). */

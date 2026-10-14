@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-/** The button at the bottom of the estimate asks this card to open the convert step. */
+/** The button at the bottom of the job asks this card to open the convert step. */
 export const RO_CONVERT_EVENT = "ro:convert";
 
 const KIND: Record<RoAuthorization["kind"], string> = { initial: "Check-in authorization", estimate: "Estimate approved", change_order: "Extra work approved" };
@@ -40,10 +40,10 @@ export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, 
   const checks: { ok: boolean; label: string }[] = review
     ? [
         { ok: review.unauthorized === 0, label: review.unauthorized === 0 ? "Every line is authorized" : `${review.unauthorized} ${review.unauthorized === 1 ? "line is" : "lines are"} not authorized` },
-        { ok: review.completed, label: review.completed ? "The tech marked it done" : "The tech has not marked it done" },
-        { ok: review.jobs_not_done === 0, label: review.jobs_not_done === 0 ? "Every approved item has its cause and correction" : `${review.jobs_not_done} approved ${review.jobs_not_done === 1 ? "item is" : "items are"} not done` },
+        { ok: review.completed, label: review.completed ? "The tech finished the work" : "The tech has not marked the work done" },
+        { ok: review.jobs_not_done === 0, label: review.jobs_not_done === 0 ? "Every approved job has its cause and correction" : `${review.jobs_not_done} approved ${review.jobs_not_done === 1 ? "job is" : "jobs are"} not done` },
         { ok: review.qc, label: review.qc ? "Quality check signed off" : "Quality check not signed off" },
-        { ok: review.matches, label: review.matches ? (showMoney ? `The total ${formatMoney(review.ro_total)} matches the approved amounts` : "The total matches the approved amounts") : "The total does not match the approved amounts" },
+        { ok: review.matches, label: review.matches ? (showMoney ? `RO total ${formatMoney(review.ro_total)} matches the approved amounts` : "RO total matches the approved amounts") : "RO total does not match the approved amounts" },
       ]
     : [];
 
@@ -72,7 +72,7 @@ export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, 
       </CardHeader>
       <CardContent className="grid gap-3">
         {authorizations.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nothing is approved yet. Get the estimate approved before starting.</p>
+          <p className="text-sm text-muted-foreground">Nothing is authorized yet. Get the estimate approved before the work starts.</p>
         ) : (
           <ul className="divide-y divide-border text-sm" data-testid="ro-authorization-list">
             {authorizations.map((a) => (
@@ -88,7 +88,7 @@ export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, 
             ))}
           </ul>
         )}
-        {unauthorized > 0 && <p className="text-caption text-warning">Some items are not covered by an approval. Send the customer the extra work to approve before it is invoiced.</p>}
+        {unauthorized > 0 && <p className="text-caption text-warning">Some of the work is not covered by an approval. Send the customer the extra work to approve before it is invoiced.</p>}
         {!invoiced && canConvert && (
           <>
             {checks.length > 0 && (
@@ -101,7 +101,7 @@ export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, 
                 ))}
               </ul>
             )}
-            <Button onClick={() => setOpen(true)} disabled={blocked} data-testid="ro-convert"><FileTextIcon /> Make the invoice</Button>
+            <Button onClick={() => setOpen(true)} disabled={blocked} data-testid="ro-convert"><FileTextIcon /> Convert to invoice</Button>
             {lineCount === 0 && <p className="text-caption text-subtle">No approved work yet.</p>}
           </>
         )}
@@ -109,11 +109,11 @@ export function RoInvoiceCard({ jobId, authorizations, unauthorized, lineCount, 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent data-testid="ro-convert-dialog">
           <DialogHeader>
-            <DialogTitle>Make the invoice</DialogTitle>
+            <DialogTitle>Convert to invoice</DialogTitle>
             <DialogDescription>The invoice is made from the approved lines of this estimate, nothing retyped. After this the customer can pay at the counter.</DialogDescription>
           </DialogHeader>
           <ul className="grid gap-1 text-sm text-muted-foreground">
-            <li>{lineCount} approved {lineCount === 1 ? "line" : "lines"}, all covered by an authorization{review ? ", done and checked" : ""}.</li>
+            <li>{lineCount} approved {lineCount === 1 ? "line" : "lines"}, all covered by an authorization{review ? ", the work done and checked" : ""}.</li>
             <li>It gets the next RI- number; it never goes to QuickBooks.</li>
           </ul>
           <DialogFooter>

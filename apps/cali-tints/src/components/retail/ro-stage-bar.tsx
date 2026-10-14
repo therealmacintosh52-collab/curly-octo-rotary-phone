@@ -15,7 +15,7 @@ export function RoStageBar({ roNumber, className, ...input }: RoStageInput & { r
   const finished = stage.key === "closed" && input.pickedUpAt !== null;
   return (
     <div className={cn("rounded-xl border border-border bg-card px-3 py-3 sm:px-4", className)} data-testid="ro-stage" data-stage={stage.key}>
-      <ol className="grid grid-cols-4 gap-1.5" aria-label="Where this estimate stands">
+      <ol className="grid grid-cols-4 gap-1.5" aria-label="Repair order stage">
         {RO_STAGES.map((s, i) => {
           const done = i < stage.index || (s.key === "closed" && finished);
           const current = i === stage.index && !done;

@@ -126,6 +126,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
         <div className="text-right">
           <div className="text-caption text-subtle">Estimate</div>
           <div className="font-semibold tracking-wide">{e.display_number}</div>
+          {(e.ro_number || e.job) && <div className="text-caption text-subtle" data-testid="public-ro">Repair order {e.ro_number ?? e.job?.ro_number ?? e.job?.tag_number}</div>}
         </div>
       </header>
 

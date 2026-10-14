@@ -147,7 +147,7 @@ export function CustomerDetail({ data, showMoney }: { data: CustomerTimeline; sh
             </CardHeader>
             <CardContent>
               {vehicles.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No vehicle on file yet. Add one, or it is created with their first estimate.</p>
+                <p className="text-sm text-muted-foreground">No vehicle on file yet. Add one, or it is created when you log their first job.</p>
               ) : (
                 <ul className="divide-y divide-border" data-testid="customer-vehicles">
                   {vehicles.map((v) => (

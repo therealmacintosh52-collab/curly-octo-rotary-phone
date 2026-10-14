@@ -78,7 +78,7 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
   }
   // The button at the bottom of the job asks this card to open the payment or the signature step.
   useEffect(() => {
-    const collect = () => (inClover ? collectOnClover() : canRecordByHand ? setManual(true) : toast("Open this on the Clover Flex to take the card"));
+    const collect = () => (inClover ? collectOnClover() : canRecordByHand ? setManual(true) : toast("Open this job on the Clover Flex to take the card"));
     const sign = () => setSigning(true);
     window.addEventListener(RO_EVENTS.collect, collect);
     window.addEventListener(RO_EVENTS.sign, sign);
@@ -180,7 +180,7 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
         <CardTitle className="flex items-center gap-2">
           <CreditCardIcon className="size-4 text-primary" /> {partial ? "Part paid" : "Collect at the counter"}
         </CardTitle>
-        <CardDescription>{inClover ? "Opens this Clover's payment screen for what is left." : "Open this on the Clover Flex to take the card, or record how they paid below. Part card and part cash is fine."}</CardDescription>
+        <CardDescription>{inClover ? "Opens this Clover's payment screen for what is left." : "Open this job on the Clover Flex to take the card, or record how they paid below. Part card and part cash is fine."}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3">
         {charge && (

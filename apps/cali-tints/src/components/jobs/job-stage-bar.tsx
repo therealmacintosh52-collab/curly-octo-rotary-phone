@@ -41,10 +41,10 @@ export function JobStageBar({ jobId, input, override, leading, trailing }: { job
         return void window.dispatchEvent(new Event(RO_EVENTS.sign));
       case "close":
         return start(async () => {
-          if (demo) return void toast.success("Closed · picked up", { description: "Guest preview — nothing changed" });
+          if (demo) return void toast.success("Job closed · picked up", { description: "Guest preview — nothing changed" });
           const r = await closeRoAction(jobId!);
           if (!r.ok) return void toast.error(r.error);
-          toast.success("Closed · picked up");
+          toast.success("Job closed · picked up");
           router.refresh();
         });
     }

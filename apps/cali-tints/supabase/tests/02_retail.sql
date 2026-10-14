@@ -1694,7 +1694,7 @@ begin
   begin perform public.convert_ro_to_invoice(j.id); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
   perform set_config('app.allow_retail_job', 'off', false);
   begin perform public.record_retail_payment(j.id, 10, 'cash'); raise exception 'expected refused'; exception when sqlstate 'P0001' then
-    assert sqlerrm like 'Make the invoice first%', '0052: no payment before the invoice: ' || sqlerrm;
+    assert sqlerrm like 'Convert the repair order%', '0052: no payment before the invoice: ' || sqlerrm;
   end;
   begin perform public.update_job(j.id, jsonb_build_object('services', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full'))))); raise exception 'expected refused';
   exception when sqlstate 'P0001' then

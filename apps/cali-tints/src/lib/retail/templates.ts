@@ -16,14 +16,14 @@ export const TEMPLATE_META: { key: TemplateKey; label: string; when: string; var
   { key: "hold_expiring", label: "Hold expiring", when: "10 minutes before the hold is released", vars: ["first_name", "vehicle", "starts_at", "booking_url", "company"] },
   { key: "booking_confirmed", label: "Booked", when: "The deposit is paid or you confirm", vars: ["first_name", "vehicle", "starts_at", "address", "manage_url", "company"] },
   { key: "reminder", label: "Reminder", when: "Before the appointment (24 h and 2 h by default)", vars: ["first_name", "vehicle", "starts_at", "manage_url", "company"] },
-  { key: "receipt", label: "Receipt", when: "After the invoice is paid", vars: ["first_name", "vehicle", "receipt_url", "company"] },
+  { key: "receipt", label: "Receipt", when: "After the job is paid", vars: ["first_name", "vehicle", "receipt_url", "company"] },
   { key: "abandoned", label: "Abandoned booking", when: "A hold expired without a booking", vars: ["first_name", "vehicle", "services", "booking_url", "company"] },
   { key: "cancelled", label: "Cancelled", when: "An appointment is cancelled", vars: ["first_name", "starts_at", "book_url", "company"] },
-  { key: "review_request", label: "Review request", when: "After an invoice is paid (the delay is in the rule)", vars: ["first_name", "vehicle", "review_url", "company"] },
+  { key: "review_request", label: "Review request", when: "After a job is paid (the delay is in the rule)", vars: ["first_name", "vehicle", "review_url", "company"] },
   { key: "estimate_nudge", label: "Estimate not answered", when: "An estimate sits unanswered for a few days", vars: ["first_name", "vehicle", "estimate_url", "expires", "company"] },
   { key: "findings_ready", label: "Findings", when: "When you send what the tech found (before or with the quote)", vars: ["first_name", "vehicle", "findings_url", "company"] },
-  { key: "status_ready", label: "Car is ready", when: "The car is done and checked", vars: ["first_name", "vehicle", "receipt_url", "company"] },
-  { key: "declined_work", label: "Items you put off", when: "Two weeks after the invoice is closed, if they declined something", vars: ["first_name", "vehicle", "declined_list", "book_url", "company"] },
+  { key: "status_ready", label: "Car is ready", when: "The work is done and checked", vars: ["first_name", "vehicle", "receipt_url", "company"] },
+  { key: "declined_work", label: "Work you put off", when: "Two weeks after the repair order closes, if they declined work", vars: ["first_name", "vehicle", "declined_list", "book_url", "company"] },
   { key: "booking_received", label: "Booking request received", when: "A customer books online without a deposit (you confirm it)", vars: ["first_name", "vehicle", "starts_at", "manage_url", "company"] },
 ];
 
@@ -39,8 +39,8 @@ export const DEFAULT_TEMPLATES: Record<TemplateKey, Template> = {
   review_request: { subject: "How did we do?", body: "Hi {{first_name}},\n\nThanks for bringing the {{vehicle}} in. If you have a minute, a review helps us more than you know: {{review_url}}\n\n{{company}}" },
   estimate_nudge: { subject: "Still thinking it over?", body: "Hi {{first_name}},\n\nYour estimate for the {{vehicle}} is still open: {{estimate_url}}\n\nQuestions? Just reply. It is good until {{expires}}.\n\n{{company}}" },
   findings_ready: { subject: "What we found on your {{vehicle}}", body: "Hi {{first_name}},\n\nOur tech went over the {{vehicle}} and wrote up what they found, with photos and short clips and what we recommend: {{findings_url}}\n\nQuestions? Just reply.\n\n{{company}}" },
-  status_ready: { subject: "Your {{vehicle}} is ready", body: "Hi {{first_name}},\n\nYour {{vehicle}} is done and checked. You can see what we did here: {{receipt_url}}\n\nCome by whenever suits you.\n\n{{company}}" },
-  declined_work: { subject: "About what we put off on your {{vehicle}}", body: "Hi {{first_name}},\n\nWhen the {{vehicle}} was in, you decided to wait on:\n\n{{declined_list}}\n\nIf you would like to take care of it now, book a time here: {{book_url}}\n\n{{company}}" },
+  status_ready: { subject: "Your {{vehicle}} is ready", body: "Hi {{first_name}},\n\nThe work on the {{vehicle}} is done and checked. You can see what we did here: {{receipt_url}}\n\nCome by whenever suits you.\n\n{{company}}" },
+  declined_work: { subject: "About the work we put off on your {{vehicle}}", body: "Hi {{first_name}},\n\nWhen the {{vehicle}} was in, you decided to wait on:\n\n{{declined_list}}\n\nIf you would like to take care of it now, book a time here: {{book_url}}\n\n{{company}}" },
   booking_received: { subject: "We got your booking request", body: "Hi {{first_name}},\n\nThanks! We have the {{vehicle}} down for {{starts_at}} and will confirm shortly. Move or cancel here: {{manage_url}}\n\n{{company}}" },
 };
 

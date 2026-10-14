@@ -94,10 +94,10 @@ export function RoNotes(p: RoNotesProps) {
   const ref: FindingRef = p.jobId ?? { estimateId: p.estimateId! };
   function applyEstimate(e: JobEstimate) {
     start(async () => {
-      if (demo) return void toast.success(`Approved items added to the estimate`, { description: "Guest preview — nothing changed" });
+      if (demo) return void toast.success(`Approved work added to ${p.roNumber ?? "the RO"}`, { description: "Guest preview — nothing changed" });
       const r = await convertEstimateAction(e.id, {});
       if (!r.ok) return void toast.error(r.error);
-      toast.success(`Approved items added to the estimate`);
+      toast.success(`Approved work added to ${p.roNumber ?? "the RO"}`);
       router.refresh();
     });
   }
@@ -265,7 +265,7 @@ export function RoNotes(p: RoNotesProps) {
       {estimates.length > 0 && (
         <Card data-testid="ro-estimates">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FileTextIcon className="size-4 text-primary" /> Estimates on this visit <Badge variant="muted">{estimates.length}</Badge></CardTitle>
+            <CardTitle className="flex items-center gap-2"><FileTextIcon className="size-4 text-primary" /> Estimates on this RO <Badge variant="muted">{estimates.length}</Badge></CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="divide-y divide-border text-sm">
@@ -273,12 +273,12 @@ export function RoNotes(p: RoNotesProps) {
                 <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
                   <div className="min-w-0">
                     <Link href={`/retail/estimates/${e.id}`} className="font-medium hover:text-primary">{e.display_number}</Link>
-                    <span className="ml-2 text-caption text-subtle">{e.lines} {e.lines === 1 ? "item" : "items"}{e.total !== null ? ` · ${formatMoney(e.total)}` : ""}{e.applied_at ? " · on the invoice" : e.status === "accepted" ? " · approved, not added yet" : e.status === "sent" || e.status === "viewed" ? " · waiting on the customer" : ""}</span>
+                    <span className="ml-2 text-caption text-subtle">{e.lines} {e.lines === 1 ? "item" : "items"}{e.total !== null ? ` · ${formatMoney(e.total)}` : ""}{e.applied_at ? " · on the RO" : e.status === "accepted" ? " · approved, not on the RO yet" : e.status === "sent" || e.status === "viewed" ? " · waiting on the customer" : ""}</span>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <EstimateStatusBadge status={e.status} />
                     {p.canQuote && e.status === "accepted" && !e.applied_at && (
-                      <Button size="sm" onClick={() => applyEstimate(e)} disabled={pending} data-testid="apply-estimate"><ClipboardCheckIcon /> Add to the estimate</Button>
+                      <Button size="sm" onClick={() => applyEstimate(e)} disabled={pending} data-testid="apply-estimate"><ClipboardCheckIcon /> Add to the RO</Button>
                     )}
                   </div>
                 </li>
@@ -478,7 +478,7 @@ export function RoLayout({ initialTab = "job", count, notes, children, jobLabel 
     <>
       <div className="mt-5 xl:hidden">
         <Segmented
-          aria-label="Estimate or notes"
+          aria-label="Job or notes"
           value={tab}
           onValueChange={(v) => setTab(v as "job" | "notes")}
           items={[
