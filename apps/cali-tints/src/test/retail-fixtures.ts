@@ -615,7 +615,7 @@ export function estimateListFixture(money: boolean, q = "", stage: string = "ope
   const rows: EstimateListRow[] = all
     .filter((e) => (stage === "all" ? true : stage === "open" ? !["closed", "declined", "expired"].includes(fixtureStage(e)) : fixtureStage(e) === stage))
     .filter((e) => !t || e.display_number.toLowerCase().includes(t) || (e.job?.invoice_number ?? "").toLowerCase().includes(t) || (e.customer.display_name ?? "").toLowerCase().includes(t) || (e.vehicle?.name ?? "").toLowerCase().includes(t))
-    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, stage: fixtureStage(e), vehicle_id: e.vehicle?.id ?? null, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total, concern: e.customer_concern ?? null, invoice_number: e.job?.invoice_number ?? null, invoiced_at: e.job?.invoiced_at ?? null, paid_at: e.job?.paid_at ?? null, picked_up_at: e.job?.picked_up_at ?? null, waiting_supplement: e.job?.id === JOBS[C2][0].id, advisor: "MK", tech: e.job ? "VK" : null, balance: money && fixtureStage(e) === "unpaid" ? (e.job?.id === JOBS[C2][0].id ? 160 : 415) : null }));
+    .map((e) => ({ id: e.id, display_number: e.display_number, status: e.status, stage: fixtureStage(e), vehicle_id: e.vehicle?.id ?? null, created_at: e.created_at, expires_at: e.expires_at, sent_at: e.sent_at, last_viewed_at: e.last_viewed_at, accepted_at: e.accepted_at, job_id: e.job_id, customer_id: e.customer.id, customer: e.customer.display_name, vehicle: e.vehicle?.name ?? null, size_class: e.size_class, options: e.options.length, total: e.total, concern: e.customer_concern ?? null, invoice_number: e.job?.invoice_number ?? null, invoiced_at: e.job?.invoiced_at ?? null, paid_at: e.job?.paid_at ?? null, picked_up_at: e.job?.picked_up_at ?? null, waiting_supplement: e.job?.id === JOBS[C2][0].id, advisor: "MK", tech: e.job ? "VK" : null, holder: e.job ? "VK" : null, mine: [E5, E7, E8, E1].includes(e.id), balance: money && fixtureStage(e) === "unpaid" ? (e.job?.id === JOBS[C2][0].id ? 160 : 415) : null }));
   return { count: rows.length, counts, rows };
 }
 
@@ -933,6 +933,14 @@ export function automationLogFixture(): AutomationLogRow[] {
     row(4, "Tell me about a new online booking", "lead_created", "booking.lead", "sent", "owner email re_7c0", "Dana Whitfield", 300),
     row(5, "Hold running out", "hold_expiring", "hold.expiring", "queued", null, null, -8),
   ];
+}
+
+/** The Incoming / Outgoing boxes on the dashboard (0058). */
+export function myTransfersFixture(): import("@/lib/db/types").MyTransfers {
+  return {
+    incoming: [{ id: "tr-in-1", estimate_id: E3, number: "EST-000003", customer: "Dana Whitfield", vehicle: "2018 Honda Odyssey", from: "SO", to: "MK", status_label: "Needs parts ordered", message: "Her sliding door is binding too. Order the roller kit before you quote it.", created_at: ago(0, 1.5) }],
+    outgoing: [{ id: "tr-out-1", estimate_id: E8, number: "EST-000008", customer: "Priya Nair", vehicle: "2021 Ford F-150", from: "MK", to: "DO", status_label: "In progress", message: "Pads are on the shelf.", created_at: ago(0, 0.5) }],
+  };
 }
 
 export function textQueueFixture(): TextQueueRow[] {

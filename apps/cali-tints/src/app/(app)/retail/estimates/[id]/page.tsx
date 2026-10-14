@@ -41,5 +41,5 @@ export default async function EstimatePage(props: PageProps<"/retail/estimates/[
   const notes = <EstimateFindingsPanel e={e} findings={findings} services={services} canPrices={session.canPrices} isAdmin={session.isAdmin} userId={session.userId} findingsUrl={findingsUrl} pricing={catalog ? findingPricing(catalog) : null} fromLastTime={fromLastTime} estimates={jobEstimates ?? []} large side />;
   // Once approved, the same page carries the work, the payments and the invoice (the visit's hidden repair-order row, read through the estimate).
   const visit = e.job_id && e.kind !== "supplement" ? await loadVisit(supabase, session, e.job_id) : null;
-  return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} visit={visit} />;
+  return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} visit={visit} supplements={jobEstimates ?? []} />;
 }

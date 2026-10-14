@@ -390,6 +390,9 @@ export type EstimateListRow = {
   tech?: string | null;
   /** What is still owed (owner, admin, advisor). */
   balance?: number | null;
+  /** Initials of whoever holds the visit now, and whether that is me (0058). */
+  holder?: string | null;
+  mine?: boolean;
 };
 /** draft → sent → in_progress → ready (checked, not invoiced) → unpaid → paid (waiting for pickup) → closed; or declined / expired. */
 export type EstimateStage = "draft" | "sent" | "in_progress" | "ready" | "unpaid" | "paid" | "closed" | "declined" | "expired";
@@ -637,7 +640,7 @@ export type ReceiptView = {
   recommended?: { title: string; severity: FindingSeverity; recommendation: FindingRecommendation | null }[];
   categories?: { labor: number; parts: number; fees: number; sublets: number; services: number };
   taxable_types?: string[];
-  authorizations?: { kind: "initial" | "estimate" | "change_order"; method: "online" | "in_person" | "phone" | "email"; authorized_at: string; name: string; amount: number | null }[];
+  authorizations?: { decision?: "approved" | "declined"; kind: "initial" | "estimate" | "change_order"; method: "online" | "in_person" | "phone" | "email"; authorized_at: string; name: string; amount: number | null }[];
   odometer_out?: number | null;
   parts_disposition?: "offered" | "returned" | "declined" | null;
   completed_at?: string | null;
@@ -675,7 +678,11 @@ export type PricedFinding = { estimate_id: string; display_number: string; job_i
 /** ro_invoice_review(): what must be true before the repair order becomes an invoice (0055). */
 export type InvoiceReview = { lines: number; ro_total: number; approved_total: number; linked_total: number; matches: boolean; unauthorized: number; jobs_not_done: number; completed: boolean; qc: boolean; odometer_out: number | null; ready: boolean };
 /** One entry of a repair order's authorization record (0052). Amount only for those who price jobs. */
-export type RoAuthorization = { id: string; kind: "initial" | "estimate" | "change_order"; authorized_at: string; name: string; method: "online" | "in_person" | "phone" | "email"; by_staff: boolean; has_signature: boolean; estimate_id: string | null; amount: number | null };
+/** A coworker a visit can be handed to (the picker shows names; every list shows initials) (0058). */
+export type TransferCandidate = { id: string; name: string; initials: string; role: string };
+export type TransferRow = { id: string; estimate_id: string; number: string; customer: string | null; vehicle: string | null; from: string; to: string; status_label: string; message: string | null; created_at: string };
+export type MyTransfers = { incoming: TransferRow[]; outgoing: TransferRow[] };
+export type RoAuthorization = { id: string; decision?: "approved" | "declined"; kind: "initial" | "estimate" | "change_order"; authorized_at: string; name: string; method: "online" | "in_person" | "phone" | "email"; by_staff: boolean; has_signature: boolean; estimate_id: string | null; amount: number | null };
 /** check_in_appointment(): mileage in, the customer's concern and the initial authorization (the signature is uploaded first). */
 export type CheckInPayload = { name: string; odometer?: number | string | null; concern?: string | null; amount_limit?: number | null; method?: "in_person" | "phone" | "email" | "online"; signature_path?: string | null };
 export type RetailInvoiceStatus = "unpaid" | "partial" | "paid" | "void";
@@ -1455,7 +1462,7 @@ export type Database = {
       update_estimate: { Args: { p_id: string; p: EstimatePayload }; Returns: { id: string; display_number: string; status: EstimateStatus; total: number } };
       send_estimate: { Args: { p_id: string }; Returns: { token: string; expires_at: string; display_number: string } };
       estimate_link: { Args: { p_id: string }; Returns: string };
-      mark_estimate_accepted: { Args: { p_id: string; p_option: string; p_line_ids?: string[]; p_name?: string | null; p_method?: string }; Returns: { id: string; status: EstimateStatus } };
+      mark_estimate_accepted: { Args: { p_id: string; p_option: string; p_line_ids?: string[]; p_name?: string | null; p_method?: string; p_signature_path?: string | null; p_ip?: string | null; p_user_agent?: string | null }; Returns: { id: string; status: EstimateStatus } };
       decline_estimate: { Args: { p_id: string; p_reason?: string | null }; Returns: { id: string; status: EstimateStatus } };
       convert_estimate_to_job: { Args: { p_id: string; p?: { dealership_id?: string; tag_number?: string; performed_at?: string; detailer_id?: string; notes?: string } }; Returns: Job };
       estimate_detail: { Args: { p_id: string }; Returns: EstimateView };
@@ -1495,6 +1502,12 @@ export type Database = {
       add_finding_lines: { Args: { p_finding: string; p_lines: { line_type: "labor" | "part" | "fee" | "sublet"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string }[] }; Returns: PricedFinding };
       convert_ro_to_invoice: { Args: { p_job: string }; Returns: { job_id: string; invoice_number: string; invoiced_at: string } };
       check_in_appointment: { Args: { p_id: string; p: CheckInPayload }; Returns: AppointmentView };
+      transfer_candidates: { Args: Record<string, never>; Returns: TransferCandidate[] };
+      transfer_estimate: { Args: { p_estimate: string; p_to: string; p_status?: string; p_message?: string | null }; Returns: string };
+      respond_transfer: { Args: { p_id: string; p_accept: boolean }; Returns: undefined };
+      cancel_transfer: { Args: { p_id: string }; Returns: undefined };
+      my_transfers: { Args: Record<string, never>; Returns: MyTransfers };
+      signature_path_for: { Args: { p_kind: string; p_id: string }; Returns: string | null };
       ro_authorizations: { Args: { p_job: string }; Returns: RoAuthorization[] };
       delete_draft_estimate: { Args: { p_id: string }; Returns: { id: string; paths: string[] } };
       mark_findings_sent: { Args: { p_estimate: string }; Returns: { token: string; job_id: string | null; findings_sent_at: string } };

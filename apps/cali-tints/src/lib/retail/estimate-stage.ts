@@ -38,6 +38,12 @@ export function isStageFilter(v: unknown): v is StageFilter {
   return typeof v === "string" && STAGE_FILTERS.some((f) => f.value === v);
 }
 
+/** "today", "1 day", "5 days": how long a visit has been open. */
+export function ageLabel(iso: string, now = Date.now()): string {
+  const days = Math.floor((now - new Date(iso).getTime()) / 86400000);
+  return days <= 0 ? "today" : days === 1 ? "1 day" : `${days} days`;
+}
+
 /** Estimate until it is invoiced, then the invoice number leads and the estimate number stays small beside it. */
 export function documentNumber(r: { display_number: string; invoice_number?: string | null }): { primary: string; secondary: string | null } {
   return r.invoice_number ? { primary: r.invoice_number, secondary: r.display_number } : { primary: r.display_number, secondary: null };

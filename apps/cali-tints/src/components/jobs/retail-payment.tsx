@@ -230,6 +230,7 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
 
 /** The customer signs for the car after paying: a name and a finger on the screen, kept with the job and printed on the invoice. */
 function SignDialog({ jobId, paidAmount, paidAt, showMoney, onClose }: { jobId: string; paidAmount: number | null; paidAt: string | null; showMoney: boolean; onClose: () => void }) {
+  const [agree, setAgree] = useState(false);
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -239,6 +240,7 @@ function SignDialog({ jobId, paidAmount, paidAt, showMoney, onClose }: { jobId: 
   function submit() {
     if (name.trim().length < 2) return void toast.error("Type the customer's name");
     if (!hasInk) return void toast.error("Ask them to sign in the box");
+    if (!agree) return void toast.error("They agree to sign electronically first");
     start(async () => {
       if (demo) {
         toast.success("Signed", { description: "Guest preview — nothing changed" });
@@ -273,6 +275,10 @@ function SignDialog({ jobId, paidAmount, paidAt, showMoney, onClose }: { jobId: 
             <Label htmlFor="rs-name">Name</Label>
             <Input id="rs-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} autoComplete="off" />
           </div>
+          <label className="flex items-start gap-2 text-sm" data-testid="sign-consent">
+            <input type="checkbox" checked={agree} onChange={(ev) => setAgree(ev.target.checked)} className="mt-1 size-4 accent-[var(--primary)]" />
+            <span>I agree to sign electronically.</span>
+          </label>
           <div ref={padRef}>
             <SignaturePad onChange={setHasInk} />
           </div>

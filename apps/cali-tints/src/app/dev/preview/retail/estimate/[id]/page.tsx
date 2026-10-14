@@ -33,6 +33,7 @@ export default async function DevEstimatePreview(props: PageProps<"/dev/preview/
             showMoney={canPrices}
             publicUrl={canPrices ? `/e/${ESTIMATE_TOKEN}` : null}
             visit={visit}
+            supplements={e.job_id && e.kind === "quote" ? jobEstimatesFixture(e.job_id, canPrices) : []}
             findingsCount={(e.findings ?? []).length}
             notes={
               <RoNotes

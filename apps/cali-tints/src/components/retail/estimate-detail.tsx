@@ -1,11 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useState, useTransition } from "react";
+import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CarIcon, ChevronDownIcon, UserIcon, ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateView } from "@/lib/db/types";
+import type { EstimateView, JobEstimate } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateTime } from "@/lib/dates";
@@ -29,6 +29,9 @@ import { RoInvoiceCard } from "@/components/jobs/ro-invoice-card";
 import { RetailPayment } from "@/components/jobs/retail-payment";
 import { JobStageBar } from "@/components/jobs/job-stage-bar";
 import { InvoiceDocument } from "./invoice-document";
+import { SignaturePad, signatureBlob } from "./signature-pad";
+import { SignaturesCard } from "./signatures-card";
+import { TransferButton } from "./transfer-dialog";
 import { EstimateStageBadge } from "./estimate-stage-badge";
 import { documentNumber, viewStage } from "@/lib/retail/estimate-stage";
 import type { VisitPanel } from "@/lib/retail/visit";
@@ -45,7 +48,7 @@ const money = (n: number | null | undefined) => (n === null || n === undefined ?
  * send it, record an approval taken in person or by phone, decline it, turn
  * it into the job. Managers and detailers see everything but the money.
  */
-export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit }: { e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
+export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit, supplements = [] }: { /** The extra-work estimates written on this visit (they appear in the Signatures card). */ supplements?: JobEstimate[]; e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { canPrices, isAdmin, demo } = useSession();
   const [pending, start] = useTransition();
@@ -441,6 +444,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             </CardContent>
           </Card>
         )}
+        <SignaturesCard e={e} visit={visit ?? null} supplements={supplements.filter((x) => x.kind === "supplement")} showMoney={showMoney} canAct={!!canPrices} supplement={supplement} onSignHere={() => setAccepting(true)} onSend={() => (e.status === "draft" ? document.getElementById("estimate-send")?.scrollIntoView({ behavior: "smooth", block: "start" }) : void copy())} />
         {isAdmin && accepted && !supplement && !(visit?.invoiced || visit?.work.completedAt) && (
           <Card>
             <CardHeader>
@@ -560,8 +564,12 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             {e.expires_at && open && <span>· good until {formatDate(e.expires_at)}</span>}
           </div>
         </div>
-        {canPrices && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {!supplement && stage !== "closed" && stage !== "declined" && stage !== "expired" && (
+            <TransferButton estimateId={e.id} size="default" label={num.primary} summary={`${customerName}${e.vehicle?.name ? ` · ${e.vehicle.name}` : ""}`} />
+          )}
+          {canPrices && (
+            <>
             {open && (
               <Button asChild variant="outline">
                 <Link href={`/retail/estimates/${e.id}/edit`}>
@@ -576,8 +584,9 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
                 </a>
               </Button>
             )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2" data-testid="estimate-parties">
@@ -658,12 +667,17 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
 /** Staff record an approval given at the counter, on the phone or by email. */
 function MarkAcceptedDialog({ e, open, onOpenChange }: { e: EstimateView; open: boolean; onOpenChange: (o: boolean) => void }) {
   const router = useRouter();
-  const { demo } = useSession();
+  const { demo, canPrices } = useSession();
+  const [agree, setAgree] = useState(false);
+  const [hasInk, setHasInk] = useState(false);
+  const padRef = useRef<HTMLDivElement>(null);
   const [pending, start] = useTransition();
   const [optionId, setOptionId] = useState(e.options.find((o) => o.recommended)?.id ?? e.options[0]?.id ?? "");
   const [lines, setLines] = useState<string[]>(e.addons.filter((a) => a.default_on).map((a) => a.id));
   const [name, setName] = useState(e.customer.display_name ?? "");
   const [method, setMethod] = useState<"in_person" | "phone" | "email">("in_person");
+  const chosen = e.options.find((o) => o.id === optionId) ?? null;
+  const canSubmit = !!optionId && (method !== "in_person" || (hasInk && agree && name.trim().length >= 2));
   function submit() {
     start(async () => {
       if (demo) {
@@ -671,7 +685,18 @@ function MarkAcceptedDialog({ e, open, onOpenChange }: { e: EstimateView; open: 
         onOpenChange(false);
         return;
       }
-      const r = await markEstimateAcceptedAction(e.id, optionId, lines, name, method);
+      let signaturePath: string | null = null;
+      if (method === "in_person") {
+        const blob = await signatureBlob(padRef.current);
+        if (!blob) return void toast.error("Could not read the signature");
+        const fd = new FormData();
+        fd.append("signature", blob, "signature.png");
+        const res = await fetch(`/api/estimates/${e.id}/signature`, { method: "POST", body: fd });
+        const body = (await res.json().catch(() => ({}))) as { path?: string; error?: string };
+        if (!res.ok || !body.path) return void toast.error(body.error ?? "Could not save the signature");
+        signaturePath = body.path;
+      }
+      const r = await markEstimateAcceptedAction(e.id, optionId, lines, name, method, signaturePath);
       if (!r.ok) return void toast.error(r.error);
       toast.success("Approved");
       onOpenChange(false);
@@ -680,12 +705,26 @@ function MarkAcceptedDialog({ e, open, onOpenChange }: { e: EstimateView; open: 
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Mark {e.display_number} approved</DialogTitle>
           <DialogDescription>For an approval you took in person, on the phone or by email. It is recorded under your name.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
+          {canPrices && chosen && (
+            <div className="rounded-lg border border-border px-3 py-2.5 text-sm" data-testid="accept-price">
+              <div className="text-label text-subtle">What they are approving</div>
+              <ul className="mt-1 grid gap-0.5">
+                {chosen.lines.map((l) => (
+                  <li key={l.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{l.name}</span><span className="tabular-nums">{formatMoney(l.line_total ?? 0)}</span></li>
+                ))}
+                {e.addons.filter((a) => lines.includes(a.id)).map((a) => (
+                  <li key={a.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{a.name}</span><span className="tabular-nums">{formatMoney(a.line_total ?? 0)}</span></li>
+                ))}
+              </ul>
+              <div className="mt-1.5 flex justify-between border-t border-border pt-1.5 font-semibold"><span>Total, plus tax</span><span className="tabular-nums" data-testid="accept-total">{formatMoney((chosen.total ?? 0) + e.addons.filter((a) => lines.includes(a.id)).reduce((n, a) => n + (a.line_total ?? 0), 0))}</span></div>
+            </div>
+          )}
           {e.options.length > 1 && (
             <div className="grid gap-1.5">
               <Label htmlFor="acc-option">Option they chose</Label>
@@ -724,10 +763,21 @@ function MarkAcceptedDialog({ e, open, onOpenChange }: { e: EstimateView; open: 
               </SelectContent>
             </Select>
           </div>
+          {method === "in_person" && (
+            <>
+              <label className="flex items-start gap-2 text-sm" data-testid="accept-consent">
+                <Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} className="mt-0.5" />
+                <span>The customer agrees to sign electronically, and approves the work and the prices above.</span>
+              </label>
+              <div ref={padRef}>
+                <SignaturePad onChange={setHasInk} />
+              </div>
+            </>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} loading={pending} disabled={!optionId} data-testid="mark-accepted-confirm">Record the approval</Button>
+          <Button onClick={submit} loading={pending} disabled={!canSubmit} data-testid="mark-accepted-confirm">Record the approval</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

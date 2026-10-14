@@ -2080,3 +2080,87 @@ begin
   assert (select bool_and(x -> 'total' = 'null'::jsonb and x -> 'balance' = 'null'::jsonb) from jsonb_array_elements(f -> 'rows') x), '0057: no money for a manager';
 end $$;
 select pg_temp.logout();
+
+-- 0058: transfer a visit to a coworker ----------------------------------------------
+create or replace function pg_temp.holder_of(p_est uuid) returns uuid language sql security definer as $$ select holder_id from public.estimates where id = p_est $$;
+create or replace function pg_temp.tech_of(p_est uuid) returns uuid language sql security definer as $$ select j.detailer_id from public.jobs j join public.estimates e on e.job_id = j.id where e.id = p_est $$;
+create or replace function pg_temp.transfer_state(p_id uuid) returns text language sql security definer as $$ select state from public.estimate_transfers where id = p_id $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare
+  v_job uuid := (select v from r_ids where k = 'job_r200'); v_est uuid := public.job_primary_estimate((select v from r_ids where k = 'job_r200'));
+  t1 uuid; t2 uuid; t3 uuid; m jsonb; c jsonb;
+begin
+  c := public.transfer_candidates();
+  assert jsonb_array_length(c) >= 3 and not exists (select 1 from jsonb_array_elements(c) x where (x ->> 'id') = '10000000-0000-4000-8000-000000000001'), '0058: the picker lists the other staff, not me';
+  begin perform public.transfer_estimate(v_est, '10000000-0000-4000-8000-000000000001', 'Checked in', 'to myself'); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  t1 := public.transfer_estimate(v_est, '10000000-0000-4000-8000-000000000002', 'Needs parts ordered', 'Pads are on the shelf');
+  m := public.my_transfers();
+  assert jsonb_array_length(m -> 'outgoing') = 1 and jsonb_array_length(m -> 'incoming') = 0 and (m -> 'outgoing' -> 0 ->> 'status_label') = 'Needs parts ordered', '0058: the sender sees it as outgoing';
+  assert (m -> 'outgoing' -> 0 ->> 'to') ~ '^[A-Z]{1,3}$' and (m -> 'outgoing' -> 0 ->> 'from') ~ '^[A-Z]{1,3}$', '0058: transfers show initials, never names';
+  -- a second offer replaces the first
+  t2 := public.transfer_estimate(v_est, '10000000-0000-4000-8000-000000000006', 'Checked in', null);
+  assert pg_temp.transfer_state(t1) = 'cancelled' and pg_temp.transfer_state(t2) = 'pending', '0058: a new offer cancels the pending one';
+  perform public.cancel_transfer(t2);
+  assert pg_temp.transfer_state(t2) = 'cancelled', '0058: the sender can cancel';
+  t3 := public.transfer_estimate(v_est, '10000000-0000-4000-8000-000000000002', 'In progress', 'Yours now');
+  insert into r_ids values ('transfer_1', t3), ('transfer_est', v_est);
+  begin perform public.respond_transfer(t3, true); raise exception 'expected refused'; exception when sqlstate 'P0002' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+declare t uuid := (select v from r_ids where k = 'transfer_1'); v_est uuid := (select v from r_ids where k = 'transfer_est'); m jsonb; f jsonb;
+begin
+  m := public.my_transfers();
+  assert jsonb_array_length(m -> 'incoming') = 1 and (m -> 'incoming' -> 0 ->> 'message') = 'Yours now', '0058: the coworker sees it as incoming';
+  perform public.respond_transfer(t, true);
+  assert pg_temp.transfer_state(t) = 'accepted' and pg_temp.holder_of(v_est) = '10000000-0000-4000-8000-000000000002', '0058: accepting makes them the holder';
+  assert pg_temp.tech_of(v_est) = '10000000-0000-4000-8000-000000000002', '0058: a detailer also becomes the tech so the visit opens for them';
+  begin perform public.respond_transfer(t, false); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
+  f := public.estimates_filtered(p_limit => 200);
+  assert exists (select 1 from jsonb_array_elements(f -> 'rows') x where (x ->> 'id')::uuid = v_est and (x ->> 'mine')::boolean), '0058: the visit is mine now';
+  assert jsonb_array_length(public.my_transfers() -> 'incoming') = 0, '0058: nothing pending any more';
+end $$;
+select pg_temp.logout();
+
+-- 0059: signatures — staff-captured approval, declines logged, signature path for staff only
+create or replace function pg_temp.est_auth(p_est uuid) returns public.estimate_authorizations language sql security definer as $$ select * from public.estimate_authorizations where estimate_id = p_est limit 1 $$;
+create or replace function pg_temp.jauth(p_job uuid, p_kind text) returns public.job_authorizations language sql security definer as $$ select * from public.job_authorizations where job_id = p_job and kind = p_kind and decision = 'approved' limit 1 $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare
+  v_cust uuid := (select v from r_ids where k = 'cust_ana'); v_veh uuid := (select v from r_ids where k = 'veh_mazda');
+  e public.estimates; ed jsonb; s public.estimates; v_job uuid; v_opt uuid; a public.estimate_authorizations; v_co uuid := (select company_id from public.estimates limit 1);
+begin
+  e := public.create_estimate(jsonb_build_object('customer_id', v_cust, 'vehicle_id', v_veh,
+         'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'Quote', 'lines', jsonb_build_array(jsonb_build_object('service_id', (select v from r_ids where k = 'svc_full')))))));
+  perform public.send_estimate(e.id);
+  ed := public.estimate_detail(e.id);
+  v_opt := (select (o ->> 'id')::uuid from jsonb_array_elements(ed -> 'options') o limit 1);
+  begin perform public.mark_estimate_accepted(e.id, v_opt, '{}', 'Ana', 'in_person', 'someone-else/estimates/x/y.png'); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  perform public.mark_estimate_accepted(e.id, v_opt, '{}', 'Ana at the counter', 'in_person', (select company_id from public.estimates where id = e.id limit 1)::text || '/estimates/' || e.id::text || '/sig.png', '203.0.113.9', 'Clover Flex');
+  a := pg_temp.est_auth(e.id);
+  assert a.signature_path like '%/estimates/' || e.id::text || '/sig.png' and a.ip = '203.0.113.9' and a.user_agent = 'Clover Flex' and a.consent_text like 'I agree to sign electronically%', '0059: the staff-captured signature, device and consent line are stored';
+  assert public.signature_path_for('estimate', a.id) = a.signature_path, '0059: staff read the path';
+  v_job := (public.estimate_detail(e.id) ->> 'job_id')::uuid;
+  assert (pg_temp.jauth(v_job, 'estimate')).consent_text like 'I agree to sign electronically%', '0059: the consent line travels to the visit log';
+  assert (pg_temp.jauth(v_job, 'estimate')).signature_path is not null and public.signature_path_for('job', (pg_temp.jauth(v_job, 'estimate')).id) is not null, '0059: the visit log signature is readable by staff';
+  -- extra work declined is logged
+  s := public.create_estimate(jsonb_build_object('job_id', v_job, 'options', jsonb_build_array(jsonb_build_object('tier', 'single', 'name', 'More', 'lines', jsonb_build_array(
+         jsonb_build_object('line_type', 'labor', 'label', 'Machine the rotors', 'hours', 1))))));
+  perform public.send_estimate(s.id);
+  perform public.decline_estimate(s.id, 'too much');
+  assert exists (select 1 from jsonb_array_elements(public.ro_authorizations(v_job)) x where x ->> 'decision' = 'declined' and x ->> 'kind' = 'change_order'), '0059: a declined extra-work estimate is logged';
+  assert exists (select 1 from jsonb_array_elements(public.ro_authorizations(v_job)) x where x ->> 'decision' = 'approved'), '0059: the approval is still there, marked approved';
+  insert into r_ids values ('sig_job', v_job);
+end $$;
+select pg_temp.logout();
+create or replace function pg_temp.any_auth() returns uuid language sql security definer as $$ select id from public.job_authorizations where signature_path is not null limit 1 $$;
+-- a detailer cannot read signature paths
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  assert public.signature_path_for('job', pg_temp.any_auth()) is null, '0059: no signature path for a detailer';
+end $$;
+select pg_temp.logout();

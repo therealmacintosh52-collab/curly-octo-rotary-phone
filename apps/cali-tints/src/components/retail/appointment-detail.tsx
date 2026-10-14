@@ -379,6 +379,17 @@ function CheckInDialog({ a, showMoney, onClose }: { a: AppointmentView; showMone
             <Label htmlFor="ci-concern">What the customer says is wrong</Label>
             <Textarea id="ci-concern" value={concern} onChange={(e) => setConcern(e.target.value)} placeholder="In their own words" className="min-h-20" data-testid="checkin-concern" />
           </div>
+          {showMoney && a.services.length > 0 && (
+            <div className="rounded-lg border border-border px-3 py-2.5 text-sm" data-testid="checkin-price">
+              <div className="text-label text-subtle">What it will cost</div>
+              <ul className="mt-1 grid gap-0.5">
+                {a.services.map((sv) => (
+                  <li key={sv.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{sv.name}{sv.qty !== 1 ? ` × ${sv.qty}` : ""}</span><span className="tabular-nums">{sv.line_total !== null ? formatMoney(sv.line_total) : ""}</span></li>
+                ))}
+              </ul>
+              {a.total !== null && <div className="mt-1.5 flex justify-between border-t border-border pt-1.5 font-semibold"><span>Total, plus tax</span><span className="tabular-nums">{formatMoney(a.total)}</span></div>}
+            </div>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="ci-name">Authorized by</Label>

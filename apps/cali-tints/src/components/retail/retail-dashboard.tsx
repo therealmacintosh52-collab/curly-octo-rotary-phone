@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { CalendarDaysIcon, ClockIcon, FileTextIcon, LayoutGridIcon, UserIcon, UsersIcon } from "lucide-react";
-import type { CalendarItem, EstimateListRow, EstimateStage, RetailMoneySummary, TextQueueRow } from "@/lib/db/types";
+import type { CalendarItem, EstimateListRow, EstimateStage, MyTransfers, RetailMoneySummary, TextQueueRow } from "@/lib/db/types";
 import { TextQueue } from "./text-queue";
+import { TransferInbox } from "./transfer-inbox";
+import { TransferButton } from "./transfer-dialog";
 import { AppointmentStatusBadge } from "./appointment-status-badge";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
-import { documentNumber, STAGE_META, STAGE_ORDER } from "@/lib/retail/estimate-stage";
+import { ageLabel, documentNumber, STAGE_META, STAGE_ORDER } from "@/lib/retail/estimate-stage";
 import { durationLabel, holdSecondsLeft, mmss, timeIn } from "@/lib/retail/slots";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -15,8 +17,12 @@ export type DashboardTab = "action" | "board" | "open" | "closed";
 
 export interface RetailDashboardData {
   tab: DashboardTab;
-  /** Workflow tab: lanes per tech (default) or per stage. */
+  /** Workflow tab: lanes per person (default) or per stage. */
   view?: "tech" | "stage";
+  /** Needs action: only the visits I hold, or everyone's. */
+  who?: "mine" | "all";
+  /** Visits handed to me and handed to a coworker by me (0058). */
+  transfers?: MyTransfers;
   customers: number;
   /** Every visit that is still open (not closed, declined or expired), newest first. */
   open: EstimateListRow[];
@@ -44,12 +50,6 @@ const SECTIONS: { key: string; title: string; hint: string; pick: (r: EstimateLi
   { key: "unpaid", title: "Unpaid", hint: "The invoice is out: collect payment", pick: (r) => r.stage === "unpaid" },
   { key: "paid", title: "Paid: signature and pickup", hint: "The customer signs, then close it", pick: (r) => r.stage === "paid" },
 ];
-
-/** "today", "1 day", "5 days": how long a visit has been open. */
-export function ageLabel(iso: string, now = Date.now()): string {
-  const days = Math.floor((now - new Date(iso).getTime()) / 86400000);
-  return days <= 0 ? "today" : days === 1 ? "1 day" : `${days} days`;
-}
 
 const daysOpen = (iso: string, now = Date.now()) => Math.floor((now - new Date(iso).getTime()) / 86400000);
 /** A visit that has sat for three days or more and is not waiting on payment is flagged late (red outline, like the shop's board). */
@@ -126,12 +126,19 @@ function SideCard({ title, icon, children, action, testId }: { title: string; ic
 }
 
 function NeedsAction({ data, tz }: { data: RetailDashboardData; tz: string }) {
-  const groups = SECTIONS.map((s) => ({ ...s, rows: data.open.filter(s.pick) })).filter((g) => g.rows.length > 0);
+  const who = data.who ?? "all";
+  const pool = who === "mine" ? data.open.filter((r) => r.mine) : data.open;
+  const groups = SECTIONS.map((s) => ({ ...s, rows: pool.filter(s.pick) })).filter((g) => g.rows.length > 0);
   const unpaid = data.open.filter((r) => r.stage === "unpaid");
   const owed = unpaid.reduce((n, r) => n + (r.balance ?? 0), 0);
   return (
     <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start" data-testid="dash-action">
       <div className="grid gap-5">
+        <div className="flex justify-end gap-0.5 rounded-lg bg-muted p-1 sm:ml-auto sm:w-fit" data-testid="dash-who">
+          {([["all", "Everyone", "/retail"], ["mine", "Mine", "/retail?who=mine"]] as const).map(([v, label, href]) => (
+            <Link key={v} href={href} scroll={false} aria-current={who === v ? "true" : undefined} className={cn("inline-flex h-8 items-center rounded-md px-3 text-sm", who === v ? "bg-card text-foreground surface-raised" : "text-muted-foreground hover:text-foreground")} data-testid={`dash-who-${v}`}>{label}</Link>
+          ))}
+        </div>
         {groups.length === 0 ? (
           <p className="rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground" data-testid="dash-empty">Nothing needs action. Every visit is waiting on the customer, closed, or not started.</p>
         ) : (
@@ -146,7 +153,7 @@ function NeedsAction({ data, tz }: { data: RetailDashboardData; tz: string }) {
               <ul className="grid gap-2" data-testid={`dash-list-${g.key}`}>
                 {g.rows.map((r) => (
                   <li key={r.id}>
-                    <VisitRow r={r} showMoney={data.showMoney} />
+                    <VisitRow r={r} showMoney={data.showMoney} transfer={r.mine || data.showMoney} />
                   </li>
                 ))}
               </ul>
@@ -156,6 +163,7 @@ function NeedsAction({ data, tz }: { data: RetailDashboardData; tz: string }) {
       </div>
 
       <div className="grid gap-4">
+        <TransferInbox data={data.transfers ?? { incoming: [], outgoing: [] }} />
         {data.showMoney && data.money && (
           <SideCard title="Money" icon={<FileTextIcon className="size-4 text-primary" />} testId="retail-money">
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 py-1 text-sm">
@@ -206,32 +214,40 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 /** One visit as a row, like "My Current Jobs": the title in bold, the stage and age on the right, who and which car below. */
-function VisitRow({ r, showMoney, compact }: { r: EstimateListRow; showMoney: boolean; compact?: boolean }) {
+function VisitRow({ r, showMoney, compact, transfer }: { r: EstimateListRow; showMoney: boolean; compact?: boolean; transfer?: boolean }) {
   const n = documentNumber(r);
   const late = isLate(r);
   return (
-    <Link href={`/retail/estimates/${r.id}`} className={cn("block rounded-lg border bg-card p-3.5 surface-raised transition-colors hover:border-border-strong", late ? "border-destructive/70" : "border-border")} data-testid="dash-card" data-stage={r.stage} data-late={late || undefined}>
-      <div className="flex items-start justify-between gap-3">
-        <div className={cn("min-w-0 font-semibold", compact ? "line-clamp-2 text-sm" : "line-clamp-2")}>{titleOf(r)}</div>
-        <div className="shrink-0 text-right">
-          <div className={cn("text-caption tabular-nums", late ? "font-medium text-destructive" : "text-subtle")}>{late ? `late ${ageLabel(r.created_at)}` : ageLabel(r.created_at)}</div>
-          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{STAGE_META[r.stage ?? "draft"].label}</div>
+    <div className={cn("relative rounded-lg border bg-card p-3.5 surface-raised transition-colors hover:border-border-strong", late ? "border-destructive/70" : "border-border")} data-testid="dash-card" data-stage={r.stage} data-late={late || undefined}>
+      <Link href={`/retail/estimates/${r.id}`} aria-label={`Open ${n.primary}`} className="absolute inset-0 rounded-lg" />
+      <div className="pointer-events-none">
+        <div className="flex items-start justify-between gap-3">
+          <div className={cn("min-w-0 font-semibold", compact ? "line-clamp-2 text-sm" : "line-clamp-2")}>{titleOf(r)}</div>
+          <div className="shrink-0 text-right">
+            <div className={cn("text-caption tabular-nums", late ? "font-medium text-destructive" : "text-subtle")}>{late ? `late ${ageLabel(r.created_at)}` : ageLabel(r.created_at)}</div>
+            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{STAGE_META[r.stage ?? "draft"].label}</div>
+          </div>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-3 text-caption">
+          <div className="text-subtle">
+            {r.advisor && <div>Advisor: <span className="text-muted-foreground">{r.advisor}</span></div>}
+            {(r.holder ?? r.tech) && <div>Tech: <span className="text-muted-foreground">{r.holder ?? r.tech}</span></div>}
+            <div className="tracking-wide">{n.primary}{n.secondary ? ` (${n.secondary})` : ""}</div>
+          </div>
+          <div className="min-w-0">
+            <div className="truncate font-medium text-foreground">{r.customer ?? "Customer"}</div>
+            <div className="truncate text-muted-foreground">{r.vehicle ?? "No car on file"}</div>
+            {showMoney && (r.stage === "unpaid" && r.balance != null ? <div className="font-semibold tabular-nums text-warning">{formatMoney(r.balance)} due</div> : r.total !== null ? <div className="tabular-nums text-muted-foreground">{formatMoney(r.total)}</div> : null)}
+            {r.waiting_supplement && <div className="text-warning">more work waiting on them</div>}
+          </div>
         </div>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-3 text-caption">
-        <div className="text-subtle">
-          {r.advisor && <div>Advisor: <span className="text-muted-foreground">{r.advisor}</span></div>}
-          {r.tech && <div>Tech: <span className="text-muted-foreground">{r.tech}</span></div>}
-          <div className="tracking-wide">{n.primary}{n.secondary ? ` (${n.secondary})` : ""}</div>
+      {transfer && r.stage !== "closed" && (
+        <div className="relative mt-2 flex justify-end">
+          <TransferButton estimateId={r.id} label={n.primary} summary={`${r.customer ?? "Customer"}${r.vehicle ? ` · ${r.vehicle}` : ""}`} />
         </div>
-        <div className="min-w-0">
-          <div className="truncate font-medium text-foreground">{r.customer ?? "Customer"}</div>
-          <div className="truncate text-muted-foreground">{r.vehicle ?? "No car on file"}</div>
-          {showMoney && (r.stage === "unpaid" && r.balance != null ? <div className="font-semibold tabular-nums text-warning">{formatMoney(r.balance)} due</div> : r.total !== null ? <div className="tabular-nums text-muted-foreground">{formatMoney(r.total)}</div> : null)}
-          {r.waiting_supplement && <div className="text-warning">more work waiting on them</div>}
-        </div>
-      </div>
-    </Link>
+      )}
+    </div>
   );
 }
 
@@ -244,9 +260,9 @@ function Board({ rows, showMoney, by }: { rows: EstimateListRow[]; showMoney: bo
     by === "stage"
       ? STAGE_ORDER.filter((s) => s !== "closed").map((stage) => ({ key: stage, title: STAGE_META[stage].label, items: rows.filter((r) => r.stage === stage) }))
       : (() => {
-          const techs = Array.from(new Set(rows.map((r) => r.tech ?? "")));
+          const techs = Array.from(new Set(rows.map((r) => r.holder ?? r.tech ?? "")));
           techs.sort((a, b) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b)));
-          return techs.map((t) => ({ key: t || "none", title: t || "Not assigned", items: rows.filter((r) => (r.tech ?? "") === t) }));
+          return techs.map((t) => ({ key: t || "none", title: t || "Not assigned", items: rows.filter((r) => (r.holder ?? r.tech ?? "") === t) }));
         })();
   const toggle = (value: "tech" | "stage", label: string, icon: React.ReactNode) => (
     <Link href={value === "tech" ? "/retail?tab=board" : "/retail?tab=board&view=stage"} scroll={false} aria-current={by === value ? "true" : undefined} className={cn("inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm", by === value ? "bg-card text-foreground surface-raised" : "text-muted-foreground hover:text-foreground")} data-testid={`board-by-${value}`}>

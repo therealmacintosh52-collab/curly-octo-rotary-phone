@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -104,11 +105,18 @@ export async function sendEstimateAction(id: string, via: "email" | "link"): Pro
   return { ok: true, data: { url, emailed, note } };
 }
 
-export async function markEstimateAcceptedAction(id: string, optionId: string, lineIds: string[], name: string, method: "in_person" | "phone" | "email"): Promise<ActionResult> {
+export async function markEstimateAcceptedAction(id: string, optionId: string, lineIds: string[], name: string, method: "in_person" | "phone" | "email", signaturePath: string | null = null): Promise<ActionResult> {
   const session = await getSession();
-  if (!session.canPrices) return { ok: false, error: "Only the owner or an admin records an approval" };
+  if (!session.canPrices) return { ok: false, error: "Only the owner, an admin or an advisor records an approval" };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("mark_estimate_accepted", { p_id: id, p_option: optionId, p_line_ids: lineIds, p_name: name.trim() || null, p_method: method });
+  // In person, the customer signs (unless the shop turned that off in Settings).
+  if (method === "in_person" && !signaturePath) {
+    const { data: rs } = await supabase.from("retail_settings").select("signature_required_estimate").maybeSingle();
+    if (rs?.signature_required_estimate ?? true) return { ok: false, error: "The customer signs first" };
+  }
+  const h = await headers();
+  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || null;
+  const { error } = await supabase.rpc("mark_estimate_accepted", { p_id: id, p_option: optionId, p_line_ids: lineIds, p_name: name.trim() || null, p_method: method, p_signature_path: signaturePath, p_ip: ip, p_user_agent: h.get("user-agent") });
   if (error) return { ok: false, error: errorMessage(error) };
   revalidate(id);
   return { ok: true, data: undefined };
@@ -194,6 +202,49 @@ export async function deleteDraftEstimateAction(id: string): Promise<ActionResul
     }
   }
   revalidatePath("/retail/estimates");
+  revalidatePath("/retail");
+  return { ok: true, data: undefined };
+}
+
+/** The customer's link for an estimate (staff who may send it): to text or copy an extra-work approval. */
+export async function estimateLinkAction(id: string): Promise<ActionResult<string>> {
+  const session = await getSession();
+  if (!session.canPrices) return { ok: false, error: "Only the owner, an admin or an advisor shares the link" };
+  const supabase = await createClient();
+  const { data: token, error } = await supabase.rpc("estimate_link", { p_id: id });
+  if (error || !token) return { ok: false, error: error ? errorMessage(error) : "No link yet" };
+  return { ok: true, data: `${appUrl() ?? ""}/e/${token}` };
+}
+
+// --- Transfer a visit to a coworker (0058) ---------------------------------------------------------
+export async function transferCandidatesAction(): Promise<ActionResult<import("@/lib/db/types").TransferCandidate[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("transfer_candidates");
+  if (error) return { ok: false, error: errorMessage(error) };
+  return { ok: true, data: data ?? [] };
+}
+
+export async function transferEstimateAction(id: string, to: string, status: string, message: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("transfer_estimate", { p_estimate: id, p_to: to, p_status: status, p_message: message.trim() || null });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/retail");
+  revalidate(id);
+  return { ok: true, data: undefined };
+}
+
+export async function respondTransferAction(id: string, accept: boolean): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("respond_transfer", { p_id: id, p_accept: accept });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidatePath("/retail");
+  return { ok: true, data: undefined };
+}
+
+export async function cancelTransferAction(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_transfer", { p_id: id });
+  if (error) return { ok: false, error: errorMessage(error) };
   revalidatePath("/retail");
   return { ok: true, data: undefined };
 }
