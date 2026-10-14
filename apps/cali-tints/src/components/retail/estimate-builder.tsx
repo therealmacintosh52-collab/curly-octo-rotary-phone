@@ -400,7 +400,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
         <ArrowLeftIcon className="size-4" /> {estimate ? estimate.display_number : ro ? (ro.ro_number ?? ro.tag_number) : "Estimates"}
       </Link>
       <PageHeader
-        title={estimate ? `Edit ${estimate.display_number}` : ro ? `Estimate on ${ro.ro_number ?? ro.tag_number}` : "New estimate"}
+        title={estimate ? `Edit ${estimate.display_number}` : ro ? `Extra work for ${ro.ro_number ?? ro.tag_number}` : "New estimate"}
         description={ro ? "What the tech found, priced: labor by the hour, parts, fees, sublets, or a service from the menu. The customer approves each item and signs." : "Pick the customer and the car, build the options from the menu, send the link. Prices come from the size grid."}
       />
 

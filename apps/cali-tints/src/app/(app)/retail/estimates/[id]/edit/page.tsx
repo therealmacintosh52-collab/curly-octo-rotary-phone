@@ -21,7 +21,8 @@ export default async function EditEstimatePage(props: PageProps<"/retail/estimat
   const supabase = await createClient();
   const [{ data: e }, { data: catalog }, picker] = await Promise.all([supabase.rpc("estimate_detail", { p_id: id }), supabase.rpc("retail_catalog"), loadPickerCustomers(supabase, { customer: undefined })]);
   if (!e || !catalog) notFound();
-  if (e.status === "accepted" || e.status === "declined") redirect(`/retail/estimates/${id}`);
+  // Once approved it is a work order: no edits (more work is a new extra-work estimate the customer approves, 0064).
+  if (e.status === "accepted" || e.status === "declined" || e.applied_at || (e.kind !== "supplement" && e.job_id)) redirect(`/retail/estimates/${id}`);
   const withCustomer = picker.recent.some((c) => c.id === e.customer.id) ? picker : await loadPickerCustomers(supabase, { customer: e.customer.id, vehicle: e.vehicle?.id });
   // The findings side tab (and "Add to this estimate" on a recommendation: ?findings=<id,...> appends their lines).
   const ids = typeof sp.findings === "string" ? sp.findings.split(",").filter(Boolean) : [];

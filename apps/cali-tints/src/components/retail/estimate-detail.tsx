@@ -512,7 +512,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             )}
             {addServiceHref && !supplement && (
               <Button asChild variant="outline" size="sm" data-testid="bar-add-service">
-                <Link href={addServiceHref}><PlusIcon /> Service</Link>
+                <Link href={addServiceHref}><PlusIcon /> {open ? "Service" : "Extra work"}</Link>
               </Button>
             )}
           </>

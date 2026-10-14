@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
@@ -14,6 +14,7 @@ export default async function DevEstimateEditPreview(props: PageProps<"/dev/prev
   const { session, canPrices } = previewSession(sp);
   const e = estimateViewFixture(id, canPrices);
   if (!e) notFound();
+  if (e.status === "accepted" || e.status === "declined" || e.applied_at || (e.kind !== "supplement" && e.job_id)) redirect(`/retail/estimates/${id}${sp.as ? `?as=${String(sp.as)}` : ""}`);
   return (
     <SessionProvider value={session}>
       <SyncProvider>

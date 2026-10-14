@@ -2266,3 +2266,20 @@ begin
   begin perform public.send_to_tech((select v from r_ids where k = 'transfer_est'), '10000000-0000-4000-8000-000000000002'); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
 end $$;
 select pg_temp.logout();
+
+-- 0064: no edits once an estimate is a work order
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'transfer_est');
+begin
+  begin perform public.update_estimate(v_est, jsonb_build_object('po_number', 'late edit')); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'transfer_est');
+begin
+  begin perform public.update_estimate(v_est, jsonb_build_object('po_number', 'late edit')); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
+  perform public.set_estimate_meta(v_est, '{"label":"Waiting"}'::jsonb);
+end $$;
+select pg_temp.logout();
