@@ -1,40 +1,38 @@
 import type { Metadata } from 'next';
-import { PageIntro } from '@/components/PageIntro';
-import { CallLink, TextLink } from '@/components/CtaLinks';
 import { ESTIMATE_LABEL } from '@/config/pricing';
 import { site } from '@/config/site';
+import { CallLink, TextLink } from '@/components/CtaLinks';
+import { BookingFlow } from './BookingFlow';
 
 export const metadata: Metadata = {
   title: 'Book Mobile Dent Repair & Detailing Sacramento',
-  description: 'Send a photo of the dent or the car and get an estimate range. We come to you across Sacramento.',
+  description: 'Get a photo estimate, pick a real open time and reserve with a small deposit. We come to you across Sacramento.',
   alternates: { canonical: '/book' },
 };
-
-const how = [
-  { n: '01', t: 'Text a photo', b: 'One wide shot and one close-up of each dent. For detailing, a photo of the car is enough.' },
-  { n: '02', t: 'Tell us where', b: 'Your ZIP and where the car will be parked: driveway, office lot or dealer lot.' },
-  { n: '03', t: 'Pick a time', b: 'We reply with an estimate range and open times that fit your day.' },
-];
 
 export default function BookPage() {
   return (
     <>
-      <PageIntro eyebrow="Book" title="Send a photo. Get a price." lede="The fastest way to book: text us a photo. A real person replies with an estimate range and open times.">
-        <TextLink where="book_intro" className="btn btn-gold">Text a photo</TextLink>
-        <CallLink where="book_intro" className="btn btn-outline">Call {site.phone.display}</CallLink>
-      </PageIntro>
-      <section id="photo" aria-labelledby="photo-t" className="wrap scroll-mt-28 pb-24">
-        <h2 id="photo-t" className="h2">Get a price from a photo</h2>
-        <ol className="mt-10 grid gap-5 md:grid-cols-3">
-          {how.map((s) => (
-            <li key={s.n} className="card p-7">
-              <span className="text-metal font-display text-3xl" aria-hidden="true">{s.n}</span>
-              <h3 className="mt-4 text-base">{s.t}</h3>
-              <p className="mt-3 text-steel">{s.b}</p>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-6 text-sm text-steel">{ESTIMATE_LABEL}</p>
+      <section className="relative overflow-hidden pb-8 pt-28 lg:pb-10 lg:pt-40">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_0%,rgba(201,162,74,0.13),transparent_70%)]" />
+        <div className="wrap relative">
+          <p className="eyebrow">Book</p>
+          <h1 className="mt-4 max-w-3xl text-[clamp(1.6rem,4.2vw,3rem)]">Book your visit</h1>
+          <p className="lede mt-4">Choose your service, add photos for dents, pick a real open time. It takes about two minutes. {ESTIMATE_LABEL}</p>
+          <noscript>
+            <p className="mt-4 text-steel">Booking needs JavaScript. Prefer to talk? Call or text {site.phone.display}.</p>
+          </noscript>
+        </div>
+      </section>
+      <BookingFlow />
+      <section aria-label="Prefer to talk" className="wrap pb-24">
+        <div className="card flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-steel">Rather talk it through? A real person replies fast.</p>
+          <div className="flex flex-wrap gap-3">
+            <TextLink where="book_footer" className="btn btn-outline">Text us</TextLink>
+            <CallLink where="book_footer" className="btn btn-outline">Call {site.phone.display}</CallLink>
+          </div>
+        </div>
         {site.phone.placeholder && <p className="mt-4"><span className="owner-mark">[OWNER] real phone number in config/site.ts</span></p>}
       </section>
     </>

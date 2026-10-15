@@ -1,0 +1,67 @@
+/* /book flow styles. Tokens come from globals.css (@theme). Mobile-first; 48px minimum touch targets. */
+.bk-input {
+  width: 100%; min-height: 52px; padding: 0.7rem 1rem; border-radius: 14px;
+  background: var(--color-graphite-2); color: var(--color-ivory);
+  border: 1px solid var(--color-line); font: inherit; font-size: 1rem; /* 16px: no iOS zoom */
+}
+.bk-input::placeholder { color: color-mix(in srgb, var(--color-steel) 80%, transparent); }
+.bk-input:hover { border-color: color-mix(in srgb, var(--color-gold) 45%, var(--color-line)); }
+.bk-input[aria-invalid="true"] { border-color: #e2705f; }
+.bk-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--color-ivory); margin-bottom: 0.4rem; }
+.bk-hint { font-size: 0.82rem; color: var(--color-steel); margin-top: 0.35rem; }
+.bk-err { font-size: 0.85rem; color: #f0907f; margin-top: 0.35rem; }
+
+/* choice cards: native checkbox/radio stays in the DOM (keyboard + screen reader), card shows state */
+.bk-choice { position: relative; display: block; }
+.bk-choice > input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+.bk-choice > .bk-card {
+  display: flex; gap: 0.9rem; align-items: flex-start; padding: 1rem 1.1rem; min-height: 64px;
+  border-radius: 18px; border: 1px solid var(--color-line);
+  background: linear-gradient(180deg, var(--color-graphite) 0%, #121316 100%);
+  transition: border-color 0.2s, background-color 0.2s, transform 0.2s var(--ease-out-quint);
+}
+.bk-choice:hover > .bk-card { border-color: color-mix(in srgb, var(--color-gold) 50%, var(--color-line)); }
+.bk-choice > input:checked + .bk-card { border-color: var(--color-gold); background: linear-gradient(180deg, #1c1a14 0%, #14130f 100%); }
+.bk-choice > input:focus-visible + .bk-card { outline: 2px solid var(--color-gold-light); outline-offset: 3px; }
+.bk-mark {
+  flex: none; width: 22px; height: 22px; margin-top: 2px; border-radius: 7px; border: 1.5px solid var(--color-steel);
+  display: grid; place-items: center; color: var(--color-onyx); transition: background-color 0.2s, border-color 0.2s;
+}
+.bk-mark.round { border-radius: 999px; }
+.bk-choice > input:checked + .bk-card .bk-mark { background: var(--color-gold); border-color: var(--color-gold); }
+.bk-mark svg { opacity: 0; transition: opacity 0.15s; }
+.bk-choice > input:checked + .bk-card .bk-mark svg { opacity: 1; }
+
+.bk-chip {
+  min-height: 48px; padding: 0.55rem 1rem; border-radius: 999px; border: 1px solid var(--color-line); background: var(--color-graphite);
+  color: var(--color-ivory); font-weight: 600; font-size: 0.95rem; transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+}
+.bk-chip:hover:not(:disabled) { border-color: var(--color-gold-light); }
+.bk-chip[aria-pressed="true"] { background: var(--color-gold); color: var(--color-onyx); border-color: var(--color-gold); }
+.bk-chip:disabled { opacity: 0.4; }
+
+.bk-steps { counter-reset: s; display: flex; gap: 0.35rem; overflow-x: auto; scrollbar-width: none; padding-block: 2px; }
+.bk-steps::-webkit-scrollbar { display: none; }
+.bk-step { flex: 1 0 auto; min-width: 2.6rem; }
+.bk-step button, .bk-step span.bk-pill {
+  width: 100%; min-height: 44px; border-radius: 999px; font: 600 0.8rem/1 var(--font-sans); letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0 0.8rem;
+  border: 1px solid var(--color-line); color: var(--color-steel); background: transparent;
+}
+.bk-step [aria-current="step"] { border-color: var(--color-gold); color: var(--color-onyx); background: var(--color-gold); }
+.bk-step .done { color: var(--color-gold-light); border-color: color-mix(in srgb, var(--color-gold) 40%, var(--color-line)); }
+.bk-step button:not(:disabled):hover { border-color: var(--color-gold-light); }
+.bk-progress { height: 3px; border-radius: 3px; background: var(--color-line); overflow: hidden; }
+.bk-progress > i { display: block; height: 100%; background: linear-gradient(90deg, #8e6e2e, #e8cb7a); transition: width 0.4s var(--ease-out-quint); }
+
+.bk-spin { width: 18px; height: 18px; border-radius: 999px; border: 2px solid color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; animation: bk-rot 0.8s linear infinite; }
+@keyframes bk-rot { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .bk-spin { animation-duration: 2.4s; } .bk-progress > i { transition: none; } }
+
+.bk-demo { border: 1px dashed var(--color-gold); border-radius: 14px; padding: 0.8rem 1rem; background: color-mix(in srgb, var(--color-gold) 8%, transparent); }
+.bk-dayrail { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; scroll-snap-type: x proximity; }
+.bk-day { scroll-snap-align: start; flex: 0 0 auto; width: 4.4rem; min-height: 72px; border-radius: 16px; border: 1px solid var(--color-line); background: var(--color-graphite); color: var(--color-ivory); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.bk-day[aria-pressed="true"] { background: var(--color-gold); border-color: var(--color-gold); color: var(--color-onyx); }
+.bk-day:disabled { opacity: 0.38; }
+.bk-day small { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+.bk-day b { font: 400 1.25rem/1 var(--font-display); }
