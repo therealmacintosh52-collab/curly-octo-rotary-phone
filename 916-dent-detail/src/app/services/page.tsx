@@ -13,7 +13,7 @@ import { itemListSchema } from '@/lib/seo/schema';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Mobile Dent Repair & Detailing Services Sacramento | 916 Dent & Detail',
-  description: 'Paintless dent repair, door dings, hail, mobile detailing, paint correction, ceramic coating and dealer recon across Sacramento, done where your car is parked.',
+  description: 'Paintless dent repair, door dings, hail, mobile detailing, paint correction, ceramic coating and dealer recon across Sacramento, at your location.',
   path: '/services',
 });
 

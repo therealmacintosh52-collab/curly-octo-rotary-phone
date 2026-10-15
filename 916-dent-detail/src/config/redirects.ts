@@ -1,7 +1,7 @@
 // Legacy / common-guess URL -> canonical URL map (301). Additive: next.config.ts spreads this into redirects().
 // Keep sources lowercase, without trailing slash. Never redirect a path that is a real route.
 // Phase 6 owns this file; other phases add rows by appending to `extra`.
-import { allCities, allServices } from '../lib/seo/content';
+import { allCities, allServices } from '../lib/seo/content.ts';
 
 type Row = { source: string; destination: string };
 

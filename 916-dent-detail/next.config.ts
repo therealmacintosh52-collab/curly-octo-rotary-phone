@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-import { redirectMap } from './src/config/redirects';
+import { redirectMap } from './src/config/redirects.ts';
 
 const immutable = [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }];
 
