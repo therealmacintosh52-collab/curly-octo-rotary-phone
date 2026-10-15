@@ -6,7 +6,8 @@ const DEV_SECRET = 'dev-only-booking-token-secret-change-me';
 function secret(): string {
   const s = process.env.BOOKING_TOKEN_SECRET;
   if (s) return s;
-  if (process.env.NODE_ENV === 'production') throw new Error('BOOKING_TOKEN_SECRET must be set in production');
+  // Mock mode (no database keys) holds only demo data, so a fixed dev secret is acceptable. Real data requires a real secret.
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('BOOKING_TOKEN_SECRET must be set when Supabase is configured');
   return DEV_SECRET;
 }
 const b64 = (s: string) => Buffer.from(s).toString('base64url');

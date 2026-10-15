@@ -66,7 +66,7 @@ export function ManageBooking({ token, initial }: { token: string; initial: Book
   const outcomeText: Record<string, string> = { refund: 'Your deposit will be refunded in full.', credit: 'Your deposit will be held as credit toward a future visit.', forfeit: 'Cancelling now means the deposit is kept, per the policy below.', none: '' };
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="bk-scope grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div>
         <div role="status" aria-live="polite">{msg && <p className={`card mb-6 p-4 ${msg.kind === 'ok' ? 'text-gold' : 'text-[#f0907f]'}`}>{msg.text}</p>}</div>
         <div className="card p-6">

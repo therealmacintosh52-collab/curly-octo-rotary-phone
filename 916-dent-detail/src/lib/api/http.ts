@@ -75,7 +75,7 @@ export async function guard(name: string, fn: () => Promise<NextResponse>): Prom
   catch (e) {
     const err = e as { name?: string; code?: string; status?: number; message?: string };
     if (err.name === 'BookingError' && err.status) return fail(err.status, err.code ?? 'error', err.message ?? 'Request failed.');
-    log('error', `${name}.unhandled`, { error: err.name, message: err.message?.slice(0, 120) });
+    log('error', `${name}.unhandled`, { error: err.name, detail: err.message?.slice(0, 120) });
     return fail(500, 'server_error', 'Something went wrong. Please try again or text us.');
   }
 }

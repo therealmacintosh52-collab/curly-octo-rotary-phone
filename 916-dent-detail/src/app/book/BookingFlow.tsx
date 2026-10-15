@@ -91,7 +91,7 @@ export function BookingFlow() {
   const max = maxReachable(flow);
 
   return (
-    <div id="photo" className="wrap scroll-mt-28 pb-40 lg:pb-28">
+    <div id="photo" className="bk-scope wrap scroll-mt-28 pb-40 lg:pb-28">
       <p className="sr-only" role="status" aria-live="polite">{announce}</p>
       <Stepper step={step} max={max} onGo={go} confirmed={flow.confirmed} />
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">

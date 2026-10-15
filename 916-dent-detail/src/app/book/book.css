@@ -65,3 +65,6 @@
 .bk-day:disabled { opacity: 0.38; }
 .bk-day small { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
 .bk-day b { font: 400 1.25rem/1 var(--font-display); }
+
+/* keep focused / scrolled-to controls clear of the fixed header (top) and the mobile CTA bar (bottom) */
+.bk-scope :is(button, a, input, textarea, summary) { scroll-margin-block: 6.5rem 6rem; }

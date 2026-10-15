@@ -51,7 +51,7 @@ export function Stepper({ step, max, onGo, confirmed }: { step: number; max: num
         <span className="font-display text-[0.7rem] uppercase tracking-[0.2em] text-gold">{STEPS[step - 1]!.title}</span>
       </p>
       <div className="bk-progress" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
-      <ol className="bk-steps mt-4">
+      <ol className="bk-steps mt-4" tabIndex={0} aria-label="Steps">
         {STEPS.map((s) => {
           const isCur = s.id === step;
           const reachable = !confirmed && s.id <= max && s.id < 8 && s.id !== step;
