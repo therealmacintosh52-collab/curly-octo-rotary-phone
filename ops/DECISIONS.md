@@ -60,3 +60,5 @@ Two tables. Approvals carry IDs `A-###`; an agent may act on a hard-gate item on
 - SP-4 auditor may read Zendrop and Shopify billing/orders tools.
 - SP-5 scout/red-team/system-qc may run WebSearch freely.
 - SP-6 Nobody may send, post, buy, pay, create accounts, or publish to a production URL without a one-time `A-###`.
+
+| 2026-10-15 | D-029 | Owner-directed project "916 Dent & Detail" (spec: `916-dent-detail/SPEC.md`) accepted as a standing build outside the income lanes. Orchestrator routes: builder does phases in sequence (P1→P8), qa gates each phase, growth does Phase 7 copy, scout does GBP/citation research. Local code only: no deploy/accounts/spend/publish (hard gates). All external services ship with mock mode so it runs with zero keys. Work lives in `916-dent-detail/` on branch `claude/916-dent-detail-build` (branched from session branch tip 1dab8b7; stale local branch of the same name had diverged history and was left untouched). | Owner asked for end-to-end build and said "never stop to ask"; hard gates still apply to money/accounts/publishing, so those are prepared as docs + .env.example only. | Active |
