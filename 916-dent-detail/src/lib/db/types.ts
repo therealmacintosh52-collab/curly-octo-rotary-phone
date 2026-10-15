@@ -64,7 +64,7 @@ export type Message = Base & { conversation_id: string; role: 'user' | 'assistan
 export type DealerVehicle = Base & { dealer_id: string; vin?: string | null; stock_number?: string | null; year?: number | null; make?: string | null; model?: string | null; size_class?: SizeClassId | null; photo_paths: string[]; notes?: string | null; status: 'submitted' | 'quoted' | 'approved' | 'in_progress' | 'done' | 'invoiced'; job_id?: string | null; addon_approvals: J<unknown[]> };
 export type DealerStatement = Base & { dealer_id: string; period_start: string; period_end: string; total: number; status: 'open' | 'sent' | 'paid' | 'overdue'; stripe_invoice_id?: string | null; line_items: J<unknown[]> };
 export type EventRow = Base & { type: string; entity_type?: string | null; entity_id?: string | null; actor?: string | null; data: J<Record<string, unknown>> };
-export type NotificationKind = 'confirmation' | 'reminder_24h' | 'reminder_2h' | 'on_the_way' | 'review_request' | 'rebook_6mo';
+export type NotificationKind = 'confirmation' | 'reminder_24h' | 'reminder_2h' | 'on_the_way' | 'review_request' | 'rebook_6mo' | 'cancellation';
 export type QueueRow = Base & {
   booking_id?: string | null; kind: NotificationKind; run_at: string;
   status: 'pending' | 'processing' | 'sent' | 'skipped' | 'failed' | 'cancelled'; attempts: number; dedupe_key: string;
