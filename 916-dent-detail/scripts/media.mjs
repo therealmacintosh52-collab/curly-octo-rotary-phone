@@ -7,12 +7,13 @@
 //
 // Steps: logo · favicons · og · video · frames · beading · manifest
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, rmSync, readdirSync, statSync, writeFileSync, existsSync, mkdtempSync } from 'node:fs';
+import { mkdirSync, rmSync, readdirSync, statSync, writeFileSync, existsSync, mkdtempSync, renameSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { keyLogo } from './lib-logo.mjs';
+import { repairFrame, repairWeight } from './lib-hero-repair.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BRAND = join(ROOT, 'brand');
@@ -160,18 +161,40 @@ async function og() {
   log('og', kb(report.og));
 }
 
+// ---------- repaired source frames (shared by video + frames) ----------
+// Extracts EVERY source frame to PNG and removes the white chip (scripts/lib-hero-repair.mjs). Returns the temp dir.
+let repaired; // memoised so `video` and `frames` share one extraction
+function repairedSource() { return (repaired ??= doRepairedSource()); }
+async function doRepairedSource() {
+  const tmp = mkdtempSync(join(tmpdir(), '916-src-'));
+  sh('ffmpeg', ['-y', '-v', 'error', '-i', join(BRAND, 'hero-video.mp4'), '-map', '0:v:0', '-fps_mode', 'passthrough', join(tmp, 's%03d.png')]);
+  const files = readdirSync(tmp).filter((f) => f.endsWith('.png')).sort();
+  let fixed = 0;
+  for (let n = 0; n < files.length; n++) {
+    if (repairWeight(n) === 0) continue;
+    const p = join(tmp, files[n]);
+    const { data, info } = await sharp(p).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const out = repairFrame(data, info.width, info.height, n);
+    if (out !== data) { await sharp(out, { raw: info }).png({ compressionLevel: 3 }).toFile(p + '.tmp'); renameSync(p + '.tmp', p); fixed++; }
+  }
+  report.repair = { frames: files.length, touched: fixed };
+  log('repair: touched', fixed, 'of', files.length, 'source frames');
+  return { tmp, files };
+}
+
 // ---------- video ----------
 function probeStreams(p) {
   return sh('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,codec_name', '-of', 'csv=p=0', p]).trim().split('\n');
 }
 async function video() {
-  const src = join(BRAND, 'hero-video.mp4');
+  const { tmp } = await repairedSource();
+  const src = ['-framerate', '24', '-i', join(tmp, 's%03d.png')];
   const mp4 = join(PUB, 'hero-video.mp4'), webm = join(PUB, 'hero-video.webm');
   // map ONLY the first video stream: drops AAC audio and the attached MJPEG cover.
-  sh('ffmpeg', ['-y', '-v', 'error', '-i', src, '-map', '0:v:0', '-an', '-sn', '-dn', '-map_metadata', '-1',
+  sh('ffmpeg', ['-y', '-v', 'error', ...src, '-map', '0:v:0', '-an', '-sn', '-dn', '-map_metadata', '-1',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '23', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4]);
-  sh('ffmpeg', ['-y', '-v', 'error', '-i', src, '-map', '0:v:0', '-an', '-sn', '-dn', '-map_metadata', '-1',
-    '-c:v', 'libvpx-vp9', '-crf', '34', '-b:v', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '2', webm]);
+  sh('ffmpeg', ['-y', '-v', 'error', ...src, '-map', '0:v:0', '-an', '-sn', '-dn', '-map_metadata', '-1',
+    '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuv420p', '-crf', '34', '-b:v', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '2', webm]);
   for (const p of [mp4, webm]) {
     const s = probeStreams(p);
     if (s.length !== 1 || !s[0].split(',').includes('video')) throw new Error(`${p} has unexpected streams: ${s.join(' | ')}`);
@@ -182,11 +205,10 @@ async function video() {
 
 // ---------- frames + posters ----------
 async function frames() {
-  const tmp = mkdtempSync(join(tmpdir(), '916-frames-'));
-  try {
-    sh('ffmpeg', ['-y', '-v', 'error', '-i', join(BRAND, 'hero-video.mp4'), '-map', '0:v:0',
-      '-vf', `select='not(mod(n\\,${FRAME_STEP}))'`, '-fps_mode', 'passthrough', join(tmp, 'f%04d.png')]);
-    const files = readdirSync(tmp).filter((f) => f.endsWith('.png')).sort();
+  const { tmp: srcDir, files: all } = await repairedSource();
+  const tmp = srcDir;
+  {
+    const files = all.filter((_, n) => n % FRAME_STEP === 0); // every FRAME_STEP-th source frame (0, 2, ..., 240)
     const M = join(PUB, 'hero', 'm'), D = join(PUB, 'hero', 'd');
     clean(M); clean(D);
     await Promise.all(files.map(async (f, i) => {
@@ -208,7 +230,7 @@ async function frames() {
     }
     report.frames = { count: n, m: dirBytes(M), d: dirBytes(D), posters: readdirSync(P).filter((f) => /^(poster|static)/.test(f)).reduce((s, f) => ({ ...s, [f]: size(join(P, f)) }), {}) };
     log('frames', n, 'm', kb(report.frames.m), 'd', kb(report.frames.d), JSON.stringify(report.frames.posters));
-  } finally { rmSync(tmp, { recursive: true, force: true }); }
+  } // the shared repaired-source dir is removed at the end of the run
 }
 
 // ---------- hero-beading ----------
@@ -262,5 +284,6 @@ const steps = { logo, favicons, og, video, frames, beading, manifest };
 const want = process.argv.slice(2);
 const order = want.length ? want : Object.keys(steps);
 for (const s of order) { if (!steps[s]) throw new Error(`unknown step ${s}`); await steps[s](); }
+if (repaired) rmSync((await repaired).tmp, { recursive: true, force: true });
 writeFileSync(join(ROOT, 'scripts', '.media-report.json'), JSON.stringify(report, null, 2));
 log('done');
