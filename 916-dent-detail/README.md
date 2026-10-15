@@ -4,7 +4,7 @@ Mobile paintless dent repair + detailing site for Sacramento. Next.js 16 (App Ro
 Tailwind v4, GSAP + ScrollTrigger + Lenis. Owner spec: [`SPEC.md`](SPEC.md). Assumptions: [`DECISIONS.md`](DECISIONS.md).
 Open items: [`TODO.md`](TODO.md).
 
-**Status:** Phase 1 (scroll-scrub hero + marketing site) built locally. Not deployed. Nothing is live.
+**Status:** Phase 1 (scroll-scrub hero + marketing site) and Phase 6 (SEO + local) built locally. Not deployed. Nothing is live.
 
 ## Run it
 
@@ -29,6 +29,9 @@ Opt out of Next.js telemetry with `npx next telemetry disable` or `NEXT_TELEMETR
 | `npm run verify` | typecheck + lint + build |
 | `npm run media` | Regenerate every image/video asset in `public/` from `brand/` (needs `ffmpeg`, `ffprobe`). Steps can run alone: `node scripts/media.mjs logo favicons og video frames beading manifest` |
 | `bash scripts/subset-fonts.sh` | Re-create the subset Michroma/Inter woff2 files in `src/fonts/` from the `@fontsource` packages (needs `pip install fonttools brotli`) |
+| `npm run check:content` | Word-count + 5-word-shingle Jaccard similarity gate for services, cities, posts (also runs as `prebuild`; fails >35% overlap) |
+| `npm run check:seo` | Starts the production server (builds if needed), crawls every internal link and asserts h1/title/description/canonical/OG/JSON-LD/sitemap/redirect/404 rules. `--no-build`, `--port=`, `--base=` supported |
+| `node scripts/qa-seo.mjs [url] [outDir]` | axe + mobile/desktop screenshots of a service, city, blog and hub page |
 | `npm run check:owner` | Launch gate: lists every `[OWNER]` placeholder left in `src/`; exits 1 while any remain |
 | `node scripts/shots.mjs [url] [outDir] [--reduced]` | Playwright screenshots, mobile 390x844 + desktop 1440x900, hero at 0/35/70/100% and every section |
 | `node scripts/axe.mjs [url]` | axe-core audit of every route (mobile, desktop, reduced motion); exits 1 on serious/critical |
@@ -64,7 +67,18 @@ src/generated/media.ts written by the media pipeline (frame count, paths, inline
   frames load on the first scroll/touch/key, nearest-to-current first, then coarse-to-fine.
 - Copy is server-rendered HTML; scroll reveals beats at 30% and 60%.
 
-## Analytics hooks
+## Phase 6: SEO + local
+
+- Content: `src/content/seo/services/*.ts` (9), `src/content/seo/cities/*.ts` (14, plus `extra.ts`), `content/blog/*.mdx` (10). Templates: `src/components/seo/`. Helpers: `src/lib/seo/` (schema, metadata, blog loader, og, travel note). Redirect map: `src/config/redirects.ts`.
+- Routes: `/services` hub + `/services/<slug>`, `/areas` hub + `/areas/<city>`, `/blog`, `/blog/<slug>`, `/blog/tag/<tag>`, `/blog/rss.xml`, `sitemap.xml`, `robots.txt`.
+- To add a post: drop `content/blog/<slug>.mdx` with `title, description (<=155), date, tags, services, cities` frontmatter. `<FromPrice service="pdr" />` and `<Callout>` are available in MDX.
+- Build in a separate folder while other work runs: `NEXT_DIST_DIR=.next-p6 npm run build`.
+
+## Analytics hooks (Phase 6)
+
+`track(event, props)` returns an `event_id` and fans out to GA4, Meta Pixel, Google Ads and Vercel Analytics, each env-gated and consent-gated (`src/lib/analytics-consent.ts`, banner in `components/seo/ConsentBanner.tsx`). Env: `NEXT_PUBLIC_GA4_ID`, `NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_GADS_ID` + labels. Server side: `sendCapiEvent` in `src/lib/analytics/capi.ts`. `getAttribution()` in `src/lib/attribution.ts` returns first/last touch.
+
+## Analytics hooks (Phase 1 note, superseded)
 
 `track(event, props)` in `src/lib/analytics.ts` pushes to `window.dataLayer`. Wired now: `call_click`,
 `text_click`, `quote_requested`, `booking_started`, `cta_click`. Phase 6 connects GA4 / Meta / Google Ads.
