@@ -40,6 +40,6 @@ export function parseForm<T>(schema: ZodType<T>, fd: FormData): T {
 /** Optional text: "" -> undefined. */
 export const optText = (max = 200) => z.string().trim().max(max).transform((v) => (v === '' ? undefined : v)).optional();
 export const reqText = (what: string, max = 200) => z.string().trim().min(1, `${what} is required.`).max(max);
-export const optNum = z.string().trim().transform((v) => (v === '' ? undefined : Number(v))).pipe(z.number().finite().optional());
+export const optNum = z.string().trim().optional().transform((v) => (v === undefined || v === '' ? undefined : Number(v))).pipe(z.number('Enter a number.').finite().optional());
 export const checkbox = z.string().optional().transform((v) => v === 'on' || v === 'true' || v === '1');
 export const uuid = z.string().uuid('Bad id.');

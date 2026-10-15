@@ -76,7 +76,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       <Section title="Ad cost per customer" action={csv('cpa')}>
         {s.cpa.length === 0 ? <Empty>No ad spend entered for this range. Add it below.</Empty> : (
-          <Card><div className="overflow-x-auto"><table className="adm-table">
+          <Card><div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Ad cost per customer by channel"><table className="adm-table">
             <thead><tr><th>Channel</th><th className="num">Spend</th><th className="num">Leads</th><th className="num">Booked</th><th className="num">Done</th><th className="num">Per lead</th><th className="num">Per booked</th><th className="num">Per job</th><th className="num">ROAS</th></tr></thead>
             <tbody>{s.cpa.map((c) => <tr key={c.channel}><td>{c.label}</td><td className="num">{money(c.spend)}</td><td className="num">{c.leads}</td><td className="num">{c.booked}</td><td className="num">{c.done}</td><td className="num">{c.cpl === null ? '—' : money(c.cpl)}</td><td className="num">{c.cpaBooked === null ? '—' : money(c.cpaBooked)}</td><td className="num">{c.cpaDone === null ? '—' : money(c.cpaDone)}</td><td className="num">{c.roas === null ? '—' : `${c.roas.toFixed(1)}x`}</td></tr>)}</tbody>
           </table></div></Card>

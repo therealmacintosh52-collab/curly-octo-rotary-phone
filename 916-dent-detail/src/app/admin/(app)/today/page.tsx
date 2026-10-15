@@ -70,7 +70,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                     <div className="space-y-3 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wider text-gold-light">{i + 1}. {fmtTime(b.starts_at)}–{fmtTime(b.ends_at)}</p><h2 className="truncate text-lg font-semibold">{c?.name ?? 'Customer'}</h2></div>
-                        <Badge tone={b.status === 'completed' ? 'green' : b.status === 'in_progress' ? 'gold' : b.status === 'on_the_way' ? 'blue' : b.status === 'no_show' ? 'red' : 'neutral'}>{b.status.replace('_', ' ')}</Badge>
+                        <Badge tone={b.status === 'completed' ? 'green' : b.status === 'in_progress' ? 'gold' : b.status === 'on_the_way' ? 'blue' : b.status === 'no_show' ? 'red' : 'neutral'}>{b.status.replace(/_/g, ' ')}</Badge>
                       </div>
                       <p className="text-sm text-[#d6d8dd]">{b.services.map((x) => serviceById(x)?.plain ?? x).join(' + ')}{vMap.get(b.vehicle_id ?? '') ? ` · ${vehicleLabel(vMap.get(b.vehicle_id ?? ''))}` : ''}</p>
                       <p className="text-sm text-[#a9acb3]">{addr}{b.price_low != null ? ` · Est. ${moneyRange(b.price_low, b.price_high)}` : ' · price after photos'}</p>

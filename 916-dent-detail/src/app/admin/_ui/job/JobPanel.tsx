@@ -129,7 +129,7 @@ export function JobPanel(p: PanelProps) {
 
       {!done && (
         <section aria-labelledby="status-h" className="adm-card p-4 space-y-3">
-          <h2 id="status-h" className="text-base font-semibold">Job status: <span data-testid="job-status" className="text-gold-light">{snap.status.replace('_', ' ')}</span></h2>
+          <h2 id="status-h" className="text-base font-semibold">Job status: <span data-testid="job-status" className="text-gold-light">{snap.status.replace(/_/g, ' ')}</span></h2>
           {snap.status === 'confirmed' && (
             <div className="space-y-2">
               <label htmlFor="eta" className="adm-label">Minutes until you arrive</label>

@@ -65,7 +65,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
 
       <Section title="Bookings" action={<Link href={`/admin/schedule/new?customer=${c.id}`} className="text-sm text-gold-light underline underline-offset-4">Book a job</Link>}>
         {b.bookings.length === 0 ? <Empty>No bookings.</Empty> : (
-          <Card>{b.bookings.slice(0, 8).map((k) => <Row key={k.id} href={`/admin/bookings/${k.id}`} title={svc(k.services)} sub={`${fmtDateTime(k.starts_at)} · ${vehicleLabel(vById.get(k.vehicle_id ?? ''))}`} right={<Badge tone={k.status === 'completed' ? 'green' : k.status === 'cancelled' || k.status === 'expired' || k.status === 'no_show' ? 'red' : 'gold'}>{k.status.replace('_', ' ')}</Badge>} />)}</Card>
+          <Card>{b.bookings.slice(0, 8).map((k) => <Row key={k.id} href={`/admin/bookings/${k.id}`} title={svc(k.services)} sub={`${fmtDateTime(k.starts_at)} · ${vehicleLabel(vById.get(k.vehicle_id ?? ''))}`} right={<Badge tone={k.status === 'completed' ? 'green' : k.status === 'cancelled' || k.status === 'expired' || k.status === 'no_show' ? 'red' : 'gold'}>{k.status.replace(/_/g, ' ')}</Badge>} />)}</Card>
         )}
       </Section>
 
@@ -91,7 +91,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
               <Field label="Plan" htmlFor="tier"><select id="tier" name="tier" className="adm-input">{plans().map((p) => <option key={p.id} value={p.id}>{p.name}{p.priceMonthly === null ? ' ([OWNER] price not set)' : ` · $${p.priceMonthly}/mo`}</option>)}</select></Field>
             </ActionForm>
           </div></Card>
-        ) : <Card>{memberships.map(({ m, bal }) => <Row key={m.id} href="/admin/memberships" title={`${m.tier} · ${m.status.replace('_', ' ')}`} sub={`${bal} visit credit${bal === 1 ? '' : 's'} left${m.renews_at ? ` · renews ${fmtDateTime(m.renews_at)}` : ''}`} />)}</Card>}
+        ) : <Card>{memberships.map(({ m, bal }) => <Row key={m.id} href="/admin/memberships" title={`${m.tier} · ${m.status.replace(/_/g, ' ')}`} sub={`${bal} visit credit${bal === 1 ? '' : 's'} left${m.renews_at ? ` · renews ${fmtDateTime(m.renews_at)}` : ''}`} />)}</Card>}
       </Section>
 
       <Section title="Referral">
@@ -108,7 +108,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
       </Section>
 
       <Section title="Lead history">
-        {b.leads.length === 0 ? <Empty>No leads.</Empty> : <Card>{b.leads.map((l) => <Row key={l.id} href={`/admin/leads/${l.id}`} title={sourceLabel(l.source)} sub={fmtDateTime(l.created_at)} right={<Badge>{l.stage.replace('_', ' ')}</Badge>} />)}</Card>}
+        {b.leads.length === 0 ? <Empty>No leads.</Empty> : <Card>{b.leads.map((l) => <Row key={l.id} href={`/admin/leads/${l.id}`} title={sourceLabel(l.source)} sub={fmtDateTime(l.created_at)} right={<Badge>{l.stage.replace(/_/g, ' ')}</Badge>} />)}</Card>}
       </Section>
 
       <Section title="Notes"><NoteList notes={b.notes} /><div className="mt-3"><NoteForm entityType="customer" entityId={c.id} path={`/admin/customers/${c.id}`} /></div></Section>

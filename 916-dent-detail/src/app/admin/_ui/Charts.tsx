@@ -15,7 +15,7 @@ function DataTable({ head, rows }: { head: string[]; rows: string[][] }) {
   return (
     <details className="mt-2">
       <summary className="flex min-h-11 cursor-pointer items-center text-sm text-gold-light">View as table</summary>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Chart data table">
         <table className="adm-table">
           <thead><tr>{head.map((h, i) => <th key={h} className={i > 0 ? 'num' : ''}>{h}</th>)}</tr></thead>
           <tbody>{rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} className={j > 0 ? 'num' : ''}>{c}</td>)}</tr>)}</tbody>

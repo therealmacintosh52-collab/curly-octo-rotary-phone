@@ -62,7 +62,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                     leading={<span aria-hidden="true" className="h-10 w-1.5 shrink-0 rounded-full" style={{ background: techs.find((t) => t.id === b.tech_id)?.color ?? '#8c8f96' }} />}
                     title={`${fmtTime(b.starts_at)} · ${customers.get(b.customer_id ?? '')?.name ?? 'Customer'}`}
                     sub={`${b.services.map((s) => serviceById(s)?.plain ?? s).join(' + ')} · ${vehicleLabel(vehicles.get(b.vehicle_id ?? '')) || b.city || ''} · ${techName(b.tech_id).replace('[OWNER] ', '')}`}
-                    right={<Badge tone={b.status === 'completed' ? 'green' : ['cancelled', 'no_show', 'expired'].includes(b.status) ? 'red' : b.status === 'pending_deposit' ? 'neutral' : 'gold'}>{b.status.replace('_', ' ')}</Badge>} />
+                    right={<Badge tone={b.status === 'completed' ? 'green' : ['cancelled', 'no_show', 'expired'].includes(b.status) ? 'red' : b.status === 'pending_deposit' ? 'neutral' : 'gold'}>{b.status.replace(/_/g, ' ')}</Badge>} />
                 ))}
               </Card>
             )}

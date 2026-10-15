@@ -36,7 +36,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const banner = sp.created ? 'Booked.' : sp.moved ? 'Rescheduled.' : sp.cancelled ? 'Cancelled.' : '';
   return (
     <>
-      <PageHeader title={b.services.map((s) => serviceById(s)?.plain ?? s).join(' + ')} eyebrow={`Booking · ${b.status.replace('_', ' ')}`} back={{ href: '/admin/schedule', label: 'Schedule' }} />
+      <PageHeader title={b.services.map((s) => serviceById(s)?.plain ?? s).join(' + ')} eyebrow={`Booking · ${b.status.replace(/_/g, ' ')}`} back={{ href: '/admin/schedule', label: 'Schedule' }} />
       {banner && <Section><p role="status" className="rounded-xl border border-[#2f6b49] bg-[#0f2017] px-3 py-2 text-sm text-[#a6e8c0]">{banner}</p></Section>}
       <Section>
         <Card>

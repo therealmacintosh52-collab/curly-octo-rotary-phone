@@ -30,7 +30,7 @@ export default async function AdminHome() {
       {alerts.length > 0 && <Section title="Needs attention"><Card>{alerts.map((a) => <Row key={a.text} href={a.href} title={a.text} />)}</Card></Section>}
       <Section title="Today" action={<Link className="text-sm text-gold-light underline underline-offset-4" href="/admin/today">Tech view</Link>}>
         {h.todays.length === 0 ? <Empty>Nothing booked today.</Empty> : (
-          <Card>{h.todays.map((b) => <Row key={b.id} href={`/admin/bookings/${b.id}`} title={`${fmtTime(b.starts_at)} · ${h.customers.get(b.customer_id ?? '')?.name ?? 'Customer'}`} sub={b.services.map((x) => serviceById(x)?.plain ?? x).join(' + ')} right={<Badge tone={b.status === 'completed' ? 'green' : 'gold'}>{b.status.replace('_', ' ')}</Badge>} />)}</Card>
+          <Card>{h.todays.map((b) => <Row key={b.id} href={`/admin/bookings/${b.id}`} title={`${fmtTime(b.starts_at)} · ${h.customers.get(b.customer_id ?? '')?.name ?? 'Customer'}`} sub={b.services.map((x) => serviceById(x)?.plain ?? x).join(' + ')} right={<Badge tone={b.status === 'completed' ? 'green' : 'gold'}>{b.status.replace(/_/g, ' ')}</Badge>} />)}</Card>
         )}
       </Section>
       <Section title="New leads" action={<Link className="text-sm text-gold-light underline underline-offset-4" href="/admin/pipeline">All</Link>}>

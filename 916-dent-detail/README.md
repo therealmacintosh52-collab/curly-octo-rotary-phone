@@ -4,7 +4,7 @@ Mobile paintless dent repair + detailing site for Sacramento. Next.js 16 (App Ro
 Tailwind v4, GSAP + ScrollTrigger + Lenis. Owner spec: [`SPEC.md`](SPEC.md). Assumptions: [`DECISIONS.md`](DECISIONS.md).
 Open items: [`TODO.md`](TODO.md).
 
-**Status:** Phase 1 (scroll-scrub hero + marketing site) and Phase 6 (SEO + local) built locally. Not deployed. Nothing is live.
+**Status:** Phase 1 (scroll-scrub hero + marketing site), Phase 2 (booking), Phase 3 (CRM + /admin) and Phase 6 (SEO + local) built locally. Not deployed. Nothing is live.
 
 ## Run it
 
@@ -178,3 +178,33 @@ Both voice routes validate `X-Twilio-Signature` the same way. With Supabase live
 ### Tests
 `npx vitest run tests/bot tests/unit/concierge` (offline, mock policy). `tests/bot/scenarios.test.ts`: 15 scenarios, each with its expected behaviours written down. `tests/bot/adversarial.test.ts`: 13 cases where the mock model misbehaves and the server blocks it.
 Live model: `BOT_LIVE=1 ANTHROPIC_API_KEY=... npx vitest run tests/bot/scenarios.test.ts` (tolerant assertions; costs a few cents). Browser flow: `node scripts/concierge-flow.mjs http://localhost:3000` (Playwright, 390x844, axe, screenshots in `.shots/concierge/`).
+
+## Phase 3: CRM + /admin (phone-first)
+
+Open `/admin` (noindex, PWA-installable at scope `/admin/`). In mock mode with no keys the login page offers **DEMO** users (owner, two techs);
+in a production build set `ADMIN_DEMO_LOGIN=1` to keep that demo login (it never works when Supabase is configured).
+
+```bash
+npm run dev                    # http://localhost:3000/admin
+ADMIN_DEMO_LOGIN=1 npm start   # production build demo
+node scripts/admin-flow.mjs http://localhost:3000 .shots/admin   # Playwright 390x844: login -> lead -> quote -> booking -> tech day -> finish -> invoice -> report (+axe, role checks)
+```
+
+| Area | Where |
+|---|---|
+| Auth, roles, session | `src/lib/auth/*`, `src/proxy.ts`, `/admin/login`, `/api/admin/auth/*` |
+| CRM: customers (search, merge duplicates), vehicles, leads, quotes, invoices, payments, notes, timeline | `/admin/customers`, `/vehicles`, `/leads`, `/quotes`, `/invoices`; logic in `src/lib/admin/{customers,records,invoice,payments}.ts` |
+| Pipeline (New lead, Quoted, Booked, In progress, Done, Reviewed), source + UTM, quick add | `/admin/pipeline`, `/admin/leads/[id]`, `src/lib/admin/pipeline.ts` |
+| Schedule day/week, manual booking, reschedule/cancel, blocks, blackouts, weather, durations/buffers | `/admin/schedule`, `/schedule/new`, `/schedule/settings`, `/admin/bookings/[id]`, `src/lib/admin/{schedule,settings}.ts` |
+| Tech view: route, navigate/call/text, on my way, start/finish, photos, add-ons, payment, signature, offline | `/admin/today`, `/admin/jobs/[id]`, `/api/admin/tech/*`, `src/lib/admin/jobs.ts`, `src/app/admin/_ui/job/*` |
+| Memberships (Stripe subscriptions) | `/admin/memberships`, `src/lib/memberships`, `src/lib/stripe/subscriptions.ts` |
+| Referrals | `/admin/referrals`, `src/lib/referrals`, `POST /api/referral/{validate,apply}` |
+| Reports + CSV + ad spend | `/admin/reports`, `src/lib/reports/*`, `/api/admin/reports/csv` |
+| Customer invoice page | `/invoice/[token]` (noindex, signed link) |
+
+Referral hook for the booking UI (one line, no BookingFlow edit needed): `/book?ref=CODE` already flows through `attribution.ref`; for a typed code call
+`fetch('/api/referral/validate', {method:'POST', body: JSON.stringify({code, phone, email})})` to show the message, and after booking
+`fetch('/api/referral/apply', {method:'POST', body: JSON.stringify({code, token})})`. The credit appears on the invoice.
+
+Access model: the server uses the service role after checking the signed session; RLS is defence in depth (`tests/rls/rls-intent.md`, `tests/unit/rls-intent.test.ts`; SQL itself was not run).
+New env keys: `ADMIN_SESSION_SECRET`, `ADMIN_DEMO_LOGIN`, `STRIPE_WEBHOOK_SECRET_ADMIN`, `STRIPE_TERMINAL_LOCATION_ID` (see `.env.example`). Decisions: `DECISIONS.md` P3-001..017.

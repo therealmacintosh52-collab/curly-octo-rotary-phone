@@ -60,7 +60,7 @@ export default async function LeadPage({ params, searchParams }: { params: Promi
 
       <Section title="Where it came from">
         <Card>
-          <KV items={[['Source', <span key="s"><Badge tone="gold">{sourceLabel(lead.source)}</Badge>{lead.source_overridden && <span className="ml-2 text-xs text-[#a9acb3]">set by hand (auto: {sourceLabel(lead.source_auto)})</span>}</span>], ['Created', fmtDateTime(lead.created_at)], ...(lead.area_status ? [['Area', lead.area_status.replace('_', ' ')] as [string, string]] : [])]} />
+          <KV items={[['Source', <span key="s"><Badge tone="gold">{sourceLabel(lead.source)}</Badge>{lead.source_overridden && <span className="ml-2 text-xs text-[#a9acb3]">set by hand (auto: {sourceLabel(lead.source_auto)})</span>}</span>], ['Created', fmtDateTime(lead.created_at)], ...(lead.area_status ? [['Area', lead.area_status.replace(/_/g, ' ')] as [string, string]] : [])]} />
           {utm.length > 0 && <KV items={utm} />}
           <div className="border-t border-line px-4 py-3">
             <ActionForm action={overrideSourceAction} submit="Update source" className="flex items-end gap-2" submitClass="adm-btn adm-btn-line">

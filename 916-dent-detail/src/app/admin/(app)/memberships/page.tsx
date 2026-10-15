@@ -38,7 +38,7 @@ export default async function MembershipsPage({ searchParams }: { searchParams: 
             <Card key={m.id} className="mb-3"><div className="space-y-3 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div><Link href={`/admin/customers/${m.customer_id}`} className="font-semibold underline underline-offset-4">{c?.name ?? 'Customer'}</Link><p className="text-sm text-[#a9acb3]">{m.tier} · since {fmtDate(m.started_at)}{m.renews_at ? ` · renews ${fmtDate(m.renews_at)}` : ''}</p></div>
-                <span className="flex flex-col items-end gap-1"><Badge tone={m.status === 'active' ? 'green' : m.status === 'cancelled' ? 'neutral' : 'red'}>{m.status.replace('_', ' ')}</Badge>{m.stripe_subscription_id?.startsWith('sub_mock_') && <Badge>demo</Badge>}</span>
+                <span className="flex flex-col items-end gap-1"><Badge tone={m.status === 'active' ? 'green' : m.status === 'cancelled' ? 'neutral' : 'red'}>{m.status.replace(/_/g, ' ')}</Badge>{m.stripe_subscription_id?.startsWith('sub_mock_') && <Badge>demo</Badge>}</span>
               </div>
               <p className="text-sm"><strong data-testid={`credits-${m.id}`}>{bal}</strong> visit credit{bal === 1 ? '' : 's'} left</p>
               {m.status !== 'cancelled' && (

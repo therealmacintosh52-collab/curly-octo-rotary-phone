@@ -65,7 +65,7 @@ export function buildTimeline(b: Pick<CustomerBundle, 'leads' | 'quotes' | 'book
   for (const l of b.leads) out.push({ at: l.created_at, kind: 'lead', title: `Lead from ${sourceLabel(l.source)}`, detail: l.notes?.split('\n')[0]?.slice(0, 160), href: `/admin/leads/${l.id}` });
   for (const q of b.quotes) out.push({ at: q.created_at, kind: 'quote', title: `Quote ${q.low != null && q.high != null ? `${money(q.low)}${q.high !== q.low ? ` – ${money(q.high)}` : ''}` : '(needs review)'}`, detail: svc(q.services), href: `/admin/quotes/${q.id}` });
   for (const k of b.bookings) {
-    out.push({ at: k.created_at, kind: 'booking', title: `Booking ${k.status.replace('_', ' ')}`, detail: `${svc(k.services)} · ${new Date(k.starts_at).toISOString().slice(0, 10)}`, href: `/admin/bookings/${k.id}` });
+    out.push({ at: k.created_at, kind: 'booking', title: `Booking ${k.status.replace(/_/g, ' ')}`, detail: `${svc(k.services)} · ${new Date(k.starts_at).toISOString().slice(0, 10)}`, href: `/admin/bookings/${k.id}` });
     if (k.cancelled_at) out.push({ at: k.cancelled_at, kind: 'booking', title: 'Booking cancelled', detail: k.cancel_reason ?? undefined, href: `/admin/bookings/${k.id}` });
   }
   for (const j of b.jobs) {

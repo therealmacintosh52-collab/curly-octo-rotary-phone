@@ -40,7 +40,7 @@
 
 ## Remaining phases (SPEC.md)
 - [x] Phase 2: booking engine (/book): services → vehicle → photos → ZIP/travel fee from 95624 → availability → contact → Stripe deposit → confirmation; AI photo quote range; SMS/email automations. Built locally in mock mode; see the Phase 2 section below
-- [ ] Phase 3: CRM + /admin (Supabase, RLS), pipeline, tech view, memberships via Stripe, referrals, reports
+- [x] Phase 3: CRM + /admin (Supabase, RLS), pipeline, tech view, memberships via Stripe, referrals, reports. Built locally in mock mode; see the Phase 3 section below
 - [x] Phase 4: 916 Concierge assistant (site chat + Twilio SMS), tools, guardrails, missed-call text-back (built and tested in mock mode; live model behaviour NOT verified, see below)
 - [ ] Phase 5: dealer portal (/dealers accounts, bulk VIN submission, statements, net terms, leave-behind PDF)
 - [x] Phase 6: SEO + local (9 service pages, 14 city pages, JSON-LD, sitemap/robots, MDX blog, tracking). Built locally; see the Phase 6 section below for owner items
@@ -113,3 +113,17 @@ Everything runs with zero keys. The items below make it real; the first one matt
 - [ ] Enable server-side `fallbacks` for model refusals once you have live access (currently a refusal hands the chat to a human).
 - [ ] Instagram / Facebook DMs: contract and stub in `src/lib/concierge/adapters/meta.ts`; needs a Meta app + webhook route.
 - [ ] Owner decision: owner text alerts include the customer's phone and a 240-char excerpt of what they said. Confirm that is acceptable.
+
+## Phase 3 (CRM + /admin): [OWNER] items and follow-ups
+Everything runs with zero keys (DEMO login on mock data). To make it real:
+- [ ] Run `supabase/migrations/0002_admin.sql` after 0001 (never executed against Postgres by the build agent; review it, then run the SQL checks in `tests/rls/rls-intent.md`)
+- [ ] Owner login: set `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, URL, `ADMIN_SESSION_SECRET`, and `ADMIN_EMAILS` (first sign-in by that email creates the owner profile). Techs: create the Supabase user, a `techs` row, and a `profiles` row with role `tech` and `tech_id`. Supabase Auth: add `<site>/admin/auth/callback` to the redirect URLs
+- [ ] Never set `ADMIN_DEMO_LOGIN=1` on the real site (it is ignored when Supabase is configured, but keep it unset)
+- [ ] Membership prices (`memberships[].priceMonthly`), visits per month and rollover (`src/lib/memberships/index.ts`), what a member visit costs on the invoice
+- [ ] `referralCredit` amount (config/pricing.ts) and whether the new-customer discount should be the same as the referrer's reward
+- [ ] Stripe: second webhook endpoint `/api/admin/stripe/webhook` with the 5 events listed in `.env.example`; enable the Billing Portal in the Stripe dashboard; test pay links and a subscription in test mode
+- [ ] Stripe Terminal: needs hardware + `STRIPE_TERMINAL_LOCATION_ID`; the reader screen is NOT built (only the token and card_present intent routes)
+- [ ] Phase 4: wrap the chat launcher in `PublicOnly` (root layout) so it does not render on /admin; `await primeSettings()` before `computeDuration` in `concierge/tools.ts`
+- [ ] Real-device checks: iPhone Safari/Android Chrome camera capture, tap-to-navigate, Add to Home Screen, signature pad with a finger, offline outbox in a garage
+- [ ] Privacy: job photos with `marketing_consent` are only a flag; nothing publishes them. Decide the consent wording the techs say aloud
+- [ ] Reviews: "Reviewed" is set by hand in the pipeline (no Google API); reviews/week counts those

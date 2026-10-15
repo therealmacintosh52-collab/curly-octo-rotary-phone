@@ -214,7 +214,7 @@ export async function finishJob(jobId: string, actor: string, o: { summary?: str
   if (booking.status === 'completed' && existing) {
     return { invoice: existing, math: computeInvoice(parseLines(existing.line_items), existing.deposit_applied, await db.payments.list({ where: { invoice_id: existing.id } })), replay: true, invoiceUrl: invoiceLink(booking.id, now) };
   }
-  if (!['confirmed', 'on_the_way', 'in_progress'].includes(booking.status)) throw new HttpError(409, 'bad_state', `A ${booking.status.replace('_', ' ')} booking cannot be finished.`);
+  if (!['confirmed', 'on_the_way', 'in_progress'].includes(booking.status)) throw new HttpError(409, 'bad_state', `A ${booking.status.replace(/_/g, ' ')} booking cannot be finished.`);
   const base = parseLines(job.line_items).filter((l) => !isReferralLine(l));
   if (subtotalOf(base) <= 0) throw new HttpError(409, 'no_price', 'Add the final price before finishing (dent work has no fixed price until you set it).');
 
