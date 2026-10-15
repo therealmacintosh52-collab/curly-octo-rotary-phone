@@ -98,7 +98,7 @@ export const bookingConfig = {
     6: [{ start: 8 * 60, end: 15 * 60 }],
   } as Record<number, { start: number; end: number }[]>,
   photos: { minForDents: 2, max: 6, maxEdgePx: 1600, jpegQuality: 0.82, maxBytes: 3_000_000 },
-  quote: { model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5', maxTokens: 1200 },
+  quote: { model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5', maxTokens: 4000 },
 };
 
 /** Deposit and change policy. Hours are measured from "now" to the appointment start. */
