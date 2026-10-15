@@ -6,6 +6,7 @@ import { site } from '@/config/site';
 import { envScript } from '@/lib/env-script';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { PublicOnly } from '@/components/PublicOnly';
 import { MobileCtaBar } from '@/components/MobileCtaBar';
 import { SmoothScroll } from '@/components/SmoothScroll';
 import { BusinessJsonLd } from '@/components/JsonLd';
@@ -55,19 +56,21 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: envScript }} />
       </head>
       <body>
-        <a href="#main" className="skip-link">Skip to content</a>
-        <Header />
+        <PublicOnly><a href="#main" className="skip-link">Skip to content</a></PublicOnly>
+        <PublicOnly><Header /></PublicOnly>
         <main id="main" tabIndex={-1} className="outline-none">
           {children}
         </main>
-        <Footer />
-        <MobileCtaBar />
-        <SmoothScroll />
-        <BusinessJsonLd />
-        <AnalyticsRoot />
-        <ConsentBanner />
+        <PublicOnly>
+          <Footer />
+          <MobileCtaBar />
+          <SmoothScroll />
+          <BusinessJsonLd />
+          <AnalyticsRoot />
+          <ConsentBanner />
+        </PublicOnly>
         {/* Cookieless; only meaningful on Vercel, so it is off elsewhere (a missing /_vercel script would 404) */}
-        {(process.env.VERCEL === '1' || process.env.NEXT_PUBLIC_VERCEL_ANALYTICS === '1') && <Analytics />}
+        {(process.env.VERCEL === '1' || process.env.NEXT_PUBLIC_VERCEL_ANALYTICS === '1') && <PublicOnly><Analytics /></PublicOnly>}
       </body>
     </html>
   );
