@@ -26,6 +26,13 @@ class SbTable<T extends { id: string }> implements Table<T> {
     if (!data) throw new NotFoundError(this.name);
     return data as T;
   }
+  async updateIf(id: string, where: Partial<{ [K in keyof T]: T[K] | null }>, patch: Partial<Omit<T, 'id' | 'created_at'>>) {
+    let q = this.sb.from(this.name).update(patch as never).eq('id', id);
+    for (const [k, v] of Object.entries(where)) q = v === null || v === undefined ? q.is(k, null) : q.eq(k, v as never);
+    const { data, error } = await q.select('*');
+    if (error) this.fail(error);
+    return data && data.length ? (data[0] as T) : null;
+  }
   async remove(id: string) {
     const { error } = await this.sb.from(this.name).delete().eq('id', id);
     if (error) this.fail(error);
@@ -33,6 +40,12 @@ class SbTable<T extends { id: string }> implements Table<T> {
   async list(opts: ListOpts<T> = {}) {
     let q = this.sb.from(this.name).select('*');
     for (const [k, v] of Object.entries(opts.where ?? {})) q = v === null ? q.is(k, null) : q.eq(k, v as never);
+    for (const wi of opts.whereIn ?? []) q = q.in(wi.col, wi.values as never);
+    if (opts.search?.q.trim()) {
+      // PostgREST or() grammar: strip characters that would break out of the filter ( , ( ) % * \ )
+      const term = opts.search.q.trim().replace(/[,()%*\\:"']/g, ' ').replace(/\s+/g, ' ').slice(0, 60);
+      if (term) q = q.or(opts.search.cols.map((c) => `${c}.ilike.*${term}*`).join(','));
+    }
     for (const r of opts.ranges ?? []) {
       if (r.gte !== undefined) q = q.gte(r.col, r.gte);
       if (r.gt !== undefined) q = q.gt(r.col, r.gt);
@@ -40,10 +53,21 @@ class SbTable<T extends { id: string }> implements Table<T> {
       if (r.lte !== undefined) q = q.lte(r.col, r.lte);
     }
     q = q.order(opts.orderBy ?? 'created_at', { ascending: !opts.desc });
-    if (opts.limit) q = q.limit(opts.limit);
-    const { data, error } = await q;
-    if (error) this.fail(error);
-    return (data ?? []) as T[];
+    const start = opts.offset ?? 0;
+    if (opts.limit) {
+      const { data, error } = await q.range(start, start + opts.limit - 1);
+      if (error) this.fail(error);
+      return (data ?? []) as T[];
+    }
+    // No limit asked: page through PostgREST's 1000-row cap so reports never silently truncate.
+    const out: T[] = [];
+    for (let from = start; ; from += 1000) {
+      const { data, error } = await q.range(from, from + 999);
+      if (error) this.fail(error);
+      out.push(...((data ?? []) as T[]));
+      if (!data || data.length < 1000) break;
+    }
+    return out;
   }
   async first(opts: ListOpts<T> = {}) { return (await this.list({ ...opts, limit: 1 }))[0] ?? null; }
 }
@@ -54,6 +78,18 @@ export function createSupabaseRepo(url: string, serviceKey: string): Repo {
   return {
     ...tables,
     mode: 'supabase',
+    admin: {
+      async mergeCustomers(keepId, dropId) {
+        const { data, error } = await sb.rpc('merge_customers', { keep_id: keepId, drop_id: dropId });
+        if (error) throw new Error(`merge_customers: ${error.message}`);
+        return { moved: (data ?? {}) as Record<string, number> };
+      },
+      async nextInvoiceNumber(now = Date.now()) {
+        const { data, error } = await sb.rpc('next_invoice_number', { year: new Date(now).getUTCFullYear() });
+        if (error || typeof data !== 'string') throw new Error(`next_invoice_number: ${error?.message ?? 'bad result'}`);
+        return data;
+      },
+    },
     bookingsX: {
       // The bookings_no_overlap exclusion constraint is the source of truth; 23P01 maps to SlotTakenError.
       createChecked: (row: NewRow<BookingRow>) => tables.bookings.insert(row),

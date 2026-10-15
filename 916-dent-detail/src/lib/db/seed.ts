@@ -3,6 +3,9 @@ import { bookingConfig, bookingServices } from '@/config/booking';
 import type { TableMap, TableName } from './types';
 
 export const SEED_TECH_IDS = ['00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2'] as const;
+/** P3 mock-auth demo users (profiles). Live Supabase has real auth.users ids instead. */
+export const SEED_OWNER_PROFILE_ID = '00000000-0000-4000-8000-0000000000b1';
+export const SEED_TECH_PROFILE_IDS = ['00000000-0000-4000-8000-0000000000b2', '00000000-0000-4000-8000-0000000000b3'] as const;
 export const SEED_DEALER_ID = '00000000-0000-4000-8000-0000000000d1';
 
 type Seed = { [K in TableName]?: Partial<TableMap[K]>[] };
@@ -23,6 +26,11 @@ export function seedData(): Seed {
     techs: [
       { id: SEED_TECH_IDS[0], name: '[OWNER] Tech One', home_zip: bookingConfig.baseZip, color: '#C9A24A', active: true },
       { id: SEED_TECH_IDS[1], name: '[OWNER] Tech Two', home_zip: bookingConfig.baseZip, color: '#8C8F96', active: true },
+    ],
+    profiles: [
+      { id: SEED_OWNER_PROFILE_ID, role: 'owner', full_name: '[DEMO] Owner' },
+      { id: SEED_TECH_PROFILE_IDS[0], role: 'tech', full_name: '[OWNER] Tech One', tech_id: SEED_TECH_IDS[0] },
+      { id: SEED_TECH_PROFILE_IDS[1], role: 'tech', full_name: '[OWNER] Tech Two', tech_id: SEED_TECH_IDS[1] },
     ],
     tech_availability: availability,
     dealers: [{ id: SEED_DEALER_ID, name: '[DEMO] Sample Auto Group', contact_name: 'Demo Manager', net_terms_days: 30, wholesale_pricing: {}, status: 'active', created_at: now }],

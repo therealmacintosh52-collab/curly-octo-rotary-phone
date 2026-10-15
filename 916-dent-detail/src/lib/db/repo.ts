@@ -10,6 +10,12 @@ export type ListOpts<T> = {
   orderBy?: keyof T & string;
   desc?: boolean;
   limit?: number;
+  /** P3: skip this many rows (after ordering). */
+  offset?: number;
+  /** P3: row matches when ANY listed column equals one of the values. One entry per column; entries are ANDed. */
+  whereIn?: { col: keyof T & string; values: (string | number)[] }[];
+  /** P3: case-insensitive "contains" on any of the columns (OR). */
+  search?: { cols: (keyof T & string)[]; q: string };
 };
 
 export interface Table<T extends { id: string }> {
@@ -17,6 +23,11 @@ export interface Table<T extends { id: string }> {
   insert(row: NewRow<T>): Promise<T>;
   update(id: string, patch: Partial<Omit<T, 'id' | 'created_at'>>): Promise<T>;
   remove(id: string): Promise<void>;
+  /**
+   * P3: optimistic conditional update. Applies `patch` only if every `where` column still equals the given value;
+   * returns the updated row, or null when the condition no longer holds (someone else got there first).
+   */
+  updateIf(id: string, where: Partial<{ [K in keyof T]: T[K] | null }>, patch: Partial<Omit<T, 'id' | 'created_at'>>): Promise<T | null>;
   list(opts?: ListOpts<T>): Promise<T[]>;
   first(opts?: ListOpts<T>): Promise<T | null>;
 }
@@ -43,6 +54,13 @@ export type Repo = { [K in TableName]: Table<TableMap[K]> } & {
     claimDue(nowISO: string, limit: number): Promise<QueueRow[]>;
     /** Cancel pending rows for a booking (optionally only some kinds). */
     cancelPending(bookingId: string, kinds?: QueueRow['kind'][]): Promise<number>;
+  };
+  /** P3 (admin) operations that need more than one table or a database-side sequence. */
+  admin: {
+    /** Re-point every child row from `dropId` to `keepId`, fill gaps on the kept record, delete the duplicate. */
+    mergeCustomers(keepId: string, dropId: string): Promise<{ moved: Record<string, number> }>;
+    /** Next human invoice number, e.g. INV-2026-0007. Unique per call (DB sequence on Supabase). */
+    nextInvoiceNumber(now?: number): Promise<string>;
   };
   /** Mock-only helper for tests: wipe and reseed. No-op on Supabase. */
   reset?(): Promise<void>;

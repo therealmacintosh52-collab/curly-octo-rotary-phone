@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { occupiesCalendar } from '@/lib/booking/state';
 import { NotFoundError, SlotTakenError, type ListOpts, type NewRow, type Repo, type Table } from './repo';
+import { CUSTOMER_FKS, FILLABLE, invoiceNumber } from './merge';
 import { seedData } from './seed';
 import { TABLE_NAMES, type BookingRow, type QueueRow, type TableMap, type TableName } from './types';
 
@@ -44,6 +45,12 @@ class MockTable<T extends { id: string }> implements Table<T> {
     this.persist();
     return { ...next } as unknown as T;
   }
+  async updateIf(id: string, where: Partial<{ [K in keyof T]: T[K] | null }>, patch: Partial<Omit<T, 'id' | 'created_at'>>) {
+    const cur = this.map.get(id);
+    if (!cur) return null;
+    for (const [k, v] of Object.entries(where)) if ((cur[k] ?? null) !== (v ?? null)) return null;
+    return this.update(id, patch);
+  }
   async remove(id: string) { this.map.delete(id); this.persist(); }
   async list(opts: ListOpts<T> = {}) {
     let rows = [...this.map.values()];
@@ -58,8 +65,14 @@ class MockTable<T extends { id: string }> implements Table<T> {
         return cmp(rg.gte, (c) => c >= 0) && cmp(rg.gt, (c) => c > 0) && cmp(rg.lt, (c) => c < 0) && cmp(rg.lte, (c) => c <= 0);
       });
     }
+    for (const wi of opts.whereIn ?? []) rows = rows.filter((r) => wi.values.includes(r[wi.col] as string | number));
+    if (opts.search?.q.trim()) {
+      const q = opts.search.q.trim().toLowerCase();
+      rows = rows.filter((r) => opts.search!.cols.some((c) => String(r[c] ?? '').toLowerCase().includes(q)));
+    }
     const ob = opts.orderBy ?? 'created_at';
     rows.sort((a, b) => cmpVal(a[ob], b[ob]) * (opts.desc ? -1 : 1));
+    if (opts.offset) rows = rows.slice(opts.offset);
     if (opts.limit) rows = rows.slice(0, opts.limit);
     return rows.map((r) => ({ ...r }) as unknown as T);
   }
@@ -131,6 +144,42 @@ export function createMockRepo(): Repo {
         let n = 0;
         for (const r of rows) if (!kinds || kinds.includes(r.kind)) { await tables.notification_queue.update(r.id, { status: 'cancelled' }); n++; }
         return n;
+      },
+    },
+    admin: {
+      async mergeCustomers(keepId, dropId) {
+        if (keepId === dropId) throw new Error('Cannot merge a customer into itself.');
+        const keep = await tables.customers.get(keepId);
+        const drop = await tables.customers.get(dropId);
+        if (!keep || !drop) throw new NotFoundError('customer');
+        const moved: Record<string, number> = {};
+        for (const { table, col } of CUSTOMER_FKS) {
+          let n = 0;
+          for (const r of store[table].values()) if (r[col] === dropId) { r[col] = keepId; r.updated_at = new Date().toISOString(); n++; }
+          if (n) moved[table] = n;
+        }
+        let n = 0;
+        for (const r of store.notes.values()) if (r.entity_type === 'customer' && r.entity_id === dropId) { r.entity_id = keepId; n++; }
+        for (const r of store.events.values()) if (r.entity_type === 'customer' && r.entity_id === dropId) { r.entity_id = keepId; }
+        if (n) moved.notes = n;
+        const patch: Record<string, unknown> = {};
+        for (const f of FILLABLE) if (!(keep as Record<string, unknown>)[f] && (drop as Record<string, unknown>)[f]) patch[f] = (drop as Record<string, unknown>)[f];
+        // consent: keep the strongest evidence; an opt-out on either record stays an opt-out
+        if (!keep.sms_opt_in && drop.sms_opt_in) Object.assign(patch, { sms_opt_in: true, sms_opt_in_at: drop.sms_opt_in_at ?? null, sms_opt_in_text: drop.sms_opt_in_text ?? null });
+        if (!keep.sms_opt_out_at && drop.sms_opt_out_at) patch.sms_opt_out_at = drop.sms_opt_out_at;
+        if (Object.keys(patch).length) await tables.customers.update(keepId, patch);
+        await tables.customers.remove(dropId);
+        return { moved };
+      },
+      async nextInvoiceNumber(now = Date.now()) {
+        const year = new Date(now).getUTCFullYear();
+        const prefix = `INV-${year}-`;
+        let max = 0;
+        for (const r of store.invoices.values()) {
+          const num = r.number as string | null;
+          if (num?.startsWith(prefix)) max = Math.max(max, Number(num.slice(prefix.length)) || 0);
+        }
+        return invoiceNumber(year, max + 1);
       },
     },
     async reset() {

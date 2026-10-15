@@ -13,9 +13,12 @@ export type BlackoutDate = Base & { date: string; tech_id?: string | null; reaso
 export type AdminBlock = Base & { tech_id?: string | null; starts_at: string; ends_at: string; reason?: string | null };
 export type WeatherFlag = Base & { date: string; reason?: string | null };
 export type Service = Omit<Base, 'id'> & { id: string; plain_name: string; term: string; requires_photos: boolean; exterior: boolean; active: boolean; sort: number };
-export type Dealer = Base & { name: string; contact_name?: string | null; email?: string | null; phone?: string | null; address_zip?: string | null; net_terms_days: number; wholesale_pricing: J<Record<string, unknown>>; stripe_customer_id?: string | null; status: 'pending' | 'active' | 'paused' };
+export type Dealer = Base & { name: string; contact_name?: string | null; email?: string | null; phone?: string | null; address_zip?: string | null; net_terms_days: number; wholesale_pricing: J<Record<string, unknown>>; stripe_customer_id?: string | null; status: 'pending' | 'active' | 'paused' | 'rejected';
+  /** P5 (0004_dealers.sql) */
+  license_number?: string | null; lot_addresses?: string[]; ap_email?: string | null; expected_monthly_volume?: number | null;
+  net_terms_requested?: boolean; net_terms_approved?: boolean; approved_at?: string | null; approval_note?: string | null };
 export type DealerUser = Base & { dealer_id: string; profile_id: string; role: 'admin' | 'member' };
-export type Customer = Base & { name: string; email?: string | null; phone?: string | null; sms_opt_in: boolean; sms_opt_in_at?: string | null; sms_opt_in_text?: string | null; sms_opt_out_at?: string | null; dealer_id?: string | null; referral_code_used?: string | null };
+export type Customer = Base & { stripe_customer_id?: string | null; name: string; email?: string | null; phone?: string | null; sms_opt_in: boolean; sms_opt_in_at?: string | null; sms_opt_in_text?: string | null; sms_opt_out_at?: string | null; dealer_id?: string | null; referral_code_used?: string | null };
 export type Vehicle = Base & { customer_id?: string | null; dealer_id?: string | null; year?: number | null; make?: string | null; model?: string | null; size_class?: SizeClassId | null; color?: string | null; vin?: string | null };
 export type Lead = Base & {
   customer_id?: string | null; name?: string | null; phone?: string | null; email?: string | null; zip?: string | null;
@@ -23,6 +26,8 @@ export type Lead = Base & {
   utm_source?: string | null; utm_medium?: string | null; utm_campaign?: string | null; utm_term?: string | null; utm_content?: string | null;
   gclid?: string | null; fbclid?: string | null; referrer?: string | null; landing_page?: string | null; first_touch?: J | null;
   notes?: string | null; area_status?: string | null;
+  /** P3: original auto-derived source, kept when the owner overrides `source` by hand. */
+  source_auto?: LeadSource | null; source_overridden?: boolean;
 };
 export type QuoteRow = Base & {
   lead_id?: string | null; customer_id?: string | null; vehicle_id?: string | null; services: string[]; size_class?: string | null;
@@ -44,25 +49,37 @@ export type Job = Base & {
   booking_id?: string | null; customer_id?: string | null; vehicle_id?: string | null; tech_id?: string | null; dealer_id?: string | null;
   stage: 'new' | 'quoted' | 'booked' | 'in_progress' | 'done' | 'reviewed'; started_at?: string | null; finished_at?: string | null;
   final_price?: number | null; review_requested_at?: string | null; reviewed_at?: string | null; signature_path?: string | null; summary?: string | null;
+  /** P3: tech view. line_items = LineItem[] (src/lib/admin/invoice.ts). */
+  line_items?: J<unknown[]>; on_my_way_at?: string | null; eta_minutes?: number | null; payment_link_url?: string | null; payment_link_id?: string | null;
 };
 export type JobPhoto = Base & { job_id?: string | null; booking_id?: string | null; quote_id?: string | null; kind: 'quote' | 'before' | 'after' | 'other'; storage_path: string; marketing_consent: boolean; consent_at?: string | null; caption?: string | null };
 export type Invoice = Base & {
   number?: string | null; job_id?: string | null; booking_id?: string | null; customer_id?: string | null; dealer_id?: string | null;
   status: 'draft' | 'sent' | 'paid' | 'void' | 'overdue'; line_items: J<unknown[]>; subtotal: number; deposit_applied: number; total: number;
   stripe_invoice_id?: string | null; due_at?: string | null; paid_at?: string | null;
+  /** P5 (0004_dealers.sql): dealer net-terms invoices */
+  statement_id?: string | null; hosted_invoice_url?: string | null; invoice_pdf_url?: string | null; mock?: boolean; net_days?: number | null; memo?: string | null;
 };
 export type Payment = Base & {
   booking_id?: string | null; invoice_id?: string | null; customer_id?: string | null; kind: 'deposit' | 'balance' | 'refund' | 'membership' | 'dealer';
   amount: number; status: 'pending' | 'succeeded' | 'failed' | 'refunded'; method?: string | null; stripe_payment_intent_id?: string | null; mock: boolean;
+  /** P3: who recorded a manual payment (profile id) and a free-text reference (Zelle confirmation, check #). */
+  recorded_by?: string | null; reference?: string | null;
 };
 export type Note = Base & { entity_type: 'customer' | 'vehicle' | 'lead' | 'booking' | 'job' | 'dealer'; entity_id: string; author_id?: string | null; body: string };
-export type Membership = Base & { customer_id: string; tier: 'maintain' | 'protect' | 'showroom'; status: 'active' | 'past_due' | 'paused' | 'cancelled'; stripe_subscription_id?: string | null; started_at: string; renews_at?: string | null; cancelled_at?: string | null };
+export type Membership = Base & { customer_id: string; tier: 'maintain' | 'protect' | 'showroom'; status: 'active' | 'past_due' | 'paused' | 'cancelled'; stripe_subscription_id?: string | null; started_at: string; renews_at?: string | null; cancelled_at?: string | null; stripe_customer_id?: string | null; visits_per_period?: number | null };
 export type ReferralCode = Base & { code: string; customer_id?: string | null; credit_amount: number; active: boolean };
 export type ReferralCredit = Base & { referral_code_id: string; referred_customer_id?: string | null; amount: number; status: 'pending' | 'available' | 'redeemed' | 'void'; redeemed_booking_id?: string | null };
 export type Conversation = Base & { channel: 'web' | 'sms' | 'instagram' | 'facebook' | 'voice'; external_id?: string | null; customer_id?: string | null; lead_id?: string | null; status: 'open' | 'escalated' | 'closed'; cost_usd: number; summary?: string | null };
 export type Message = Base & { conversation_id: string; role: 'user' | 'assistant' | 'tool' | 'system'; content: string; meta: J<Record<string, unknown>> };
-export type DealerVehicle = Base & { dealer_id: string; vin?: string | null; stock_number?: string | null; year?: number | null; make?: string | null; model?: string | null; size_class?: SizeClassId | null; photo_paths: string[]; notes?: string | null; status: 'submitted' | 'quoted' | 'approved' | 'in_progress' | 'done' | 'invoiced'; job_id?: string | null; addon_approvals: J<unknown[]> };
-export type DealerStatement = Base & { dealer_id: string; period_start: string; period_end: string; total: number; status: 'open' | 'sent' | 'paid' | 'overdue'; stripe_invoice_id?: string | null; line_items: J<unknown[]> };
+export type DealerVehicle = Base & { dealer_id: string; vin?: string | null; stock_number?: string | null; year?: number | null; make?: string | null; model?: string | null; size_class?: SizeClassId | null; photo_paths: string[]; notes?: string | null; status: 'submitted' | 'quoted' | 'approved' | 'scheduled' | 'in_progress' | 'done' | 'invoiced' | 'cancelled'; job_id?: string | null; addon_approvals: J<unknown[]>;
+  /** P5 (0004_dealers.sql). services = {id, panels?}[]; addon_approvals holds AddonProposal[] (src/lib/dealers/addons.ts) */
+  services?: J<unknown[]>; panels?: number | null; color?: string | null; lot_address?: string | null; batch_id?: string | null;
+  price?: number | null; price_source?: 'rate_card' | 'owner' | null; scheduled_at?: string | null; done_at?: string | null;
+  statement_id?: string | null; invoice_id?: string | null };
+export type DealerStatement = Base & { dealer_id: string; period_start: string; period_end: string; total: number; status: 'open' | 'sent' | 'paid' | 'overdue' | 'void'; stripe_invoice_id?: string | null; line_items: J<unknown[]>;
+  /** P5 (0004_dealers.sql) */
+  invoice_id?: string | null; vehicle_count?: number; unpriced_count?: number };
 export type EventRow = Base & { type: string; entity_type?: string | null; entity_id?: string | null; actor?: string | null; data: J<Record<string, unknown>> };
 export type NotificationKind = 'confirmation' | 'reminder_24h' | 'reminder_2h' | 'on_the_way' | 'review_request' | 'rebook_6mo' | 'cancellation';
 export type QueueRow = Base & {
@@ -71,6 +88,10 @@ export type QueueRow = Base & {
   payload: J<Record<string, unknown>>; last_error?: string | null; sent_at?: string | null;
 };
 export type StripeEvent = Base & { type: string };
+/** P3 (0002_admin.sql). `id` is the settings key, e.g. "booking". */
+export type Setting = Omit<Base, 'id'> & { id: string; value: J<Record<string, unknown>> };
+export type AdSpend = Base & { date: string; channel: LeadSource; spend: number; notes?: string | null };
+export type MembershipVisit = Base & { membership_id: string; kind: 'grant' | 'use' | 'adjust'; visits: number; booking_id?: string | null; note?: string | null };
 
 export type TableMap = {
   profiles: Profile; techs: Tech; tech_availability: TechAvailability; blackout_dates: BlackoutDate; admin_blocks: AdminBlock;
@@ -79,11 +100,12 @@ export type TableMap = {
   notes: Note; memberships: Membership; referral_codes: ReferralCode; referral_credits: ReferralCredit; conversations: Conversation;
   messages: Message; dealer_vehicles: DealerVehicle; dealer_statements: DealerStatement; events: EventRow;
   notification_queue: QueueRow; stripe_events: StripeEvent;
+  settings: Setting; ad_spend: AdSpend; membership_visits: MembershipVisit;
 };
 export type TableName = keyof TableMap;
 export const TABLE_NAMES: TableName[] = [
   'profiles', 'techs', 'tech_availability', 'blackout_dates', 'admin_blocks', 'weather_flags', 'services', 'dealers', 'dealer_users',
   'customers', 'vehicles', 'leads', 'quotes', 'bookings', 'jobs', 'job_photos', 'invoices', 'payments', 'notes', 'memberships',
   'referral_codes', 'referral_credits', 'conversations', 'messages', 'dealer_vehicles', 'dealer_statements', 'events',
-  'notification_queue', 'stripe_events',
+  'notification_queue', 'stripe_events', 'settings', 'ad_spend', 'membership_visits',
 ];
