@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { anonClient, isTokenShape } from "@/lib/estimates/public";
 import { receiptAssets, receiptFileStem } from "@/lib/receipts/load";
 import { receiptPdf } from "@/lib/receipts/pdf";
+import { logCustomerView } from "@/lib/retail/activity";
 
 export const runtime = "nodejs";
 
@@ -10,8 +11,10 @@ export const runtime = "nodejs";
 export async function GET(req: Request, ctx: RouteContext<"/api/r/[token]/pdf">) {
   const { token } = await ctx.params;
   if (!isTokenShape(token)) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const { data: r, error } = await anonClient().rpc("receipt_by_token", { p_token: token });
+  const client = anonClient();
+  const { data: r, error } = await client.rpc("receipt_by_token", { p_token: token });
   if (error || !r) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  await logCustomerView(client, token, "pdf");
   const assets = await receiptAssets(createAdminClient(), r);
   const pdf = await receiptPdf(r, assets.logoDataUri, assets.signatureDataUri);
   const inline = new URL(req.url).searchParams.get("inline") === "1";

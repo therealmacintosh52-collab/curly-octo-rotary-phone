@@ -705,6 +705,9 @@ export type InvoiceReview = { lines: number; ro_total: number; approved_total: n
 /** One entry of a repair order's authorization record (0052). Amount only for those who price jobs. */
 /** A coworker a visit can be handed to (the picker shows names; every list shows initials) (0058). */
 export type RetailTechnician = { id: string; name: string; initials: string };
+/** The activity log (0066): one line per thing that happened, newest first. Staff are initials; the customer is "Customer". */
+export type ActivityEntry = { at: string; who: string; kind: string; text: string };
+export type ViewKind = "estimate" | "invoice" | "pdf" | "signed_copy";
 /** What a part is: new unless said otherwise (0065). */
 export type PartCondition = "new" | "used" | "rebuilt" | "reconditioned";
 export type TransferCandidate = { id: string; name: string; initials: string; role: string };
@@ -1536,6 +1539,9 @@ export type Database = {
       set_estimate_meta: { Args: { p_id: string; p: Record<string, string | null> }; Returns: undefined };
       transfer_candidates: { Args: Record<string, never>; Returns: TransferCandidate[] };
       retail_technicians: { Args: Record<string, never>; Returns: { id: string; name: string; initials: string }[] };
+      visit_activity: { Args: { p_estimate: string; p_limit?: number }; Returns: ActivityEntry[] };
+      log_visit_view: { Args: { p_estimate: string; p_what: ViewKind }; Returns: undefined };
+      log_customer_view: { Args: { p_token: string; p_what: "estimate" | "invoice" | "pdf" }; Returns: undefined };
       send_to_tech: { Args: { p_estimate: string; p_tech: string | null }; Returns: undefined };
       transfer_estimate: { Args: { p_estimate: string; p_to: string; p_status?: string; p_message?: string | null }; Returns: string };
       respond_transfer: { Args: { p_id: string; p_accept: boolean }; Returns: undefined };

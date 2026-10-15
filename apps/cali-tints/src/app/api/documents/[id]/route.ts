@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logStaffView } from "@/lib/retail/activity";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/documents/[id]"
   if (!path || !path.startsWith(`${session.company.id}/`)) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const { data, error } = await createAdminClient().storage.from("signed-docs").download(path);
   if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const name = path.split("/").slice(-2).join("-");
+  const parts = path.split("/");
+  await logStaffView(supabase, /^[0-9a-f-]{36}$/i.test(parts[1] ?? "") ? parts[1] : null, "signed_copy");
+  const name = parts.slice(-2).join("-");
   return new NextResponse(await data.arrayBuffer(), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="signed-${name}"`, "Cache-Control": "private, no-store" } });
 }

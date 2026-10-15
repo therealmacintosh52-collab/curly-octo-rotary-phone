@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { estimateAssets, estimateFileStem } from "@/lib/estimates/load";
 import { estimatePdf } from "@/lib/estimates/pdf";
+import { logStaffView } from "@/lib/retail/activity";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,7 @@ export async function GET(req: Request, ctx: RouteContext<"/api/estimates/[id]/p
   const supabase = await createClient();
   const { data: e, error } = await supabase.rpc("estimate_detail", { p_id: id });
   if (error || !e) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  await logStaffView(supabase, e.id, "pdf");
   const assets = await estimateAssets(createAdminClient(), e);
   const pdf = await estimatePdf(e, assets.logoDataUri, assets.signatureDataUri);
   const inline = new URL(req.url).searchParams.get("inline") === "1";

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CarIcon, ChevronDownIcon, UserIcon, ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateView, JobEstimate, SignedDocumentRow } from "@/lib/db/types";
+import type { ActivityEntry, EstimateView, JobEstimate, SignedDocumentRow } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateTime } from "@/lib/dates";
@@ -32,6 +32,7 @@ import { JobStageBar } from "@/components/jobs/job-stage-bar";
 import { InvoiceDocument } from "./invoice-document";
 import { SignaturePad, signatureBlob } from "./signature-pad";
 import { SignaturesCard } from "./signatures-card";
+import { ActivityCard } from "./activity-card";
 import { EstimateMeta } from "./estimate-meta";
 import { SendToTechButton } from "./send-to-tech";
 import { TransferButton } from "./transfer-dialog";
@@ -52,7 +53,7 @@ const money = (n: number | null | undefined) => (n === null || n === undefined ?
  * send it, record an approval taken in person or by phone, decline it, turn
  * it into the job. Managers and detailers see everything but the money.
  */
-export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit, supplements = [], documents = [] }: { /** The frozen signed copies of this visit (0062). */ documents?: SignedDocumentRow[]; /** The extra-work estimates written on this visit (they appear in the Signatures card). */ supplements?: JobEstimate[]; e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
+export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit, supplements = [], documents = [], activity = null }: { /** Who viewed it and who did what, with date and time (0066); only for the people who may read it. */ activity?: ActivityEntry[] | null; /** The frozen signed copies of this visit (0062). */ documents?: SignedDocumentRow[]; /** The extra-work estimates written on this visit (they appear in the Signatures card). */ supplements?: JobEstimate[]; e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { canPrices, isAdmin, demo } = useSession();
   const [pending, start] = useTransition();
@@ -462,6 +463,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             </CardContent>
           </Card>
         )}
+        {isAdmin && activity && <ActivityCard entries={activity} />}
       </div>
     </div>
   );

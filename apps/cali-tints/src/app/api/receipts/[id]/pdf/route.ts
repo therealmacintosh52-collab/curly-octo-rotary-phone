@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { receiptAssets, receiptFileStem } from "@/lib/receipts/load";
 import { receiptPdf } from "@/lib/receipts/pdf";
+import { logStaffView } from "@/lib/retail/activity";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,8 @@ export async function GET(req: Request, ctx: RouteContext<"/api/receipts/[id]/pd
   const supabase = await createClient();
   const { data: r, error } = await supabase.rpc("job_receipt", { p_job_id: id });
   if (error || !r) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { data: primary } = await supabase.rpc("job_primary_estimate", { p_job: id });
+  await logStaffView(supabase, primary, "pdf");
   const assets = await receiptAssets(createAdminClient(), r);
   const pdf = await receiptPdf(r, assets.logoDataUri, assets.signatureDataUri);
   const inline = new URL(req.url).searchParams.get("inline") === "1";

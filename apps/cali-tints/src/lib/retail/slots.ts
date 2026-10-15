@@ -77,6 +77,32 @@ export function weekStart(day: string): string {
   return addDays(day, dow === 0 ? -6 : 1 - dow);
 }
 
+/** The first day of the month of a yyyy-MM-dd key. */
+export function monthStart(day: string): string {
+  return `${day.slice(0, 7)}-01`;
+}
+
+/** The first day of the month after (n = 1) or before (n = -1) the month of a yyyy-MM-dd key. */
+export function addMonths(day: string, n: number): string {
+  const [y, m] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 10);
+}
+
+/** The weeks (Monday first) that cover the month of a yyyy-MM-dd key: 4 to 6 rows of 7 day keys. */
+export function monthGrid(day: string): string[][] {
+  const first = monthStart(day);
+  const last = addDays(addMonths(first, 1), -1);
+  const weeks: string[][] = [];
+  for (let d = weekStart(first); d <= last; d = addDays(d, 7)) weeks.push(Array.from({ length: 7 }, (_, i) => addDays(d, i)));
+  return weeks;
+}
+
+/** "October 2026" */
+export function monthLabel(day: string): string {
+  const [y, m] = day.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)));
+}
+
 /** Seconds left on a hold, never negative. */
 export function holdSecondsLeft(expiresAt: string | null | undefined, now: number = Date.now()): number {
   if (!expiresAt) return 0;

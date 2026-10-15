@@ -16,7 +16,7 @@ export default async function DevCalendarPreview(props: PageProps<"/dev/preview/
   const tz = "America/Los_Angeles";
   const today = dayKeyIn(new Date(), tz);
   const day = typeof sp.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : today;
-  const view = sp.view === "week" ? "week" : "day";
+  const view = sp.view === "week" ? "week" : sp.view === "day" ? "day" : "month";
   const catalog = retailCatalogFixture(canPrices);
   let estimate: EstimateForBooking | null = null;
   if (typeof sp.estimate === "string") {

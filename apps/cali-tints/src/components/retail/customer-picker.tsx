@@ -49,6 +49,7 @@ export function CustomerPicker({
   onChange,
   carDraft,
   onVehiclePicked,
+  showCars = true,
   recent,
 }: {
   value: CustomerPick;
@@ -56,6 +57,8 @@ export function CustomerPicker({
   /** The car as typed on the form: offered as "add as their vehicle" and filled back from a picked vehicle. */
   carDraft: VehicleDraftFromJob;
   onVehiclePicked?: (v: PickedCustomer["vehicles"][number]) => void;
+  /** Show the customer's cars here (default). The estimate shows them on its Vehicle card instead (CarSwitcher). */
+  showCars?: boolean;
   /** Recent customers (server) or fixture customers (demo) so the first tap shows faces. */
   recent: PickedCustomer[];
 }) {
@@ -151,43 +154,45 @@ export function CustomerPicker({
               </Link>
             )}
           </div>
+          {showCars && (
           <div className="mt-3 grid gap-1.5">
-            <Label className="text-caption text-subtle">Their car</Label>
-            {c.vehicles.length > 0 && (
-              <div className="flex flex-wrap gap-2" data-testid="customer-vehicles-pick">
-                {c.vehicles.map((v) => {
-                  const sel = v.id === value.vehicleId;
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      aria-pressed={sel}
-                      onClick={() => {
-                        onChange({ customer: c, vehicleId: v.id });
-                        onVehiclePicked?.(v);
-                      }}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${sel ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong"}`}
-                    >
-                      {sel && <CheckIcon className="size-3.5" />}
-                      {[v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle"}
-                      {v.color ? <span className="text-muted-foreground">· {v.color}</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {!vehicle && (
-              <div className="flex flex-wrap items-center gap-2 text-caption text-subtle">
-                {carTyped ? (
-                  <Button type="button" size="sm" variant="outline" onClick={addCarAsVehicle} loading={pending} data-testid="add-car-as-vehicle">
-                    <PlusIcon /> Add {[carDraft.year, carDraft.make, carDraft.model].filter(Boolean).join(" ") || "this car"} as their vehicle
-                  </Button>
-                ) : (
-                  <span>Type the car above, then add it as their vehicle.</span>
-                )}
-              </div>
-            )}
-          </div>
+              <Label className="text-caption text-subtle">Their car</Label>
+              {c.vehicles.length > 0 && (
+                <div className="flex flex-wrap gap-2" data-testid="customer-vehicles-pick">
+                  {c.vehicles.map((v) => {
+                    const sel = v.id === value.vehicleId;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        aria-pressed={sel}
+                        onClick={() => {
+                          onChange({ customer: c, vehicleId: v.id });
+                          onVehiclePicked?.(v);
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${sel ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong"}`}
+                      >
+                        {sel && <CheckIcon className="size-3.5" />}
+                        {[v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle"}
+                        {v.color ? <span className="text-muted-foreground">· {v.color}</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {!vehicle && (
+                <div className="flex flex-wrap items-center gap-2 text-caption text-subtle">
+                  {carTyped ? (
+                    <Button type="button" size="sm" variant="outline" onClick={addCarAsVehicle} loading={pending} data-testid="add-car-as-vehicle">
+                      <PlusIcon /> Add {[carDraft.year, carDraft.make, carDraft.model].filter(Boolean).join(" ") || "this car"} as their vehicle
+                    </Button>
+                  ) : (
+                    <span>Type the car above, then add it as their vehicle.</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <Button type="button" variant="outline" className="h-12 justify-start" onClick={() => setOpen(true)} data-testid="pick-customer">
@@ -252,4 +257,43 @@ function fromRow(r: CustomerListRow): PickedCustomer {
 /** Server rows for the picker: recent customers with their vehicles. */
 export function toPickedCustomer(c: { id: string; display_name: string | null; phone: string | null; email: string | null }, vehicles: PickedCustomer["vehicles"]): PickedCustomer {
   return { id: c.id, name: c.display_name ?? formatPhone(c.phone) ?? c.email ?? "Customer", phone: c.phone, vehicles };
+}
+
+/**
+ * The customer's cars as one-tap chips (the selected one highlighted) and "+ Another car",
+ * which empties the car fields so a second car can be typed or scanned. Shown on the
+ * estimate's Vehicle card so changing the car is one tap.
+ */
+export function CarSwitcher({ customer, vehicleId, onPick, onAnother, disabled }: { customer: PickedCustomer; vehicleId: string | null; onPick: (v: PickedCustomer["vehicles"][number]) => void; onAnother: () => void; disabled?: boolean }) {
+  const cars = customer.vehicles;
+  const needsPick = cars.length > 1 && !vehicleId;
+  return (
+    <div className="grid gap-1.5" data-testid="car-switcher">
+      <Label className="text-caption text-subtle">{cars.length > 1 ? "Which car?" : "Their car"}</Label>
+      <div className="flex flex-wrap gap-2" data-testid="customer-vehicles-pick">
+        {cars.map((v) => {
+          const sel = v.id === vehicleId;
+          return (
+            <button
+              key={v.id}
+              type="button"
+              aria-pressed={sel}
+              disabled={disabled}
+              onClick={() => onPick(v)}
+              className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-colors ${sel ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong"}`}
+              data-testid="car-chip"
+            >
+              {sel && <CheckIcon className="size-3.5" />}
+              {[v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle"}
+              {v.plate ? <span className="text-muted-foreground">· {v.plate}</span> : v.color ? <span className="text-muted-foreground">· {v.color}</span> : null}
+            </button>
+          );
+        })}
+        <button type="button" disabled={disabled} onClick={onAnother} className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border border-dashed px-3.5 py-2 text-sm transition-colors ${!vehicleId && cars.length > 0 ? "border-primary text-primary" : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground"}`} data-testid="car-another">
+          <PlusIcon className="size-3.5" /> Another car
+        </button>
+      </div>
+      {needsPick && <p className="text-caption text-warning" data-testid="car-pick-hint">This customer has {cars.length} cars: tap the one that is here, or add another.</p>}
+    </div>
+  );
 }

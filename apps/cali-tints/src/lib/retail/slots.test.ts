@@ -50,3 +50,19 @@ describe("slots helpers", () => {
     expect(durationLabel(150)).toBe("2 h 30 min");
   });
 });
+
+describe("month helpers", () => {
+  it("builds Monday-first weeks that cover the month", async () => {
+    const { addMonths, monthGrid, monthLabel, monthStart } = await import("./slots");
+    expect(monthStart("2026-10-15")).toBe("2026-10-01");
+    expect(addMonths("2026-10-15", 1)).toBe("2026-11-01");
+    expect(addMonths("2026-01-31", -1)).toBe("2025-12-01");
+    expect(monthLabel("2026-10-15")).toBe("October 2026");
+    const g = monthGrid("2026-10-15"); // Oct 1, 2026 is a Thursday
+    expect(g[0][0]).toBe("2026-09-28");
+    expect(g[0][3]).toBe("2026-10-01");
+    expect(g.at(-1)![6]).toBe("2026-11-01");
+    expect(g.every((w) => w.length === 7)).toBe(true);
+    expect(g.length).toBe(5);
+  });
+});

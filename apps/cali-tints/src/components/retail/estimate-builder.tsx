@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CustomerPicker, type CustomerPick, type PickedCustomer } from "./customer-picker";
+import { CarSwitcher, CustomerPicker, type CustomerPick, type PickedCustomer } from "./customer-picker";
 import { ServiceMenu } from "./service-menu";
 
 type LineDraft = EstimateLineDraft;
@@ -414,7 +414,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                 <CardTitle>Customer</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3">
-                <CustomerPicker value={pick} onChange={setPick} carDraft={carDraft} recent={recent} onVehiclePicked={(v) => { if (v.size_class) setSize(v.size_class); setCar(carFrom(v)); }} />
+                <CustomerPicker value={pick} onChange={setPick} showCars={false} carDraft={carDraft} recent={recent} onVehiclePicked={(v) => { if (v.size_class) setSize(v.size_class); setCar(carFrom(v)); }} />
                 {pick.customer && <p className="text-caption text-subtle">Their cars are on the right; pick one or type a new one. The estimate starts as a draft the moment you pick them.</p>}
                 <div className="grid gap-1.5">
                   <Label htmlFor="e-concern">What the customer says is wrong</Label>
@@ -428,6 +428,32 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                 <CardTitle>Vehicle</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3">
+                {pick.customer && (
+                  <CarSwitcher
+                    customer={pick.customer}
+                    vehicleId={pick.vehicleId}
+                    onPick={(v) => {
+                      setPick({ customer: pick.customer, vehicleId: v.id });
+                      if (v.size_class) setSize(v.size_class);
+                      setCar(carFrom(v));
+                      setMiles("");
+                      setPlateNote(null);
+                      setVinNote(null);
+                      checkedPlate.current = "";
+                      decodedVin.current = "";
+                    }}
+                    onAnother={() => {
+                      setPick({ customer: pick.customer, vehicleId: null });
+                      setCar({ year: "", make: "", model: "", trim: "", vin: "", plate: "", engine_size: "", engine_code: "" });
+                      setMiles("");
+                      setSize("sedan");
+                      setPlateNote(null);
+                      setVinNote(null);
+                      checkedPlate.current = "";
+                      decodedVin.current = "";
+                    }}
+                  />
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <CarInput id="c-year" label="Year" value={car.year} onChange={(v) => setCar((c) => ({ ...c, year: v.replace(/[^\d]/g, "").slice(0, 4) }))} inputMode="numeric" testId="car-year" />
                   <CarInput id="c-make" label="Make" value={car.make} onChange={(v) => setCar((c) => ({ ...c, make: v }))} testId="car-make" />

@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { z } from "zod";
+import { logCustomerView } from "@/lib/retail/activity";
 import { anonClient, isTokenShape } from "@/lib/estimates/public";
 import { errorMessage } from "@/lib/utils";
 import { createDepositLink } from "@/lib/clover/deposit";
@@ -14,7 +15,9 @@ export type PublicResult<T = undefined> = { ok: true; data: T } | { ok: false; e
 /** Counts a view and flips sent → viewed. Fire and forget from the page. */
 export async function markEstimateViewedAction(token: string): Promise<void> {
   if (!isTokenShape(token)) return;
-  await anonClient().rpc("estimate_mark_viewed", { p_token: token });
+  const client = anonClient();
+  await client.rpc("estimate_mark_viewed", { p_token: token });
+  await logCustomerView(client, token, "estimate");
 }
 
 const respondSchema = z.discriminatedUnion("decision", [

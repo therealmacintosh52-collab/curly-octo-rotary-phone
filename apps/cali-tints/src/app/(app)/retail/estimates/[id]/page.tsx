@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { appUrl } from "@/lib/retail/email";
 import { recommendableServices, withMediaUrls } from "@/lib/retail/findings-panel";
 import { loadVisit } from "@/lib/retail/visit";
+import { logStaffView } from "@/lib/retail/activity";
 import { EstimateDetail } from "@/components/retail/estimate-detail";
 import { EstimateFindingsPanel } from "@/components/retail/estimate-findings-panel";
 import { findingPricing } from "@/lib/retail/finding-quote";
@@ -42,5 +43,8 @@ export default async function EstimatePage(props: PageProps<"/retail/estimates/[
   const notes = <EstimateFindingsPanel e={e} findings={findings} services={services} canPrices={session.canPrices} isAdmin={session.isAdmin} userId={session.userId} findingsUrl={findingsUrl} pricing={catalog ? findingPricing(catalog) : null} fromLastTime={fromLastTime} estimates={jobEstimates ?? []} large side />;
   // Once approved, the same page carries the work, the payments and the invoice (the visit's hidden repair-order row, read through the estimate).
   const visit = e.job_id && e.kind !== "supplement" ? await loadVisit(supabase, session, e.job_id) : null;
-  return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} visit={visit} supplements={jobEstimates ?? []} documents={documents ?? []} />;
+  // The log: who opened it (this open is written first so it shows), and the whole history for the people who may read it.
+  await logStaffView(supabase, e.id, visit?.invoiced ? "invoice" : "estimate");
+  const { data: activity } = session.isAdmin ? await supabase.rpc("visit_activity", { p_estimate: e.id }) : { data: null };
+  return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} visit={visit} supplements={jobEstimates ?? []} documents={documents ?? []} activity={activity} />;
 }

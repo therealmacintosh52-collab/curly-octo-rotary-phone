@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { anonClient, isTokenShape } from "@/lib/estimates/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signedUrls } from "@/lib/media/signed";
+import { logCustomerView } from "@/lib/retail/activity";
 import { ReceiptView } from "@/components/retail/receipt-view";
 
 export const metadata: Metadata = { title: "Your invoice", robots: { index: false, follow: false } };
@@ -12,8 +13,10 @@ export const dynamic = "force-dynamic";
 export default async function ReceiptPage(props: PageProps<"/r/[token]">) {
   const { token } = await props.params;
   if (!isTokenShape(token)) notFound();
-  const { data, error } = await anonClient().rpc("receipt_by_token", { p_token: token });
+  const client = anonClient();
+  const { data, error } = await client.rpc("receipt_by_token", { p_token: token });
   if (error || !data) notFound();
+  await logCustomerView(client, token, "invoice");
   // The findings' photos and clips live in a private bucket: short-lived links, minted here (the page is the customer's key).
   if (data.findings?.length) {
     try {

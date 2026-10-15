@@ -1159,3 +1159,32 @@ export const retailTechniciansFixture = () => [
   { id: "u2", name: "Victor Kim", initials: "VK" },
   { id: "u3", name: "Dee One", initials: "DO" },
 ];
+
+/** The activity log of a demo visit: who opened it and who did what, newest first (initials only; amounts for pricers). */
+export function activityFixture(id: string, money: boolean): import("@/lib/db/types").ActivityEntry[] {
+  const e = (hoursAgo: number, who: string, kind: string, text: string) => ({ at: ago(0, hoursAgo), who, kind, text });
+  const approved = id === E8 || id === E7 || id === E2 || id === E6 || id === E9;
+  const out = [
+    e(0.2, "MK", "view", "Opened the estimate"),
+    e(0.6, "Customer", "view", "Opened the estimate"),
+    ...(approved
+      ? [
+          e(1.1, "VK", "photos", "3 photos or clips added"),
+          e(1.4, "MK", "estimates", "Parts: needed · Status: Needs parts ordered"),
+          e(2.2, "MK", "transfer", "Handed to VK · Checked in"),
+          e(2.3, "VK", "transfer", "Accepted the hand-off"),
+          e(2.8, "MK", "jobs", "Work order opened (RO-000044)"),
+          e(2.9, "MK", "payment", `Deposit paid: clover flex${money ? " $98.00" : ""}`),
+          e(3.0, "Customer", "estimate_authorizations", `Approved by Priya Nair (online) · signature on file${money ? " · $490.00" : ""}`),
+          e(3.1, "Customer", "estimates", "Approved"),
+        ]
+      : []),
+    e(5.0, "Customer", "view", "Opened the estimate"),
+    e(5.5, "System", "message", 'Automatic message "Estimate sent": sent'),
+    e(5.6, "MK", "estimates", "Sent to the customer"),
+    e(6.3, "MK", "lines", "Lines edited: 3 added, 0 removed, 0 changed (now: Diagnosis, Replace front pads, Brake pads)"),
+    e(7.0, "MK", "finding", "Finding added: Front pads at 2 mm (urgent)"),
+    e(7.4, "MK", "estimates", "Estimate EST-000008 written"),
+  ];
+  return out;
+}

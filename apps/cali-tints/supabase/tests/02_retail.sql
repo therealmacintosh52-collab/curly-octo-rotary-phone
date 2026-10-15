@@ -2313,3 +2313,61 @@ begin
   end if;
 end $$;
 select pg_temp.logout();
+
+-- 0066: the activity log
+create or replace function pg_temp.token_of(p_est uuid) returns text language sql security definer as $$ select token from public.estimates where id = p_est $$;
+create or replace function pg_temp.count_views(p_est uuid, p_kind text) returns bigint language sql security definer as $$ select count(*) from public.visit_views where estimate_id = p_est and viewer_kind = p_kind $$;
+create or replace function pg_temp.try_change_view() returns text language plpgsql security definer as $$
+begin
+  begin update public.visit_views set what = 'pdf'; return 'changed'; exception when sqlstate 'P0001' then null; end;
+  begin delete from public.visit_views; return 'deleted'; exception when sqlstate 'P0001' then null; end;
+  return 'frozen';
+end $$;
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'transfer_est'); l jsonb;
+begin
+  perform public.log_visit_view(v_est, 'estimate');
+  perform public.log_visit_view(v_est, 'estimate');
+  perform public.log_visit_view(v_est, 'invoice');
+  begin perform public.log_visit_view(v_est, 'nonsense'); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  l := public.visit_activity(v_est);
+  assert jsonb_typeof(l) = 'array' and jsonb_array_length(l) >= 5, '0066: the log has entries: ' || jsonb_array_length(l);
+  assert (select count(*) from jsonb_array_elements(l) x where x ->> 'kind' = 'view' and x ->> 'text' = 'Opened the estimate') = 1, '0066: two opens within ten minutes are one entry';
+  assert exists (select 1 from jsonb_array_elements(l) x where x ->> 'kind' = 'view' and x ->> 'text' = 'Opened the invoice' and (x ->> 'who') ~ '^[A-Z]{1,3}$'), '0066: an invoice view is logged with the viewer''s initials';
+  assert exists (select 1 from jsonb_array_elements(l) x where x ->> 'kind' = 'transfer' and x ->> 'text' like 'Handed to %'), '0066: hand-offs are in the log';
+  assert exists (select 1 from jsonb_array_elements(l) x where x ->> 'kind' = 'estimates' and x ->> 'text' like '%Parts:%'), '0066: field changes are in the log: ' || l::text;
+  assert not exists (select 1 from jsonb_array_elements(l) x where x ->> 'who' ~ '[a-z]' and x ->> 'who' not in ('System', 'Customer', 'Staff')), '0066: staff show as initials, never as names';
+  assert (select (x ->> 'at')::timestamptz from jsonb_array_elements(l) x limit 1) >= (select (x ->> 'at')::timestamptz from jsonb_array_elements(l) x offset 1 limit 1), '0066: newest first';
+end $$;
+select pg_temp.logout();
+-- the customer's link: any view is one entry per ten minutes
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'transfer_est'); v_token text := pg_temp.token_of((select v from r_ids where k = 'transfer_est')); l jsonb;
+begin
+  perform public.log_customer_view(v_token, 'estimate');
+  perform public.log_customer_view(v_token, 'estimate');
+  perform public.log_customer_view('short', 'estimate');
+  assert pg_temp.count_views(v_est, 'customer') = 1, '0066: a customer opening it twice is one entry';
+  l := public.visit_activity(v_est);
+  assert exists (select 1 from jsonb_array_elements(l) x where x ->> 'who' = 'Customer' and x ->> 'kind' = 'view'), '0066: the customer shows as Customer';
+  assert pg_temp.try_change_view() = 'frozen', '0066: the view log cannot be changed or deleted';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000002');
+do $$
+begin
+  begin perform public.visit_activity((select v from r_ids where k = 'transfer_est')); raise exception 'expected refused'; exception when sqlstate '42501' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare l jsonb := public.visit_activity((select v from r_ids where k = 'transfer_est'));
+begin
+  assert jsonb_array_length(l) >= 1 and not exists (select 1 from jsonb_array_elements(l) x where x ->> 'text' ~ '\$[0-9]'), '0066: a manager reads the log with no amounts: ' || l::text;
+end $$;
+select pg_temp.logout();
+select pg_temp.anon();
+select public.log_customer_view('x', 'estimate');
+select pg_temp.logout();
