@@ -1,6 +1,8 @@
 // Builds the printable dealer leave-behind: public/dealers/leave-behind.pdf (US Letter, ONE page, black and gold).
 //   npm run leave-behind                      (QR points at NEXT_PUBLIC_SITE_URL, else a localhost placeholder + warning)
 //   NEXT_PUBLIC_SITE_URL=https://example.com npm run leave-behind
+//   npm run leave-behind -- --out=/tmp/test.pdf   (write somewhere else; the committed file must be built WITHOUT a dummy URL)
+// Output is deterministic (fixed PDF dates): the committed PDF only changes when its content changes.
 // Prices come ONLY from src/config/pricing.ts (dealerWholesale). While a rate is null the sheet prints a hand-write blank.
 // Fonts: Michroma + Inter, embedded from src/fonts (the same subset woff2 files the website serves).
 // Loads TS sources with Node's built-in type stripping (they import only relative .ts paths for that reason).
@@ -18,7 +20,9 @@ const { dealerServices, resolveRate } = await import('../src/lib/dealers/catalog
 const { site } = await import('../src/config/site.ts');
 const { dealerSteps, claimsConfirmed } = await import('../src/content/dealers.ts');
 
-const outPath = path.join(root, 'public/dealers/leave-behind.pdf');
+// `--out=<file>` writes elsewhere (used to test a dummy NEXT_PUBLIC_SITE_URL without touching the committed PDF)
+const outArg = process.argv.find((a) => a.startsWith('--out='))?.slice(6);
+const outPath = outArg ? path.resolve(outArg) : path.join(root, 'public/dealers/leave-behind.pdf');
 const rawUrl = (process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/+$/, '');
 const domainSet = Boolean(rawUrl);
 const origin = domainSet ? rawUrl : 'http://localhost:3000';
@@ -38,7 +42,10 @@ const MARK_BG = rgb(0.91, 0.796, 0.478);
 
 const W = 612; const H = 792; const M = 34;
 
-const doc = await PDFDocument.create();
+// Fixed metadata dates: the same inputs give byte-identical output, so re-running the script never dirties git
+const doc = await PDFDocument.create({ updateMetadata: false });
+doc.setCreationDate(new Date(Date.UTC(2026, 0, 1)));
+doc.setModificationDate(new Date(Date.UTC(2026, 0, 1)));
 doc.registerFontkit(fontkit);
 doc.setTitle('916 Dent & Detail: dealer rate sheet and recon one-pager');
 doc.setAuthor(site.name);

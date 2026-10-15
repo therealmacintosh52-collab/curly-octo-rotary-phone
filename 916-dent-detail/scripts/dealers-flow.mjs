@@ -227,7 +227,9 @@ check(await dealer.locator('#main').getByText('Waiting for your decision').isVis
 await shot(dealer, '14-vehicle-detail');
 await axe(dealer, 'vehicle detail');
 await dealer.getByRole('button', { name: /Approve add-on/ }).click();
-await dealer.locator('#main').getByText('Approved', { exact: true }).first().waitFor();
+// Scope to the add-on list: the layout's account badge also says "Approved", which made this wait pass even when the click was lost
+// before hydration (the flaky run of P5; root cause in DECISIONS P9-003).
+await dealer.locator('section[aria-labelledby="ad-h"]').getByText('Approved', { exact: true }).waitFor();
 check(true, 'dealer approved the add-on');
 check(await dealer.locator('.dl-step[data-state="now"]').innerText().then((t) => /In progress/.test(t)), 'stepper shows In progress');
 await dealer.reload({ waitUntil: 'networkidle' });

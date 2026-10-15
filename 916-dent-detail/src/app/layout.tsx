@@ -12,7 +12,7 @@ import { SmoothScroll } from '@/components/SmoothScroll';
 import { BusinessJsonLd } from '@/components/JsonLd';
 import { Analytics } from '@vercel/analytics/next';
 import { AnalyticsRoot } from '@/components/seo/AnalyticsRoot';
-import { ConsentBanner } from '@/components/seo/ConsentBanner';
+import { ConsentBannerLazy } from '@/components/seo/ConsentBannerLazy';
 import { ConciergeLauncher } from '@/components/chat/ConciergeLauncher';
 
 export const metadata: Metadata = {
@@ -68,7 +68,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <SmoothScroll />
           <BusinessJsonLd />
           <AnalyticsRoot />
-          <ConsentBanner />
+          <ConsentBannerLazy />
           {/* 916 Concierge: button only; the chat panel is a separate chunk loaded on intent (P4) */}
           <ConciergeLauncher />
         </PublicOnly>
