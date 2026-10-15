@@ -113,7 +113,9 @@ export function BookingFlow() {
       <Stepper step={step} max={max} onGo={go} confirmed={flow.confirmed} />
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 lg:order-1">
-          {!ready ? <p className="text-steel" role="status">Loading…</p> : (
+          {/* Step 1 is server-rendered (initialFlow is deterministic) instead of a "Loading…" line that was replaced after hydration: that swap pushed the
+              content below the form down (CLS 0.097, right at the 0.1 limit). A returning visitor's saved draft is applied right after hydration. */}
+          {(
             <>
               {step === 1 && <ServiceStep {...props} />}
               {step === 2 && <VehicleStep {...props} />}
