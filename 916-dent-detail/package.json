@@ -1,0 +1,12 @@
+{
+  "name": "916-dent-detail",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "media": "node scripts/media.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}
