@@ -8,7 +8,7 @@ const V2 = '1M8GDM9AXKP042788';
 const NOW = new Date('2026-10-15T12:00:00Z');
 /** Build a check-digit-valid VIN from a 16-char stem (position 9 is computed). */
 const vinFrom = (stem: string) => { const raw = stem.slice(0, 8) + '0' + stem.slice(8, 16); return raw.slice(0, 8) + computeCheckDigit(raw) + raw.slice(9); };
-const V3 = vinFrom('1FTEW1EP' + 'KFA00001'); const V4 = vinFrom('1G1ZT53F' + 'X6F00002'); const V5 = vinFrom('5YJ3E1EA' + 'XKF00003');
+const V3 = vinFrom('1FTEW1EP' + 'KFA00001'); const V4 = vinFrom('1G1ZT53F' + 'X6F00002');
 
 describe('CSV parsing', () => {
   it('handles quotes, embedded commas/newlines, CRLF, BOM', () => {

@@ -123,7 +123,7 @@ export function validateRows(parsed: ParsedCsv['rows'], opts: { existingOpen?: M
       if (!Number.isInteger(y) || y < 1981 || y > now.getFullYear() + 1) errors.push(`Year "${cells.year}" is not a model year between 1981 and ${now.getFullYear() + 1}.`);
       else { year = y; decoded = 'csv'; }
     }
-    let make = clean(cells.make, 40); let model = clean(cells.model, 60);
+    let make = clean(cells.make, 40); const model = clean(cells.model, 60);
     if (make || model) decoded = 'csv';
     if (vc.ok && (!year || !make)) {
       const d = decodeVinOffline(vin, now);

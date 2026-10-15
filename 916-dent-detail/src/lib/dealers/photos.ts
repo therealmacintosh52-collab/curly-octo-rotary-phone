@@ -7,7 +7,8 @@ import { repo } from '@/lib/db';
 import { photosBucket, supabaseAdmin } from '@/lib/db/admin-client';
 import { isImageBytes } from '@/lib/quote';
 
-export const DEALER_PHOTO_MAX_PER_VEHICLE = 12;
+import { DEALER_PHOTO_MAX_PER_VEHICLE } from './photo-limits';
+export { DEALER_PHOTO_MAX_PER_VEHICLE };
 export const DEALER_PHOTO_RE = /^dealers\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
 const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 

@@ -8,7 +8,7 @@ import { ensureDealerCustomer } from './accounts';
 import { asProposals, dealerVisible, pendingFor } from './addons';
 import { audit, type Actor } from './audit';
 import { getDealerService, suggestPrice, type ServiceRequest } from './catalog';
-import { parseCsv, validateRows, type RowResult, type VehicleInput } from './csv';
+import { parseCsv, validateRows, type ParsedCsv, type RowResult, type VehicleInput } from './csv';
 import { notifyDealer, notifyOwner, portalUrl } from './notify';
 import { DEALER_PHOTO_MAX_PER_VEHICLE, DEALER_PHOTO_RE } from './photos';
 import { assertTransition, BOARD_COLUMNS, isOpen, jobStageFor, STATUS_LABEL, type VehicleStatus } from './status';
@@ -50,9 +50,14 @@ export async function previewBulk(dealerId: string, csvText: string, now = new D
   const parsed = parseCsv(csvText);
   const fatal = parsed.rows.length === 0 ? parsed.errors : [];
   const notes = parsed.rows.length === 0 ? [] : parsed.errors;
-  const rows = parsed.rows.length ? validateRows(parsed.rows, { existingOpen: await openVinMap(dealerId), now }) : [];
+  return { fatal, notes, ...(await previewCells(dealerId, parsed.rows, now)) };
+}
+
+/** Same validation for already-split rows (the single-vehicle form builds one row). */
+export async function previewCells(dealerId: string, cells: ParsedCsv['rows'], now = new Date()): Promise<Pick<Preview, 'rows' | 'okCount' | 'errorCount'>> {
+  const rows = cells.length ? validateRows(cells, { existingOpen: await openVinMap(dealerId), now }) : [];
   if (isSupabaseLive()) await enrichWithVpic(rows);
-  return { fatal, notes, rows, okCount: rows.filter((r) => r.ok).length, errorCount: rows.filter((r) => !r.ok).length };
+  return { rows, okCount: rows.filter((r) => r.ok).length, errorCount: rows.filter((r) => !r.ok).length };
 }
 
 /** Live mode only: fill blank year/make/model from NHTSA vPIC. Never overrides what the dealer typed. Bounded concurrency. */
