@@ -74,7 +74,7 @@ const ordinal = (t: string): number | null => {
 };
 
 // ---- parsing the conversation the way the live model would see it
-function parseTurn(messages: ModelMessage[]): { text: string; state: SessionState; done: Done[]; prevAssistant: string } {
+function parseTurn(messages: ModelMessage[]): { text: string; state: SessionState; done: Done[]; prevAssistant: string; userHistory: string; assistantHistory: string[] } {
   let startIdx = -1;
   for (let i = messages.length - 1; i >= 0; i--) { const m = messages[i]!; if (m.role === 'user' && typeof m.content === 'string') { startIdx = i; break; } }
   const start = messages[startIdx]!;
@@ -85,6 +85,9 @@ function parseTurn(messages: ModelMessage[]): { text: string; state: SessionStat
   const done: Done[] = [];
   let prevAssistant = '';
   for (let i = startIdx - 1; i >= 0; i--) { const m = messages[i]!; if (m.role === 'assistant' && typeof m.content === 'string') { prevAssistant = m.content; break; } }
+  const earlier = messages.slice(0, startIdx);
+  const userHistory = earlier.filter((m) => m.role === 'user' && typeof m.content === 'string').map((m) => ((m.content as string).match(/<customer_message>\n([\s\S]*?)\n<\/customer_message>/)?.[1] ?? '')).join('\n');
+  const assistantHistory = earlier.filter((m) => m.role === 'assistant' && typeof m.content === 'string').map((m) => m.content as string);
   const uses = new Map<string, ToolUseBlock>();
   for (const m of messages.slice(startIdx + 1)) {
     if (m.role === 'assistant' && Array.isArray(m.content)) for (const b of m.content as { type?: string; id?: string; name?: string; input?: unknown }[]) if (b.type === 'tool_use' && b.id) uses.set(b.id, { type: 'tool_use', id: b.id, name: b.name!, input: b.input });
@@ -93,7 +96,7 @@ function parseTurn(messages: ModelMessage[]): { text: string; state: SessionStat
       if (u) done.push({ name: u.name, input: (u.input ?? {}) as Record<string, unknown>, result: safeJson(b.content), isError: Boolean(b.is_error) });
     }
   }
-  return { text, state, done, prevAssistant };
+  return { text, state, done, prevAssistant, userHistory, assistantHistory };
 }
 const safeJson = (s: string): Record<string, unknown> => { try { return JSON.parse(s) as Record<string, unknown>; } catch { return { raw: s }; } };
 
@@ -105,13 +108,15 @@ const slotsText = (slots: { when: string }[]) => {
 export class MockPolicyModel implements ModelClient {
   private misbehaved = false;
   private prevAssistant = '';
+  private userHistory = '';
+  private assistantHistory: string[] = [];
   constructor(private opts: MockOptions = {}) {}
 
   async complete(req: ModelRequest): Promise<ModelResponse> {
     if (this.opts.adversary === 'slow') await new Promise((r) => setTimeout(r, this.opts.delayMs ?? 60_000));
     else if (this.opts.delayMs) await new Promise((r) => setTimeout(r, this.opts.delayMs));
-    const { text, state, done, prevAssistant } = parseTurn(req.messages);
-    this.prevAssistant = prevAssistant;
+    const { text, state, done, prevAssistant, userHistory, assistantHistory } = parseTurn(req.messages);
+    this.prevAssistant = prevAssistant; this.userHistory = userHistory; this.assistantHistory = assistantHistory;
     const d = this.opts.adversary && !this.misbehaved ? this.misbehave(req, text, state, done) : null;
     const decision = d ?? this.decide(text, state, done);
     const inChars = JSON.stringify(req.messages).length;
@@ -193,6 +198,15 @@ export class MockPolicyModel implements ModelClient {
     if (has(t, /\b(damage|hurt|harm|ruin|safe for|scratch)\b.*\b(paint|clear ?coat|finish)\b|\bpaint\b.*\b(safe|damage|ok|okay)\b|\bwill it (damage|hurt)/)) return { text: `${objectionPlaybook.paintSafety} Want a price range from a photo?` };
     if (has(t, /\b(water|power|outlet|electric|hose|tap|plug)\b/)) return { text: `${objectionPlaybook.waterPower} Want me to check times?` };
     if (has(t, /\b(discount|cheaper|deal|price match|lower the price|knock|haggle|best price|coupon|promo|50% off|half price|negotiate)\b/)) return { text: `${objectionPlaybook.haggling} Want a range from photos?` };
+
+    // the customer just verified their phone after a booking attempt was refused: retry with what they already told us
+    if (has(t, /\bverified\b/) && this.prevAssistant.includes('verify your phone')) {
+      const chosenEarlier = slots.find((s) => this.assistantHistory.some((a) => a.includes(`${s.when} works`)));
+      const c = contactFrom(this.userHistory); const veh = vehicleFrom(this.userHistory) ?? st.collected.vehicle;
+      if (chosenEarlier && c.name && c.email && c.address && veh?.make && veh.year) {
+        return { tools: [{ name: 'create_booking', input: { slot_id: chosenEarlier.slot_id, name: c.name, email: c.email, address_line: c.address, vehicle: { year: veh.year, make: veh.make, model: veh.model ?? 'unknown' } } }] };
+      }
+    }
 
     // slot selection
     const o = ordinal(t);
@@ -286,7 +300,7 @@ export class MockPolicyModel implements ModelClient {
       }
       case 'create_booking': {
         if (blocked === 'pending_deposit' || blocked === 'confirmed') return { tools: [{ name: 'send_deposit_link', input: { booking_id: String(r.booking_id) } }] };
-        if (blocked === 'verification_required') return { text: "To hold a time I need to verify your phone number first. Tap Verify phone in the chat, or text us from your own phone." };
+        if (blocked === 'verification_required') return { text: "To hold a time I need to verify your phone number first. Use the form below, or text us from your own phone." };
         if (blocked === 'slot_not_offered' || blocked === 'slot_unavailable' || blocked === 'slot_expired') {
           const k = this.known(text, st);
           if (k.services.length && k.sizeClass && k.zip && !done.some((d) => d.name === 'check_availability')) return { tools: [{ name: 'check_availability', input: { services: k.services, size_class: k.sizeClass, zip: k.zip } }] };
@@ -299,7 +313,7 @@ export class MockPolicyModel implements ModelClient {
         if (blocked === 'sent') return { text: `I've held that time for you. It's locked in once the deposit goes through: ${String(r.deposit_url)}` };
         return { text: String(r.message ?? 'I could not create the deposit link.') };
       case 'lookup_booking': {
-        if (blocked === 'verification_required') return { text: 'I can look that up once your phone is verified. Tap Verify phone in the chat, or text us from your own number.' };
+        if (blocked === 'verification_required') return { text: 'I can look that up once your phone is verified. Use the form below, or text us from your own number.' };
         if (blocked === 'not_verified_for_that_number') return { text: 'I can only look up bookings for the phone number verified in this chat. For anyone else, they would need to contact us directly.' };
         const bookings = (r.bookings as { booking_id: string; when: string; services: string[]; status: string }[] | undefined) ?? [];
         if (!bookings.length) return { text: "I don't see a booking for this number. Want to set one up?" };
@@ -307,7 +321,7 @@ export class MockPolicyModel implements ModelClient {
         const t = lc(text);
         if (has(t, /\bcancel/)) return { tools: [{ name: 'cancel_booking', input: { booking_id: b.booking_id, confirmed: false } }] };
         if (has(t, /\b(reschedule|move|change)\b/)) return { tools: [{ name: 'check_availability', input: { booking_id: b.booking_id } }] };
-        return { text: `You have ${b.services.join(' + ')} on ${b.when} (${b.status.replace('_', ' ')}).` };
+        return { text: `You have ${b.services.join(' + ')} on ${b.when} (${b.status.replace(/_/g, ' ')}).` };
       }
       case 'cancel_booking': {
         if (blocked === 'confirmation_required') return { text: `If you cancel ${String(r.when)}, ${String(r.outcome_text)}. Do you want me to go ahead and cancel?` };

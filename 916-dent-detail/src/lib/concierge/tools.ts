@@ -140,7 +140,7 @@ const verifyUi = (): UiBlock[] => (verificationAvailable() ? [{ type: 'verify_ph
 function needVerification(): ToolOutcome {
   return refuse('verification_required',
     verificationAvailable()
-      ? 'I need to verify the phone number for this chat first. The customer can do that with the verify button in the chat; or they can text us from their own phone.'
+      ? 'I need to verify the phone number for this chat first. On the website a verify-phone form appears in the chat for the customer; or they can text us from their own phone.'
       : 'Phone verification is not available right now. Offer to pass this to the owners with escalate_to_human, or have the customer text us from their own phone.',
     {}, verifyUi());
 }

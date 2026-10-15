@@ -344,7 +344,15 @@ async function run(msg: InboundMessage, opts: AgentOptions, now: number, convers
       systemPrompt: system, canary: CANARY, publicFacts: publicFacts(), siteOrigin: site.url,
     };
     const filtered = filterReply(finalText, fctx);
-    const reply = filtered.text;
+    let reply = filtered.text;
+    if (identity.channel === 'web') {
+      // the web widget renders a pay button from the tool result, so a raw signed URL in the bubble is noise (SMS keeps it)
+      const hold = ui.find((u): u is Extract<UiBlock, { type: 'booking_hold' }> => u.type === 'booking_hold');
+      if (hold && reply.includes(hold.depositUrl)) {
+        reply = reply.replace(new RegExp(`\\s*:?\\s*${hold.depositUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), '.').replace(/\.\.+/g, '.').trim();
+        if (!/below/i.test(reply)) reply = `${reply} Tap the button below to pay your deposit.`;
+      }
+    }
     if (filtered.reasons.length) {
       log('warn', 'concierge.filtered', { conversation: rec.conv.id, reasons: filtered.reasons });
       await db.events.insert({ type: 'concierge.filtered', entity_type: 'conversation', entity_id: rec.conv.id, actor: 'system', data: { reasons: filtered.reasons, replaced: filtered.replaced } }).catch(() => undefined);

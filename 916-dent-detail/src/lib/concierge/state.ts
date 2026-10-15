@@ -125,13 +125,18 @@ export async function saveState(rec: ConvRecord, patch: Partial<Conversation> = 
 }
 
 // ---- messages
+// created_at has millisecond resolution in the mock store, so two messages written in the same tick would tie;
+// a process-wide monotonic sequence number breaks ties deterministically (created_at stays the primary order).
+let seq = 0;
 export async function recordMessage(conversationId: string, role: 'user' | 'assistant' | 'tool' | 'system', content: string, meta: Record<string, unknown> = {}): Promise<void> {
-  await repo().messages.insert({ conversation_id: conversationId, role, content: content.slice(0, 4000), meta });
+  await repo().messages.insert({ conversation_id: conversationId, role, content: content.slice(0, 4000), meta: { ...meta, seq: ++seq } });
 }
+const byTime = (a: { created_at: string; meta?: Record<string, unknown> }, b: { created_at: string; meta?: Record<string, unknown> }) =>
+  Date.parse(a.created_at) - Date.parse(b.created_at) || Number(a.meta?.seq ?? 0) - Number(b.meta?.seq ?? 0);
 
 export async function recentTurns(conversationId: string, limit: number): Promise<{ role: 'user' | 'assistant'; content: string; at: string }[]> {
   const rows = await repo().messages.list({ where: { conversation_id: conversationId }, orderBy: 'created_at', desc: true, limit: limit * 3 });
-  return rows.filter((m) => m.role === 'user' || m.role === 'assistant').slice(0, limit).reverse().map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content, at: m.created_at }));
+  return rows.filter((m) => m.role === 'user' || m.role === 'assistant').sort(byTime).slice(-limit).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content, at: m.created_at }));
 }
 export async function countTurns(conversationId: string): Promise<number> {
   return (await repo().messages.list({ where: { conversation_id: conversationId } })).filter((m) => m.role === 'user' || m.role === 'assistant').length;
@@ -182,7 +187,7 @@ export async function listNeedsHuman(limit = 50): Promise<InboxItem[]> {
 
 export async function conversationTranscript(conversationId: string, limit = 200) {
   const rows = await repo().messages.list({ where: { conversation_id: conversationId }, orderBy: 'created_at', limit });
-  return rows.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content, at: m.created_at }));
+  return rows.filter((m) => m.role === 'user' || m.role === 'assistant').sort(byTime).map((m) => ({ role: m.role, content: m.content, at: m.created_at }));
 }
 
 /** Staff action (Phase 3 inbox button): hand the chat back to the bot. */
