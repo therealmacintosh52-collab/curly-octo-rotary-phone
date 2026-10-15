@@ -1,6 +1,6 @@
 // Display helpers for admin screens (pure). Money is whole dollars with cents only when present.
 import { TIMEZONE } from '@/config/booking';
-import { formatLocal } from '@/lib/availability/tz';
+import { formatLocal, localToUtc } from '@/lib/availability/tz';
 
 export const money = (n: number | null | undefined): string => {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
@@ -50,3 +50,11 @@ export const SOURCE_LABELS: Record<string, string> = {
   referral: 'Referral', dealer: 'Dealer', organic: 'Organic', direct: 'Direct', other: 'Other',
 };
 export const sourceLabel = (s: string | null | undefined): string => SOURCE_LABELS[s ?? ''] ?? (s || 'Unknown');
+
+/** <input type="datetime-local"> value ("2026-10-20T09:30", Pacific wall time) -> ISO instant, or null when invalid / nonexistent. */
+export function localInputToIso(v: string): string | null {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/.exec(v);
+  if (!m) return null;
+  const ms = localToUtc(m[1]!, Number(m[2]) * 60 + Number(m[3]), TIMEZONE);
+  return ms === null ? null : new Date(ms).toISOString();
+}

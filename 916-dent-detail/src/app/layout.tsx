@@ -13,6 +13,7 @@ import { BusinessJsonLd } from '@/components/JsonLd';
 import { Analytics } from '@vercel/analytics/next';
 import { AnalyticsRoot } from '@/components/seo/AnalyticsRoot';
 import { ConsentBanner } from '@/components/seo/ConsentBanner';
+import { ConciergeLauncher } from '@/components/chat/ConciergeLauncher';
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -68,6 +69,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <BusinessJsonLd />
           <AnalyticsRoot />
           <ConsentBanner />
+          {/* 916 Concierge: button only; the chat panel is a separate chunk loaded on intent (P4) */}
+          <ConciergeLauncher />
         </PublicOnly>
         {/* Cookieless; only meaningful on Vercel, so it is off elsewhere (a missing /_vercel script would 404) */}
         {(process.env.VERCEL === '1' || process.env.NEXT_PUBLIC_VERCEL_ANALYTICS === '1') && <PublicOnly><Analytics /></PublicOnly>}

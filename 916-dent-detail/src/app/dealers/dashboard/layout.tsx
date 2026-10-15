@@ -28,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         </div>
       </header>
       <DashNav />
-      <main id="dash-main" className="mt-8" tabIndex={-1}>{children}</main>
+      <div id="dash-main" className="mt-8">{children}</div>
     </div>
   );
 }
