@@ -12,7 +12,7 @@ import { SmoothScroll } from '@/components/SmoothScroll';
 import { BusinessJsonLd } from '@/components/JsonLd';
 import { Analytics } from '@vercel/analytics/next';
 import { AnalyticsRoot } from '@/components/seo/AnalyticsRoot';
-import { ConsentBannerLazy } from '@/components/seo/ConsentBannerLazy';
+import { ConsentBanner } from '@/components/seo/ConsentBanner';
 import { ConciergeLauncher } from '@/components/chat/ConciergeLauncher';
 
 export const metadata: Metadata = {
@@ -31,10 +31,13 @@ export const metadata: Metadata = {
   },
   twitter: { card: 'summary_large_image', images: ['/og-image.jpg'] },
   icons: {
+    // Flat vector D-mark (the 3D logo turns to mush at 16/32 px); the header, OG image and logo stay the 3D art.
     icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml', sizes: 'any' },
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
       { url: '/favicon-32.png', type: 'image/png', sizes: '32x32' },
       { url: '/favicon-16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
     ],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
   },
@@ -68,7 +71,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <SmoothScroll />
           <BusinessJsonLd />
           <AnalyticsRoot />
-          <ConsentBannerLazy />
+          <ConsentBanner />
           {/* 916 Concierge: button only; the chat panel is a separate chunk loaded on intent (P4) */}
           <ConciergeLauncher />
         </PublicOnly>

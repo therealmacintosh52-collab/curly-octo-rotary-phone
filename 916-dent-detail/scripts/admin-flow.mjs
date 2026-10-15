@@ -110,7 +110,6 @@ await shot('booking-form'); await axe('booking-form');
 await page.getByRole('button', { name: 'Book it' }).click();
 await page.waitForURL('**/admin/bookings/**', { timeout: 15000 }).catch(async () => { console.log('  alert:', await page.getByRole('alert').allInnerTexts()); await shot('booking-failed'); throw new Error('booking did not complete'); });
 check(await page.getByText('Booked.').isVisible(), 'manual booking created through the availability engine');
-const bookingUrl = page.url();
 await shot('booking'); await axe('booking');
 // the same slot is no longer offered for that tech (no double booking)
 await go(leadUrl.replace(base, ''));
@@ -219,7 +218,6 @@ await page.getByRole('link', { name: new RegExp(invNo) }).click();
 await page.waitForURL('**/admin/invoices/**');
 check(await page.getByTestId('balance').innerText().then((t) => /\$0/.test(t)), 'invoice balance $0 in admin');
 await shot('invoice'); await axe('invoice');
-const invUrl = page.url();
 const custView = await page.getByRole('link', { name: 'Customer view' }).getAttribute('href');
 await go(new URL(custView).pathname); check(await page.getByText('Paid in full. Thank you.').isVisible(), 'customer invoice page shows paid'); await shot('customer-invoice');
 const noidx = await page.locator('meta[name=robots]').getAttribute('content'); check(/noindex/.test(noidx ?? ''), 'customer invoice page is noindex');

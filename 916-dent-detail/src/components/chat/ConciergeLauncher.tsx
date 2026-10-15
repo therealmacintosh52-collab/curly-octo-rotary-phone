@@ -3,13 +3,13 @@
 // shift) and a few lines of logic. The panel (messages, streaming, photo upload, cards) is a separate chunk that is
 // downloaded when the visitor shows intent: pointer/focus/touch on the button, or the click itself. Nothing is fetched
 // on idle, so it cannot affect LCP/TBT of the page it sits on.
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { onFirstIntent } from '@/lib/motion';
 
 const preload = () => import('./ChatPanel');
-// React.lazy (not next/dynamic): next/dynamic adds a <link rel=preload> for its chunk to every page's HTML, i.e. a request before first paint
-const ChatPanel = lazy(preload);
+const ChatPanel = dynamic(preload, { ssr: false });
 
 export function ConciergeLauncher() {
   const path = usePathname();
@@ -43,7 +43,7 @@ export function ConciergeLauncher() {
         <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4z" /><path d="M8.5 10h7M8.5 13h4" /></svg>
         <span className="hidden text-sm font-semibold tracking-wide lg:inline">Ask the Concierge</span>
       </button>
-      {open && <Suspense fallback={null}><ChatPanel onClose={close} /></Suspense>}
+      {open && <ChatPanel onClose={close} />}
     </>
   );
 }

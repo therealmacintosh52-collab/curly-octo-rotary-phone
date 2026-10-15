@@ -7,13 +7,14 @@
 //
 // Steps: logo · favicons · og · video · frames · beading · manifest
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, rmSync, readdirSync, statSync, writeFileSync, existsSync, mkdtempSync, renameSync } from 'node:fs';
+import { mkdirSync, rmSync, readdirSync, statSync, writeFileSync, mkdtempSync, renameSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { keyLogo } from './lib-logo.mjs';
 import { repairFrame, repairWeight } from './lib-hero-repair.mjs';
+import { dmarkSvg, dmarkMasterSvg } from './lib-dmark.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BRAND = join(ROOT, 'brand');
@@ -49,13 +50,6 @@ async function alphaBBox(buf, W, H, win = [0, 0, W, H], thr = 40) {
     if (buf[(y * W + x) * 4 + 3] > thr) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   }
   return { left: x0, top: y0, width: x1 - x0 + 1, height: y1 - y0 + 1 };
-}
-
-async function padSquare(input, side, padFrac, bg) {
-  const inner = Math.round(side * (1 - 2 * padFrac));
-  const fg = await sharp(input).resize(inner, inner, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
-  return sharp({ create: { width: side, height: side, channels: 4, background: bg } })
-    .composite([{ input: fg, gravity: 'centre' }]).png();
 }
 
 let keyed; // cached
@@ -113,26 +107,34 @@ function buildIco(pngs) { // ICO container with embedded PNGs (Vista+ format)
   return Buffer.concat([head, dir, ...pngs.map((p) => p.buf)]);
 }
 
+// Icons come from the FLAT vector D-mark (scripts/lib-dmark.mjs), not the 3D bevel art, which turns to mush at 16/32 px.
+// The main logo, header mark and OG image stay the 3D art. SVG -> 8x raster -> Lanczos downscale keeps small sizes crisp.
 async function favicons() {
-  const dmark = join(PUB, 'brand', 'd-mark-clean.png');
-  const donly = join(PUB, 'brand', 'd-only-clean.png');
-  if (!existsSync(dmark) || !existsSync(donly)) await logo();
-  const bg = { r: 11, g: 11, b: 12, alpha: 1 };
-  const sizes = { 16: 0.02, 32: 0.04, 180: 0.12, 512: 0.16 };
-  const ico = [];
-  for (const [s, padF] of Object.entries(sizes)) {
-    const n = Number(s);
-    const buf = await (await padSquare(n <= 32 ? donly : dmark, n, padF, bg)).png({ compressionLevel: 9, palette: n >= 180, quality: 92, effort: 10 }).toBuffer();
-    const name = n === 180 ? 'apple-touch-icon.png' : `favicon-${n}.png`;
-    writeFileSync(join(PUB, name), buf);
-    if (n <= 32) ico.push({ s: n, buf });
-  }
-  // maskable 512 (safe zone = central 80%) for the web manifest
-  await (await padSquare(dmark, 512, 0.22, bg)).png({ palette: true, quality: 92, effort: 10 }).toFile(join(PUB, 'icon-maskable-512.png'));
-  // 48 for the ICO's third size
-  ico.push({ s: 48, buf: await (await padSquare(donly, 48, 0.04, bg)).toBuffer() });
-  writeFileSync(join(PUB, 'favicon.ico'), buildIco(ico));
-  report.favicons = Object.fromEntries(['favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'favicon-512.png', 'icon-maskable-512.png'].map((f) => [f, size(join(PUB, f))]));
+  const px = (o) => sharp(Buffer.from(dmarkSvg({ ...o, size: o.size * 8 })), { density: 72 }).resize(o.size, o.size, { kernel: 'lanczos3' });
+  const png = (o) => px(o).png({ compressionLevel: 9, ...(o.size >= 180 ? { palette: true, quality: 92, effort: 10 } : {}) }).toBuffer();
+  const out = {
+    'favicon-16.png': await png({ variant: 'd', size: 16, pad: 0.05 }),          // the letter only: lines are sub-pixel at 16
+    'favicon-32.png': await png({ variant: 'bold', size: 32, pad: 0.07 }),       // heavier speed lines keep the identity
+    'apple-touch-icon.png': await png({ variant: 'full', size: 180, pad: 0.14 }), // full-bleed onyx: iOS applies its own mask
+    'icon-192.png': await png({ variant: 'full', size: 192, pad: 0.12 }),
+    'favicon-512.png': await png({ variant: 'full', size: 512, pad: 0.12 }),
+    // maskable: the important part must sit inside the central circle of radius 40% (safe zone), so a wider pad
+    'icon-maskable-512.png': await png({ variant: 'full', size: 512, pad: 0.18 }),
+  };
+  for (const [name, buf] of Object.entries(out)) writeFileSync(join(PUB, name), buf);
+  // admin PWA (/admin/manifest.webmanifest) uses the same mark
+  ensure(join(PUB, 'admin'));
+  writeFileSync(join(PUB, 'admin', 'icon-192.png'), out['icon-192.png']);
+  writeFileSync(join(PUB, 'admin', 'icon-512.png'), out['favicon-512.png']);
+  writeFileSync(join(PUB, 'admin', 'icon-maskable-512.png'), out['icon-maskable-512.png']);
+  // favicon.ico: 16 (letter) + 32 and 48 (bold lines)
+  writeFileSync(join(PUB, 'favicon.ico'), buildIco([{ s: 16, buf: out['favicon-16.png'] }, { s: 32, buf: out['favicon-32.png'] }, { s: 48, buf: await png({ variant: 'bold', size: 48, pad: 0.07 }) }]));
+  // scalable favicon + the brand master (transparent gold; shows on light and dark tab strips)
+  const master = dmarkMasterSvg();
+  writeFileSync(join(PUB, 'favicon.svg'), master);
+  writeFileSync(join(BRAND, 'd-mark-flat.svg'), master);
+  const files = ['favicon.ico', 'favicon.svg', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'favicon-512.png', 'icon-maskable-512.png', 'admin/icon-192.png', 'admin/icon-512.png', 'admin/icon-maskable-512.png'];
+  report.favicons = Object.fromEntries(files.map((f) => [f, size(join(PUB, f))]));
   log('favicons', JSON.stringify(report.favicons));
 }
 

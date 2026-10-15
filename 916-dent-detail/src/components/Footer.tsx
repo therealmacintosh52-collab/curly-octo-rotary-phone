@@ -3,7 +3,7 @@ import { nav, site } from '@/config/site';
 import { allCities, allServices, cityPath, servicePath } from '@/lib/seo/content';
 import { CallLink, TextLink } from './CtaLinks';
 import { Logo } from './Logo';
-import { CookieSettingsButton } from './seo/CookieSettingsButton';
+import { CookieSettingsButton } from './seo/ConsentBanner';
 
 export function Footer() {
   return (
