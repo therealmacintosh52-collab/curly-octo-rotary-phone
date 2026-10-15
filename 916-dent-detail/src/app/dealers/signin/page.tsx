@@ -16,7 +16,7 @@ export default async function DealerSigninPage() {
     <>
       <PageIntro eyebrow="Dealer portal" title="Dealer sign in" />
       <section className="wrap pb-24">
-        <div className="card mx-auto max-w-md p-6 sm:p-9"><SigninForm demo={authMode() === 'demo'} demoEmail={DEMO_DEALER_EMAIL} /></div>
+        <div className="card mx-auto max-w-md p-6 sm:p-9">{authMode() === 'none' ? <p role="status" className="text-steel">Dealer sign-in is not switched on yet.</p> : <SigninForm demo={authMode() === 'demo'} demoEmail={DEMO_DEALER_EMAIL} />}</div>
         <p className="mx-auto mt-6 max-w-md text-center text-sm text-steel">New here? <Link href="/dealers/signup" className="text-gold-light underline underline-offset-4">Open a dealer account</Link></p>
       </section>
     </>

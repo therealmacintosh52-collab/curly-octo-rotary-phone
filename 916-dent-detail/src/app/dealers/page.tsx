@@ -14,7 +14,7 @@ import { site } from '@/config/site';
 
 export const metadata = pageMetadata({
   title: 'Dealership Recon & Dent Repair Sacramento | 916 Dent & Detail',
-  description: 'On-lot paintless dent repair and detailing for Sacramento dealerships, fleets, rental lots and body shops. Per-panel wholesale rates, one monthly statement.',
+  description: 'On-lot paintless dent repair and detailing for Sacramento dealerships, fleets, rental lots and body shops. Per-panel rates, one monthly statement.',
   path: '/dealers',
 });
 
@@ -101,7 +101,7 @@ export default function DealersPage() {
             <p className="lede mt-5">No spreadsheets by text. Everything we do to your cars is on a list you can search by stock number or VIN.</p>
             <p className="mt-8 flex flex-wrap gap-3">
               <Link href="/dealers/signup" className="btn btn-gold">Open a dealer account</Link>
-              <a href="/dealers/leave-behind" className="btn btn-outline">Printable one-pager (PDF)</a>
+              <a href="/dealers/leave-behind.pdf" className="btn btn-outline" download>Printable one-pager (PDF)</a>
             </p>
           </div>
           <ul className="grid gap-3">

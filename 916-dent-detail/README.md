@@ -208,3 +208,25 @@ Referral hook for the booking UI (one line, no BookingFlow edit needed): `/book?
 
 Access model: the server uses the service role after checking the signed session; RLS is defence in depth (`tests/rls/rls-intent.md`, `tests/unit/rls-intent.test.ts`; SQL itself was not run).
 New env keys: `ADMIN_SESSION_SECRET`, `ADMIN_DEMO_LOGIN`, `STRIPE_WEBHOOK_SECRET_ADMIN`, `STRIPE_TERMINAL_LOCATION_ID` (see `.env.example`). Decisions: `DECISIONS.md` P3-001..017.
+
+## Phase 5: dealer portal (/dealers)
+
+Landing `/dealers` (SSR, FAQPage JSON-LD, wholesale-sheet form -> lead with source `dealer`), `/dealers/signup`, `/dealers/signin`, the portal under `/dealers/dashboard/**` (overview, submit, vehicles list/board + detail, billing, invoice), owner screens under `/admin/dealers/**`, printable one-pager `/dealers/leave-behind` (PDF).
+All data goes through `repo()`; logic is in `src/lib/dealers/**` (pure parts unit-tested in `tests/unit/dealers/**`), UI in `src/components/dealers/**`, API in `src/app/api/dealers/**`, cron `src/app/api/cron/statements`, schema `supabase/migrations/0004_dealers.sql`.
+
+```bash
+npm run leave-behind                      # -> public/dealers/leave-behind.pdf (set NEXT_PUBLIC_SITE_URL first: it is the QR target)
+npx vitest run tests/unit/dealers         # VIN, CSV, status transitions, statement math, aging, add-ons, mock-Stripe invoicing, PDFs
+ADMIN_DEMO_LOGIN=1 npx next start -p 3105 # then: node scripts/dealers-flow.mjs http://localhost:3105 (Playwright, phone + desktop, axe)
+```
+
+How it works: a dealer signs up (pending) -> the owner approves on `/admin/dealers/<id>` (and picks net terms) -> the dealer submits cars singly or from a CSV (`/api/dealers/template`; VIN check digit, dedupe, per-row error report before anything is saved; each car creates a `vehicles` + `jobs` + `dealer_vehicles` row) and adds photos -> the owner schedules / starts / finishes cars, prices them and proposes add-ons -> the dealer approves or declines add-ons (emails via `lib/email`, logged in mock mode) -> `/api/cron/statements` (1st of the month) or the owner builds the monthly statement (PDF) -> the owner issues the net-terms invoice (Stripe Invoicing live, stub page in mock) and marks it paid or void. Dealers see status, before/after photos, history, balance and aging.
+
+| | Without keys | With keys |
+|---|---|---|
+| Dealer sign-in | DEMO: email only, no password (labelled) | Supabase Auth email + password, signed `dd_dealer` cookie |
+| Invoices | `in_mock_*` record + in-portal stub page | Stripe finalized `send_invoice` (+ `/api/dealers/stripe-webhook`) |
+| VIN decode | checksum + offline year/make hint | + NHTSA vPIC for year/make/model |
+| Emails | in-memory outbox + log | Resend |
+
+Prices: nothing is hardcoded. `dealerWholesale` in `src/config/pricing.ts` is all `null` ([OWNER]); the UI says "Request wholesale sheet" until a rate exists. New env keys: `DEALER_SESSION_SECRET`, `STRIPE_DEALER_WEBHOOK_SECRET` (see `.env.example`). Decisions: `DECISIONS.md` P5-001..013. Open items: `TODO.md` "Phase 5".

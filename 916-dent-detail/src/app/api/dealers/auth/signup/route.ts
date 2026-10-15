@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       await setSessionCookie(profileId, dealer.id);
       return ok({ dealerId: dealer.id, status: dealer.status }, { status: 201 });
     } catch (e) {
-      if (e instanceof AccountError || e instanceof AuthError) return fail(e instanceof AuthError && e.code === 'weak_password' ? 400 : 409, e.code, e.message);
+      if (e instanceof AccountError || e instanceof AuthError) return fail(e instanceof AuthError ? (e.code === 'weak_password' ? 400 : e.code === 'unavailable' ? 503 : 409) : 409, e.code, e.message);
       throw e;
     }
   });

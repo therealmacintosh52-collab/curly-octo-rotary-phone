@@ -9,8 +9,10 @@ import { isSupabaseLive, repo } from '@/lib/db';
 import { supabaseAdmin } from '@/lib/db/admin-client';
 import { SEED_DEALER_ID } from '@/lib/db/seed';
 
-export type AuthMode = 'demo' | 'supabase';
-export const authMode = (): AuthMode => (isSupabaseLive() ? 'supabase' : 'demo');
+export type AuthMode = 'demo' | 'supabase' | 'none';
+/** DEMO sign-in is open to anyone who knows an email, so (like the admin demo login) it is OFF in production unless explicitly enabled. */
+export const demoLoginEnabled = (): boolean => !isSupabaseLive() && (process.env.NODE_ENV !== 'production' || process.env.DEALERS_DEMO_LOGIN === '1' || process.env.ADMIN_DEMO_LOGIN === '1');
+export const authMode = (): AuthMode => (isSupabaseLive() ? 'supabase' : demoLoginEnabled() ? 'demo' : 'none');
 
 export const DEMO_DEALER_EMAIL = 'demo.dealer@example.com';
 const normEmail = (e: string) => e.trim().toLowerCase();
@@ -21,6 +23,7 @@ export class AuthError extends Error {
 
 /** Create the login for a new dealer user and return the profile id (the auth user id in live mode). */
 export async function createLogin(input: { email: string; password?: string; name: string }): Promise<string> {
+  if (authMode() === 'none') throw new AuthError('unavailable', 'Dealer sign-up is not switched on yet.');
   if (authMode() === 'demo') return randomUUID();
   const sb = supabaseAdmin();
   if (!sb) throw new AuthError('unavailable', 'Sign-up is unavailable right now.');
@@ -37,6 +40,7 @@ export async function createLogin(input: { email: string; password?: string; nam
 /** Verify credentials. Returns the auth user id (live) or the matching dealer-user profile id (demo); null = invalid. */
 export async function verifyLogin(email: string, password: string): Promise<string | null> {
   const e = normEmail(email);
+  if (authMode() === 'none') return null;
   if (authMode() === 'demo') {
     await ensureDemoLogin();
     const dealer = await repo().dealers.first({ where: { email: e } });

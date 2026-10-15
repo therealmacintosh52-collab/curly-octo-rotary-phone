@@ -231,7 +231,6 @@ await dealer.locator('#main').getByText('Approved', { exact: true }).first().wai
 check(true, 'dealer approved the add-on');
 check(await dealer.locator('.dl-step[data-state="now"]').innerText().then((t) => /In progress/.test(t)), 'stepper shows In progress');
 await dealer.reload({ waitUntil: 'networkidle' });
-console.log('  [debug] add-ons section:', (await dealer.locator('#ad-h').locator('xpath=..').innerText()).replace(/\s+/g, ' '));
 const historyText = await dealer.locator('#au-h').locator('xpath=..').innerText();
 check(/Add-on approved/.test(historyText) && /Status: In progress/.test(historyText), `audit trail lists the status change and the approval (${historyText.replace(/\s+/g, ' ').slice(0, 200)})`);
 // owner finishes car 1
@@ -247,7 +246,7 @@ await go(owner, dealerUrl.replace(base, ''));
 await owner.locator('#gs-m').fill(ymNow);
 await owner.getByRole('button', { name: 'Build statement' }).click();
 await owner.getByText(/Statement created: 2 vehicle/).waitFor();
-check(true, 'statement created for 2 priced vehicles (the third has no price, held back)');
+check(true, 'statement created for 2 priced vehicles (the third car is not finished yet)');
 await owner.reload({ waitUntil: 'load' }); await owner.waitForTimeout(600);
 owner.once('dialog', (d) => d.accept());
 await owner.getByRole('button', { name: /Issue invoice \(Net 30\)/ }).click();
@@ -291,7 +290,9 @@ const { page: dd } = await newCtx(desktop);
 await dd.goto(`${base}/dealers/signin`, { waitUntil: 'networkidle' });
 await shot(dd, '21-signin-desktop', false);
 await axe(dd, 'signin');
-await dd.getByRole('button', { name: 'Sign in as the demo dealer' }).click();
+check(await dd.getByRole('button', { name: 'Sign in as the demo dealer' }).isVisible(), 'demo sign-in is offered and labelled DEMO');
+await dd.getByLabel('Email').fill(`pat-${stamp}@e2e.example`);
+await dd.getByRole('button', { name: 'Sign in', exact: true }).click();
 await dd.waitForURL('**/dealers/dashboard');
 await shot(dd, '22-dashboard-desktop');
 await dd.goto(`${base}/dealers/dashboard/vehicles?view=board`, { waitUntil: 'networkidle' });

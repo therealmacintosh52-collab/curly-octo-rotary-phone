@@ -42,7 +42,7 @@
 - [x] Phase 2: booking engine (/book): services → vehicle → photos → ZIP/travel fee from 95624 → availability → contact → Stripe deposit → confirmation; AI photo quote range; SMS/email automations. Built locally in mock mode; see the Phase 2 section below
 - [x] Phase 3: CRM + /admin (Supabase, RLS), pipeline, tech view, memberships via Stripe, referrals, reports. Built locally in mock mode; see the Phase 3 section below
 - [x] Phase 4: 916 Concierge assistant (site chat + Twilio SMS), tools, guardrails, missed-call text-back (built and tested in mock mode; live model behaviour NOT verified, see below)
-- [ ] Phase 5: dealer portal (/dealers accounts, bulk VIN submission, statements, net terms, leave-behind PDF)
+- [x] Phase 5: dealer portal (/dealers accounts, bulk VIN submission, statements, net terms, leave-behind PDF). Built locally in mock mode; see the Phase 5 section below
 - [x] Phase 6: SEO + local (9 service pages, 14 city pages, JSON-LD, sitemap/robots, MDX blog, tracking). Built locally; see the Phase 6 section below for owner items
 - [ ] Phase 7: growth pack (/marketing markdown)
 - [ ] Phase 8: tests, Lighthouse CI, axe, bot scenarios, seed data, setup README, deploy script
@@ -127,3 +127,18 @@ Everything runs with zero keys (DEMO login on mock data). To make it real:
 - [ ] Real-device checks: iPhone Safari/Android Chrome camera capture, tap-to-navigate, Add to Home Screen, signature pad with a finger, offline outbox in a garage
 - [ ] Privacy: job photos with `marketing_consent` are only a flag; nothing publishes them. Decide the consent wording the techs say aloud
 - [ ] Reviews: "Reviewed" is set by hand in the pipeline (no Google API); reviews/week counts those
+
+## Phase 5 (dealer portal /dealers): [OWNER] items and follow-ups
+Everything runs with zero keys (DEMO dealer sign-in, mock Stripe invoices, mock emails). Items below turn it into the real thing.
+- [ ] Wholesale rates: `dealerWholesale` in `src/config/pricing.ts` (7 services, all null today; the landing page, the PDF and every dealer screen say "Request wholesale sheet" until set). Per-dealer overrides: /admin/dealers/<id> "Wholesale rates for this dealer". Use `marketing/dealers/wholesale-price-sheet-template.md` to decide them. A car with no rate and no hand-set price is held OFF the statement (never billed at $0)
+- [ ] Confirm "same-day, on your lot" and "certificate of insurance on request", then set `claimsConfirmed.sameDay` / `.coi` to true in `src/content/dealers.ts` (removes the [OWNER] markers on /dealers and on the leave-behind PDF). Do not print "insured" until the COI is real
+- [ ] Net terms: `dealerNetTerms` (15 / 30 days, default 30) in `config/pricing.ts`. The owner approves each dealer by hand on /admin/dealers/<id>; unapproved dealers are invoiced "due on receipt" (1 day in Stripe). Have counsel check the terms wording before launch
+- [ ] Apply `supabase/migrations/0004_dealers.sql` (after 0001/0002/0003) to the real Supabase project. It applies cleanly after 0001-0003 on an in-memory Postgres (PGlite with Supabase stubs; `tests/unit/dealers/migration-0004.check.mjs`) but has never run against real Supabase
+- [ ] Set `DEALER_SESSION_SECRET` (random 32+ chars; falls back to `BOOKING_TOKEN_SECRET`). Live dealer sign-in needs `NEXT_PUBLIC_SUPABASE_ANON_KEY` + service role; Supabase email/password users are created server-side (email confirmation is skipped: the owner's approval is the gate)
+- [ ] Stripe Invoicing (live): `STRIPE_SECRET_KEY`. Add `/api/dealers/stripe-webhook` as a SEPARATE webhook endpoint (events `invoice.paid`, `invoice.voided`), secret in `STRIPE_DEALER_WEBHOOK_SECRET`. Invoices are finalized with `send_invoice` but Stripe does not email them until you send them from the Stripe dashboard; our own "invoice ready" email goes to the dealer's AP address. Test in Stripe test mode first
+- [ ] Phase 3's `/api/admin/stripe/webhook` also listens to `invoice.paid`: confirm it ignores invoices whose Stripe id belongs to a dealer invoice (or unsubscribe it from that event) so a dealer payment is not handled twice
+- [ ] Cron: `vercel.json` runs `/api/cron/statements` on the 1st of the month at 14:00 UTC (needs `CRON_SECRET`). `?month=YYYY-MM` re-runs a month. It builds statements only; invoices are issued by the owner
+- [ ] `OWNER_ALERT_EMAILS` (comma list) gets "new dealer account", "add-on needs a price", "add-on approved/declined", "vehicles submitted" emails. Empty = logged only
+- [ ] Leave-behind: set `NEXT_PUBLIC_SITE_URL`, run `npm run leave-behind`, commit `public/dealers/leave-behind.pdf`. Phone/email print as hand-write blanks until `site.phone.placeholder` / `site.email.placeholder` are false. Hand-write the rates (blanks) or fill `dealerWholesale` first
+- [ ] NHTSA vPIC decode (year/make/model from VIN) only runs when Supabase is live; offline mode fills year and a conservative make hint only
+- [ ] Follow-ups: technicians cannot yet propose add-ons from the tech view (the owner proposes on /admin/dealers/<id>; `proposeAddon(..., by: 'tech')` is ready for Phase 3's tech screen); tech before/after photos appear to dealers when Phase 3 writes `job_photos` rows (kind before/after) for the dealer's job; ACH/card-on-file auto-pay is not built (Stripe hosted invoice only); robots.txt has no `/dealers/dashboard` disallow (the pages are `noindex`)

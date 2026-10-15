@@ -17,7 +17,7 @@ export default function DealerSignupPage() {
     <>
       <PageIntro eyebrow="Dealer account" title="Open a dealer account" lede="Two minutes. We review every account by hand, then you can submit cars one at a time or from a list." />
       <section className="wrap pb-24">
-        <div className="card mx-auto max-w-2xl p-6 sm:p-9"><SignupForm demo={authMode() === 'demo'} /></div>
+        <div className="card mx-auto max-w-2xl p-6 sm:p-9">{authMode() === 'none' ? <p role="status" className="text-steel">Dealer accounts are not switched on yet. Text or call us and we will set you up.</p> : <SignupForm demo={authMode() === 'demo'} />}</div>
         <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-steel">Already have an account? <Link href="/dealers/signin" className="text-gold-light underline underline-offset-4">Sign in</Link></p>
       </section>
     </>
