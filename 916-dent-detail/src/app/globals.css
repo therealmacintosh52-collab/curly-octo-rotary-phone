@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/* ---- Design tokens (Tailwind v4 CSS-first config: these generate bg-onyx, text-gold, font-display …) ---- */
+@theme {
+  --color-onyx: #0b0b0c;
+  --color-graphite: #16171a;
+  --color-graphite-2: #1d1f23;
+  --color-line: #2a2c31;
+  --color-gold: #c9a24a;
+  --color-gold-light: #e8cb7a;
+  --color-gold-deep: #8e6e2e;
+  --color-gold-mid: #b8913e;
+  --color-ivory: #f3eee3;
+  --color-steel: #8c8f96;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --radius-panel: 28px;
+}
+
+@theme inline {
+  --font-display: var(--font-michroma), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ---- Base ---- */
+@layer base {
+  html {
+    color-scheme: dark;
+    background: var(--color-onyx);
+    color: var(--color-ivory);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--color-onyx);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection { background: var(--color-gold); color: var(--color-onyx); }
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--color-gold-light);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.01em; line-height: 1.15; text-wrap: balance; }
+  p { text-wrap: pretty; }
+  img, svg, video, canvas { display: block; max-width: 100%; }
+}
+
+/* ---- Components ---- */
+@layer components {
+  .skip-link {
+    position: fixed; left: 1rem; top: -100px; z-index: 100;
+    background: var(--color-gold); color: var(--color-onyx);
+    padding: 0.75rem 1rem; border-radius: 10px; font-weight: 600;
+    transition: top 0.2s;
+  }
+  .skip-link:focus-visible { top: 1rem; outline-color: var(--color-ivory); }
+
+  .wrap { width: 100%; max-width: 1240px; margin-inline: auto; padding-inline: 1.25rem; }
+  @media (min-width: 768px) { .wrap { padding-inline: 2rem; } }
+
+  .section { padding-block: clamp(4.5rem, 10vw, 8.5rem); position: relative; }
+
+  .eyebrow {
+    font-family: var(--font-display); font-size: 0.72rem; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--color-gold);
+  }
+  .h2 { font-size: clamp(1.55rem, 3.6vw, 2.6rem); }
+  .lede { color: var(--color-steel); font-size: clamp(1rem, 1.4vw, 1.15rem); max-width: 60ch; }
+
+  /* Metallic gradient: headings only where it adds impact (hero line 3, section numbers) */
+  .text-metal {
+    background: linear-gradient(100deg, #8e6e2e 0%, #e8cb7a 48%, #b8913e 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    min-height: 48px; padding: 0.8rem 1.4rem; border-radius: 999px;
+    font-weight: 600; font-size: 0.98rem; letter-spacing: 0.01em; line-height: 1.2;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.2s var(--ease-out-quint);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-gold { background: var(--color-gold); color: var(--color-onyx); }
+  .btn-gold:hover { background: var(--color-gold-light); }
+  .btn-outline { border: 1px solid color-mix(in srgb, var(--color-ivory) 45%, transparent); color: var(--color-ivory); }
+  .btn-outline:hover { border-color: var(--color-gold-light); color: var(--color-gold-light); }
+
+  .card {
+    background: linear-gradient(180deg, var(--color-graphite) 0%, #121316 100%);
+    border: 1px solid var(--color-line); border-radius: 20px;
+  }
+  .hairline { height: 1px; background: linear-gradient(90deg, transparent, var(--color-gold-deep), transparent); }
+
+  /* [OWNER] markers: deliberately visible so placeholders cannot ship unnoticed */
+  .owner-mark {
+    display: inline-block; font: 600 0.7rem/1.3 var(--font-sans); letter-spacing: 0.04em;
+    color: #1a1406; background: #e8cb7a; border-radius: 4px; padding: 0.1rem 0.4rem; vertical-align: middle;
+  }
+}
+
+/* ---- Hero (scroll scrub). html.scrub is set by an inline head script before first paint ---- */
+@layer components {
+  .hero-track { position: relative; height: 100svh; }
+  html.scrub .hero-track { height: 350svh; } /* 100svh stage + ~250svh of scrub */
+  .hero-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+
+  html.scrub .beat-2, html.scrub .beat-3, html.scrub .hero-after { opacity: 0; transform: translateY(14px); }
+
+  html:not(.scrub) .hero-copy > * { animation: fade-up 0.9s var(--ease-out-quint) both; }
+  html:not(.scrub) .hero-copy > *:nth-child(2) { animation-delay: 0.12s; }
+  html:not(.scrub) .hero-copy > *:nth-child(3) { animation-delay: 0.24s; }
+}
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html:not(.scrub) .hero-copy > * { animation: fade-in 0.6s ease both; }
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
