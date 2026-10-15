@@ -1,6 +1,8 @@
 // Small helpers shared by route handlers: JSON responses, zod body parsing, client IP, rate limiting.
 import { NextResponse } from 'next/server';
 import { z, type ZodType } from 'zod';
+import { clientIpFrom } from '@/lib/security/client-ip';
+import { limiter } from '@/lib/security/rate-limit';
 
 export const noStore = { 'Cache-Control': 'no-store' };
 export const ok = <T,>(data: T, init: ResponseInit = {}) => NextResponse.json(data, { ...init, headers: { ...noStore, ...(init.headers ?? {}) } });
@@ -37,37 +39,11 @@ export function requireContentLength(req: Request, maxBytes: number): NextRespon
   return null;
 }
 
-export function clientIp(req: Request): string {
-  const xf = req.headers.get('x-forwarded-for');
-  return (xf?.split(',')[0] ?? req.headers.get('x-real-ip') ?? 'unknown').trim();
-}
+export function clientIp(req: Request): string { return clientIpFrom(req.headers); }
 
-// ---- rate limiting: in-memory fixed window; Upstash REST when configured (works across serverless instances)
-type Bucket = { n: number; reset: number };
-const G = globalThis as unknown as { __rl?: Map<string, Bucket> };
-
+// ---- rate limiting: see src/lib/security/rate-limit.ts (memory store; Upstash REST when configured; automatic fallback)
 export async function rateLimit(key: string, limit: number, windowSec: number): Promise<{ ok: boolean; retryAfter: number }> {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (url && token) {
-    try {
-      const k = `rl:${key}`;
-      const r = await fetch(`${url}/pipeline`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify([['INCR', k], ['EXPIRE', k, String(windowSec), 'NX']]),
-      });
-      const j = (await r.json()) as { result: number }[];
-      const n = Number(j[0]?.result ?? 0);
-      return { ok: n <= limit, retryAfter: windowSec };
-    } catch { /* fall through to memory */ }
-  }
-  const m = (G.__rl ??= new Map());
-  const now = Date.now();
-  let b = m.get(key);
-  if (!b || b.reset <= now) { b = { n: 0, reset: now + windowSec * 1000 }; m.set(key, b); }
-  b.n++;
-  if (m.size > 5000) for (const [k, v] of m) if (v.reset <= now) m.delete(k);
-  return { ok: b.n <= limit, retryAfter: Math.ceil((b.reset - now) / 1000) };
+  return limiter().hit(key, limit, windowSec);
 }
 
 export async function limited(req: Request, name: string, limit: number, windowSec: number): Promise<NextResponse | null> {
