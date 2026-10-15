@@ -42,6 +42,8 @@ export type ConvState = {
   pendingOpener?: { sendAfter: number };
   /** this conversation has been counted in the customer's memory row */
   memoryLinked?: boolean;
+  /** SMS reminder consent step (src/lib/concierge/consent.ts): asked once, answered only by an explicit REMIND ME / NO THANKS */
+  smsConsent?: { status: 'asked' | 'granted' | 'declined' | 'blocked'; askedAt: number; answeredAt?: number; wording: string };
 };
 
 export const emptyState = (): ConvState => ({ v: 1, turn: 0, photos: [], offered: [], bookingIds: [], collected: {}, strikes: 0, injectionAttempts: 0, spam: 0 });

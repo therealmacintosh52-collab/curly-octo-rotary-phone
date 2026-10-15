@@ -7,7 +7,10 @@ import { logEvent } from './events';
 
 export const PIPELINE_STAGES = ['new', 'quoted', 'booked', 'in_progress', 'done', 'reviewed'] as const satisfies readonly LeadStage[];
 export const STAGE_LABEL: Record<LeadStage, string> = { new: 'New lead', quoted: 'Quoted', booked: 'Booked', in_progress: 'In progress', done: 'Done', reviewed: 'Reviewed', lost: 'Lost' };
-export const LEAD_SOURCES: LeadSource[] = ['google', 'gbp', 'meta_ads', 'instagram', 'tiktok', 'door_knock', 'referral', 'dealer', 'organic', 'direct', 'other'];
+/** Channels money can be spent on (ad_spend.channel check constraint in 0002). */
+export const AD_CHANNELS: LeadSource[] = ['google', 'gbp', 'meta_ads', 'instagram', 'tiktok', 'door_knock', 'referral', 'dealer', 'organic', 'direct', 'other'];
+/** Every lead source, including the ones the 916 Concierge assigns itself (chat = website widget, sms = text). */
+export const LEAD_SOURCES: LeadSource[] = [...AD_CHANNELS, 'chat', 'sms'];
 
 const LIVE = ['confirmed', 'on_the_way', 'in_progress'] as const;
 

@@ -49,5 +49,8 @@ export const conciergeConfig = {
   channelMaxChars: { web: 700, sms: 480, instagram: 900, facebook: 900, voice: 300 } as Record<string, number>,
 };
 
+/** Days a chat transcript is kept after its last message (customer PII). Env CONCIERGE_RETENTION_DAYS overrides; the default is a placeholder [OWNER]/counsel decision. */
+export const retentionDays = (): number => Math.max(7, Math.floor(num(process.env.CONCIERGE_RETENTION_DAYS, 180)));
+
 export const ownerAlertPhones = (): string[] =>
   (process.env.OWNER_ALERT_PHONES ?? '').split(',').map((p) => normalizePhone(p.trim())).filter((p): p is string => Boolean(p));

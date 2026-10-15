@@ -159,3 +159,30 @@ describe('csv', () => {
     expect(toCsv([{ a: 'x', b: 2 }], [{ header: 'A', value: (r) => r.a }, { header: 'B', value: (r) => r.b }])).toBe('A,B\r\nx,2\r\n');
   });
 });
+
+describe('Concierge lead sources (chat, sms)', () => {
+  // Phase 8: bot-made leads carry source chat / sms; they must appear, labelled, in revenue-by-source and the funnel.
+  const d3: ReportData = {
+    ...data,
+    leads: [...data.leads, lead('Lc', 'chat', '2026-10-06'), lead('Ls', 'sms', '2026-10-07')],
+    bookings: [...data.bookings, bk('b-Jc', 'Lc', 'completed'), bk('b-Js', 'Ls', 'completed')],
+    jobs: [...data.jobs, job('Jc', 't1', '2026-10-09'), job('Js', 't2', '2026-10-10')],
+    invoices: [...data.invoices, inv('Ic', 'Jc', 'b-Jc', [line('sc', 'service', 150, 'interior')], 150), inv('Is', 'Js', 'b-Js', [line('ss', 'service', 90, 'interior')], 90)],
+  };
+  it('revenue by source lists chat and sms with human labels', () => {
+    const rows = revenueBySource(d3, R);
+    expect(Object.fromEntries(rows.map((r) => [r.key, r.revenue]))).toMatchObject({ chat: 150, sms: 90 });
+    expect(rows.find((r) => r.key === 'chat')!.label).toBe('Website chat');
+    expect(rows.find((r) => r.key === 'sms')!.label).toBe('Text message');
+  });
+  it('close rate can be filtered to chat or sms', () => {
+    expect(closeRate(d3, R, 'chat')).toMatchObject({ leads: 1, booked: 1, done: 1 });
+    expect(closeRate(d3, R, 'sms')).toMatchObject({ leads: 1, booked: 1, done: 1 });
+  });
+  it('LEAD_SOURCES includes them (pipeline filter, lead override) but ad spend channels do not (0002 check constraint)', async () => {
+    const { AD_CHANNELS, LEAD_SOURCES } = await import('@/lib/admin/pipeline');
+    expect(LEAD_SOURCES).toEqual(expect.arrayContaining(['chat', 'sms']));
+    expect(AD_CHANNELS).not.toContain('chat');
+    expect(AD_CHANNELS).not.toContain('sms');
+  });
+});

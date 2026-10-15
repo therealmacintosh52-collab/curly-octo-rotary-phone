@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: 'More' };
 
 const STAFF_LINKS: { href: string; title: string; sub: string }[] = [
   { href: '/admin/today', title: 'Today (tech view)', sub: 'Route, navigate, start and finish jobs' },
+  { href: '/admin/inbox', title: 'Needs a person', sub: 'Chats and texts the assistant handed off' },
   { href: '/admin/invoices', title: 'Invoices & payments', sub: 'Open balances, record payments' },
   { href: '/admin/memberships', title: 'Memberships', sub: 'Members, visit credits' },
   { href: '/admin/referrals', title: 'Referrals', sub: 'Codes and credit ledger' },

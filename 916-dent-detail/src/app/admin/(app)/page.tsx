@@ -14,6 +14,7 @@ export default async function AdminHome() {
   const h = await loadHome();
   const sum = h.month;
   const alerts: { text: string; href: string }[] = [];
+  if (h.needsHuman) alerts.unshift({ text: `${h.needsHuman} chat${h.needsHuman === 1 ? '' : 's'} waiting for a person`, href: '/admin/inbox' });
   if (h.needsPrice) alerts.push({ text: `${h.needsPrice} booking${h.needsPrice === 1 ? '' : 's'} need a dent price after photo review`, href: '/admin/schedule' });
   if (h.weatherAffected) alerts.push({ text: `${h.weatherAffected} booking${h.weatherAffected === 1 ? '' : 's'} fall on a weather-hold day`, href: '/admin/schedule/settings' });
   if (h.pastDue.length) alerts.push({ text: `${h.pastDue.length} membership${h.pastDue.length === 1 ? '' : 's'} past due`, href: '/admin/memberships' });

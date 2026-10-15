@@ -11,3 +11,6 @@ playwright-report/
 scripts/.media-report.json
 .shots/
 .next-*
+.lighthouseci/
+.env.production
+*.log

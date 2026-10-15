@@ -10,6 +10,6 @@ export const gadsLabels = {
   call: process.env.NEXT_PUBLIC_GADS_LABEL_CALL || process.env.NEXT_PUBLIC_GOOGLE_ADS_LABEL_CALL || '',
 } as const;
 /** [OWNER] URL of the privacy policy page; the consent banner links to it once set. */
-export const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL || '';
+export const privacyUrl = process.env.NEXT_PUBLIC_PRIVACY_URL || '/privacy';
 
 export const trackingConfigured = Boolean(ga4Id || metaPixelId || gadsId);

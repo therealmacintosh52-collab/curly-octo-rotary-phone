@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { SMS_CONSENT_TEXT } from '@/config/booking';
 import { captureAttribution } from '@/lib/attribution';
 import { api } from '../api';
-import { bookingFingerprint, emailOk, newKey, phoneOk, stepValid, type BookingRef } from '../state';
+import { bookingFingerprint, emailOk, newKey, normalizeReferralInput, phoneOk, stepValid, type BookingRef } from '../state';
 import { Field, NavButtons, StepFrame } from '../ui';
 import type { StepProps } from './types';
 
@@ -14,6 +14,9 @@ export function ContactStep({ flow, dispatch, go, focusKey }: StepProps) {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // referral code check: result is only trusted for the exact code (and contact) it was checked with
+  const [refCheck, setRefCheck] = useState<{ code: string; valid: boolean; message: string } | null>(null);
+  const [refBusy, setRefBusy] = useState(false);
   const t = (k: string) => setTouched((s) => ({ ...s, [k]: true }));
   const set = (patch: Partial<typeof c>) => dispatch({ type: 'contact', patch });
   const e = {
@@ -23,10 +26,23 @@ export function ContactStep({ flow, dispatch, go, focusKey }: StepProps) {
     addr: touched.addr && c.addressLine.trim().length < 4 ? 'Enter the street address where we will work.' : undefined,
   };
 
+  async function checkReferral(): Promise<boolean> {
+    const code = normalizeReferralInput(c.referralCode);
+    if (!code) { setRefCheck(null); return true; }
+    setRefBusy(true);
+    const r = await api<{ valid: boolean; message: string }>('/api/referral/validate', { body: { code, phone: c.phone.trim() || undefined, email: c.email.trim() || undefined } });
+    setRefBusy(false);
+    const res = r.ok ? { code, valid: r.data.valid, message: r.data.message } : { code, valid: false, message: r.error.message };
+    setRefCheck(res);
+    return res.valid;
+  }
+
   async function reserve() {
     setTouched({ name: true, phone: true, email: true, addr: true });
     if (!stepValid(flow, 6) || !flow.slot) return;
     setErr(null);
+    const code = normalizeReferralInput(c.referralCode);
+    if (code && !(refCheck?.code === code && refCheck.valid) && !(await checkReferral())) { setErr('Fix or clear the referral code to continue.'); return; }
     const fp = bookingFingerprint(flow);
     if (flow.booking && flow.booking.fingerprint === fp) return go(7);
     setBusy(true);
@@ -42,7 +58,7 @@ export function ContactStep({ flow, dispatch, go, focusKey }: StepProps) {
         vehicle: { year: Number(flow.year), make: flow.make.trim(), model: flow.model.trim() },
         photoPaths: flow.photos.map((p) => p.path), quoteId, zip: flow.zip, startsAt: flow.slot.startsAt, techId: flow.slot.techId,
         contact: { name: c.name.trim(), phone: c.phone.trim(), email: c.email.trim(), addressLine: c.addressLine.trim(), notes: c.notes.trim() || undefined, smsConsent: c.smsConsent, website: c.website },
-        attribution: att.last, firstTouch: att.first,
+        attribution: { ...att.last, ...(code ? { ref: code } : {}) }, firstTouch: att.first,
       },
     });
     setBusy(false);
@@ -79,6 +95,16 @@ export function ContactStep({ flow, dispatch, go, focusKey }: StepProps) {
             <textarea id="c-notes" className="bk-input min-h-[96px]" value={c.notes} onChange={(ev) => set({ notes: ev.target.value })} maxLength={500} aria-describedby="c-notes-hint" />
           </Field>
         </div>
+        <div className="sm:col-span-2">
+          <Field id="c-ref" label="Referral code (optional)" hint="A friend's code takes money off your first visit. New customers only.">
+            <div className="flex gap-2">
+              <input id="c-ref" className="bk-input uppercase" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={20} value={c.referralCode ?? ''}
+                onChange={(ev) => { set({ referralCode: ev.target.value }); setRefCheck(null); }} aria-describedby="c-ref-hint c-ref-status" />
+              <button type="button" className="btn btn-outline shrink-0" onClick={() => void checkReferral()} disabled={refBusy || !normalizeReferralInput(c.referralCode)}>{refBusy ? 'Checking…' : 'Apply code'}</button>
+            </div>
+          </Field>
+          <p id="c-ref-status" role="status" className={refCheck ? (refCheck.valid ? 'bk-hint mt-2 text-gold-light' : 'bk-err mt-2') : 'sr-only'}>{refCheck?.message ?? ''}</p>
+        </div>
         {/* honeypot: hidden from people and assistive tech; bots fill it */}
         <div aria-hidden="true" className="absolute left-[-9999px]"><label>Website<input tabIndex={-1} autoComplete="off" value={c.website} onChange={(ev) => set({ website: ev.target.value })} /></label></div>
 
@@ -90,7 +116,7 @@ export function ContactStep({ flow, dispatch, go, focusKey }: StepProps) {
               <span><span className="block font-semibold">Text me about my appointment</span><span id="sms-consent" className="mt-1 block text-sm text-steel">{SMS_CONSENT_TEXT}</span></span>
             </span>
           </label>
-          <p className="bk-hint mt-3">Optional. Without it we email you only, and you can still book.</p>
+          <p className="bk-hint mt-3">Optional. Without it we email you only, and you can still book. See our <a href="/terms#sms" className="text-gold underline underline-offset-4">text message terms</a> and <a href="/privacy" className="text-gold underline underline-offset-4">privacy policy</a>.</p>
         </div>
         {err && <p role="alert" className="bk-err sm:col-span-2">{err}</p>}
         <div className="sm:col-span-2"><NavButtons onBack={() => go(5)} onNext={() => void reserve()} nextLabel="Reserve my time" busy={busy} hint={undefined} /></div>

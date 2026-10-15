@@ -26,7 +26,7 @@ export type BookingRef = {
   id: string; token: string; intentId: string; mode: 'mock' | 'live'; clientSecret: string; publishableKey?: string;
   amount: number; holdExpiresAt: string | null; fingerprint: string;
 };
-export type Contact = { name: string; phone: string; email: string; addressLine: string; notes: string; smsConsent: boolean; website: string };
+export type Contact = { name: string; phone: string; email: string; addressLine: string; notes: string; smsConsent: boolean; website: string; /** optional referral code the customer typed (checked via /api/referral/validate) */ referralCode?: string };
 
 export type Flow = {
   step: number;
@@ -106,7 +106,10 @@ export function maxReachable(s: Flow): number {
 export const photoFingerprint = (s: Flow) => [s.services.join(','), s.addons.join(','), s.sizeClass, s.year, s.make, s.model, s.photos.map((p) => p.path).join(',')].join('|');
 /** Anything that would change what the server holds: if it changes after reserving, the hold is released and re-made. */
 export const bookingFingerprint = (s: Flow) =>
-  [photoFingerprint(s), s.zip, s.slot?.startsAt, s.contact.name, s.contact.phone, s.contact.email, s.contact.addressLine, s.contact.notes, s.contact.smsConsent].join('|');
+  [photoFingerprint(s), s.zip, s.slot?.startsAt, s.contact.name, s.contact.phone, s.contact.email, s.contact.addressLine, s.contact.notes, s.contact.smsConsent, normalizeReferralInput(s.contact.referralCode)].join('|');
+
+/** Same normalisation the server uses (src/lib/referrals normalizeCode): uppercase, no spaces or dashes. Empty string = no code. */
+export const normalizeReferralInput = (raw: string | null | undefined): string => (raw ?? '').toUpperCase().replace(/[\s-]/g, '').slice(0, 20);
 
 export function priceFor(s: Flow): PriceResult | null {
   if (!s.services.length || !s.sizeClass) return null;

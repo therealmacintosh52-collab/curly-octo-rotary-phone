@@ -4,6 +4,7 @@ import { recordPayment } from '@/lib/admin/payments';
 import { repo } from '@/lib/db';
 import { handleSubscriptionEvent } from '@/lib/memberships';
 import { isStripeLive } from '@/lib/stripe';
+import { invoiceOwner } from '@/lib/stripe/ownership';
 import { verifyAdminWebhook } from '@/lib/stripe/payments';
 
 export const dynamic = 'force-dynamic';
@@ -21,10 +22,14 @@ export async function POST(req: Request) {
     try { ev = verifyAdminWebhook(raw, req.headers.get('stripe-signature')); } catch { return fail(400, 'bad_signature', 'Invalid signature.'); }
     if (!ev) return fail(400, 'bad_signature', 'Invalid signature.');
     const db = repo();
-    if (await db.stripe_events.get(ev.id)) return ok({ received: true, duplicate: true });
-    await db.stripe_events.insert({ id: ev.id, type: ev.type });
+    // dedupe per endpoint: Stripe sends the SAME event id to every endpoint subscribed to it, so a bare ev.id would let one endpoint starve another
+    const dedupeId = `admin:${ev.id}`;
+    if (await db.stripe_events.get(dedupeId)) return ok({ received: true, duplicate: true });
+    await db.stripe_events.insert({ id: dedupeId, type: ev.type });
 
     const obj = ev.data.object as unknown as Record<string, unknown>;
+    // dealer net-terms invoices belong to /api/dealers/stripe-webhook; never handle their invoice.* events here
+    if (ev.type.startsWith('invoice.') && (await invoiceOwner(obj)) === 'dealer') return ok({ received: true, ignored: 'dealer_invoice' });
     if (ev.type === 'checkout.session.completed' && obj.mode === 'payment') {
       const invoiceId = (obj.metadata as Record<string, string> | undefined)?.invoice_id;
       const pi = typeof obj.payment_intent === 'string' ? obj.payment_intent : null;

@@ -3,7 +3,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { isSupabaseLive, repo } from '@/lib/db';
-import { ANY_ROLE, STAFF, homeFor, isAdminRole, type AdminRole } from './roles';
+import { ANY_ROLE, STAFF, homeFor, isAdminRole, isStaff, type AdminRole } from './roles';
 import { SESSION_COOKIE, SESSION_DAYS, signSession, verifySession, type Session } from './session';
 
 /** Verified session or null. Live mode re-reads the profile so a revoked/changed role applies immediately. */
@@ -27,7 +27,19 @@ export async function requireSession(roles: AdminRole[] = ANY_ROLE): Promise<Ses
   if (!roles.includes(s.role)) redirect(homeFor(s.role));
   return s;
 }
-export const requireStaff = () => requireSession(STAFF);
+/**
+ * THE owner guard (single definition): page / server-action guard for owner-level screens (roles owner + admin).
+ * Redirects to /admin/login when signed out and to the role's home when not an owner (a tech). `requireStaff` is the same
+ * function under its Phase 3 name, kept so existing call sites read the same.
+ */
+export const requireOwner = (): Promise<Session> => requireSession(STAFF);
+export const requireStaff = requireOwner;
+
+/** Route-handler variant: true when the caller holds an owner/admin session. Never redirects. */
+export async function ownerAllowed(): Promise<boolean> {
+  const s = await getSession();
+  return Boolean(s && isStaff(s.role));
+}
 
 export async function startSession(u: { sub: string; role: AdminRole; name: string; techId: string | null; mode: 'demo' | 'live' }): Promise<void> {
   const token = await signSession(u);

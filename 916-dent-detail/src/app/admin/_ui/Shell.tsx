@@ -10,7 +10,7 @@ type Tab = { href: string; label: string; icon: ReactNode; match: (p: string) =>
 const ic = (d: string) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>;
 
 const TODAY: Tab = { href: '/admin/today', label: 'Today', icon: ic('M4 5h16v14H4zM4 10h16M9 3v4M15 3v4'), match: (p) => p.startsWith('/admin/today') || p.startsWith('/admin/jobs') };
-const MORE: Tab = { href: '/admin/more', label: 'More', icon: ic('M5 12h.01M12 12h.01M19 12h.01'), match: (p) => p.startsWith('/admin/more') || /^\/admin\/(invoices|memberships|referrals|reports|settings|leads|quotes|vehicles)/.test(p) };
+const MORE: Tab = { href: '/admin/more', label: 'More', icon: ic('M5 12h.01M12 12h.01M19 12h.01'), match: (p) => p.startsWith('/admin/more') || /^\/admin\/(inbox|invoices|memberships|referrals|reports|settings|leads|quotes|vehicles)/.test(p) };
 const STAFF_TABS: Tab[] = [
   { href: '/admin', label: 'Home', icon: ic('M4 11l8-7 8 7v9h-5v-6H9v6H4z'), match: (p) => p === '/admin' },
   { href: '/admin/pipeline', label: 'Pipeline', icon: ic('M4 6h16M4 12h10M4 18h6'), match: (p) => p.startsWith('/admin/pipeline') },

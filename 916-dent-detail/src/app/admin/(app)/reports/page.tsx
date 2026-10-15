@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { formatLocal } from '@/lib/availability/tz';
 import { fmtDate, localToday, money, sourceLabel } from '@/lib/admin/format';
-import { LEAD_SOURCES } from '@/lib/admin/pipeline';
+import { AD_CHANNELS } from '@/lib/admin/pipeline';
 import { requireStaff } from '@/lib/auth/server';
 import { summarize } from '@/lib/reports/compute';
 import { loadReportData } from '@/lib/reports/load';
@@ -91,7 +91,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <Field label="Date" htmlFor="ad-date"><input id="ad-date" name="date" type="date" required defaultValue={today} className="adm-input" /></Field>
               <Field label="Spend ($)" htmlFor="ad-spend"><input id="ad-spend" name="spend" type="number" inputMode="decimal" step="0.01" min="0" required className="adm-input" /></Field>
             </div>
-            <Field label="Channel" htmlFor="ad-channel"><select id="ad-channel" name="channel" defaultValue="google" className="adm-input">{LEAD_SOURCES.map((c) => <option key={c} value={c}>{sourceLabel(c)}</option>)}</select></Field>
+            <Field label="Channel" htmlFor="ad-channel"><select id="ad-channel" name="channel" defaultValue="google" className="adm-input">{AD_CHANNELS.map((c) => <option key={c} value={c}>{sourceLabel(c)}</option>)}</select></Field>
             <Field label="Note (optional)" htmlFor="ad-notes"><input id="ad-notes" name="notes" maxLength={120} className="adm-input" placeholder="Campaign name, flyer run…" /></Field>
           </ActionForm>
         </div></Card>

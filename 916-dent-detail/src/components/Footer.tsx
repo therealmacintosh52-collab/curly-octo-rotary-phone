@@ -78,6 +78,8 @@ export function Footer() {
       <div className="wrap mt-14 flex flex-col gap-2 border-t border-line pt-6 text-xs text-steel sm:flex-row sm:justify-between">
         <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
         <p>
+          <Link href="/privacy" className="underline underline-offset-4 hover:text-gold-light">Privacy</Link>{' · '}
+          <Link href="/terms" className="underline underline-offset-4 hover:text-gold-light">Terms &amp; text program</Link>{' · '}
           Estimates are confirmed on inspection.{' '}
           <CookieSettingsButton className="underline underline-offset-4 hover:text-gold-light" />
         </p>

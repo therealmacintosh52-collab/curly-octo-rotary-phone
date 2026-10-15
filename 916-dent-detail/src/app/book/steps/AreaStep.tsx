@@ -72,7 +72,7 @@ export function AreaStep({ flow, dispatch, go, focusKey }: StepProps) {
                 <div aria-hidden="true" className="absolute left-[-9999px]"><label>Website<input tabIndex={-1} autoComplete="off" value={lead.website} onChange={(e) => setLead({ ...lead, website: e.target.value })} /></label></div>
                 <label className="flex items-start gap-3 text-sm text-steel sm:col-span-2">
                   <input type="checkbox" className="mt-1 h-5 w-5 accent-[#c9a24a]" checked={lead.consent} onChange={(e) => setLead({ ...lead, consent: e.target.checked })} />
-                  <span>{SMS_CONSENT_TEXT}</span>
+                  <span>{SMS_CONSENT_TEXT} <a href="/terms#sms" className="text-gold underline underline-offset-4">Terms</a> · <a href="/privacy" className="text-gold underline underline-offset-4">Privacy</a></span>
                 </label>
                 {leadErr && <p role="alert" className="bk-err sm:col-span-2">{leadErr}</p>}
                 <div className="sm:col-span-2"><button type="button" className="btn btn-gold" onClick={() => void sendLead()} disabled={leadState === 'sending'}>{leadState === 'sending' ? <Spinner label="Sending…" /> : 'Ask if you can reach me'}</button></div>

@@ -21,6 +21,7 @@ import {
   HARD_ESCALATE, amountsIn, checkInboundLimits, classifyAbuse, detectRisk, filterReply, ipIsBlocked, looksLikeGibberish, noteIpAbuse,
   redactArgs, sanitizeUntrusted, type FilterContext,
 } from './guardrails';
+import { consentQuestionDue, handleConsentAnswer, markAsked } from './consent';
 import { loadMemory, memoryForModel, phoneKey, rememberTurn, summarizeTurns } from './memory';
 import { addUsage, defaultModel, usageCostUsd, zeroUsage } from './models';
 import { applyOptIn, applyOptOut, isOptedOut, smsKeyword } from './optout';
@@ -66,6 +67,7 @@ export const INITIAL_SUGGESTIONS = ['Get a price from a photo', 'Book a time', '
 
 function suggestionsFor(state: ConvState, ui: UiBlock[], escalated: boolean): string[] {
   if (escalated || state.paused) return [];
+  if (state.smsConsent?.status === 'asked') return ['Remind me', 'No thanks'];
   if (ui.some((u) => u.type === 'slots' || u.type === 'booking_hold' || u.type === 'verify_phone')) return [];
   const dent = state.collected.services?.some((s) => s === 'pdr' || s === 'hail');
   if (dent && state.photos.length < 2) return ['I will send photos'];
@@ -241,6 +243,14 @@ async function run(msg: InboundMessage, opts: AgentOptions, now: number, convers
   await ensureLead(rec, identity.channel, { phone: phone && identity.phoneVerified ? phone : undefined });
   await recordMessage(rec.conv.id, 'user', textForModel, { flagged: san.flagged, photos: photosAdded });
 
+  // SMS reminder consent answer (REMIND ME / NO THANKS), deterministic, no model call
+  const consentReply = await handleConsentAnswer(rec, identity, textForModel, now);
+  if (consentReply) {
+    await recordMessage(rec.conv.id, 'assistant', consentReply, { status: 'consent' });
+    await saveState(rec, { last_message_at: new Date(now).toISOString() });
+    return done({ reply: consentReply, status: 'ok' });
+  }
+
   if (st.paused) {
     await recordMessage(rec.conv.id, 'assistant', PAUSED_REPLY, { status: 'paused' });
     await saveState(rec, { last_message_at: new Date(now).toISOString() });
@@ -357,6 +367,9 @@ async function run(msg: InboundMessage, opts: AgentOptions, now: number, convers
       log('warn', 'concierge.filtered', { conversation: rec.conv.id, reasons: filtered.reasons });
       await db.events.insert({ type: 'concierge.filtered', entity_type: 'conversation', entity_id: rec.conv.id, actor: 'system', data: { reasons: filtered.reasons, replaced: filtered.replaced } }).catch(() => undefined);
     }
+
+    // consent question: appended by the server after the output filter, so the model cannot omit, alter or answer it
+    if (!exit && (await consentQuestionDue(rec, identity, ctx.turnLog.done))) reply = `${reply}\n\n${markAsked(rec, now)}`;
 
     const cost = costTurn;
     await recordMessage(rec.conv.id, 'assistant', reply, { tools: toolCalls.map((t) => t.name), filtered: filtered.reasons, status });

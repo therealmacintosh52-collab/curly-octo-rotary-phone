@@ -272,3 +272,33 @@ describe('dispatch worker', () => {
     expect(sum.sent).toBe(0); expect(sum.skipped).toBeGreaterThan(0);
   });
 });
+
+describe('referral code entry (BookingFlow helper + server contract)', () => {
+  it('normalises input the way the server does, so what the customer sees validated is what is stored', async () => {
+    const { normalizeReferralInput } = await import('@/app/book/state');
+    const { normalizeCode } = await import('@/lib/referrals');
+    for (const raw of ['abc-234', ' abc 234 ', 'AbC234', 'abc\t234']) expect(normalizeReferralInput(raw)).toBe(normalizeCode(raw));
+    expect(normalizeReferralInput(undefined)).toBe('');
+    expect(normalizeReferralInput('x'.repeat(40)).length).toBe(20);
+  });
+  it('changing the code after a hold makes a new hold (it is part of the booking fingerprint)', async () => {
+    const { bookingFingerprint, initialFlow } = await import('@/app/book/state');
+    const f = initialFlow();
+    const a = bookingFingerprint(f);
+    expect(bookingFingerprint({ ...f, contact: { ...f.contact, referralCode: 'ab-cd12' } })).not.toBe(a);
+    expect(bookingFingerprint({ ...f, contact: { ...f.contact, referralCode: ' AB CD12 ' } })).toBe(bookingFingerprint({ ...f, contact: { ...f.contact, referralCode: 'abcd12' } }));
+  });
+  it('a booking carrying attribution.ref stores it as referral_code_used and /api/referral/validate accepts a real code', async () => {
+    const { ensureReferralCode } = await import('@/lib/referrals');
+    const { POST } = await import('@/app/api/referral/validate/route');
+    const owner = await repo().customers.insert({ name: 'Ref Erer', phone: '+19165550166', sms_opt_in: false });
+    const code = (await ensureReferralCode(owner.id)).code;
+    const res = await POST(new Request('http://x/api/referral/validate', { method: 'POST', body: JSON.stringify({ code: code.toLowerCase(), phone: '(916) 555-0177' }), headers: { 'content-type': 'application/json' } }));
+    expect(await res.json()).toMatchObject({ valid: true });
+    const bad = await POST(new Request('http://x/api/referral/validate', { method: 'POST', body: JSON.stringify({ code: 'NOPE9999' }), headers: { 'content-type': 'application/json' } }));
+    expect(await bad.json()).toMatchObject({ valid: false, reason: 'unknown' });
+    const slot = (await firstSlot())[0]!;
+    const r = await createBooking(input({ startsAt: slot.startsAt, techId: slot.techId, attribution: { ref: code } as never, contact: { name: 'New Guy', phone: '(916) 555-0188', email: 'n@example.com', addressLine: '1 A St', smsConsent: false } }), 'ref-key-0000001', NOW);
+    expect((await repo().customers.get(r.booking.customer_id!))!.referral_code_used).toBe(code);
+  });
+});

@@ -16,6 +16,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/reviews', priority: 0.5 },
     { path: '/book', priority: 0.9 },
     { path: '/blog', priority: 0.6 },
+    { path: '/privacy', priority: 0.2 },
+    { path: '/terms', priority: 0.2 },
   ];
   const posts = allPosts();
   return [

@@ -47,7 +47,7 @@ export const localToday = (now = Date.now()): string => {
 
 export const SOURCE_LABELS: Record<string, string> = {
   google: 'Google', gbp: 'Google Business', meta_ads: 'Meta ads', instagram: 'Instagram', tiktok: 'TikTok', door_knock: 'Door-knock',
-  referral: 'Referral', dealer: 'Dealer', organic: 'Organic', direct: 'Direct', other: 'Other',
+  referral: 'Referral', dealer: 'Dealer', organic: 'Organic', direct: 'Direct', other: 'Other', chat: 'Website chat', sms: 'Text message',
 };
 export const sourceLabel = (s: string | null | undefined): string => SOURCE_LABELS[s ?? ''] ?? (s || 'Unknown');
 

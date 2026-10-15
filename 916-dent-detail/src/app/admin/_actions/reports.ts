@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { HttpError } from '@/lib/admin/api';
 import { actorOf, logEvent } from '@/lib/admin/events';
-import { LEAD_SOURCES } from '@/lib/admin/pipeline';
+import { AD_CHANNELS } from '@/lib/admin/pipeline';
 import { repo, type LeadSource } from '@/lib/db';
 import { optText, parseForm, run, STAFF, uuid } from './util';
 import type { ActionResult } from '../_ui/forms';
@@ -11,7 +11,7 @@ import type { ActionResult } from '../_ui/forms';
 export async function addAdSpendAction(_: ActionResult, fd: FormData): Promise<ActionResult> {
   return run(STAFF, async (s) => {
     const i = parseForm(z.object({
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date.'), channel: z.enum(LEAD_SOURCES as [LeadSource, ...LeadSource[]]),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date.'), channel: z.enum(AD_CHANNELS as [LeadSource, ...LeadSource[]]),
       spend: z.coerce.number('Enter the amount spent.').min(0, 'Spend cannot be negative.').max(1_000_000, 'That is too large.'), notes: optText(120),
     }), fd);
     if (i.date > new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)) throw new HttpError(400, 'future', 'That date is in the future.');
