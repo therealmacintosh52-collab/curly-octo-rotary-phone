@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { CheckIcon, PlusIcon, SearchIcon, UserIcon, XIcon } from "lucide-react";
+import { ArrowRightLeftIcon, CheckIcon, PlusIcon, SearchIcon, UserIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Customer, CustomerListRow, Vehicle } from "@/lib/db/types";
 import { saveVehicleAction, searchCustomersAction } from "@/app/(app)/retail/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatPhone } from "@/lib/retail/phone";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -260,40 +261,73 @@ export function toPickedCustomer(c: { id: string; display_name: string | null; p
 }
 
 /**
- * The customer's cars as one-tap chips (the selected one highlighted) and "+ Another car",
- * which empties the car fields so a second car can be typed or scanned. Shown on the
- * estimate's Vehicle card so changing the car is one tap.
+ * The customer's vehicle on the estimate: the car that is chosen and a "Switch vehicle" button that
+ * lists every car they have (a customer can have two, three or more) plus "Add another vehicle".
+ * The list opens by itself when the customer has more than one car and none is chosen yet, so
+ * picking a customer pops up their vehicles. Give it `key={customer.id}` so it reopens per customer.
  */
 export function CarSwitcher({ customer, vehicleId, onPick, onAnother, disabled }: { customer: PickedCustomer; vehicleId: string | null; onPick: (v: PickedCustomer["vehicles"][number]) => void; onAnother: () => void; disabled?: boolean }) {
   const cars = customer.vehicles;
-  const needsPick = cars.length > 1 && !vehicleId;
+  const current = cars.find((v) => v.id === vehicleId) ?? null;
+  const [open, setOpen] = useState(cars.length > 1 && !vehicleId);
+  const label = (v: PickedCustomer["vehicles"][number]) => [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
   return (
     <div className="grid gap-1.5" data-testid="car-switcher">
-      <Label className="text-caption text-subtle">{cars.length > 1 ? "Which car?" : "Their car"}</Label>
-      <div className="flex flex-wrap gap-2" data-testid="customer-vehicles-pick">
-        {cars.map((v) => {
-          const sel = v.id === vehicleId;
-          return (
-            <button
-              key={v.id}
-              type="button"
-              aria-pressed={sel}
-              disabled={disabled}
-              onClick={() => onPick(v)}
-              className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-colors ${sel ? "border-primary bg-accent-soft text-primary" : "border-border bg-card hover:border-border-strong"}`}
-              data-testid="car-chip"
-            >
-              {sel && <CheckIcon className="size-3.5" />}
-              {[v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle"}
-              {v.plate ? <span className="text-muted-foreground">· {v.plate}</span> : v.color ? <span className="text-muted-foreground">· {v.color}</span> : null}
-            </button>
-          );
-        })}
-        <button type="button" disabled={disabled} onClick={onAnother} className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border border-dashed px-3.5 py-2 text-sm transition-colors ${!vehicleId && cars.length > 0 ? "border-primary text-primary" : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground"}`} data-testid="car-another">
-          <PlusIcon className="size-3.5" /> Another car
-        </button>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <Label className="text-caption text-subtle">Vehicle</Label>
+          <div className="truncate font-medium" data-testid="car-current">
+            {current ? <>{label(current)}{current.plate ? <span className="text-muted-foreground"> · {current.plate}</span> : null}</> : <span className="text-muted-foreground">{cars.length > 0 ? "No vehicle chosen yet" : "No vehicle on file"}</span>}
+          </div>
+        </div>
+        <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setOpen(true)} data-testid="switch-vehicle">
+          <ArrowRightLeftIcon /> {cars.length > 1 ? "Switch vehicle" : "Add another vehicle"}
+        </Button>
       </div>
-      {needsPick && <p className="text-caption text-warning" data-testid="car-pick-hint">This customer has {cars.length} cars: tap the one that is here, or add another.</p>}
+      {cars.length > 1 && !vehicleId && !open && <p className="text-caption text-warning" data-testid="car-pick-hint">{customer.name} has {cars.length} vehicles: tap Switch vehicle to pick the one that is here.</p>}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent data-testid="vehicle-dialog">
+          <DialogHeader>
+            <DialogTitle>{customer.name}&rsquo;s vehicles</DialogTitle>
+            <DialogDescription>{cars.length > 1 ? "Pick the one that is here, or add another." : "Add another vehicle for this customer."}</DialogDescription>
+          </DialogHeader>
+          <div className="grid max-h-[60dvh] gap-2 overflow-y-auto" data-testid="customer-vehicles-pick">
+            {cars.map((v) => {
+              const sel = v.id === vehicleId;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  aria-pressed={sel}
+                  onClick={() => {
+                    onPick(v);
+                    setOpen(false);
+                  }}
+                  className={`flex min-h-14 items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${sel ? "border-primary bg-accent-soft" : "border-border bg-card hover:border-border-strong"}`}
+                  data-testid="car-chip"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{label(v)}</span>
+                    <span className="block truncate text-caption text-subtle">{[v.plate, v.color, v.vin ? `VIN …${v.vin.slice(-6)}` : null].filter(Boolean).join(" · ") || "No plate or VIN on file"}</span>
+                  </span>
+                  {sel && <CheckIcon className="size-5 shrink-0 text-primary" />}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => {
+                onAnother();
+                setOpen(false);
+              }}
+              className="flex min-h-14 items-center gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
+              data-testid="car-another"
+            >
+              <PlusIcon className="size-4" /> Add another vehicle
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

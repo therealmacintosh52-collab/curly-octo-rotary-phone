@@ -33,5 +33,5 @@ export default async function NewEstimatePage(props: PageProps<"/retail/estimate
   // The bar at the top of Retail hands over a car that is not on file yet: ?vin=&plate=&year=&make=&model=&odometer=
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string).slice(0, 40) : "");
   const carHint = { vin: str("vin"), plate: str("plate"), year: str("year"), make: str("make"), model: str("model"), odometer: str("odometer").replace(/[^\d]/g, "") };
-  return <EstimateBuilder catalog={catalog} recent={picker.recent} initialPick={picker.initialPick} carHint={carHint} job={ro ? { id: ro.id, ro_number: ro.ro_number ?? null, tag_number: ro.tag_number } : null} initialLines={initialLines} />;
+  return <EstimateBuilder key={JSON.stringify(sp)} catalog={catalog} recent={picker.recent} initialPick={picker.initialPick} carHint={carHint} job={ro ? { id: ro.id, ro_number: ro.ro_number ?? null, tag_number: ro.tag_number } : null} initialLines={initialLines} />;
 }

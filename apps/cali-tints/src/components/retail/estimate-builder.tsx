@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { CarFinder } from "./car-finder";
 import { CarSwitcher, CustomerPicker, type CustomerPick, type PickedCustomer } from "./customer-picker";
 import { ServiceMenu } from "./service-menu";
 
@@ -408,6 +409,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
       {ro && <Badge variant="info" className="mt-2" data-testid="builder-ro">Repair order {ro.ro_number ?? ro.tag_number}</Badge>}
 
       <div className="mt-5 flex flex-col gap-4">
+          {!estimate && !ro && !pick.customer && !car.model && !car.vin && !car.plate && <CarFinder />}
           <div className="grid gap-4 xl:grid-cols-2" data-testid="estimate-top">
             <Card data-testid="estimate-customer-card">
               <CardHeader>
@@ -430,6 +432,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
               <CardContent className="grid gap-3">
                 {pick.customer && (
                   <CarSwitcher
+                    key={pick.customer.id}
                     customer={pick.customer}
                     vehicleId={pick.vehicleId}
                     onPick={(v) => {

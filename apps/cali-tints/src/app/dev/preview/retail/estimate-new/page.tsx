@@ -29,7 +29,7 @@ export default async function DevEstimateNewPreview(props: PageProps<"/dev/previ
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
             <RetailNav />
           </div>
-          <EstimateBuilder catalog={catalog} recent={recent} initialPick={initialPick} carHint={carHint} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={initialLines} />
+          <EstimateBuilder key={JSON.stringify(sp)} catalog={catalog} recent={recent} initialPick={initialPick} carHint={carHint} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={initialLines} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>
