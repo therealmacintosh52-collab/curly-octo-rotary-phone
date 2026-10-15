@@ -84,7 +84,40 @@ Branch `claude/916-dent-detail-build`. Setup steps for every key: [`README.md`](
 
 ---
 
-@@C@@
+## C. Verification, with the real numbers
+
+Everything below ran in this sandbox against the **production build in mock mode**. "Verified live" appears nowhere in this table because nothing live exists.
+`npm run verify` (tsc, eslint, 599 unit/bot tests, build, `check:seo`, `check:owner`, 134 Playwright tests, axe) exited 0 on the last full run (twice in a row on the final tree).
+
+| Target | Measured | Verdict |
+|---|---|---|
+| TypeScript strict, ESLint | 0 errors (3 pre-existing warnings: two unused vars in a QA script, one `<img>` in the tech photo preview) | pass |
+| Unit + bot tests (`npm test`) | **599 passed in 52 files** (`npm run test:bot`: 29 passed = the 15 scenarios + 13 adversarial cases + 1 check that documents the expected behaviours) | pass |
+| Playwright e2e (`npm run test:e2e`) | **134 tests: 132 passed, 2 skipped by design** (the desktop-only and mobile-only keyboard tests skip on the other project) (67 per project: mobile 390x844, desktop 1440x900): full booking incl. unknown/in-area ZIP, referral code, mock deposit, reschedule, cancel; skip-link; widget open/ask/photo/slots/verify/deposit handoff; SMS webhook via request fixture incl. STOP/START/HELP, replay, injection; admin smoke and role limits; dealer smoke; SEO smoke (head, schema, robots, sitemap resolves, 404, redirects, headers, no-JS); keyboard passes; console cleanliness; INP proxy | pass |
+| axe (WCAG 2.0/2.1/2.2 A+AA + best practice) | **0 serious/critical** on 18 public route classes, 13 admin screens and 4 dealer pages (both projects, in e2e) and on 16 routes x 3 contexts (mobile, desktop, reduced motion) via `npm run axe`: 48 audits, **0 violations of any impact** after the `/pricing` landmark fix | pass |
+| Keyboard-only | booking flow (skip link, service toggle, step focus, vehicle step, focus rings), desktop nav order + Enter, mobile menu open/Escape/focus return, chat dialog focus trap | pass (found and fixed two real bugs, below) |
+| Console | no console errors, page errors or failed first-party requests on 13 key routes | pass |
+| Lighthouse mobile (LHCI: 6 URLs x 3 runs, Lighthouse default mobile emulation = simulated slow 4G + 4x CPU, median, idle machine), final build | performance **95-98** on all six; accessibility **100**, best practices **100**, SEO **100** on all six; CLS **0** on all six; TBT **78-144 ms** (limit 300) | pass |
+| Lighthouse LCP <= 2.5 s | **home 2285 ms, /book 2121 ms: pass. /services/... 2535, /areas/folsom 2602, /dealers 2602, /blog/... 2555 ms: FAIL by 35-100 ms** in the last run; earlier runs of the same build put each of these pages between 2.04 and 2.73 s (per-page medians flip across the 2.5 s line from run to run) | **target NOT met reliably** (see below) |
+| INP lab proxy (scripted trace, Event Timing API, median of 3 runs, 4x CPU on mobile) | worst page median **mobile 144-176 ms across the last two full runs** (home 88-96, /book 144-176, /dealers 48-72, service page 56), **desktop 88-120 ms**; before the Phase 8 fixes 192-264 ms. /book is the one near the limit (single runs reach 216 ms) | pass as a lab proxy; field INP is unmeasured |
+| Bot scenarios | 15 scenarios + 13 adversarial cases pass **against the offline scripted policy** through the real tool executor, guardrails, authorization, filters and cost cap | plumbing and server-side enforcement verified; **live model behaviour UNVERIFIED** |
+| RLS / migrations | migrations 0001-0005 + `seed.sql` apply cleanly on an in-memory Postgres (PGlite); 29 role assertions for anon, stranger, owner, admin, 2 techs, 2 dealers pass; 5 of them fail without `0005` | pass on PGlite; **Supabase itself UNVERIFIED** |
+| Security | secrets scan clean (tree + history); `npm audit --omit=dev`: **0 vulnerabilities**; 22 advisories exist only in dev tooling (lint, Lighthouse, LHCI); 12 findings fixed, 9 open (all owner decisions or need live infrastructure): `SECURITY.md` | see SECURITY.md |
+| Pre-existing bugs the tests found and the fixes | invoice numbering could never run on Supabase (migration 0002), duplicate job on concurrent payment confirmation, cross-tenant dealer photo read policy, the skip link reset the booking to step 1 and stole focus, booking step headings never took focus, two robots meta tags on 404, availability engine threw on NaN durations, Saturday hours differed between `seed.sql` and config | fixed, each with a test |
+| Owner placeholders (`npm run check:owner`) | **172 lines still in code** (the launch checklist, section B). `npm run deploy` refuses to deploy until it is 0 | expected |
+
+### Lighthouse: what moved, what did not
+Home page, mobile, median of 3 (LHCI, same machine, idle), **before -> after**: performance 87 -> 98, LCP 3140 -> 2285 ms, TBT 286 -> 96 ms, CLS 0 -> 0. `/book`: CLS 0.097 -> 0, performance 93 -> 96. Other pages were already at 94-98.
+Changes that did it: `content-visibility:auto` on below-the-fold sections and the footer (with a ScrollTrigger refresh so scroll animations keep their positions: checked identical with and without it), focus and scroll-lock work moved one frame off the click path, booking draft saving debounced, the chat panel script pre-fetched after the first scroll, smooth scrolling not loaded on form pages, the booking form's first step rendered on the server instead of a "Loading..." line.
+Two things that made it WORSE and were removed: a `Cross-Origin-Opener-Policy` header (content-page lab LCP median 2.05 s -> 2.63 s in an 8-run A/B) and Next's `inlineCss` (first paint +100 ms). A variable Inter font was evaluated and rejected (the Latin file is 48 KB; the two current subsets total 30.6 KB).
+**Why LCP still misses on four content pages:** Lighthouse estimates LCP by simulating every request that started before the page's first paint. About 150 KB gzip of framework JavaScript (react-dom 71 KB, Next client 36 KB) plus 41 KB of fonts and 12 KB of CSS therefore set a floor of roughly 2.1-2.7 s on a simulated 1.6 Mbps link, and whether the first paint lands a few milliseconds before or after those script requests start flips the estimate by ~0.5 s (the same build alternates between about 2.05 and 2.65 s from one run to the next). The real, unthrottled LCP of these pages is about 0.2 s. Getting under 2.5 s reliably would need a smaller framework payload (not available from application code) or deferring hydration scripts (a different architecture). The honest status: **LCP <= 2.5 s is met on the home page and /book, and borderline-missed (by up to ~0.1 s, sometimes met) on the others**. Re-measure on the real deployment: real hosting, TLS and CDN change these numbers.
+
+### Still UNVERIFIED (everything that needs something live)
+- Every live integration: Supabase (SQL ran on PGlite only; RLS, Auth, Storage, PostgREST), Stripe (Payment Element, the three webhooks, Checkout, Portal, Invoicing, Terminal), Twilio (SMS, signature on real traffic, voice webhooks, A2P 10DLC), Resend delivery, Anthropic (photo quotes, **the Concierge's behaviour and prompt caching**), GA4 / Meta CAPI / Google Ads, Google Calendar, Upstash, Vercel cron.
+- Real devices (iPhone Safari / Android Chrome camera and HEIC, tap-to-navigate, Add to Home Screen, signature with a finger, offline outbox) and a human screen-reader pass.
+- Real-world performance: field INP/LCP/CLS, real hosting; the dealer leave-behind on paper.
+- Anything legal: the privacy policy, terms and SMS wording are templates a lawyer has not seen.
+
 
 ---
 
