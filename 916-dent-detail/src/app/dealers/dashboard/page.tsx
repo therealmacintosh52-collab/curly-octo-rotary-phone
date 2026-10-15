@@ -20,10 +20,10 @@ export default async function DashboardHome() {
             : 'Please contact us to reactivate it.'}
         </p>
         <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
-          <div><dt className="text-steel">Business</dt><dd className="text-ivory">{dealer.name}</dd></div>
-          <div><dt className="text-steel">Contact</dt><dd className="text-ivory">{dealer.contact_name} · {dealer.email}</dd></div>
-          <div><dt className="text-steel">Accounts payable</dt><dd className="text-ivory">{dealer.ap_email}</dd></div>
-          <div><dt className="text-steel">Lots</dt><dd className="text-ivory">{(dealer.lot_addresses ?? []).join('; ') || '—'}</dd></div>
+          <div><dt className="text-steel">Business</dt><dd className="break-words text-ivory">{dealer.name}</dd></div>
+          <div><dt className="text-steel">Contact</dt><dd className="break-words text-ivory">{dealer.contact_name} · {dealer.email}</dd></div>
+          <div><dt className="text-steel">Accounts payable</dt><dd className="break-words text-ivory">{dealer.ap_email}</dd></div>
+          <div><dt className="text-steel">Lots</dt><dd className="break-words text-ivory">{(dealer.lot_addresses ?? []).join('; ') || '—'}</dd></div>
         </dl>
       </section>
     );

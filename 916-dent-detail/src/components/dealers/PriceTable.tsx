@@ -10,15 +10,15 @@ export function PriceTable() {
       <div className="dl-card overflow-hidden">
         <table className="dl-table">
           <caption className="sr-only">Wholesale rates by service</caption>
-          <thead><tr><th scope="col">Service</th><th scope="col">Unit</th><th scope="col" className="num">Wholesale rate</th></tr></thead>
+          <thead><tr><th scope="col">Service</th><th scope="col" className="hidden sm:table-cell">Unit</th><th scope="col" className="num">Wholesale rate</th></tr></thead>
           <tbody>
             {dealerServices.map((s) => {
               const rate = resolveRate(s.id, null, dealerWholesale);
               return (
                 <tr key={s.id}>
-                  <th scope="row" className="!border-b !border-[#202227] !text-sm !font-semibold !normal-case !tracking-normal !text-ivory">{s.plain}<span className="block text-xs font-normal text-steel">{s.term}</span></th>
-                  <td className="text-steel">per {s.unit}</td>
-                  <td className="num">
+                  <th scope="row" className="!border-b !border-[#202227] !text-sm !font-semibold !normal-case !tracking-normal !text-ivory">{s.plain}<span className="block text-xs font-normal text-steel">{s.term}<span className="sm:hidden"> · per {s.unit}</span></span></th>
+                  <td className="hidden text-steel sm:table-cell">per {s.unit}</td>
+                  <td className="num !text-sm">
                     {rate === null
                       ? <Link href="#wholesale-sheet" className="text-gold-light underline underline-offset-4">Request wholesale sheet</Link>
                       : <span className="font-semibold text-ivory">{formatMoney(rate).text}</span>}

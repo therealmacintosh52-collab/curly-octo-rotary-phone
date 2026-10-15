@@ -29,7 +29,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         <p className="mt-1 text-steel">{inv.memo} · due {date(inv.due_at)} · <span className="dl-badge">{status}</span></p>
       </div>
       {inv.mock && <p className="dl-demo" role="note"><strong>DEMO invoice.</strong> In live mode this is a Stripe-hosted invoice with a real payment page. Nothing can be paid here.</p>}
-      <div className="dl-card dl-scroll">
+      <div className="dl-card dl-scroll" tabIndex={0} role="region" aria-label="Invoice lines">
         <table className="dl-table">
           <thead><tr><th scope="col">Vehicle</th><th scope="col">Work</th><th scope="col" className="num">Amount</th></tr></thead>
           <tbody>

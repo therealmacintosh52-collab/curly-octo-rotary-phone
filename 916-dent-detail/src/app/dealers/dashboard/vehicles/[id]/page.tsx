@@ -121,9 +121,9 @@ export default async function VehicleDetail({ params }: { params: Promise<{ id: 
         <h2 id="au-h" className="text-base">History</h2>
         <ol className="mt-3 grid gap-2 text-sm">
           {events.map((e) => (
-            <li key={e.id} className="flex flex-wrap justify-between gap-2 border-b border-[#202227] pb-2 last:border-0">
-              <span className="text-ivory/90">{EVENT_TEXT[e.type]!(e.data as Record<string, unknown>)}</span>
-              <span className="text-steel"><time dateTime={e.created_at}>{new Date(e.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}</time> · {who(e.actor)}</span>
+            <li key={e.id} className="border-b border-[#202227] pb-2 last:border-0">
+              <span className="block text-ivory/90">{EVENT_TEXT[e.type]!(e.data as Record<string, unknown>)}</span>
+              <span className="block text-xs text-steel"><time dateTime={e.created_at}>{new Date(e.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })}</time> · {who(e.actor)}</span>
             </li>
           ))}
         </ol>

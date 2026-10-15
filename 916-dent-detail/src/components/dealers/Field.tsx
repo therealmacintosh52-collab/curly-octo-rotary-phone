@@ -8,7 +8,7 @@ export function Field({ id, label, hint, error, required, children }: { id: stri
       <label htmlFor={id} className="dl-label">{label}{required && <span aria-hidden="true" className="text-gold"> *</span>}{!required && <span className="font-normal text-steel"> (optional)</span>}</label>
       {children({ id, 'aria-describedby': desc, 'aria-invalid': error ? true : undefined, 'aria-required': required || undefined })}
       {hint && <p id={`${id}-hint`} className="dl-hint">{hint}</p>}
-      {error && <p id={`${id}-err`} className="dl-err" role="alert">{error}</p>}
+      {error && <p id={`${id}-err`} className="dl-err" aria-live="polite">{error}</p>}
     </div>
   );
 }

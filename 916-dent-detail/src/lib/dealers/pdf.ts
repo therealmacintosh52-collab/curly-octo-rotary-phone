@@ -15,6 +15,14 @@ const W = 612; const H = 792; const M = 48;
 export const winAnsi = (s: string): string =>
   String(s ?? '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...').replace(/[^\x20-\x7E -ÿ]/g, '?');
 
+/** Single-line clip with an ellipsis so a long stock number never runs into the next column. */
+function clip(text: string, font: PDFFont, size: number, max: number): string {
+  let t = winAnsi(text);
+  if (font.widthOfTextAtSize(t, size) <= max) return t;
+  while (t.length > 1 && font.widthOfTextAtSize(`${t}...`, size) > max) t = t.slice(0, -1);
+  return `${t}...`;
+}
+
 function wrap(text: string, font: PDFFont, size: number, max: number): string[] {
   const words = winAnsi(text).split(/\s+/).filter(Boolean);
   const lines: string[] = []; let cur = '';
@@ -38,7 +46,7 @@ export async function statementPdf(i: StatementPdfInput): Promise<Uint8Array> {
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const ym = i.statement.period_start.slice(0, 7);
 
-  const cols = { date: M, stock: M + 62, veh: M + 128, work: M + 262, amt: W - M };
+  const cols = { date: M, stock: M + 60, veh: M + 142, work: M + 282, amt: W - M };
   const pages: PDFPage[] = [];
   let page: PDFPage = doc.addPage([W, H]); pages.push(page);
   let y = 0;
@@ -83,13 +91,13 @@ export async function statementPdf(i: StatementPdfInput): Promise<Uint8Array> {
 
   header(true);
   for (const l of i.lines) {
-    const veh = wrap(`${l.label}${l.vin ? ` (VIN ...${l.vin.slice(-6)})` : ''}`, reg, 8.5, cols.work - cols.veh - 8);
-    const work = wrap(l.description, reg, 8.5, cols.amt - 62 - cols.work);
+    const veh = wrap(`${l.label}${l.vin && !l.label.includes('VIN') ? ` (VIN ...${l.vin.slice(-6)})` : ''}`, reg, 8.5, cols.work - cols.veh - 8);
+    const work = wrap(l.description, reg, 8.5, cols.amt - 64 - cols.work);
     const rows = Math.max(veh.length, work.length);
     const need = rows * 11 + l.addons.length * 11 + 12;
-    if (y - need < 120) header(false);
+    if (y - need < 56) header(false);
     text(page, l.done_at.slice(0, 10), cols.date, y, { size: 8.5 });
-    text(page, l.stock_number ?? '-', cols.stock, y, { size: 8.5 });
+    text(page, clip(l.stock_number ?? '-', reg, 8.5, cols.veh - cols.stock - 6), cols.stock, y, { size: 8.5 });
     veh.forEach((t, n) => text(page, t, cols.veh, y - n * 11, { size: 8.5 }));
     work.forEach((t, n) => text(page, t, cols.work, y - n * 11, { size: 8.5 }));
     text(page, money(l.base), cols.amt, y, { size: 8.5, right: true });
@@ -117,6 +125,9 @@ export async function statementPdf(i: StatementPdfInput): Promise<Uint8Array> {
   ];
   for (const f of foot) for (const t of wrap(f, reg, 8.5, W - 2 * M)) { text(page, t, M, y, { size: 8.5, color: STEEL }); y -= 11; }
 
-  pages.forEach((p, n) => { text(p, `${site.name}  |  Statement ${ym}  |  Page ${n + 1} of ${pages.length}`, W / 2 - 110, 28, { size: 7.5, color: STEEL }); });
+  pages.forEach((p, n) => {
+    const foot = `${site.name}  |  Statement ${ym}  |  Page ${n + 1} of ${pages.length}`;
+    text(p, foot, W / 2 - reg.widthOfTextAtSize(foot, 7.5) / 2, 28, { size: 7.5, color: STEEL });
+  });
   return doc.save();
 }

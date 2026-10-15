@@ -10,5 +10,7 @@ export async function audit(type: string, entityType: 'dealer_vehicle' | 'dealer
 }
 
 export async function trail(entityType: string, entityId: string): Promise<EventRow[]> {
-  return repo().events.list({ where: { entity_type: entityType, entity_id: entityId }, orderBy: 'created_at', desc: true, limit: 100 });
+  // ascending then reversed: events written in the same millisecond keep their real order (newest first)
+  const rows = await repo().events.list({ where: { entity_type: entityType, entity_id: entityId }, orderBy: 'created_at' });
+  return rows.reverse().slice(0, 100);
 }

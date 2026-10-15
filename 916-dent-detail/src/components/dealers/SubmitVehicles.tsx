@@ -69,7 +69,8 @@ function OneForm({ onDone }: { onDone: (r: Report) => void }) {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget; // React nulls currentTarget after the first await
+    const f = new FormData(form);
     const s = (k: string) => String(f.get(k) ?? '').trim();
     setBusy(true); setMsg('');
     const r = await postJson<Report>('/api/dealers/vehicles', { vehicle: { vin, stockNumber: s('stock'), year: s('year'), make: s('make'), model: s('model'), color: s('color'), panels: s('panels'), services, notes: s('notes') } });
@@ -77,7 +78,7 @@ function OneForm({ onDone }: { onDone: (r: Report) => void }) {
     if (!r.ok) { setMsg(r.message); return; }
     if (!r.data.created.length) { setMsg(r.data.rejected[0]?.errors.join(' ') ?? 'That vehicle could not be submitted.'); return; }
     onDone(r.data);
-    setVin(''); setServices([]); e.currentTarget.reset();
+    setVin(''); setServices([]); form.reset();
   }
 
   return (
@@ -163,7 +164,7 @@ function ManyForm({ onDone }: { onDone: (r: Report) => void }) {
             {preview.okCount} ready{preview.errorCount ? <>, <span className="text-[#f4b0a5]">{preview.errorCount} with errors</span></> : ', no errors'}
           </p>
           {preview.notes.map((n, i) => <p key={i} className="dl-hint">{n}</p>)}
-          <div className="dl-scroll mt-3 rounded-2xl border border-line">
+          <div className="dl-scroll mt-3 rounded-2xl border border-line" tabIndex={0} role="region" aria-label="Per-row results">
             <table className="dl-table">
               <caption className="sr-only">Per-row results</caption>
               <thead><tr><th scope="col">Line</th><th scope="col">VIN</th><th scope="col">Result</th></tr></thead>

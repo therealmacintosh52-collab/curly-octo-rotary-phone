@@ -288,5 +288,6 @@ describe('billing: statements, invoices, aging, PDF', () => {
     const { PDFDocument } = await import('pdf-lib');
     const doc = await PDFDocument.load(bytes);
     expect(doc.getPageCount()).toBeGreaterThan(2);
+    if (process.env.DEALER_PDF_OUT) (await import('node:fs')).writeFileSync(process.env.DEALER_PDF_OUT, bytes); // optional: eyeball the layout
   });
 });
