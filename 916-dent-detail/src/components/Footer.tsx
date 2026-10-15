@@ -3,6 +3,7 @@ import { nav, site } from '@/config/site';
 import { allCities, allServices, cityPath, servicePath } from '@/lib/seo/content';
 import { CallLink, TextLink } from './CtaLinks';
 import { Logo } from './Logo';
+import { CookieSettingsButton } from './seo/ConsentBanner';
 
 export function Footer() {
   return (
@@ -76,7 +77,10 @@ export function Footer() {
       </div>
       <div className="wrap mt-14 flex flex-col gap-2 border-t border-line pt-6 text-xs text-steel sm:flex-row sm:justify-between">
         <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
-        <p>Estimates are confirmed on inspection.</p>
+        <p>
+          Estimates are confirmed on inspection.{' '}
+          <CookieSettingsButton className="underline underline-offset-4 hover:text-gold-light" />
+        </p>
       </div>
     </footer>
   );

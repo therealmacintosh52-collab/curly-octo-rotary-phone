@@ -7,10 +7,11 @@ import { track } from '@/lib/analytics';
 type Common = { where: string; className?: string; children: ReactNode };
 
 export function CallLink({ where, className, children }: Common) {
-  return <a href={telHref} className={className} onClick={() => track('call_click', { where })}>{children}</a>;
+  // call/text clicks are tracked by the delegated listener in components/seo/AnalyticsRoot (reads data-track-where)
+  return <a href={telHref} className={className} data-track-where={where}>{children}</a>;
 }
 export function TextLink({ where, className, children }: Common) {
-  return <a href={smsHref} className={className} onClick={() => track('text_click', { where })}>{children}</a>;
+  return <a href={smsHref} className={className} data-track-where={where}>{children}</a>;
 }
 export function QuoteLink({ where, className, children }: Common) {
   return (

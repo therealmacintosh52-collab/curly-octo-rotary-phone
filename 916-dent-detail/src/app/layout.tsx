@@ -9,11 +9,14 @@ import { Footer } from '@/components/Footer';
 import { MobileCtaBar } from '@/components/MobileCtaBar';
 import { SmoothScroll } from '@/components/SmoothScroll';
 import { BusinessJsonLd } from '@/components/JsonLd';
+import { Analytics } from '@vercel/analytics/next';
+import { AnalyticsRoot } from '@/components/seo/AnalyticsRoot';
+import { ConsentBanner } from '@/components/seo/ConsentBanner';
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: `Mobile Dent Repair & Detailing Sacramento | ${site.name}`, template: `%s | ${site.name}` },
-  description: site.description,
+  description: 'Mobile paintless dent repair and auto detailing across Sacramento. Dents removed without paint, paint corrected and coated, at your home, work or lot.',
   applicationName: site.name,
   alternates: { canonical: '/' },
   openGraph: {
@@ -61,6 +64,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <MobileCtaBar />
         <SmoothScroll />
         <BusinessJsonLd />
+        <AnalyticsRoot />
+        <ConsentBanner />
+        {/* Cookieless; only meaningful on Vercel, so it is off elsewhere (a missing /_vercel script would 404) */}
+        {(process.env.VERCEL === '1' || process.env.NEXT_PUBLIC_VERCEL_ANALYTICS === '1') && <Analytics />}
       </body>
     </html>
   );

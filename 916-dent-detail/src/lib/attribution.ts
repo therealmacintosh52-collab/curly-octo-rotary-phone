@@ -58,3 +58,30 @@ export function deriveSource(a: Attribution): LeadSource {
   if (a.referrer || src) return 'organic';
   return 'direct';
 }
+
+/**
+ * Read-only view of what captureAttribution() stored: first touch (kept 90 days), last touch and the CRM lead source.
+ * Safe to call anywhere (returns empty objects on the server). Phase 2 booking calls this when it builds a payload.
+ * The site root (components/seo/AnalyticsRoot) calls captureAttribution() on EVERY landing, so a UTM/gclid/fbclid is
+ * remembered even if the visitor reaches /book from a different page than the one the ad pointed at.
+ */
+export function getAttribution(): { first: Attribution; last: Attribution; source: LeadSource } {
+  if (typeof window === 'undefined') return { first: {}, last: {}, source: 'direct' };
+  let stored: { first?: Attribution; last?: Attribution } = {};
+  try { stored = JSON.parse(localStorage.getItem(STORE_KEY) ?? '{}'); } catch { /* ignore */ }
+  const first = stored.first ?? {};
+  const last = stored.last ?? {};
+  // Credit the paid/click-id touch if either touch has one, otherwise the last touch.
+  const source = deriveSource(first.gclid || first.fbclid ? first : last);
+  return { first, last, source };
+}
+
+/** Meta click/browser ids for CAPI matching: _fbc is built from fbclid when the cookie is missing. */
+export function metaIdentifiers(): { fbp?: string; fbc?: string } {
+  if (typeof document === 'undefined') return {};
+  const cookie = (n: string) => document.cookie.split('; ').find((c) => c.startsWith(`${n}=`))?.slice(n.length + 1);
+  const fbp = cookie('_fbp');
+  let fbc = cookie('_fbc');
+  if (!fbc) { const id = getAttribution().last.fbclid ?? getAttribution().first.fbclid; if (id) fbc = `fb.1.${Date.now()}.${id}`; }
+  return { ...(fbp ? { fbp } : {}), ...(fbc ? { fbc } : {}) };
+}
