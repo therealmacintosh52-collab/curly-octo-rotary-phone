@@ -98,7 +98,6 @@ await page.waitForSelector('[role="group"][aria-label="Open times"] button', { t
 const slotCount = await page.locator('[role="group"][aria-label="Open times"] button').count();
 check(slotCount >= 2, `${slotCount} real time chips offered`);
 await shot('06-slots');
-const firstSlot = (await page.locator('[role="group"][aria-label="Open times"] button').first().innerText()).trim();
 await page.locator('[role="group"][aria-label="Open times"] button').first().click();
 await page.waitForTimeout(1500);
 
