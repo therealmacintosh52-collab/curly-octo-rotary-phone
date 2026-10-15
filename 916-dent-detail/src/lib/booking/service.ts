@@ -19,6 +19,7 @@ import { decisionMessage, evaluateCancel, evaluateReschedule, policyLines } from
 import { transition, type BookingStatus } from './state';
 import type { CreateBookingInput } from './schema';
 import { signBookingToken, verifyBookingToken } from './tokens';
+import { primeSettings } from '@/lib/admin/settings';
 
 const MIN = 60_000;
 const HOUR = 3_600_000;
@@ -64,6 +65,7 @@ export async function createBooking(input: CreateBookingInput, idempotencyKey: s
     return { booking: prior, token: tokenFor(prior), payment: payment!, replay: true };
   }
 
+  await primeSettings(); // P3: owner duration overrides must be loaded before computeDuration
   const sel = validateSelection(input.services, input.sizeClass, input.addons);
   if (!sel.ok) throw new BookingError('invalid_selection', sel.error);
   const phone = normalizePhone(input.contact.phone);

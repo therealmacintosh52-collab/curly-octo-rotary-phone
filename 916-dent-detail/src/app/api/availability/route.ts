@@ -4,6 +4,7 @@ import { assessZip } from '@/lib/geo';
 import { availabilityFor } from '@/lib/booking/loader';
 import { availabilityQuerySchema } from '@/lib/booking/schema';
 import { computeDuration, validateSelection } from '@/lib/pricing';
+import { primeSettings } from '@/lib/admin/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
     if (!sel.ok) return fail(400, 'invalid_selection', sel.error);
     const area = assessZip(q.zip);
     if (area.status !== 'in_area') return fail(422, 'out_of_area', area.message, { area });
+    await primeSettings(); // P3: owner duration overrides
     const durationMin = computeDuration({ services: sel.services, sizeClass: sel.sizeClass, addons: sel.addons, panels: q.panels });
     const exterior = sel.services.some((s) => serviceById(s)?.exterior);
     const { slots, days, horizonDays } = await availabilityFor(Date.now(), { durationMin, zip: q.zip, exterior, fromDate: q.fromDate, days: q.days, excludeBookingId: q.excludeBookingId });

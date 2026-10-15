@@ -3,10 +3,12 @@ import { bookingConfig } from '@/config/booking';
 import { checkSlot, computeAvailability, type AvailabilityInput, type LiveBooking, type TechInfo } from '@/lib/availability/engine';
 import { parseHHMM } from '@/lib/availability/tz';
 import { repo } from '@/lib/db';
+import { engineOverrides } from '@/lib/admin/settings';
 
 export async function loadAvailabilityInput(now: number, request: AvailabilityInput['request']): Promise<AvailabilityInput> {
   const db = repo();
-  const [techs, avail, blackouts, blocks, bookings, weather] = await Promise.all([
+  const [config, techs, avail, blackouts, blocks, bookings, weather] = await Promise.all([
+    engineOverrides(), // P3: owner-edited buffers/caps (falls back to config)
     db.techs.list({ where: { active: true } }),
     db.tech_availability.list(),
     db.blackout_dates.list(),
@@ -30,6 +32,7 @@ export async function loadAvailabilityInput(now: number, request: AvailabilityIn
     bookings: live,
     weatherFlags: Object.fromEntries(weather.map((w) => [w.date, w.reason ?? 'weather'])),
     request,
+    config,
   };
 }
 

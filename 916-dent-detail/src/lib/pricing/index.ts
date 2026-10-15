@@ -105,6 +105,18 @@ export function computePrice(input: PriceInput): PriceResult {
   };
 }
 
+/**
+ * P3: owner overrides from /admin (settings table), pushed in by lib/admin/settings.primeSettings(). Absent keys fall back to
+ * config/booking.ts, so with no overrides behaviour is unchanged.
+ */
+export type DurationOverrides = {
+  durations?: Partial<Record<ServiceId, Partial<Record<SizeClass, number>>>>;
+  dentMinutes?: Partial<typeof dentMinutes>;
+  multiServiceSavingsMin?: number;
+};
+let overrides: DurationOverrides = {};
+export const setDurationOverrides = (o: DurationOverrides): void => { overrides = o; };
+
 /** Appointment length in minutes (rounded up to the configured step). `panels` = photo-quote panel count for dent work. */
 export function computeDuration(input: { services: string[]; sizeClass: string; addons?: string[]; panels?: number | null }): number {
   const v = validateSelection(input.services, input.sizeClass, input.addons ?? []);
@@ -113,10 +125,10 @@ export function computeDuration(input: { services: string[]; sizeClass: string; 
   for (const s of v.services) {
     if (isDentService(s) && input.panels && input.panels > 0) {
       const panels = Math.min(input.panels, dentPricing.maxPanels);
-      total += dentMinutes.setup + dentMinutes.perPanel * panels * (s === 'hail' ? 1.5 : 1);
-    } else total += durations[s][v.sizeClass];
+      total += (overrides.dentMinutes?.setup ?? dentMinutes.setup) + (overrides.dentMinutes?.perPanel ?? dentMinutes.perPanel) * panels * (s === 'hail' ? 1.5 : 1);
+    } else total += overrides.durations?.[s]?.[v.sizeClass] ?? durations[s][v.sizeClass];
   }
-  total -= multiServiceSavingsMin * (v.services.length - 1);
+  total -= (overrides.multiServiceSavingsMin ?? multiServiceSavingsMin) * (v.services.length - 1);
   for (const a of v.addons) total += addonDefs.find((d) => d.id === a)!.minutes;
   const step = bookingConfig.roundDurationToMin;
   return Math.ceil(Math.max(total, step) / step) * step;
