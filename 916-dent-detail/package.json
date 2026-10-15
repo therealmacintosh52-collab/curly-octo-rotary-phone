@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/check-similarity.mjs --quiet",
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "eslint .",
@@ -13,7 +14,9 @@
     "check:owner": "node scripts/check-owner.mjs",
     "verify": "npm run typecheck && npm run lint && npm run build",
     "test": "vitest run",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "check:content": "node scripts/check-similarity.mjs",
+    "check:seo": "node scripts/check-seo.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

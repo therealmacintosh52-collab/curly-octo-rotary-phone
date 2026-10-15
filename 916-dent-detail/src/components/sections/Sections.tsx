@@ -7,6 +7,7 @@ import { BookLink, CallLink, QuoteLink, TextLink } from '../CtaLinks';
 import { PanelArt } from './PlaceholderArt';
 import { FaqList } from './FaqList';
 import { ServiceIcon } from './ServiceIcon';
+import { serviceHrefForLegacyId } from '@/lib/seo/content';
 
 function Head({ eyebrow, title, lede, id }: { eyebrow: string; title: string; lede?: string; id: string }) {
   return (
@@ -58,7 +59,7 @@ export function ServicesGrid({ list = services }: { list?: Service[] }) {
         <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((s) => (
             <li key={s.id} data-m>
-              <Link href={`/services#${s.id}`} className="card group flex h-full flex-col p-7 transition-colors hover:border-gold-deep">
+              <Link href={serviceHrefForLegacyId(s.id)} className="card group flex h-full flex-col p-7 transition-colors hover:border-gold-deep">
                 <ServiceIcon name={s.icon} />
                 <h3 className="mt-6 text-[1.05rem] tracking-wide">{s.plain}</h3>
                 <p className="mt-1 text-xs uppercase tracking-[0.14em] text-steel">{s.term}</p>

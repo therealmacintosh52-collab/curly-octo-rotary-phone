@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { nav, site } from '@/config/site';
-import { cities, services } from '@/content/home';
+import { allCities, allServices, cityPath, servicePath } from '@/lib/seo/content';
 import { CallLink, TextLink } from './CtaLinks';
 import { Logo } from './Logo';
 
@@ -49,9 +49,9 @@ export function Footer() {
         <div>
           <h2 className="eyebrow">Services</h2>
           <ul className="mt-5 space-y-2 text-sm">
-            {services.map((s) => (
-              <li key={s.id}>
-                <Link href={`/services#${s.id}`} className="text-steel hover:text-gold-light">
+            {allServices.map((s) => (
+              <li key={s.slug}>
+                <Link href={servicePath(s.slug)} className="text-steel hover:text-gold-light">
                   {s.plain} <span className="sr-only">({s.term})</span>
                 </Link>
               </li>
@@ -62,13 +62,15 @@ export function Footer() {
             {nav.map((n) => (
               <li key={n.href}><Link href={n.href} className="text-steel hover:text-gold-light">{n.label}</Link></li>
             ))}
+            <li><Link href="/areas" className="text-steel hover:text-gold-light">Service areas</Link></li>
+            <li><Link href="/blog" className="text-steel hover:text-gold-light">Blog</Link></li>
           </ul>
         </div>
 
         <div>
           <h2 className="eyebrow">Service area</h2>
           <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-steel">
-            {cities.map((c) => <li key={c.name}>{c.name}</li>)}
+            {allCities.map((c) => <li key={c.slug}><Link href={cityPath(c.slug)} className="hover:text-gold-light">{c.name}</Link></li>)}
           </ul>
         </div>
       </div>
