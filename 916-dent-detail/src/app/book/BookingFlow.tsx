@@ -34,7 +34,20 @@ export function BookingFlow() {
     history.replaceState({ step: d ? Math.min(d.step, maxReachable(d)) : 1 }, '');
   }, []);
 
-  useEffect(() => { if (ready) saveDraft(flow); }, [flow, ready]);
+  // Persist the draft off the interaction path: saveDraft serialises the whole flow (photo thumbnails included) and writes localStorage,
+  // which is noticeable on a throttled phone. Debounced, and flushed when the page is hidden or closed so nothing typed is lost.
+  useEffect(() => {
+    if (!ready) return;
+    const t = window.setTimeout(() => saveDraft(flow), 350);
+    return () => clearTimeout(t);
+  }, [flow, ready]);
+  useEffect(() => {
+    if (!ready) return;
+    const flush = () => { if (document.visibilityState === 'hidden') saveDraft(flowRef.current); };
+    document.addEventListener('visibilitychange', flush);
+    window.addEventListener('pagehide', flush);
+    return () => { document.removeEventListener('visibilitychange', flush); window.removeEventListener('pagehide', flush); };
+  }, [ready]);
 
   useEffect(() => {
     if (!started.current && flow.services.length > 0) {
@@ -57,7 +70,11 @@ export function BookingFlow() {
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
       const f = flowRef.current;
-      const n = Number((e.state as { step?: number } | null)?.step ?? 1);
+      // Only OUR history entries (pushState({ step })) are step changes. A fragment navigation (the skip link, any #anchor) also fires popstate
+      // with state === null; treating that as "go to step 1" threw the visitor back to the first step and stole focus (found by the P8 keyboard test).
+      const st = e.state as { step?: number } | null;
+      if (typeof st?.step !== 'number') return;
+      const n = st.step;
       if (f.confirmed) return;
       const target = Math.max(1, Math.min(n, maxReachable(f), 7));
       dispatch({ type: 'patch', patch: { step: target } });

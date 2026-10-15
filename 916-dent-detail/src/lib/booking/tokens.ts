@@ -11,7 +11,8 @@ function secret(): string {
   return DEV_SECRET;
 }
 const b64 = (s: string) => Buffer.from(s).toString('base64url');
-const sign = (payload: string) => createHmac('sha256', secret()).update(payload).digest('base64url');
+// domain-separated: a signature made for one kind of token can never validate as another (admin/dealer/chat tokens use their own prefix)
+const sign = (payload: string) => createHmac('sha256', secret()).update(`booking-token:${payload}`).digest('base64url');
 
 export function signBookingToken(bookingId: string, expiresAtMs: number): string {
   const payload = b64(JSON.stringify({ b: bookingId, e: Math.floor(expiresAtMs / 1000) }));

@@ -38,6 +38,17 @@ test.describe('seo smoke', () => {
     expect(await types('/blog/can-every-dent-be-fixed-without-paint')).toMatch(/"BlogPosting"|"Article"/);
   });
 
+  test('security headers are on every response, including API and 404', async ({ request }) => {
+    for (const path of ['/', '/book', '/api/geo/zip?zip=95624', '/this-page-does-not-exist']) {
+      const h = (await request.get(path)).headers();
+      expect(h['x-content-type-options'], path).toBe('nosniff');
+      expect(h['referrer-policy'], path).toBe('strict-origin-when-cross-origin');
+      expect(h['x-frame-options'], path).toBe('SAMEORIGIN');
+      expect(h['permissions-policy'], path).toContain('microphone=()');
+      expect(h['x-powered-by'], path).toBeUndefined();
+    }
+  });
+
   test('robots.txt and sitemap.xml: private areas disallowed, every sitemap URL resolves, no private URL listed', async ({ request }) => {
     const robots = await (await request.get('/robots.txt')).text();
     for (const d of ['/admin', '/booking/', '/invoice/', '/api/', '/dealers/dashboard']) expect(robots).toContain(`Disallow: ${d}`);

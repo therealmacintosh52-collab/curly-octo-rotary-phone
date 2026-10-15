@@ -1,4 +1,4 @@
-import { ok, fail, guard } from '@/lib/api/http';
+import { ok, fail, guard, requireContentLength } from '@/lib/api/http';
 import { HttpError, sameOrigin } from '@/lib/admin/api';
 import { jobForSession } from '@/lib/admin/access';
 import { actorOf } from '@/lib/admin/events';
@@ -15,8 +15,8 @@ export async function POST(req: Request) {
     if (!sameOrigin(req)) return fail(403, 'bad_origin', 'Cross-site request refused.');
     const s = await getSession();
     if (!s) return fail(401, 'unauthenticated', 'Please sign in.');
-    const len = Number(req.headers.get('content-length') ?? 0);
-    if (len > bookingConfig.photos.maxBytes + 200_000) return fail(413, 'too_large', 'Photo too large.');
+    const sized = requireContentLength(req, bookingConfig.photos.maxBytes + 200_000);
+    if (sized) return sized;
     const fd = await req.formData().catch(() => null);
     if (!fd) return fail(400, 'bad_form', 'Bad upload.');
     const jobId = String(fd.get('jobId') ?? '');

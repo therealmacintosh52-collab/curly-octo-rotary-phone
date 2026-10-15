@@ -1,8 +1,10 @@
 # RLS intent: who may touch what (owner vs tech vs anon)
 
-SQL is NOT executed in the build environment (no Postgres), so this is a reviewed statement of intent plus
-`tests/unit/rls-intent.test.ts`, which statically checks the migration text. Run the SQL checks at the bottom in the
-Supabase SQL editor after applying 0001 and 0002.
+**Phase 8 update:** this intent is now ALSO executed. `tests/unit/rls-pglite.test.ts` applies migrations 0001 to 0005 and `seed.sql` to an
+in-memory Postgres (PGlite, with Supabase role and `auth.uid()` stubs) and asserts the table below for anon, a signed-in stranger, owner, admin,
+two technicians and two dealers (it found the gaps fixed in `0005_security_fixes.sql`). It is still not Supabase itself (no PostgREST, no JWT
+verification, no Storage engine), so run the SQL checks at the bottom once in the real project's SQL editor after the first deploy.
+`tests/unit/rls-intent.test.ts` additionally checks the migration text statically.
 
 Important: the Next.js server uses the SERVICE ROLE (bypasses RLS) after verifying the signed admin session
 (`src/lib/auth`). RLS is defence in depth for any direct client access and for dashboard users.

@@ -48,7 +48,7 @@ export default function DealersPage() {
         </ul>
       </section>
 
-      <section id="pricing" aria-labelledby="dl-price" className="section border-t border-line/60">
+      <section id="pricing" aria-labelledby="dl-price" className="section section-cv border-t border-line/60">
         <div className="wrap grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
           <div>
             <p className="eyebrow">Wholesale pricing</p>
@@ -59,7 +59,7 @@ export default function DealersPage() {
         </div>
       </section>
 
-      <section id="how" aria-labelledby="dl-how" className="section border-t border-line/60" data-motion="steps">
+      <section id="how" aria-labelledby="dl-how" className="section section-cv border-t border-line/60" data-motion="steps">
         <div className="wrap">
           <p className="eyebrow">How it works</p>
           <h2 id="dl-how" className="h2 mt-4">Dealer recon in four steps</h2>
@@ -78,7 +78,7 @@ export default function DealersPage() {
         </div>
       </section>
 
-      <section aria-labelledby="dl-who" className="section border-t border-line/60">
+      <section aria-labelledby="dl-who" className="section section-cv border-t border-line/60">
         <div className="wrap">
           <p className="eyebrow">Who we serve</p>
           <h2 id="dl-who" className="h2 mt-4">Built for people who run a lot</h2>
@@ -93,7 +93,7 @@ export default function DealersPage() {
         </div>
       </section>
 
-      <section aria-labelledby="dl-portal" className="section border-t border-line/60">
+      <section aria-labelledby="dl-portal" className="section section-cv border-t border-line/60">
         <div className="wrap grid gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <p className="eyebrow">The dealer portal</p>
@@ -115,7 +115,7 @@ export default function DealersPage() {
         </div>
       </section>
 
-      <section id="wholesale-sheet" aria-labelledby="dl-sheet" className="section border-t border-line/60">
+      <section id="wholesale-sheet" aria-labelledby="dl-sheet" className="section section-cv border-t border-line/60">
         <div className="wrap grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
           <div>
             <p className="eyebrow">Wholesale sheet</p>
@@ -126,7 +126,7 @@ export default function DealersPage() {
         </div>
       </section>
 
-      <section aria-labelledby="dl-faq" className="section border-t border-line/60">
+      <section aria-labelledby="dl-faq" className="section section-cv border-t border-line/60">
         <div className="wrap grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
           <div>
             <p className="eyebrow">Dealer FAQ</p>
@@ -136,7 +136,7 @@ export default function DealersPage() {
         </div>
       </section>
 
-      <section aria-labelledby="dl-cta" className="section border-t border-line/60 text-center">
+      <section aria-labelledby="dl-cta" className="section section-cv border-t border-line/60 text-center">
         <div className="wrap">
           <h2 id="dl-cta" className="h2 mx-auto max-w-2xl">Get the next car frontline-ready</h2>
           <p className="lede mx-auto mt-5">Open an account today. We approve dealers by hand and you can submit your first list as soon as you are in.</p>

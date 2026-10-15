@@ -19,7 +19,7 @@ export default function PricingPage() {
       </PageIntro>
       <section aria-labelledby="pr-from" className="wrap pb-6">
         <h2 id="pr-from" className="h2">Starting points</h2>
-        <div className="card mt-8 overflow-x-auto" role="region" aria-labelledby="pr-from" tabIndex={0}>
+        <div className="card mt-8 overflow-x-auto" role="region" aria-label="Starting prices by service, scrollable table" tabIndex={0}>
           <table className="w-full min-w-[32rem] text-left text-sm">
             <caption className="sr-only">Starting prices by service</caption>
             <thead><tr className="border-b border-line text-steel"><th scope="col" className="p-5 font-normal">Service</th><th scope="col" className="p-5 font-normal">Also called</th><th scope="col" className="p-5 text-right font-normal">From</th></tr></thead>

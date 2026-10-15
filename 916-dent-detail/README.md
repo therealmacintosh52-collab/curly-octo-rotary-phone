@@ -1,232 +1,192 @@
 # 916 Dent & Detail
 
-Mobile paintless dent repair + detailing site for Sacramento. Next.js 16 (App Router, TypeScript strict),
-Tailwind v4, GSAP + ScrollTrigger + Lenis. Owner spec: [`SPEC.md`](SPEC.md). Assumptions: [`DECISIONS.md`](DECISIONS.md).
-Open items: [`TODO.md`](TODO.md).
+Website, booking engine, CRM (`/admin`), AI booking assistant ("916 Concierge"), dealer portal and SEO for a Sacramento mobile
+paintless-dent-repair and detailing business. Next.js 16 (App Router, TypeScript strict), Tailwind v4, Supabase, Stripe, Twilio, Resend,
+Anthropic. Owner spec: [`SPEC.md`](SPEC.md) · assumptions: [`DECISIONS.md`](DECISIONS.md) · open items: [`TODO.md`](TODO.md) ·
+**launch report, checklist and rollback: [`LAUNCH.md`](LAUNCH.md)** · security review: [`SECURITY.md`](SECURITY.md) ·
+per-phase technical reference: [`docs/REFERENCE.md`](docs/REFERENCE.md) · scheduler options: [`docs/SCHEDULER.md`](docs/SCHEDULER.md).
 
-**Status:** Phase 1 (scroll-scrub hero + marketing site), Phase 2 (booking), Phase 3 (CRM + /admin) and Phase 6 (SEO + local) built locally. Not deployed. Nothing is live.
+**Status: built and tested locally in mock mode. Not deployed. Nothing is live, no account exists, no real message has been sent.**
+Every external service runs in a clearly-labelled mock mode until its keys are set, so the whole product works with zero keys.
 
-## Run it
-
-Requires Node 20.9+ (built on Node 22). No API keys needed for Phase 1.
+## Run it with zero keys
 
 ```bash
 npm install
-npm run dev            # http://localhost:3000 (dev mode, slower, no perf numbers)
-npm run build && npm start   # production build on :3000 (use this for Lighthouse)
+npm run dev                  # http://localhost:3000 (dev mode: slow, no perf numbers)
+npm run build && npm start   # production build (use this for demos and Lighthouse)
+npm run doctor               # which services are live / mock, and exactly what is missing
+npm run seed -- --demo       # sample customers, leads, bookings and an escalated chat -> .data/mock-db.json
+MOCK_DB_FILE=.data/mock-db.json ADMIN_DEMO_LOGIN=1 npm start   # production build with that data and the demo logins
 ```
 
-Optional: `cp .env.example .env.local` and set `NEXT_PUBLIC_SITE_URL` once the domain exists.
-Opt out of Next.js telemetry with `npx next telemetry disable` or `NEXT_TELEMETRY_DISABLED=1`.
+Node 20.9+ (built on Node 22). In the app: `/book` (booking), `/admin` (owner + tech app; the login page shows **DEMO** users in mock mode),
+`/dealers` (dealer portal; "DEMO" sign-in), chat bubble bottom-right on every public page.
 
-## Scripts
+## Commands
 
 | Command | What it does |
 |---|---|
-| `npm run dev` / `build` / `start` | Next.js dev server / production build / production server on :3000 |
-| `npm run typecheck` | `tsc --noEmit` (strict) |
-| `npm run lint` | ESLint (next core-web-vitals + typescript) |
-| `npm run verify` | typecheck + lint + build |
-| `npm run media` | Regenerate every image/video asset in `public/` from `brand/` (needs `ffmpeg`, `ffprobe`). Steps can run alone: `node scripts/media.mjs logo favicons og video frames beading manifest` |
-| `bash scripts/subset-fonts.sh` | Re-create the subset Michroma/Inter woff2 files in `src/fonts/` from the `@fontsource` packages (needs `pip install fonttools brotli`) |
-| `npm run check:content` | Word-count + 5-word-shingle Jaccard similarity gate for services, cities, posts (also runs as `prebuild`; fails >35% overlap) |
-| `npm run check:seo` | Starts the production server (builds if needed), crawls every internal link and asserts h1/title/description/canonical/OG/JSON-LD/sitemap/redirect/404 rules. `--no-build`, `--port=`, `--base=` supported |
-| `node scripts/qa-seo.mjs [url] [outDir]` | axe + mobile/desktop screenshots of a service, city, blog and hub page |
-| `npm run check:owner` | Launch gate: lists every `[OWNER]` placeholder left in `src/`; exits 1 while any remain |
-| `node scripts/shots.mjs [url] [outDir] [--reduced]` | Playwright screenshots, mobile 390x844 + desktop 1440x900, hero at 0/35/70/100% and every section |
-| `node scripts/axe.mjs [url]` | axe-core audit of every route (mobile, desktop, reduced motion); exits 1 on serious/critical |
-| `CHROME_PATH=... node scripts/lh.mjs [url] [outDir] [--desktop] [--runs=N]` | Lighthouse (mobile preset by default), prints a score table |
+| `npm run verify` | **the release gate**: tsc, eslint, vitest (unit + bot), production build, `check:seo`, `check:owner` (report only; `--strict-owner` makes it fatal), Playwright e2e (mock mode, mobile + desktop), axe on every route class. Exits non-zero on any real failure. `--skip=e2e,axe` / `--only=unit,build` to narrow |
+| `npm test` | all vitest tests (`tests/unit`, `tests/bot`) |
+| `npm run test:bot` | the 15 Concierge scenarios + 13 adversarial cases (offline mock policy; `BOT_LIVE=1 ANTHROPIC_API_KEY=… npx vitest run tests/bot/scenarios.test.ts` for the live model) |
+| `npm run test:e2e` | Playwright against the production build in mock mode (`playwright.config.ts`; starts its own server on :3210; projects `mobile` 390x844 and `desktop` 1440x900) |
+| `npm run axe` | axe-core on every public route class, 3 contexts (mobile, desktop, reduced motion) against a running server |
+| `npm run lhci` | Lighthouse CI (6 URLs x 3 runs, mobile preset, assertions on the median) against the production build; uses the sandbox Chromium via `CHROME_PATH` |
+| `npm run doctor` | environment check, never prints secrets. `-- --production` also fails while a launch service is still in mock mode |
+| `npm run setup:admin -- --email you@x.com` | creates the owner login (live: Supabase admin API; mock: prints the demo credentials) |
+| `npm run seed` | writes the mock database file (`--demo` adds sample data); live data uses `supabase/seed.sql` |
+| `npm run deploy` | **dry run by default**: prints the preflight + `vercel deploy --prod` plan. `-- --yes` runs it (see step 14) |
+| `npm run check:owner` | lists every `[OWNER]` placeholder still in the code (the launch checklist) |
+| `npm run check:seo` / `check:content` | SEO crawl gate / content-similarity gate (the latter also runs on `prebuild`) |
+| `npm run leave-behind` | regenerates `public/dealers/leave-behind.pdf` (set `NEXT_PUBLIC_SITE_URL` first so the QR code is right) |
+| `npm run media` | regenerates every image/video asset in `public/` from `brand/` (needs `ffmpeg`) |
 
-Shots/axe use Playwright 1.56 browsers: set `PLAYWRIGHT_BROWSERS_PATH` if they are not in the default cache.
+---
 
-## Layout
+# Setup guide: every key, in order
 
-```
-brand/                 source assets from the owner (logo.jpg, hero-beading.png, hero-video.mp4)
-public/                generated assets (do not hand-edit; run `npm run media`)
-  brand/               logo-transparent.png, d-mark*.png/webp
-  hero/m, hero/d       121 WebP scrub frames (mobile 720x1280, desktop 720x1000 crop)
-  hero/poster-*, static-*   frame 0 (LCP poster) and last frame (reduced-motion state), AVIF + WebP
-  beading/             hero-beading in 2 sizes + blurred/darkened backdrop
-scripts/               media pipeline, font subsetting, QA scripts
-src/app/               routes: / /services /dealers /pricing /reviews /book + 404, layout, fonts, manifest
-src/components/        Header, Footer, MobileCtaBar, hero/, sections/, BeforeAfter, SectionMotion
-src/config/site.ts     business facts (phone, email, hours, URLs) — [OWNER] placeholders
-src/config/pricing.ts  every price (null = [OWNER]); UI never hardcodes a number
-src/content/home.ts    copy: services (plain name + real term), steps, cities, FAQs
-src/lib/               analytics track(), motion loader (GSAP+Lenis on one ticker), head env script
-src/generated/media.ts written by the media pipeline (frame count, paths, inline blur placeholders)
-```
+Do these once, in this order. Each step says what to click, what to copy, and which variable it feeds. Put values in `.env.local` while
+testing locally and in Vercel (Project > Settings > Environment Variables, scope Production) for the real site. **Never commit `.env.local`.**
+After each service run `npm run doctor`: it shows LIVE for that service when the keys are right.
 
-## How the hero works
+Everything marked **[OWNER]** is a business fact only you can supply (phone number, prices, hours...). They are consolidated, with the exact file
+for each, in [`LAUNCH.md`](LAUNCH.md) section B.
 
-- Inline head script sets `html.scrub` before first paint unless `prefers-reduced-motion`, ≤2 CPU cores,
-  ≤2 GB device memory or Save-Data. That decides the track height (350svh vs 100svh) with no layout shift.
-- Frame 0 is a real `<img>` (AVIF/WebP, `fetchpriority="high"`). Reduced motion gets the last (beaded) frame via `<picture media>`.
-- First 10 frames preload 2.5 s after `load` (or on first scroll). GSAP/ScrollTrigger/Lenis and the remaining
-  frames load on the first scroll/touch/key, nearest-to-current first, then coarse-to-fine.
-- Copy is server-rendered HTML; scroll reveals beats at 30% and 60%.
+## 1. Domain and Vercel project
+1. Buy or pick the domain (for example `916dentdetail.com`). **[OWNER]**
+2. Create a Vercel account and a new project from the Git repository; set the **Root Directory** to `916-dent-detail` (this folder lives inside a larger repo).
+3. Framework preset: Next.js (auto-detected). Build command and output are the defaults (`npm run build`).
+4. Project > Settings > Domains: add the apex and `www`. Vercel then shows the exact DNS records to create at your registrar. As of writing the apex
+   record is an `A` to `76.76.21.21` and `www` is a `CNAME` to `cname.vercel-dns.com`; **use whatever the dashboard shows**. Wait for the green check.
+5. Set `NEXT_PUBLIC_SITE_URL=https://YOUR-DOMAIN` (no trailing slash) in Vercel **before the production build**: canonical URLs, sitemap, schema, OG images,
+   Twilio signature checking and the dealer QR code all derive from it. Changing it later needs a redeploy.
+6. **Vercel plan:** crons that run every 5/10 minutes (reminders, hold expiry, missed-call text-back) need **Pro**. Hobby only runs crons once a day.
+   Alternatives (GitHub Actions, cron-job.org): [`docs/SCHEDULER.md`](docs/SCHEDULER.md). Decide before launch; without it reminders do not go out on time.
 
-## Phase 6: SEO + local
+## 2. Supabase (database, auth, photo storage)
+1. supabase.com > New project. Pick the region closest to Sacramento (West US), set a strong database password (store it in a password manager; the app does not use it).
+2. Project Settings > API: copy **Project URL** -> `NEXT_PUBLIC_SUPABASE_URL`, **anon public** key -> `NEXT_PUBLIC_SUPABASE_ANON_KEY`, **service_role** key -> `SUPABASE_SERVICE_ROLE_KEY`.
+   The service-role key bypasses all row-level security: server-side only, never in a `NEXT_PUBLIC_` variable, never in the browser.
+3. SQL Editor > New query. Run these files **in this order**, one at a time, each must finish without error:
+   `supabase/migrations/0001_init.sql` -> `0002_admin.sql` -> `0003_concierge.sql` -> `0004_dealers.sql` -> `0005_security_fixes.sql`, then `supabase/seed.sql`
+   (services, two placeholder technicians named "[OWNER] Tech One/Two", Mon-Sat 8-17 hours). Re-running `seed.sql` is safe. Never edit an applied migration: add `0006_…`.
+   (CLI alternative: `supabase link --project-ref …` then `supabase db push`, then run `seed.sql`.)
+4. Storage: `0005` creates the private bucket `photos` (images only, 5 MB cap) when run in Supabase. Check Storage > Buckets shows `photos` with **Public = off**.
+   If you want another bucket name, create it private yourself and set `SUPABASE_PHOTOS_BUCKET`.
+5. Authentication > URL Configuration: **Site URL** = `https://YOUR-DOMAIN`; **Redirect URLs** add `https://YOUR-DOMAIN/admin/auth/callback`.
+6. Authentication > Providers: keep **Email** enabled (used for owner magic links and dealer passwords). Authentication > Sign In / Providers settings:
+   leave "Confirm email" as you like (dealer accounts are created server-side and gated by your approval; owner accounts by `setup:admin`).
+   Optional hardening: turn **off** "Allow new users to sign up" once your owner, techs and any dealers exist (dealers sign up through the server, not the public endpoint).
+7. Set the app secrets (generate each with `openssl rand -base64 48`):
+   `BOOKING_TOKEN_SECRET` (signs booking links and chat sessions, 32+ chars, **required** once Supabase is set), `ADMIN_SESSION_SECRET` (admin cookie, 32+),
+   `DEALER_SESSION_SECRET` (dealer cookie, 32+), `CRON_SECRET` (24+, see step 11). Use different values for each.
+8. Technicians: in Authentication > Users create each tech (email + password or invite). In Table Editor: add a row in `techs` (name, phone, home_zip, color) and set the
+   user's `profiles` row to `role = tech`, `tech_id = <that techs.id>` (create the `profiles` row with the user's id if it does not exist). Edit weekly hours in `tech_availability`.
+9. Run `npm run doctor`: Supabase should say LIVE.
 
-- Content: `src/content/seo/services/*.ts` (9), `src/content/seo/cities/*.ts` (14, plus `extra.ts`), `content/blog/*.mdx` (10). Templates: `src/components/seo/`. Helpers: `src/lib/seo/` (schema, metadata, blog loader, og, travel note). Redirect map: `src/config/redirects.ts`.
-- Routes: `/services` hub + `/services/<slug>`, `/areas` hub + `/areas/<city>`, `/blog`, `/blog/<slug>`, `/blog/tag/<tag>`, `/blog/rss.xml`, `sitemap.xml`, `robots.txt`.
-- To add a post: drop `content/blog/<slug>.mdx` with `title, description (<=155), date, tags, services, cities` frontmatter. `<FromPrice service="pdr" />` and `<Callout>` are available in MDX.
-- Build in a separate folder while other work runs: `NEXT_DIST_DIR=.next-p6 npm run build`.
-
-## Analytics hooks (Phase 6)
-
-`track(event, props)` returns an `event_id` and fans out to GA4, Meta Pixel, Google Ads and Vercel Analytics, each env-gated and consent-gated (`src/lib/analytics-consent.ts`, banner in `components/seo/ConsentBanner.tsx`). Env: `NEXT_PUBLIC_GA4_ID`, `NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_GADS_ID` + labels. Server side: `sendCapiEvent` in `src/lib/analytics/capi.ts`. `getAttribution()` in `src/lib/attribution.ts` returns first/last touch.
-
-## Analytics hooks (Phase 1 note, superseded)
-
-`track(event, props)` in `src/lib/analytics.ts` pushes to `window.dataLayer`. Wired now: `call_click`,
-`text_click`, `quote_requested`, `booking_started`, `cta_click`. Phase 6 connects GA4 / Meta / Google Ads.
-
-## Phase 2: booking engine
-
-`/book` is the 8-step flow (services, vehicle, photos, ZIP and travel fee, real availability, contact, deposit, confirmation).
-`/booking/[token]` is the signed-link reschedule/cancel page. Pure logic lives in `src/lib/{pricing,geo,availability,booking}`,
-the shared data layer in `src/lib/db` (typed `repo()`), automations in `src/lib/notify`, photo quote in `src/lib/quote`.
-
+## 3. Owner login
 ```bash
-npm run test         # vitest: pricing, geo, tz/DST, availability, state machine, policy, quote, notify, full booking flow
-node scripts/book-flow.mjs http://localhost:3000   # Playwright walk of the whole flow on a phone viewport + axe (mock mode)
+# with the three Supabase variables in .env.local:
+npm run setup:admin -- --email you@your-domain.com --name "Alex"
 ```
+It creates (or finds) the Supabase auth user using the service-role key, confirms the email, and writes the `profiles` row with role `owner`. No password is invented or printed.
+Sign in at `/admin/login` with **Email me a sign-in link** (needs step 2.5), or pass `--password "12+ characters"` to also set one. A second owner: run it again with `--role admin` (same reach as owner).
+`--dry-run` shows what it would do. Alternative with no script: put the address in `ADMIN_EMAILS` and the first magic-link sign-in creates the owner profile.
+In mock mode it just prints how to use the DEMO logins. **Never set `ADMIN_DEMO_LOGIN=1` or `DEALERS_DEMO_LOGIN=1` on the real site** (they are ignored when Supabase is configured, and `doctor --production` fails if they are set).
 
-### Mock mode (no keys)
-| Service | Without keys | With keys |
-|---|---|---|
-| Supabase | in-memory seeded store (`MOCK_DB_FILE` persists to a file) | Postgres via `supabase/migrations/0001_init.sql`, RLS on, service-role client server-side |
-| Stripe | fake `pi_mock_*` intent, "DEMO MODE" confirm button | Payment Element, webhook-verified |
-| Twilio / Resend | logged (masked) + in-memory outbox | real sends |
-| Anthropic | deterministic rule-based quote labelled DEMO | `claude-sonnet-5-5` vision, structured JSON, clamped |
-| Google Calendar | no-op | write-only sync per tech calendar |
+## 4. Stripe (deposits, invoices, memberships, dealer net-terms)
+1. stripe.com > create the account and complete business verification (the owner does this). Start in **Test mode** (toggle top right) and finish the whole flow with test cards before going live.
+2. Developers > API keys: **Publishable key** -> `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, **Secret key** -> `STRIPE_SECRET_KEY`. Test keys start `pk_test_`/`sk_test_`, live `pk_live_`/`sk_live_`; they must be the same mode.
+3. **Webhooks.** Developers > Webhooks > Add endpoint, three separate endpoints (each has its own signing secret, shown after you create it). Use your real domain:
 
-### Env keys by service
-| Service | Keys |
-|---|---|
-| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PHOTOS_BUCKET` (private bucket) |
-| Stripe | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` (webhook URL `/api/stripe/webhook`, event `payment_intent.succeeded`) |
-| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` or `TWILIO_MESSAGING_SERVICE_SID` |
-| Resend | `RESEND_API_KEY`, `EMAIL_FROM` |
-| Anthropic | `ANTHROPIC_API_KEY`, optional `ANTHROPIC_MODEL` |
-| Google Calendar | `GOOGLE_CALENDAR_CLIENT_EMAIL`, `GOOGLE_CALENDAR_PRIVATE_KEY`, `GOOGLE_CALENDAR_IDS` |
-| App | `BOOKING_TOKEN_SECRET` (required with Supabase), `CRON_SECRET` (required in production), `BASE_ZIP`, optional `UPSTASH_REDIS_REST_URL/TOKEN` |
+   | Endpoint URL | Events to send | Variable for its signing secret (`whsec_…`) |
+   |---|---|---|
+   | `https://YOUR-DOMAIN/api/stripe/webhook` | `payment_intent.succeeded`, `payment_intent.payment_failed` | `STRIPE_WEBHOOK_SECRET` |
+   | `https://YOUR-DOMAIN/api/admin/stripe/webhook` | `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed` | `STRIPE_WEBHOOK_SECRET_ADMIN` |
+   | `https://YOUR-DOMAIN/api/dealers/stripe-webhook` | `invoice.paid`, `invoice.voided` | `STRIPE_DEALER_WEBHOOK_SECRET` |
 
-### How it fits together
-- Prices, durations, deposit, travel fees, policy windows and SMS consent wording are config: `src/config/pricing.ts`, `src/config/booking.ts`.
-- API: `/api/availability`, `/api/quote`, `/api/photos`, `/api/booking` (create, `Idempotency-Key` required), `/api/booking/[token]` (view, reschedule, cancel, pay, release, capi),
-  `/api/stripe/webhook`, `/api/geo/zip`, `/api/lead`, `/api/cron/dispatch`. All validated with zod, rate limited, no PII in logs.
-- Cron: `vercel.json` hits `/api/cron/dispatch` every 5 minutes (needs `CRON_SECRET`). It expires unpaid holds and sends due messages
-  (confirmation, 24h and 2h reminders, on-the-way, invoice + review request 2h after completion, 6-month rebook).
-- Phase 3 hooks: `sendOnTheWay()` and `scheduleAfterCompletion()` from `src/lib/notify`, `transition()` from `src/lib/booking/state`, `repo()` from `src/lib/db`.
-- Database: run `supabase/migrations/0001_init.sql`, then `supabase/seed.sql` (services, two placeholder techs, hours, a demo dealer).
+   `invoice.paid` goes to two endpoints on purpose: the admin endpoint handles only membership subscription invoices and ignores dealer invoices, the dealer endpoint handles only dealer invoices and ignores everything else (covered by `tests/unit/stripe-webhooks.test.ts`).
+4. **Products and prices: nothing to create.** Deposits, pay links, memberships and dealer invoices use inline `price_data`, so Stripe creates the products on first use. The three membership monthly prices are set in `src/config/pricing.ts` (`memberships[].priceMonthly`) **[OWNER]**.
+5. Settings > Billing > **Customer portal**: activate it (members manage or cancel their subscription there).
+6. **Invoicing** (dealer net terms) needs no extra setup beyond the secret key and the dealer webhook. Invoices are created as `send_invoice`; Stripe does not email them until you send them from the Stripe dashboard (our own "invoice ready" email goes to the dealer's AP address).
+7. **Terminal** (card reader, optional): needs hardware and `STRIPE_TERMINAL_LOCATION_ID`. The server routes exist; **the reader screen is not built**. Skip for launch; take card-present payments with a pay link or record cash/Zelle by hand.
+8. `npm run doctor` > Stripe LIVE. Then make a test booking with card `4242 4242 4242 4242` and confirm all three endpoints show successful deliveries in the Stripe dashboard.
 
-## Phase 4: 916 Concierge (AI booking assistant)
-Site chat widget, SMS (Twilio) and missed-call text-back, one agent behind all of them. Runs with **zero keys** (deterministic mock policy that still
-goes through the real tool executor and real guardrails); with `ANTHROPIC_API_KEY` it uses `claude-sonnet-5-5` (tool use, prompt caching, usage accounting).
-Threat model and every control: `src/lib/concierge/THREAT_MODEL.md`. Decisions: `DECISIONS.md` P4-001..P4-020.
+## 5. Twilio (text messages, missed-call text-back, the Concierge by text)
+1. twilio.com > create the account (owner). Buy a local **916** number (Phone Numbers > Buy a number, SMS + Voice capable).
+2. Copy **Account SID** -> `TWILIO_ACCOUNT_SID`, **Auth Token** -> `TWILIO_AUTH_TOKEN`, the number in E.164 (`+1916…`) -> `TWILIO_FROM_NUMBER` (or a Messaging Service SID -> `TWILIO_MESSAGING_SERVICE_SID`).
+3. `OWNER_ALERT_PHONES` = your mobile(s) in E.164, comma separated: escalation texts and call forwarding go here.
+4. **Inbound SMS webhook:** Phone Numbers > your number > Messaging configuration > *A message comes in* = Webhook, `https://YOUR-DOMAIN/api/sms`, **HTTP POST**
+   (if the number is in a Messaging Service, set the same URL under the service's Integration > Send a webhook; it overrides the number). Signature checking hashes the exact URL,
+   so `NEXT_PUBLIC_SITE_URL` (or `TWILIO_WEBHOOK_BASE_URL`) must be the public origin.
+5. **Missed calls**, pick one:
+   - the Twilio number is the business line: Voice configuration > *A call comes in* = Webhook, `https://YOUR-DOMAIN/api/voice/incoming`, POST (rings `OWNER_ALERT_PHONES` for 20 s, then texts the caller);
+   - your existing number forwards only unanswered calls to Twilio: set *A call comes in* to `https://YOUR-DOMAIN/api/voice/missed?mode=forwarded`, POST.
+6. Keep Twilio's default opt-out handling on (STOP, START, HELP). Put the HELP wording from `HELP_REPLY` in `src/lib/concierge/facts.ts` into Twilio's opt-out settings.
+7. **A2P 10DLC registration (required for reliable US delivery; carriers filter unregistered numbers):** Twilio Console > Messaging > Regulatory Compliance > A2P 10DLC.
+   Register the **Brand** (legal business name, EIN or sole-proprietor path, address, website = your domain), then a **Campaign** (use case such as Customer Care / Account Notifications).
+   Campaign fields: description = appointment confirmations, reminders, on-the-way alerts, receipts and review requests plus customer-initiated chat; **opt-in** = booking form checkbox at
+   `https://YOUR-DOMAIN/book` and the "REMIND ME" reply in chat (both show the full disclosure) with the terms page `https://YOUR-DOMAIN/terms#sms`; sample messages = copy from `src/lib/notify/templates.ts`;
+   privacy policy + terms URLs = `/privacy` and `/terms` **only after counsel has reviewed them and the template notice is removed**. Approval takes days to weeks: **start this first**.
+8. Test from a real phone: text the number, then `STOP`, then `START`, then `HELP`.
 
-### Pieces
-| Path | What |
-|---|---|
-| `src/lib/concierge/agent.ts` | channel-agnostic loop: gates -> model tool loop (max 8 iterations, 40 s, per-conversation USD/token cap with hand-off) -> output filter -> persist |
-| `tools.ts` | the 11 tools (`get_services`, `check_service_area`, `get_quote_range`, `check_availability`, `create_booking`, `send_deposit_link`, `reschedule_booking`, `cancel_booking`, `lookup_booking`, `create_lead`, `escalate_to_human`), zod-validated, authorization + provenance enforced server-side. Reuses `lib/{booking,availability,quote,pricing,geo}`; nothing re-implemented |
-| `prompt.ts`, `facts.ts` | persona + policy (static, cache-stable), objection playbook, customer-facing wording read from config |
-| `guardrails.ts` | sanitiser/fence, gibberish/abuse/legal/safety triggers, rate limits, output filter, PII-minimised logging helpers |
-| `memory.ts`, `state.ts` | shared memory per verified phone (Supabase `customer_memory`), conversation state, CRM lead per conversation, needs-human inbox queries |
-| `channels.ts`, `adapters/meta.ts` | channel adapter interface (web, sms) + documented stub for IG/FB DMs |
-| `twilio.ts`, `missedcall.ts`, `optout.ts`, `verify.ts` | signature validation, TwiML, MMS fetch; text-back; STOP/START/HELP; web phone verification |
-| `anthropic-model.ts`, `mock-model.ts`, `models.ts` | live client, offline policy (with adversarial modes for tests), cost math |
-| `src/components/chat/*` | widget: `ConciergeLauncher` (the only code shipped on every page) + lazy `ChatPanel` |
-| API | `POST /api/chat` (SSE), `/api/sms`, `/api/voice/{incoming,missed}`, `/api/concierge/{verify,history,cron}` |
-| Schema | `supabase/migrations/0003_concierge.sql` (run after 0001; independent of 0002/0004) |
+## 6. Resend (email)
+1. resend.com > create the account; Domains > Add domain: use a sending subdomain such as `mail.YOUR-DOMAIN` (keeps your main domain's reputation separate).
+2. Resend shows the DNS records to add at your registrar (typically a TXT for SPF, a TXT at `resend._domainkey` for DKIM, and an MX for bounce handling on the subdomain; use the exact values shown).
+   Also add a DMARC record at `_dmarc.YOUR-DOMAIN`, for example `v=DMARC1; p=none; rua=mailto:you@YOUR-DOMAIN`, and tighten `p=` after a few weeks of clean reports.
+3. Wait for **Verified**. API Keys > create a key with "Sending access" -> `RESEND_API_KEY`.
+4. `EMAIL_FROM="916 Dent & Detail <bookings@mail.YOUR-DOMAIN>"` (must be on the verified domain). `OWNER_ALERT_EMAILS` = where dealer-signup, add-on and escalation emails go (comma separated).
 
-### Env (all optional; empty = mock)
-`ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `CONCIERGE_MAX_COST_USD` (default 0.50 per conversation), `OWNER_ALERT_PHONES` (E.164, comma separated: escalation texts and call forwarding),
-`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` or `TWILIO_MESSAGING_SERVICE_SID`, `NEXT_PUBLIC_SITE_URL` (must be the public origin Twilio calls) or `TWILIO_WEBHOOK_BASE_URL`,
-`CRON_SECRET`, `BOOKING_TOKEN_SECRET` (also signs chat session tokens), optional `UPSTASH_REDIS_REST_URL/TOKEN`, `SMS_REPLY_MODE` (`async`|`twiml`), `CONCIERGE_SMS_KEYWORD_REPLIES=1`.
+## 7. Anthropic (photo quotes and the 916 Concierge)
+1. console.anthropic.com > create a key -> `ANTHROPIC_API_KEY`. Set a monthly spend limit in the console.
+2. Optional: `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `CONCIERGE_MAX_COST_USD` (default 0.50 per conversation), `CONCIERGE_RETENTION_DAYS` (default 180: chat transcripts older than this are deleted daily).
+3. **Before launch, read real transcripts**: all automated bot tests use the offline mock policy. Run `BOT_LIVE=1 ANTHROPIC_API_KEY=… npx vitest run tests/bot/scenarios.test.ts`, then chat with it yourself for an hour. Watch `cacheRead` in `concierge.usage` events to confirm prompt caching.
 
-### Twilio console wiring (exact)
-**Inbound SMS/MMS**
-1. Console > Phone Numbers > Manage > Active numbers > your number > *Messaging configuration* > **A message comes in** = *Webhook*, `https://YOUR-DOMAIN/api/sms`, **HTTP POST**.
-   If the number sits in a Messaging Service, set it there instead: Messaging > Services > your service > Integration > *Send a webhook*, Request URL `https://YOUR-DOMAIN/api/sms` (the service setting overrides the number).
-2. Set `NEXT_PUBLIC_SITE_URL=https://YOUR-DOMAIN` (or `TWILIO_WEBHOOK_BASE_URL`). The signature check hashes the exact URL Twilio called; a mismatch means every message is rejected with 403.
-3. Leave Twilio's default opt-out handling on (STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT / START, UNSTOP / HELP). Our webhook still records the opt-out on `customers.sms_opt_out_at` and stays silent for that number; it does **not** send a second reply when Twilio is live. Put our HELP wording in Twilio's opt-out settings (`HELP_REPLY` in `facts.ts`). If you turn Twilio's keyword replies off, set `CONCIERGE_SMS_KEYWORD_REPLIES=1`.
-4. Replies go out through `lib/sms` after the webhook returns an empty TwiML (a slow model never hits Twilio's 15 s limit). Without Twilio keys the reply comes back inside the TwiML (handy with a tunnel).
-5. A2P 10DLC brand + campaign registration is required for US delivery (see Phase 2 list). The bot's first message to a number always carries the STOP line.
+## 8. Analytics and ads (optional; nothing loads until an ID is set)
+- **GA4:** analytics.google.com > Admin > Data streams > Web: Measurement ID -> `NEXT_PUBLIC_GA4_ID`; Measurement Protocol API secret -> `GA4_API_SECRET`.
+- **Meta Pixel + Conversions API:** Events Manager > create Pixel -> `NEXT_PUBLIC_META_PIXEL_ID`; Settings > Conversions API > generate access token -> `META_CAPI_ACCESS_TOKEN`; `META_TEST_EVENT_CODE` only while testing in Test Events.
+- **Google Ads:** Conversions > create `quote_requested`, `booking_completed`, `call_click` actions: Ads ID (`AW-…`) -> `NEXT_PUBLIC_GOOGLE_ADS_ID`, each label -> `NEXT_PUBLIC_GOOGLE_ADS_LABEL_QUOTE` / `_BOOKING` / `_CALL`.
+- **Vercel Analytics:** on automatically on Vercel (enable it in the dashboard); `NEXT_PUBLIC_VERCEL_ANALYTICS=1` elsewhere.
+- A consent banner appears only once at least one ID is set. It links to `/privacy` (override with `NEXT_PUBLIC_PRIVACY_URL`).
 
-**Missed calls** (pick one)
-- **A. Twilio number is the business line.** *Voice configuration* > **A call comes in** = Webhook, `https://YOUR-DOMAIN/api/voice/incoming`, POST. It rings the numbers in `OWNER_ALERT_PHONES` for 20 s (`<Dial action=/api/voice/missed>`). If nobody answers (`no-answer`, `busy`, `failed`, `canceled`) Twilio calls `/api/voice/missed`, which texts the caller within seconds and plays a short goodbye.
-- **B. Your existing number forwards only unanswered calls to Twilio** (carrier conditional forwarding). Set the Twilio number's **A call comes in** webhook to `https://YOUR-DOMAIN/api/voice/missed?mode=forwarded`, POST. Every call that reaches it counts as missed.
+## 9. Google Calendar sync (optional, one-way push, built and unit tested against a stub; never run against Google)
+Each confirmed booking creates/updates/deletes one event on the assigned technician's calendar (no customer name, phone or email is written, only services, ZIP, address and the booking id).
+Google Cloud console > create a project > enable the **Google Calendar API** > IAM > Service Accounts > create one and a JSON key. Share each technician's calendar with the service account's email
+(Make changes to events). Then set `GOOGLE_CALENDAR_CLIENT_EMAIL` (the `client_email`), `GOOGLE_CALENDAR_PRIVATE_KEY` (the `private_key`, keep the `\n` escapes) and
+`GOOGLE_CALENDAR_IDS=alex=abc@group.calendar.google.com,sam=def@group.calendar.google.com` (first name, lowercase, = calendar id; or set `calendar_id` on the `techs` row).
+It is **write-only**: availability never reads Google, so vacations and personal blocks still go in `/admin/schedule/settings`.
 
-Rules enforced in code: one text-back per number per 6 h, none while a chat is active, none to opted-out numbers, owners or blocked caller ids, none between 9pm and 8am Pacific (queued; `/api/concierge/cron` sends it at 8am, scheduled in `vercel.json` every 10 min with `CRON_SECRET`; Hobby plans only run daily crons).
-Both voice routes validate `X-Twilio-Signature` the same way. With Supabase live and Twilio unconfigured they return 503.
+## 10. Upstash Redis (optional, recommended on Vercel)
+Without it rate limits are per serverless instance. upstash.com > create a Redis database > REST API: `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
 
-### Web chat details
-- Floating button on every public page (hidden under `/admin`), full-height sheet on phones, 400 px card on desktop. The chat panel is one lazy chunk that downloads only on pointer/focus/touch/click of the button: nothing loads on idle, so Lighthouse is unaffected (numbers in the P4 handoff).
-- Streams over SSE from `/api/chat`: tool-progress `status` events, then the reply in paced chunks. The reply is streamed **after** the output filter approves it (a filter cannot judge half a sentence), so this is not raw token streaming.
-- Photos: client-side resize, `POST /api/photos`, then attached to the message by path; the quote tool accepts only photos attached in that conversation.
-- Phone verification (needed to book or to look up / change / cancel): inline form, SMS code (live) or the fixed demo code `424242` (**offline demo only; never when Supabase is live**).
-- Cards (estimate, held time + "Pay $50 deposit" button, bookings list, verify form, hand-off) come from tool results, never from model text.
-- Conversation id + signed session token live in `localStorage` (`d916_concierge_v1`); reload restores the transcript via `/api/concierge/history`.
+## 11. Scheduled jobs (crons)
+`vercel.json` declares four crons (dispatch every 5 min, concierge every 10 min, transcript retention daily, dealer statements monthly). Set `CRON_SECRET` (step 2.7); Vercel sends it as
+`Authorization: Bearer …` automatically on **Pro**. On Hobby, or if you prefer, call the same four URLs from GitHub Actions or cron-job.org: copy-paste recipes in [`docs/SCHEDULER.md`](docs/SCHEDULER.md).
 
-### Hand-off contract for the admin inbox (Phase 3)
-`conversations.status = 'escalated'` and `needs_human = true`, with `escalation_reason`, `escalated_at`, `lead_id`, `customer_id`, `summary`. Read with `listNeedsHuman()`, `conversationTranscript(id)`; give the bot back with `resumeConversation(id)` (all in `src/lib/concierge/state.ts`; or query `repo().conversations` directly). Leads from the bot have `source` `chat` or `sms`; the original attribution is in `utm_*` and `first_touch.derived_source`. Cost per conversation is `conversations.cost_usd`; per-turn usage events are `events.type = 'concierge.usage'` (no content).
+## 12. Business facts and prices (code, not env)
+Edit these files and commit; `npm run check:owner` lists what is still a placeholder: `src/config/site.ts` (phone, email, hours, socials, Google review link),
+`src/config/pricing.ts` (every price, set `PRICES_ARE_PLACEHOLDERS = false` when done), `src/config/booking.ts` (durations, deposit policy, SMS wording), `src/content/dealers.ts` (`claimsConfirmed`),
+plus real photos and reviews. The complete list with owners and files is `LAUNCH.md` section B.
 
-### Tests
-`npx vitest run tests/bot tests/unit/concierge` (offline, mock policy). `tests/bot/scenarios.test.ts`: 15 scenarios, each with its expected behaviours written down. `tests/bot/adversarial.test.ts`: 13 cases where the mock model misbehaves and the server blocks it.
-Live model: `BOT_LIVE=1 ANTHROPIC_API_KEY=... npx vitest run tests/bot/scenarios.test.ts` (tolerant assertions; costs a few cents). Browser flow: `node scripts/concierge-flow.mjs http://localhost:3000` (Playwright, 390x844, axe, screenshots in `.shots/concierge/`).
+## 13. Privacy policy and terms
+`/privacy` and `/terms` (with the SMS program disclosures) are **templates marked "not legal advice"**. Have a lawyer review and edit them (`src/app/privacy/page.tsx`, `src/app/terms/page.tsx`),
+then remove the notice in `src/components/LegalPage.tsx`. The booking form, the chat consent step, the footer and the cookie banner already link to them.
 
-## Phase 3: CRM + /admin (phone-first)
-
-Open `/admin` (noindex, PWA-installable at scope `/admin/`). In mock mode with no keys the login page offers **DEMO** users (owner, two techs);
-in a production build set `ADMIN_DEMO_LOGIN=1` to keep that demo login (it never works when Supabase is configured).
-
+## 14. Deploy
 ```bash
-npm run dev                    # http://localhost:3000/admin
-ADMIN_DEMO_LOGIN=1 npm start   # production build demo
-node scripts/admin-flow.mjs http://localhost:3000 .shots/admin   # Playwright 390x844: login -> lead -> quote -> booking -> tech day -> finish -> invoice -> report (+axe, role checks)
+npm run doctor -- --production     # no demo logins, no half-configured service, launch services not in mock mode
+npm run deploy                     # DRY RUN: prints exactly what would run
+npm run deploy -- --preflight-only --yes   # runs the preflight (leave-behind PDF if the domain is set, doctor, verify --strict-owner) without deploying
+npm run deploy -- --yes            # preflight, then `vercel deploy --prod`
 ```
+Needs the Vercel CLI logged in and the project linked (`vercel login`, `vercel link`). A failing preflight step stops everything before the deploy. The preflight is strict about `[OWNER]`
+placeholders on purpose: it will refuse to deploy until the owner items are done. After deploying, follow `LAUNCH.md` sections D and E (smoke test, monitoring, rollback).
+The leave-behind PDF is regenerated only when `NEXT_PUBLIC_SITE_URL` is set; until then the committed PDF's QR code points at localhost and **must not be printed**.
 
-| Area | Where |
-|---|---|
-| Auth, roles, session | `src/lib/auth/*`, `src/proxy.ts`, `/admin/login`, `/api/admin/auth/*` |
-| CRM: customers (search, merge duplicates), vehicles, leads, quotes, invoices, payments, notes, timeline | `/admin/customers`, `/vehicles`, `/leads`, `/quotes`, `/invoices`; logic in `src/lib/admin/{customers,records,invoice,payments}.ts` |
-| Pipeline (New lead, Quoted, Booked, In progress, Done, Reviewed), source + UTM, quick add | `/admin/pipeline`, `/admin/leads/[id]`, `src/lib/admin/pipeline.ts` |
-| Schedule day/week, manual booking, reschedule/cancel, blocks, blackouts, weather, durations/buffers | `/admin/schedule`, `/schedule/new`, `/schedule/settings`, `/admin/bookings/[id]`, `src/lib/admin/{schedule,settings}.ts` |
-| Tech view: route, navigate/call/text, on my way, start/finish, photos, add-ons, payment, signature, offline | `/admin/today`, `/admin/jobs/[id]`, `/api/admin/tech/*`, `src/lib/admin/jobs.ts`, `src/app/admin/_ui/job/*` |
-| Memberships (Stripe subscriptions) | `/admin/memberships`, `src/lib/memberships`, `src/lib/stripe/subscriptions.ts` |
-| Referrals | `/admin/referrals`, `src/lib/referrals`, `POST /api/referral/{validate,apply}` |
-| Reports + CSV + ad spend | `/admin/reports`, `src/lib/reports/*`, `/api/admin/reports/csv` |
-| Customer invoice page | `/invoice/[token]` (noindex, signed link) |
-
-Referral hook for the booking UI (one line, no BookingFlow edit needed): `/book?ref=CODE` already flows through `attribution.ref`; for a typed code call
-`fetch('/api/referral/validate', {method:'POST', body: JSON.stringify({code, phone, email})})` to show the message, and after booking
-`fetch('/api/referral/apply', {method:'POST', body: JSON.stringify({code, token})})`. The credit appears on the invoice.
-
-Access model: the server uses the service role after checking the signed session; RLS is defence in depth (`tests/rls/rls-intent.md`, `tests/unit/rls-intent.test.ts`; SQL itself was not run).
-New env keys: `ADMIN_SESSION_SECRET`, `ADMIN_DEMO_LOGIN`, `STRIPE_WEBHOOK_SECRET_ADMIN`, `STRIPE_TERMINAL_LOCATION_ID` (see `.env.example`). Decisions: `DECISIONS.md` P3-001..017.
-
-## Phase 5: dealer portal (/dealers)
-
-Landing `/dealers` (SSR, FAQPage JSON-LD, wholesale-sheet form -> lead with source `dealer`), `/dealers/signup`, `/dealers/signin`, the portal under `/dealers/dashboard/**` (overview, submit, vehicles list/board + detail, billing, invoice), owner screens under `/admin/dealers/**`, printable one-pager `/dealers/leave-behind` (PDF).
-All data goes through `repo()`; logic is in `src/lib/dealers/**` (pure parts unit-tested in `tests/unit/dealers/**`), UI in `src/components/dealers/**`, API in `src/app/api/dealers/**`, cron `src/app/api/cron/statements`, schema `supabase/migrations/0004_dealers.sql`.
-
-```bash
-npm run leave-behind                      # -> public/dealers/leave-behind.pdf (set NEXT_PUBLIC_SITE_URL first: it is the QR target)
-npx vitest run tests/unit/dealers         # VIN, CSV, status transitions, statement math, aging, add-ons, mock-Stripe invoicing, PDFs
-ADMIN_DEMO_LOGIN=1 npx next start -p 3105 # then: node scripts/dealers-flow.mjs http://localhost:3105 (Playwright, phone + desktop, axe)
-```
-
-How it works: a dealer signs up (pending) -> the owner approves on `/admin/dealers/<id>` (and picks net terms) -> the dealer submits cars singly or from a CSV (`/api/dealers/template`; VIN check digit, dedupe, per-row error report before anything is saved; each car creates a `vehicles` + `jobs` + `dealer_vehicles` row) and adds photos -> the owner schedules / starts / finishes cars, prices them and proposes add-ons -> the dealer approves or declines add-ons (emails via `lib/email`, logged in mock mode) -> `/api/cron/statements` (1st of the month) or the owner builds the monthly statement (PDF) -> the owner issues the net-terms invoice (Stripe Invoicing live, stub page in mock) and marks it paid or void. Dealers see status, before/after photos, history, balance and aging.
-
-| | Without keys | With keys |
-|---|---|---|
-| Dealer sign-in | DEMO: email only, no password (labelled) | Supabase Auth email + password, signed `dd_dealer` cookie |
-| Invoices | `in_mock_*` record + in-portal stub page | Stripe finalized `send_invoice` (+ `/api/dealers/stripe-webhook`) |
-| VIN decode | checksum + offline year/make hint | + NHTSA vPIC for year/make/model |
-| Emails | in-memory outbox + log | Resend |
-
-Prices: nothing is hardcoded. `dealerWholesale` in `src/config/pricing.ts` is all `null` ([OWNER]); the UI says "Request wholesale sheet" until a rate exists. New env keys: `DEALER_SESSION_SECRET`, `STRIPE_DEALER_WEBHOOK_SECRET` (see `.env.example`). Decisions: `DECISIONS.md` P5-001..013. Open items: `TODO.md` "Phase 5".
+## Troubleshooting
+- **Every Twilio message is rejected (403):** `NEXT_PUBLIC_SITE_URL` / `TWILIO_WEBHOOK_BASE_URL` does not match the URL Twilio calls (https, no trailing slash, same host).
+- **Booking links say "not valid" after a deploy:** `BOOKING_TOKEN_SECRET` changed. Keep it stable; changing it invalidates every issued link and chat session.
+- **Reminders never arrive:** cron not running (step 11) or the customer did not opt in (email always, texts only with consent).
+- **Admin shows the DEMO banner on the real site:** Supabase variables are missing in that environment; `doctor` will say so.
+- **Dealer account stuck on "waiting for approval":** approve it at `/admin/dealers`.

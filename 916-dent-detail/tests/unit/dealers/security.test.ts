@@ -101,3 +101,16 @@ describe('leads and input schemas', () => {
     expect(winAnsi('It’s “done” — 100… 你')).toBe('It\'s "done" - 100... ?');
   });
 });
+
+describe('dealer request guard (same-origin)', () => {
+  const r = (method: string, origin?: string) => new Request('http://site.test/api/dealers/vehicles', { method, headers: { host: 'site.test', ...(origin ? { origin } : {}) } });
+  it('state-changing requests need a matching Origin; safe methods may omit it', async () => {
+    const { sameOrigin } = await import('@/lib/dealers/guard');
+    expect(sameOrigin(r('POST', 'http://site.test'))).toBe(true);
+    expect(sameOrigin(r('POST', 'https://evil.example'))).toBe(false);
+    expect(sameOrigin(r('POST'))).toBe(false); // no Origin on a POST: not from our pages
+    expect(sameOrigin(r('PUT'))).toBe(false);
+    expect(sameOrigin(r('GET'))).toBe(true);
+    expect(sameOrigin(r('HEAD'))).toBe(true);
+  });
+});

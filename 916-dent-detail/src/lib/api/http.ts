@@ -25,6 +25,18 @@ export async function parseJson<T>(req: Request, schema: ZodType<T>, maxBytes = 
   return { ok: true, data: r.data };
 }
 
+/**
+ * Upload routes: a multipart body must declare its size (browsers always do) and stay under the cap BEFORE it is buffered by
+ * `req.formData()`. A chunked/unsized body would otherwise be read in full first. Returns a response to send, or null to go on.
+ */
+export function requireContentLength(req: Request, maxBytes: number): NextResponse | null {
+  const raw = req.headers.get('content-length');
+  const len = raw === null ? NaN : Number(raw);
+  if (!Number.isFinite(len) || len < 0) return fail(411, 'length_required', 'Content-Length is required.');
+  if (len > maxBytes) return fail(413, 'too_large', 'That upload is too large.');
+  return null;
+}
+
 export function clientIp(req: Request): string {
   const xf = req.headers.get('x-forwarded-for');
   return (xf?.split(',')[0] ?? req.headers.get('x-real-ip') ?? 'unknown').trim();

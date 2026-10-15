@@ -20,8 +20,15 @@ export function StepFrame({ id, title, lede, children, focusKey }: { id: string;
     // focusKey is 0 until the visitor first moves between steps: never steal focus on first paint. Every step mounts its own
     // StepFrame, so a "first effect run" check would also skip the heading focus on EVERY step change (a keyboard-only bug found in P8 e2e).
     if (focusKey === 0) return;
-    ref.current?.focus({ preventScroll: true });
-    ref.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+    // After the step's first paint: focus + scrollIntoView force a layout pass, which would otherwise count toward the Continue click's INP.
+    let t = 0;
+    const raf = requestAnimationFrame(() => {
+      t = window.setTimeout(() => {
+        ref.current?.focus({ preventScroll: true });
+        ref.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+      }, 0);
+    });
+    return () => { cancelAnimationFrame(raf); clearTimeout(t); };
   }, [focusKey]);
   return (
     <section aria-labelledby={`${id}-h`} className="scroll-mt-24">

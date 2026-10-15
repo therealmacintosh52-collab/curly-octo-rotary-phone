@@ -1,4 +1,4 @@
-import { fail, guard, limited, ok } from '@/lib/api/http';
+import { fail, guard, limited, ok, requireContentLength } from '@/lib/api/http';
 import { savePhoto } from '@/lib/booking/photos';
 import { bookingConfig } from '@/config/booking';
 
@@ -9,8 +9,8 @@ export async function POST(req: Request) {
   return guard('photos', async () => {
     const rl = await limited(req, 'photos', 40, 600);
     if (rl) return rl;
-    const len = Number(req.headers.get('content-length') ?? 0);
-    if (len > bookingConfig.photos.maxBytes + 50_000) return fail(413, 'too_large', 'That photo is too large.');
+    const sized = requireContentLength(req, bookingConfig.photos.maxBytes + 50_000);
+    if (sized) return sized;
     let form: FormData;
     try { form = await req.formData(); } catch { return fail(400, 'bad_form', 'Upload a photo.'); }
     const file = form.get('file');

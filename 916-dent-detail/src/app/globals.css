@@ -64,6 +64,12 @@
   @media (min-width: 768px) { .wrap { padding-inline: 2rem; } }
 
   .section { padding-block: clamp(4.5rem, 10vw, 8.5rem); position: relative; }
+  /* Below-the-fold sections skip style/layout/paint until they are near the viewport (cuts the work before first paint on the long home page).
+     `auto` remembers each section's real height after it has rendered once. SectionMotion refreshes ScrollTrigger when one starts rendering. */
+  .section-cv { content-visibility: auto; contain-intrinsic-size: auto 720px; }
+  @media (max-width: 767px) { .section-cv { contain-intrinsic-size: auto 1100px; } }
+  /* The footer (city + service link lists) is always below the fold: skip its style/layout/paint until it is near the viewport. */
+  .footer-cv { content-visibility: auto; contain-intrinsic-size: auto 1200px; }
 
   .eyebrow {
     font-family: var(--font-display); font-size: 0.72rem; letter-spacing: 0.24em;

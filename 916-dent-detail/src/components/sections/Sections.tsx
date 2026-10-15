@@ -22,7 +22,7 @@ function Head({ eyebrow, title, lede, id }: { eyebrow: string; title: string; le
 /* ---------------- How it works ---------------- */
 export function HowItWorks() {
   return (
-    <section id="how" aria-labelledby="how-title" className="section" data-motion="steps">
+    <section id="how" aria-labelledby="how-title" className="section section-cv" data-motion="steps">
       <div className="wrap">
         <Head id="how-title" eyebrow="How it works" title="Three steps. Zero body shop." />
         <div className="relative mt-14">
@@ -45,7 +45,7 @@ export function HowItWorks() {
 /* ---------------- Services ---------------- */
 export function ServicesGrid({ list = services }: { list?: Service[] }) {
   return (
-    <section id="services" aria-labelledby="services-title" className="section border-t border-line/60" data-motion="grid">
+    <section id="services" aria-labelledby="services-title" className="section section-cv border-t border-line/60" data-motion="grid">
       <div className="wrap">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <Head
@@ -84,7 +84,7 @@ const pairs = [
 ];
 export function BeforeAfterSection() {
   return (
-    <section id="results" aria-labelledby="results-title" className="section" data-motion="reveal">
+    <section id="results" aria-labelledby="results-title" className="section section-cv" data-motion="reveal">
       <div className="wrap">
         <Head
           id="results-title"
@@ -113,7 +113,7 @@ export function BeforeAfterSection() {
 /* ---------------- Gloss Shield (uses hero-beading) ---------------- */
 export function GlossShield() {
   return (
-    <section id="gloss-shield" aria-labelledby="gloss-title" className="section overflow-hidden border-t border-line/60" data-motion="parallax">
+    <section id="gloss-shield" aria-labelledby="gloss-title" className="section section-cv overflow-hidden border-t border-line/60" data-motion="parallax">
       <div className="wrap grid items-center gap-12 lg:grid-cols-2">
         <div className="relative order-2 aspect-[4/5] overflow-hidden rounded-[var(--radius-panel)] border border-white/10 lg:order-1">
           <picture>
@@ -163,7 +163,7 @@ export function Eco() {
     { t: 'Storm drains stay clean', b: 'Built around keeping wash water out of the storm drain, the way Sacramento-area stormwater rules intend.' },
   ];
   return (
-    <section id="eco" aria-labelledby="eco-title" className="section" data-motion="draw">
+    <section id="eco" aria-labelledby="eco-title" className="section section-cv" data-motion="draw">
       <div className="wrap grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]">
         <div>
           <Head id="eco-title" eyebrow="Eco-friendly, no runoff" title="Clean car. Clean street." lede="Mobile doesn't mean messy. Our setup is designed so what comes off your car doesn't end up in the gutter." />
@@ -193,7 +193,7 @@ export function Eco() {
 /* ---------------- Reviews (placeholders only; no fake reviews, no aggregateRating) ---------------- */
 export function Reviews() {
   return (
-    <section id="reviews" aria-labelledby="reviews-title" className="section border-t border-line/60" data-motion="fade">
+    <section id="reviews" aria-labelledby="reviews-title" className="section section-cv border-t border-line/60" data-motion="fade">
       <div className="wrap">
         <Head id="reviews-title" eyebrow="Reviews" title="What our customers say" />
         <ul className="mt-12 grid gap-5 md:grid-cols-3">
@@ -238,7 +238,7 @@ const labelPos: Record<string, { dx: number; dy: number; anchor?: 'start' | 'end
 };
 export function ServiceArea() {
   return (
-    <section id="area" aria-labelledby="area-title" className="section" data-motion="pins">
+    <section id="area" aria-labelledby="area-title" className="section section-cv" data-motion="pins">
       <div className="wrap grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
         <div>
           <Head id="area-title" eyebrow="Service area" title="Mobile dent repair & detailing across Greater Sacramento" lede="We drive to you in these cities. Not sure if you're covered? Send your ZIP with your photo." />
@@ -286,7 +286,7 @@ export function ServiceArea() {
 /* ---------------- Memberships (prices from config/pricing.ts only) ---------------- */
 export function Memberships() {
   return (
-    <section id="memberships" aria-labelledby="memberships-title" className="section border-t border-line/60" data-motion="tiers">
+    <section id="memberships" aria-labelledby="memberships-title" className="section section-cv border-t border-line/60" data-motion="tiers">
       <div className="wrap">
         <Head id="memberships-title" eyebrow="Memberships" title="Maintenance detailing plans" lede="Keep it looking just-detailed, on a schedule. We come to you every visit." />
         <p className="mt-4"><span className="owner-mark">[OWNER] confirm prices &amp; what each tier includes</span></p>
@@ -322,7 +322,7 @@ export function Memberships() {
 /* ---------------- Dealers ---------------- */
 export function DealerBand() {
   return (
-    <section id="dealers" aria-labelledby="dealers-title" className="section" data-motion="slide">
+    <section id="dealers" aria-labelledby="dealers-title" className="section section-cv" data-motion="slide">
       <div className="wrap">
         <div className="card relative overflow-hidden p-8 sm:p-12 lg:p-16">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_88%_0%,rgba(201,162,74,0.16),transparent_42%)]" />
@@ -346,7 +346,7 @@ export function DealerBand() {
 /* ---------------- FAQ ---------------- */
 export function Faq() {
   return (
-    <section id="faq" aria-labelledby="faq-title" className="section border-t border-line/60" data-motion="fade">
+    <section id="faq" aria-labelledby="faq-title" className="section section-cv border-t border-line/60" data-motion="fade">
       <div className="wrap grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
         <Head id="faq-title" eyebrow="FAQ" title="Paintless dent repair & detailing questions" />
         <FaqList items={faqs} />
@@ -358,7 +358,7 @@ export function Faq() {
 /* ---------------- Closing CTA ---------------- */
 export function ClosingCta() {
   return (
-    <section aria-labelledby="cta-title" className="section pt-0">
+    <section aria-labelledby="cta-title" className="section section-cv pt-0">
       <div className="wrap text-center">
         <div className="hairline mx-auto mb-16 max-w-xl" />
         <h2 id="cta-title" className="h2">Send a photo. <span className="text-gold">Get a price.</span></h2>

@@ -48,7 +48,7 @@ export async function signSession(s: Omit<Session, 'v' | 'exp'> & { exp?: number
   if (!secret) throw new Error('ADMIN_SESSION_SECRET (16+ chars) is required');
   const payload: Session = { ...s, v: 1, exp: s.exp ?? Math.floor(now / 1000) + SESSION_DAYS * 86400 };
   const body = b64u(enc.encode(JSON.stringify(payload)));
-  const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret, 'sign'), enc.encode(body));
+  const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret, 'sign'), enc.encode(`admin-session:${body}`));
   return `${body}.${b64u(sig)}`;
 }
 
@@ -59,7 +59,7 @@ export async function verifySession(token: string | undefined | null, now = Date
   const [body, sig] = token.split('.');
   if (!body || !sig || token.split('.').length !== 2) return null;
   try {
-    const ok = await crypto.subtle.verify('HMAC', await hmacKey(secret, 'verify'), unb64u(sig) as BufferSource, enc.encode(body));
+    const ok = await crypto.subtle.verify('HMAC', await hmacKey(secret, 'verify'), unb64u(sig) as BufferSource, enc.encode(`admin-session:${body}`));
     if (!ok) return null;
     const p = JSON.parse(new TextDecoder().decode(unb64u(body))) as Partial<Session>;
     if (p.v !== 1 || !isAdminRole(p.role) || typeof p.sub !== 'string' || typeof p.exp !== 'number' || p.exp * 1000 <= now) return null;

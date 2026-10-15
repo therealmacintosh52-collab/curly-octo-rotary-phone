@@ -13,7 +13,7 @@ function secret(): string {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('DEALER_SESSION_SECRET (or BOOKING_TOKEN_SECRET) must be set when Supabase is configured');
   return DEV_SECRET;
 }
-const sign = (payload: string) => createHmac('sha256', secret()).update(payload).digest('base64url');
+const sign = (payload: string) => createHmac('sha256', secret()).update(`dealer-session:${payload}`).digest('base64url');
 
 export type SessionClaims = { profileId: string; dealerId: string; exp: number };
 

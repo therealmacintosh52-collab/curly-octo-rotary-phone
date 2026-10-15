@@ -109,6 +109,21 @@ test.describe('booking flow', () => {
     await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', /noindex/);
   });
 
+  test('the skip link (a #fragment navigation) does not throw the visitor back to step 1', async ({ page }) => {
+    await page.goto('/book', { waitUntil: 'networkidle' });
+    await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByLabel(/Paint Deep-Clean/).check();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByLabel('Year', { exact: true })).toBeVisible();
+    await page.getByLabel('Year', { exact: true }).fill('2019');
+    await page.locator('.skip-link').focus();
+    await page.keyboard.press('Enter'); // hash navigation fires popstate with state === null
+    await page.waitForTimeout(600);
+    await expect(page.getByLabel('Year', { exact: true })).toBeVisible(); // still on step 2
+    await expect(page.getByLabel('Year', { exact: true })).toHaveValue('2019'); // and nothing typed was lost
+  });
+
   test('keyboard only: services, vehicle step, skip link and nav are reachable and operable', async ({ page }) => {
     await page.goto('/book', { waitUntil: 'networkidle' });
     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
@@ -128,7 +143,7 @@ test.describe('booking flow', () => {
     await page.keyboard.press('Enter');
     await expect(page.getByLabel('Year', { exact: true })).toBeVisible();
     // new step moves focus to its heading (screen reader / keyboard users land at the top)
-    expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('H2');
+    await expect(page.locator('h2:focus')).toBeVisible(); // focus lands one frame after the step paints (kept off the click's INP path)
     await page.keyboard.type('');
     await page.getByLabel('Year', { exact: true }).focus();
     await page.keyboard.type('2019');

@@ -33,8 +33,8 @@
 - [ ] Optional: a flat/vector version of the D-mark (favicons at 16/32 px are limited by the 3D bevel source)
 
 ## Engineering follow-ups (Phase 1 leftovers)
-- [ ] Mobile Lighthouse LCP median 2.6 s (simulated) vs target 2.5 s: options in handoff (variable Inter, HTTP/2 host, drop Inter 600)
-- [ ] INP not measured (needs field data or a scripted interaction trace)
+- [ ] Mobile Lighthouse LCP (simulated slow 4G + 4x CPU): home fixed (3.14 s -> 2.37 s median); 4 of 6 other measured pages still sit at 2.5-2.7 s median. See LAUNCH.md C and DECISIONS P8-013 for what was tried (variable Inter is bigger, inline CSS is worse) and the remaining lever (framework JS bytes before first paint)
+- [x] INP lab proxy measured by a scripted trace (Event Timing, 4x CPU, median of 3): worst page median 120-168 ms on mobile (was 192-264 before P8 fixes). Field INP still needs real traffic
 - [ ] Mobile frame set is 12.1 MB total; consider 540w q70 (~5.8 MB) if field data shows heavy users on cellular
 - [x] Wire `track()` to GA4/Meta/Ads (Phase 6 done; needs the IDs below)
 
@@ -44,13 +44,13 @@
 - [x] Phase 4: 916 Concierge assistant (site chat + Twilio SMS), tools, guardrails, missed-call text-back (built and tested in mock mode; live model behaviour NOT verified, see below)
 - [x] Phase 5: dealer portal (/dealers accounts, bulk VIN submission, statements, net terms, leave-behind PDF). Built locally in mock mode; see the Phase 5 section below
 - [x] Phase 6: SEO + local (9 service pages, 14 city pages, JSON-LD, sitemap/robots, MDX blog, tracking). Built locally; see the Phase 6 section below for owner items
-- [ ] Phase 7: growth pack (/marketing markdown)
-- [ ] Phase 8: tests, Lighthouse CI, axe, bot scenarios, seed data, setup README, deploy script
+- [x] Phase 7: growth pack (/marketing markdown). Every post, send, account and dealer contact stays owner-executed
+- [x] Phase 8: tests, Lighthouse CI, axe, bot scenarios, seed data, setup README, deploy script. Results and what is still unverified: `LAUNCH.md`; security review: `SECURITY.md`
 
 ## Phase 6 (SEO + local): [OWNER] items
 - [ ] Set `NEXT_PUBLIC_SITE_URL` before the production build (canonicals, sitemap, schema, RSS all derive from it)
 - [ ] Tracking IDs: `NEXT_PUBLIC_GA4_ID`, `NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_GADS_ID` (or `_GOOGLE_ADS_ID`) + `_LABEL_QUOTE/_BOOKING/_CALL`, `META_CAPI_ACCESS_TOKEN`. Banner and scripts stay off until one is set
-- [ ] Privacy policy page + `NEXT_PUBLIC_PRIVACY_URL` (consent banner links to it). Have counsel review the banner wording and the CCPA/CPRA posture
+- [x] Privacy policy page: `/privacy` and `/terms` exist as TEMPLATES (P8-009); the banner links to `/privacy` by default. [OWNER] counsel must review and edit them and the banner wording/CCPA posture, then remove the template notice (`src/components/LegalPage.tsx`)
 - [x] Phase 2: `sendCapiEvent` is now called from `/api/booking/[token]` (action `capi`) with the browser `event_id`, gated on marketing consent (src/lib/booking/capi.ts)
 - [ ] Confirm public statements on service pages: low-water methods / wash water kept out of storm drains; COI available on request; "we work in your garage/driveway"; no warranty claims were written
 - [ ] Confirm we are happy to say Elk Grove is nearest our base (derived from base ZIP 95624) and that city pages print "We start from ZIP 95624" (src/lib/seo/travel.ts)
@@ -91,10 +91,10 @@ Everything runs with zero keys (mock mode). Items below turn it into the real th
 - [ ] Vercel cron: `vercel.json` runs `/api/cron/dispatch` every 5 minutes. Hobby plans only allow daily crons: use Pro, or point an external scheduler at the URL with `Authorization: Bearer $CRON_SECRET`
 - [ ] Google review link (`site.googleReviewUrl`) is used by the post-job message; the review line is omitted until it is set
 - [ ] Optional: Google Calendar sync env keys (write-only sync); not verified against the live API
-- [ ] Privacy policy and terms pages; the SMS consent text should link to them once they exist
+- [x] Privacy policy and terms pages exist (templates, P8-009); the booking consent text, footer and chat consent link to them. Counsel review is the open part
 - [ ] Upstash Redis env (`UPSTASH_REDIS_REST_URL/TOKEN`) so rate limits work across serverless instances (in-memory limiter is per instance)
 - [ ] Phase 3 hooks ready: `sendOnTheWay(bookingId, {etaMinutes})`, `scheduleAfterCompletion(bookingId)` in `src/lib/notify`, and `transition()` in `src/lib/booking/state.ts`
-- [ ] Add `/booking/` to robots disallow (page is `noindex` already; robots.ts belongs to Phase 6)
+- [x] `/booking/` is disallowed in robots.txt (Phase 6) and `/dealers/dashboard`, `/dealers/signin` were added in P8-008
 
 ## Phase 4 (916 Concierge): [OWNER] items and follow-ups
 Everything runs with zero keys. The items below make it real; the first one matters most.
@@ -104,12 +104,12 @@ Everything runs with zero keys. The items below make it real; the first one matt
 - [ ] Run `supabase/migrations/0003_concierge.sql` (after 0001; adds conversation state/escalation columns, `leads.source` chat/sms, `customer_memory`, a unique index for webhook dedupe). Never executed against Postgres by the agent: review it, run it, then try one SMS and one web chat end to end.
 - [ ] Twilio: follow "Twilio console wiring" in README (SMS webhook, optional voice webhook, `NEXT_PUBLIC_SITE_URL` or `TWILIO_WEBHOOK_BASE_URL`), keep Twilio opt-out handling on, A2P 10DLC registration. Test STOP and HELP from a real phone.
 - [ ] Phone verification for web chat uses SMS codes (cost + nuisance); decide whether to keep web bookings behind it (current) or let the bot only quote on web and book by SMS.
-- [ ] SMS reminder consent is never inferred from chat (bot bookings get email confirmations; SMS only inside the conversation itself). Decide if you want an explicit "text me reminders" yes/no step in the bot flow; wording must be counsel-reviewed (`SMS_CONSENT_TEXT`).
+- [x] Explicit SMS reminder consent step in the bot flow (server-appended question, only `REMIND ME` counts, stored with timestamp and wording; P8-001). [OWNER]/counsel: review `CONCIERGE_SMS_CONSENT_QUESTION` in `src/lib/concierge/consent.ts`
 - [ ] Confirm the customer-facing facts in `src/lib/concierge/facts.ts`: paint-safety and body-shop wording, water/power wording (taken from the published mobile-detailing post: access to the car; tap/outlet helpful, not required), "credited to the final invoice". The business phone is only offered once `site.phone.placeholder` is false.
 - [ ] Hours are not known (`site.hours` null), so the bot never states hours. Set them and add them to the facts if you want it to answer.
-- [ ] Add a retention job for `messages` / `conversations` (transcripts are customer PII), e.g. delete or anonymise after N months.
+- [x] Transcript retention job: `/api/concierge/retention` daily, `CONCIERGE_RETENTION_DAYS` default 180 (P8-004). [OWNER]/counsel: confirm the period
 - [ ] Upstash Redis env so chat/SMS/verify rate limits work across serverless instances (the in-memory limiter, IP abuse ledger and per-conversation lock are per instance).
-- [ ] Phase 3: show the needs-human inbox (`listNeedsHuman`, `conversationTranscript`, `resumeConversation` in `src/lib/concierge/state.ts`) and include `chat` / `sms` in lead-source reports.
+- [x] Phase 3: needs-human inbox built in P8 (`/admin/inbox`, reply by SMS, mark resolved; P8-002) and `chat` / `sms` are lead sources in reports/pipeline (P8-003)
 - [ ] Enable server-side `fallbacks` for model refusals once you have live access (currently a refusal hands the chat to a human).
 - [ ] Instagram / Facebook DMs: contract and stub in `src/lib/concierge/adapters/meta.ts`; needs a Meta app + webhook route.
 - [ ] Owner decision: owner text alerts include the customer's phone and a 240-char excerpt of what they said. Confirm that is acceptable.
@@ -136,9 +136,22 @@ Everything runs with zero keys (DEMO dealer sign-in, mock Stripe invoices, mock 
 - [ ] Apply `supabase/migrations/0004_dealers.sql` (after 0001/0002/0003) to the real Supabase project. It applies cleanly after 0001-0003 on an in-memory Postgres (PGlite with Supabase stubs; `tests/unit/dealers/migration-0004.check.mjs`) but has never run against real Supabase
 - [ ] Set `DEALER_SESSION_SECRET` (random 32+ chars; falls back to `BOOKING_TOKEN_SECRET`). Live dealer sign-in needs `NEXT_PUBLIC_SUPABASE_ANON_KEY` + service role; Supabase email/password users are created server-side (email confirmation is skipped: the owner's approval is the gate)
 - [ ] Stripe Invoicing (live): `STRIPE_SECRET_KEY`. Add `/api/dealers/stripe-webhook` as a SEPARATE webhook endpoint (events `invoice.paid`, `invoice.voided`), secret in `STRIPE_DEALER_WEBHOOK_SECRET`. Invoices are finalized with `send_invoice` but Stripe does not email them until you send them from the Stripe dashboard; our own "invoice ready" email goes to the dealer's AP address. Test in Stripe test mode first
-- [ ] Phase 3's `/api/admin/stripe/webhook` also listens to `invoice.paid`: confirm it ignores invoices whose Stripe id belongs to a dealer invoice (or unsubscribe it from that event) so a dealer payment is not handled twice
+- [x] Webhook ownership: the admin endpoint ignores dealer invoices and the dealer endpoint ignores everything else, with per-endpoint dedupe (P8-005, tested with real signature verification)
 - [ ] Cron: `vercel.json` runs `/api/cron/statements` on the 1st of the month at 14:00 UTC (needs `CRON_SECRET`). `?month=YYYY-MM` re-runs a month. It builds statements only; invoices are issued by the owner
 - [ ] `OWNER_ALERT_EMAILS` (comma list) gets "new dealer account", "add-on needs a price", "add-on approved/declined", "vehicles submitted" emails. Empty = logged only
 - [ ] Leave-behind: set `NEXT_PUBLIC_SITE_URL`, run `npm run leave-behind`, commit `public/dealers/leave-behind.pdf`. Phone/email print as hand-write blanks until `site.phone.placeholder` / `site.email.placeholder` are false. Hand-write the rates (blanks) or fill `dealerWholesale` first
 - [ ] NHTSA vPIC decode (year/make/model from VIN) only runs when Supabase is live; offline mode fills year and a conservative make hint only
 - [ ] Follow-ups: technicians cannot yet propose add-ons from the tech view (the owner proposes on /admin/dealers/<id>; `proposeAddon(..., by: 'tech')` is ready for Phase 3's tech screen); tech before/after photos appear to dealers when Phase 3 writes `job_photos` rows (kind before/after) for the dealer's job; ACH/card-on-file auto-pay is not built (Stripe hosted invoice only); robots.txt has no `/dealers/dashboard` disallow (the pages are `noindex`)
+
+## Phase 8 (QA, security, launch): follow-ups
+Everything below needs live accounts or real devices, so none of it could be done by the build.
+- [ ] First deploy: apply migrations 0001-0005 + `seed.sql` to the real Supabase project, then run the role checks in `tests/rls/rls-intent.md` once (RLS was executed on PGlite, not on Supabase) and confirm the `photos` bucket is private
+- [ ] Run the live bot scenarios and read transcripts (`BOT_LIVE=1 ANTHROPIC_API_KEY=... npx vitest run tests/bot/scenarios.test.ts`): all 15 + 13 adversarial cases passed only against the offline mock policy
+- [ ] Stripe test mode end to end: 3 webhooks (P8-005), portal, one 4242 booking, one dealer invoice; then live keys
+- [ ] Twilio: STOP / START / HELP / `REMIND ME` from a real phone, A2P 10DLC registration (start first), missed-call webhooks
+- [ ] Scheduler: Vercel Pro or `docs/SCHEDULER.md` recipe; check one `notify.dispatch` log line per run
+- [ ] Counsel review of `/privacy`, `/terms`, the SMS wording (3 places), deposit policy, net terms, retention periods
+- [ ] Content Security Policy (report-only first): SECURITY.md O-01. Supabase Auth hardening (disable public sign-ups, MFA): O-04
+- [ ] Real-device pass (iOS Safari / Android Chrome camera, signature, offline outbox, Add to Home Screen) and a human screen-reader pass
+- [ ] Re-run `npm run lhci` against the real deployment (real hosting, real TLS, real CDN: the lab LCP numbers will change)
+- [ ] `npm run check:owner` must print 0 before `npm run deploy -- --yes` will pass (strict preflight)

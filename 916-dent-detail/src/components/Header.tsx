@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nav } from '@/config/site';
 import { Logo } from './Logo';
 import { track } from '@/lib/analytics';
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const menuBtn = useRef<HTMLButtonElement>(null);
   const [solid, setSolid] = useState(false);
   const pathname = usePathname();
 
@@ -20,7 +21,8 @@ export function Header() {
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    // Escape closes the menu and puts focus back on the button that opened it (focus would otherwise be lost on a hidden link)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); menuBtn.current?.focus(); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
@@ -55,6 +57,7 @@ export function Header() {
           </ul>
         </nav>
         <button
+          ref={menuBtn}
           type="button"
           className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ivory/20 lg:hidden"
           aria-expanded={open}

@@ -5,7 +5,8 @@
 // on idle, so it cannot affect LCP/TBT of the page it sits on.
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { onFirstIntent } from '@/lib/motion';
 
 const preload = () => import('./ChatPanel');
 const ChatPanel = dynamic(preload, { ssr: false });
@@ -14,6 +15,12 @@ export function ConciergeLauncher() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const btn = useRef<HTMLButtonElement>(null);
+  // After the visitor's first scroll/touch/key (never on an idle page, so Lighthouse and first paint are unaffected), fetch and compile the panel
+  // chunk in an idle slot. Opening the chat then no longer evaluates ~tens of KB of script inside the tap (that overlap was the chat button's INP).
+  useEffect(() => onFirstIntent(() => {
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    if (ric) ric(() => void preload(), { timeout: 3000 }); else setTimeout(() => void preload(), 800);
+  }), []);
   const close = useCallback(() => { setOpen(false); requestAnimationFrame(() => btn.current?.focus()); }, []);
 
   if (path.startsWith('/admin')) return null;

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Lighthouse CI against the PRODUCTION build in mock mode (lighthouserc.json: 6 URLs x 3 runs, mobile preset, assertions on the
+// Lighthouse CI against the PRODUCTION build in mock mode (lighthouserc.json: 6 URLs x 3 runs, Lighthouse default mobile emulation, assertions on the
 // MEDIAN run). Uses the sandbox Chromium via CHROME_PATH (auto-detected under PLAYWRIGHT_BROWSERS_PATH / /opt/pw-browsers).
 // Run on an idle machine: other load makes every number worse and noisy. Build first (`npm run build`) or this builds for you.
 //   npm run lhci            collect + assert + median table

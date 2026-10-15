@@ -48,9 +48,17 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
         })
         .catch(() => undefined);
     }
-    area.current?.focus();
-    document.documentElement.style.overflow = 'hidden'; // the page behind a modal does not scroll
-    return () => { document.documentElement.style.overflow = ''; };
+    // Focus and scroll lock are what make this a modal, but both force a style/layout pass over the whole (long) page. Doing them in the
+    // click's own frame put the chat button's INP over 200 ms on a throttled phone; one frame later is imperceptible and keeps the
+    // click-to-paint short. (The dialog is already in the DOM and labelled, so assistive tech announces it immediately.)
+    let t = 0;
+    const raf = requestAnimationFrame(() => {
+      t = window.setTimeout(() => {
+        area.current?.focus();
+        document.documentElement.style.overflow = 'hidden'; // the page behind a modal does not scroll
+      }, 0);
+    });
+    return () => { cancelAnimationFrame(raf); clearTimeout(t); document.documentElement.style.overflow = ''; };
   }, []);
 
   useEffect(() => { logEl.current?.scrollTo({ top: logEl.current.scrollHeight, behavior: reduced.current ? 'auto' : 'smooth' }); }, [msgs, status]);

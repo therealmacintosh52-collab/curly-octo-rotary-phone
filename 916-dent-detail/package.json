@@ -26,7 +26,8 @@
     "seed": "node --experimental-transform-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-alias.mjs scripts/seed.mjs",
     "setup:admin": "node --experimental-transform-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-alias.mjs scripts/setup-admin.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/deploy.mjs",
+    "lhci": "node scripts/lhci.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -6,7 +6,9 @@ import { getDealerContext, type DealerContext } from './session';
 
 export function sameOrigin(req: Request): boolean {
   const origin = req.headers.get('origin');
-  if (!origin) return true; // non-browser clients and same-origin GET-style fetches omit it; cookies are SameSite=Lax regardless
+  // Browsers always send Origin on a cross-site or same-site POST. A state-changing request without one is not from our pages
+  // (same rule as the admin routes); safe methods may omit it.
+  if (!origin) return req.method === 'GET' || req.method === 'HEAD';
   try {
     const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
     return new URL(origin).host === host;

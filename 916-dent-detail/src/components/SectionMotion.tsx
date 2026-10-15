@@ -12,7 +12,7 @@ export function SectionMotion() {
     if (motionMode() !== 'full') return;
     let revert: (() => void) | undefined;
     let cancelled = false;
-    const off = onFirstIntent(() => loadMotion().then(({ gsap }) => {
+    const off = onFirstIntent(() => loadMotion().then(({ gsap, ScrollTrigger }) => {
       if (cancelled) return;
       const ctx = gsap.context(() => {
         document.querySelectorAll<HTMLElement>('[data-motion]').forEach((sec) => {
@@ -65,7 +65,13 @@ export function SectionMotion() {
           }
         });
       });
-      revert = () => ctx.revert();
+      // Sections use content-visibility:auto, so a section's height changes from the estimate to the real one when it first renders.
+      // Recompute trigger positions then (debounced to one refresh per frame).
+      let queued = false;
+      const refresh = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; if (!cancelled) ScrollTrigger.refresh(); }); };
+      const secs = Array.from(document.querySelectorAll<HTMLElement>('[data-motion]'));
+      secs.forEach((el) => el.addEventListener('contentvisibilityautostatechange', refresh));
+      revert = () => { secs.forEach((el) => el.removeEventListener('contentvisibilityautostatechange', refresh)); ctx.revert(); };
     }));
     return () => { cancelled = true; off(); revert?.(); };
   }, []);
