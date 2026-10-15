@@ -44,7 +44,7 @@ export function ReceiptView({ r, token, demo = false }: { r: Receipt; token: str
             </div>
             {r.paid_at && <CheckCircle2Icon className="size-6 shrink-0 text-success" />}
           </div>
-          {wip && r.concern && <p className="mt-3 whitespace-pre-wrap rounded-lg border border-border px-3 py-2 text-sm" data-testid="receipt-concern"><span className="block text-label text-subtle">What you told us</span>{r.concern}</p>}
+          {wip && r.concern && <p className="mt-3 whitespace-pre-wrap rounded-lg border border-border px-3 py-2 text-sm" data-testid="receipt-concern"><span className="block text-label text-subtle">Your concern</span>{r.concern}</p>}
           {wip && <div className="mt-3 text-label text-subtle">Approved work so far</div>}
           <ul className="mt-3 divide-y divide-border text-sm" data-testid="receipt-lines">
             {r.lines.map((l, i) => (

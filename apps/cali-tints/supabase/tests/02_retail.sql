@@ -1390,7 +1390,7 @@ declare v_token text := (select v from e48 where k = 'token'); d jsonb; r jsonb;
 begin
   d := public.estimate_by_token(v_token);
   v_opt := (d -> 'options' -> 0 ->> 'id')::uuid;
-  r := public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'name', 'Ana Lopez', 'pay_choice', 'at_shop',
+  r := public.estimate_respond(v_token, jsonb_build_object('option_id', v_opt, 'name', 'Ana Lopez', 'pay_choice', 'at_shop', 'consent', 'I have read and agree to the terms.' || chr(10) || 'Terms: test terms',
          'signature_path', '00000000-0000-4000-8000-000000000001/estimates/' || (d ->> 'id') || '/sig.png'));
   assert r ->> 'status' = 'accepted', '0048: approved';
   begin
@@ -2465,3 +2465,10 @@ begin
   assert exists (select 1 from jsonb_array_elements(l) x where x ->> 'text' like '%Pickup signature taken%' and x ->> 'who' = 'Customer'), '0068: the log shows the customer''s online signature: ' || l::text;
 end $$;
 select pg_temp.logout();
+
+-- 0069: the words the customer agreed to are kept with the approval
+create or replace function pg_temp.consent_of(p_est uuid) returns text language sql security definer as $$ select consent_text from public.estimate_authorizations where estimate_id = p_est order by authorized_at desc limit 1 $$;
+do $$
+begin
+  assert pg_temp.consent_of((select v from e48 where k = 'est')::uuid) like 'I have read and agree to the terms.%Terms: test terms', '0069: the consent and the terms are stored with the approval';
+end $$;

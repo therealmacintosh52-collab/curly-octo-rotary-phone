@@ -102,6 +102,13 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
           </View>
         </View>
 
+        {e.customer_concern ? (
+          <View style={{ marginTop: 10, marginBottom: 4 }} wrap={false}>
+            <Text style={s.billLabel}>CUSTOMER&apos;S CONCERN</Text>
+            <Text style={{ marginTop: 2 }}>{e.customer_concern}</Text>
+          </View>
+        ) : null}
+
         <FindingsPdfSection findings={e.findings} />
 
         {e.options.map((o) => (
@@ -162,12 +169,6 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
         </View>
 
         <View style={s.notes} wrap={false}>
-          {e.customer_concern ? (
-            <>
-              <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Your concern</Text>
-              <Text style={[s.small, { marginBottom: 8 }]}>{e.customer_concern}</Text>
-            </>
-          ) : null}
           {e.customer_notes ? (
             <>
               <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 3 }}>Notes</Text>

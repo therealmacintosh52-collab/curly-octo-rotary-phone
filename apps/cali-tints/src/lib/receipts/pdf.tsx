@@ -112,7 +112,7 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
 
         {r.concern ? (
           <View style={x.block}>
-            <Text style={s.billLabel}>CUSTOMER CONCERN</Text>
+            <Text style={s.billLabel}>CUSTOMER&apos;S CONCERN</Text>
             <Text style={{ fontFamily: "Helvetica-Oblique" }}>&ldquo;{r.concern}&rdquo;</Text>
           </View>
         ) : null}

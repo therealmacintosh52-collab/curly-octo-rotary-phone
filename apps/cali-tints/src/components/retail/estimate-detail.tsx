@@ -632,6 +632,13 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
         </Card>
       </div>
 
+      {e.customer_concern && (
+        <blockquote className="mt-3 rounded-xl border border-border bg-card px-4 py-3 text-sm" data-testid="estimate-concern">
+          <span className="text-label text-subtle">Customer&apos;s concern</span>
+          <p className="mt-1 whitespace-pre-wrap">{e.customer_concern}</p>
+        </blockquote>
+      )}
+
       {(e.findings ?? []).some((f) => f.kind === "finding") && (
         <section className="mt-3 rounded-xl border border-border bg-card surface-raised" data-testid="estimate-recommendations">
           <h2 className="px-4 pt-3 text-sm font-semibold">Current recommendations</h2>
@@ -658,12 +665,6 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
         pickedUpAt={ro ? (ro.picked_up_at ?? null) : undefined}
         waitingOnApproval={e.status === "sent" || e.status === "viewed"}
       />
-      {e.customer_concern && (
-        <blockquote className="mt-3 rounded-xl border border-border bg-card px-4 py-3 text-sm" data-testid="estimate-concern">
-          <span className="text-label text-subtle">Customer&apos;s concern, in their words</span>
-          <p className="mt-1 whitespace-pre-wrap">{e.customer_concern}</p>
-        </blockquote>
-      )}
 
       {notes ? (
         <RoLayout stack initialTab="job" jobLabel="Estimate" count={findingsCount ?? 0} notes={notes}>

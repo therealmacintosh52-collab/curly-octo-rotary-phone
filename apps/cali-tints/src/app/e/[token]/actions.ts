@@ -28,6 +28,9 @@ const respondSchema = z.discriminatedUnion("decision", [
     name: z.string().trim().min(2, "Please type your name").max(120),
     signature_path: z.string().min(1).max(300).nullable(),
     pay_choice: z.enum(["deposit", "at_shop"]),
+    /** The terms box was ticked, and the words they agreed to (kept with the approval). */
+    terms_agreed: z.literal(true, "Agree to the terms to approve"),
+    consent: z.string().trim().min(10).max(2000),
   }),
   z.object({ decision: z.literal("decline"), reason: z.string().trim().max(300).optional() }),
 ]);

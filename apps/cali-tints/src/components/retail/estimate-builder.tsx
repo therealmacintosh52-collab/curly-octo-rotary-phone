@@ -419,7 +419,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                 <CustomerPicker value={pick} onChange={setPick} showCars={false} carDraft={carDraft} recent={recent} onVehiclePicked={(v) => { if (v.size_class) setSize(v.size_class); setCar(carFrom(v)); }} />
                 {pick.customer && <p className="text-caption text-subtle">Their cars are on the right; pick one or type a new one. The estimate starts as a draft the moment you pick them.</p>}
                 <div className="grid gap-1.5">
-                  <Label htmlFor="e-concern">What the customer says is wrong</Label>
+                  <Label htmlFor="e-concern">Customer&apos;s concern</Label>
                   <Textarea id="e-concern" value={concern} onChange={(e) => setConcern(e.target.value)} placeholder="In their own words: “Squeals when I brake, worse in the morning.”" className="min-h-20" data-testid="estimate-concern-input" />
                 </div>
               </CardContent>

@@ -25,7 +25,7 @@ Mike already pays for QuickBooks Online and the Clover devices. Total run cost: 
 
 1. New project (US West), strong database password, save it.
 2. Project Settings → API: copy the project URL and the publishable key; Settings → API keys: create a secret (service role) key.
-3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0068` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
+3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0069` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
 4. Authentication → URL configuration: Site URL `https://app.calitints.com`, Redirect URLs `https://app.calitints.com/auth/callback` and `https://app.calitints.com/auth/reset`. Email templates: the defaults are fine; the invite goes through this.
 5. Storage: the buckets (`job-photos`, `logos`, `submission-confirmations`) are created by the migrations. Nothing to click.
 6. Backups: Pro includes daily backups; turn on Point-in-time recovery if Mike wants hour-level restores (+$100/mo, usually not needed).

@@ -80,7 +80,7 @@ export function InvoiceDocument({ r, children }: { r: ReceiptView; children?: Re
 
       {r.concern && (
         <div className="mt-3 border-t border-border pt-3 text-sm" data-testid="doc-concern">
-          <div className="text-label text-subtle">CUSTOMER CONCERN</div>
+          <div className="text-label text-subtle">CUSTOMER&apos;S CONCERN</div>
           <p className="mt-0.5 whitespace-pre-wrap italic">&ldquo;{r.concern}&rdquo;</p>
         </div>
       )}

@@ -376,7 +376,7 @@ function CheckInDialog({ a, showMoney, onClose }: { a: AppointmentView; showMone
             <Input id="ci-miles" inputMode="numeric" value={miles} onChange={(e) => setMiles(e.target.value.replace(/[^\d,]/g, ""))} placeholder="84200" data-testid="checkin-miles" />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="ci-concern">What the customer says is wrong</Label>
+            <Label htmlFor="ci-concern">Customer&apos;s concern</Label>
             <Textarea id="ci-concern" value={concern} onChange={(e) => setConcern(e.target.value)} placeholder="In their own words" className="min-h-20" data-testid="checkin-concern" />
           </div>
           {showMoney && a.services.length > 0 && (
