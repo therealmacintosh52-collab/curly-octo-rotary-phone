@@ -3,7 +3,9 @@
 type Base = { id: string; created_at: string; updated_at: string };
 type J<T = unknown> = T;
 export type SizeClassId = 'compact' | 'sedan' | 'suv' | 'truck' | 'xl';
-export type LeadSource = 'google' | 'gbp' | 'meta_ads' | 'instagram' | 'tiktok' | 'door_knock' | 'referral' | 'dealer' | 'organic' | 'direct' | 'other';
+export type LeadSource = 'google' | 'gbp' | 'meta_ads' | 'instagram' | 'tiktok' | 'door_knock' | 'referral' | 'dealer' | 'organic' | 'direct' | 'other'
+  /** P4 (0003_concierge.sql): leads created by the 916 Concierge bot; attribution lives in the utm/first_touch columns. */
+  | 'chat' | 'sms';
 export type LeadStage = 'new' | 'quoted' | 'booked' | 'in_progress' | 'done' | 'reviewed' | 'lost';
 
 export type Profile = Base & { role: 'owner' | 'admin' | 'tech' | 'dealer' | 'customer'; full_name?: string | null; phone?: string | null; tech_id?: string | null };
@@ -70,7 +72,9 @@ export type Note = Base & { entity_type: 'customer' | 'vehicle' | 'lead' | 'book
 export type Membership = Base & { customer_id: string; tier: 'maintain' | 'protect' | 'showroom'; status: 'active' | 'past_due' | 'paused' | 'cancelled'; stripe_subscription_id?: string | null; started_at: string; renews_at?: string | null; cancelled_at?: string | null; stripe_customer_id?: string | null; visits_per_period?: number | null };
 export type ReferralCode = Base & { code: string; customer_id?: string | null; credit_amount: number; active: boolean };
 export type ReferralCredit = Base & { referral_code_id: string; referred_customer_id?: string | null; amount: number; status: 'pending' | 'available' | 'redeemed' | 'void'; redeemed_booking_id?: string | null };
-export type Conversation = Base & { channel: 'web' | 'sms' | 'instagram' | 'facebook' | 'voice'; external_id?: string | null; customer_id?: string | null; lead_id?: string | null; status: 'open' | 'escalated' | 'closed'; cost_usd: number; summary?: string | null };
+export type Conversation = Base & { channel: 'web' | 'sms' | 'instagram' | 'facebook' | 'voice'; external_id?: string | null; customer_id?: string | null; lead_id?: string | null; status: 'open' | 'escalated' | 'closed'; cost_usd: number; summary?: string | null;
+  /** P4 (0003_concierge.sql): bot session state (slot provenance, verified phone, strikes), escalation, usage. See src/lib/concierge/state.ts. */
+  state?: J<Record<string, unknown>>; needs_human?: boolean; escalation_reason?: string | null; escalated_at?: string | null; tokens_in?: number; tokens_out?: number; last_message_at?: string | null };
 export type Message = Base & { conversation_id: string; role: 'user' | 'assistant' | 'tool' | 'system'; content: string; meta: J<Record<string, unknown>> };
 export type DealerVehicle = Base & { dealer_id: string; vin?: string | null; stock_number?: string | null; year?: number | null; make?: string | null; model?: string | null; size_class?: SizeClassId | null; photo_paths: string[]; notes?: string | null; status: 'submitted' | 'quoted' | 'approved' | 'scheduled' | 'in_progress' | 'done' | 'invoiced' | 'cancelled'; job_id?: string | null; addon_approvals: J<unknown[]>;
   /** P5 (0004_dealers.sql). services = {id, panels?}[]; addon_approvals holds AddonProposal[] (src/lib/dealers/addons.ts) */
@@ -88,6 +92,8 @@ export type QueueRow = Base & {
   payload: J<Record<string, unknown>>; last_error?: string | null; sent_at?: string | null;
 };
 export type StripeEvent = Base & { type: string };
+/** P4 (0003_concierge.sql): one row per customer, keyed by verified phone ("p:+1916...") or email ("e:a@b.c"). Shared by web chat and SMS. */
+export type CustomerMemory = Base & { customer_key: string; customer_id?: string | null; summary: string; facts: J<Record<string, unknown>>; conversation_count: number; last_channel?: string | null; last_seen_at?: string | null };
 /** P3 (0002_admin.sql). `id` is the settings key, e.g. "booking". */
 export type Setting = Omit<Base, 'id'> & { id: string; value: J<Record<string, unknown>> };
 export type AdSpend = Base & { date: string; channel: LeadSource; spend: number; notes?: string | null };
@@ -101,11 +107,12 @@ export type TableMap = {
   messages: Message; dealer_vehicles: DealerVehicle; dealer_statements: DealerStatement; events: EventRow;
   notification_queue: QueueRow; stripe_events: StripeEvent;
   settings: Setting; ad_spend: AdSpend; membership_visits: MembershipVisit;
+  customer_memory: CustomerMemory;
 };
 export type TableName = keyof TableMap;
 export const TABLE_NAMES: TableName[] = [
   'profiles', 'techs', 'tech_availability', 'blackout_dates', 'admin_blocks', 'weather_flags', 'services', 'dealers', 'dealer_users',
   'customers', 'vehicles', 'leads', 'quotes', 'bookings', 'jobs', 'job_photos', 'invoices', 'payments', 'notes', 'memberships',
   'referral_codes', 'referral_credits', 'conversations', 'messages', 'dealer_vehicles', 'dealer_statements', 'events',
-  'notification_queue', 'stripe_events', 'settings', 'ad_spend', 'membership_visits',
+  'notification_queue', 'stripe_events', 'settings', 'ad_spend', 'membership_visits', 'customer_memory',
 ];

@@ -125,3 +125,27 @@ export const travelFees = {
 
 /** [OWNER] referral credit (Phase 3). */
 export const referralCredit = 25;
+
+// ======================================================================================================
+// PHASE 5 DEALER PORTAL (/dealers). Wholesale rates are [OWNER] decisions: NO number below is real. While a rate
+// is null the UI says "Request wholesale sheet" and never shows a price (marketing/dealers/wholesale-price-sheet-
+// template.md explains how to choose them). A per-dealer override can be set by the owner in /admin/dealers
+// (stored in dealers.wholesale_pricing) and wins over this file. Whole US dollars.
+// ======================================================================================================
+
+export const dealerServiceIds = ['pdr_panel', 'hail_panel', 'interior_reset', 'paint_deep_clean', 'swirl_erase', 'gloss_shield', 'headlights'] as const;
+export type DealerServiceId = (typeof dealerServiceIds)[number];
+
+/** [OWNER] wholesale rate per service. pdr_panel and hail_panel are per damaged panel; the rest are per vehicle. */
+export const dealerWholesale: Record<DealerServiceId, Money> = {
+  pdr_panel: null,
+  hail_panel: null,
+  interior_reset: null,
+  paint_deep_clean: null,
+  swirl_erase: null,
+  gloss_shield: null,
+  headlights: null,
+};
+
+/** [OWNER] net terms a dealer may be approved for (days). The owner approves each dealer by hand. */
+export const dealerNetTerms = { options: [15, 30] as readonly number[], defaultDays: 30 };
