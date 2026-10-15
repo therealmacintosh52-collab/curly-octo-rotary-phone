@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { track } from '@/lib/analytics';
+import { getConsent } from '@/lib/analytics-consent';
+import { api } from '../api';
 import { site, smsHref, telHref } from '@/config/site';
 import { serviceById } from '@/config/booking';
 import { priceFor } from '../state';
@@ -16,8 +18,11 @@ export function ConfirmStep({ flow, focusKey, token, onAnother }: StepProps & { 
   useEffect(() => {
     if (fired.current) return;
     fired.current = true;
-    track('booking_completed', { where: 'book_flow', services: flow.services.join(','), value: flow.booking?.amount ?? 0, city: flow.area?.city });
-  }, [flow]);
+    const eventId = track('booking_completed', { where: 'book_flow', services: flow.services.join(','), value: flow.booking?.amount ?? 0, city: flow.area?.city });
+    // server-side twin (Meta CAPI): same event_id so Meta dedupes; the server refuses unless marketing consent is true
+    const cookie = (n: string) => document.cookie.split('; ').find((c) => c.startsWith(`${n}=`))?.split('=')[1];
+    if (typeof eventId === 'string') void api(`/api/booking/${token}`, { body: { action: 'capi', eventId, marketingConsent: getConsent().marketing, fbp: cookie('_fbp'), fbc: cookie('_fbc'), sourceUrl: window.location.origin + '/book' } });
+  }, [flow, token]);
   return (
     <StepFrame id="done" title="You're booked" lede="Check your email and texts for the confirmation. We come to you." focusKey={focusKey}>
       <div className="card p-6">

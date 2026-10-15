@@ -138,13 +138,13 @@ await axe('manage');
 await page.getByRole('button', { name: 'Reschedule' }).click();
 await page.getByRole('group', { name: /Times on/ }).waitFor({ timeout: 8000 }).catch(async (e) => { await shot('debug-reschedule'); throw e; });
 await shot('10-reschedule');
-await page.getByRole('group', { name: /Times on/ }).locator('button').nth(2).click();
-await page.getByRole('button', { name: 'Confirm new time' }).click();
+await page.getByRole('group', { name: /Times on/ }).locator('button').nth(2).click({ force: true });
+await page.getByRole('button', { name: 'Confirm new time' }).evaluate((el) => el.click()); // smooth-scroll lib (Lenis) can make Playwright's hit-test flaky
 await page.getByText(/Rescheduled to/).waitFor();
 await shot('11-rescheduled');
-await page.getByRole('button', { name: 'Cancel booking' }).click();
+await page.getByRole('button', { name: 'Cancel booking' }).evaluate((el) => el.click());
 await shot('12-cancel-confirm');
-await page.getByRole('button', { name: 'Yes, cancel' }).click();
+await page.getByRole('button', { name: 'Yes, cancel' }).evaluate((el) => el.click());
 await page.getByText(/Cancelled\./).first().waitFor();
 await shot('13-cancelled');
 

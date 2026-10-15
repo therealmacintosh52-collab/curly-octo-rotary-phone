@@ -43,6 +43,12 @@ export function Field({ id, label, hint, error, children }: { id: string; label:
 }
 
 export function Stepper({ step, max, onGo, confirmed }: { step: number; max: number; onGo: (n: number) => void; confirmed: boolean }) {
+  const listRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const ol = listRef.current;
+    const cur = ol?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (ol && cur) ol.scrollLeft = cur.offsetLeft - (ol.clientWidth - cur.offsetWidth) / 2; // horizontal only: never scrolls the page
+  }, [step]);
   const pct = ((step - 1) / (STEPS.length - 1)) * 100;
   return (
     <nav aria-label="Booking progress">
@@ -51,7 +57,7 @@ export function Stepper({ step, max, onGo, confirmed }: { step: number; max: num
         <span className="font-display text-[0.7rem] uppercase tracking-[0.2em] text-gold">{STEPS[step - 1]!.title}</span>
       </p>
       <div className="bk-progress" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
-      <ol className="bk-steps mt-4" tabIndex={0} aria-label="Steps">
+      <ol ref={listRef} className="bk-steps mt-4" tabIndex={0} aria-label="Steps">
         {STEPS.map((s) => {
           const isCur = s.id === step;
           const reachable = !confirmed && s.id <= max && s.id < 8 && s.id !== step;

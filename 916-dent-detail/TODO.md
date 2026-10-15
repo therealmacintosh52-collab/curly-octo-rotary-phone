@@ -39,7 +39,7 @@
 - [x] Wire `track()` to GA4/Meta/Ads (Phase 6 done; needs the IDs below)
 
 ## Remaining phases (SPEC.md)
-- [ ] Phase 2: booking engine (/book): services → vehicle → photos → ZIP/travel fee from 95624 → availability → contact → Stripe deposit → confirmation; AI photo quote range; SMS/email automations
+- [x] Phase 2: booking engine (/book): services → vehicle → photos → ZIP/travel fee from 95624 → availability → contact → Stripe deposit → confirmation; AI photo quote range; SMS/email automations. Built locally in mock mode; see the Phase 2 section below
 - [ ] Phase 3: CRM + /admin (Supabase, RLS), pipeline, tech view, memberships via Stripe, referrals, reports
 - [ ] Phase 4: 916 Concierge assistant (site chat + Twilio SMS), tools, guardrails, missed-call text-back
 - [ ] Phase 5: dealer portal (/dealers accounts, bulk VIN submission, statements, net terms, leave-behind PDF)
@@ -51,7 +51,7 @@
 - [ ] Set `NEXT_PUBLIC_SITE_URL` before the production build (canonicals, sitemap, schema, RSS all derive from it)
 - [ ] Tracking IDs: `NEXT_PUBLIC_GA4_ID`, `NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_GADS_ID` (or `_GOOGLE_ADS_ID`) + `_LABEL_QUOTE/_BOOKING/_CALL`, `META_CAPI_ACCESS_TOKEN`. Banner and scripts stay off until one is set
 - [ ] Privacy policy page + `NEXT_PUBLIC_PRIVACY_URL` (consent banner links to it). Have counsel review the banner wording and the CCPA/CPRA posture
-- [ ] Phase 2: call `sendCapiEvent` (src/lib/analytics/capi.ts) from the booking API with the browser `event_id` and the visitor's marketing consent; nothing calls it yet
+- [x] Phase 2: `sendCapiEvent` is now called from `/api/booking/[token]` (action `capi`) with the browser `event_id`, gated on marketing consent (src/lib/booking/capi.ts)
 - [ ] Confirm public statements on service pages: low-water methods / wash water kept out of storm drains; COI available on request; "we work in your garage/driveway"; no warranty claims were written
 - [ ] Confirm we are happy to say Elk Grove is nearest our base (derived from base ZIP 95624) and that city pages print "We start from ZIP 95624" (src/lib/seo/travel.ts)
 - [ ] Per-city `distance` bands (near/mid/far) and drive notes in `src/content/seo/cities/*.ts` are qualitative guesses; adjust to real drive times/travel tiers
@@ -74,3 +74,24 @@
 - Lincoln: Highway 65; Lincoln Crossing; Twelve Bridges; truck/SUV framing
 - Rocklin: Quarry Park; Blue Oaks / Hwy 65; Sunset Boulevard; school-lot framing
 - Auto malls named on dealer/city pages are public landmarks only (Roseville Automall on Automall Dr, Folsom auto mall off Hwy 50, Elk Grove Auto Mall, Automall Parkway in Rancho Cordova, Hanlees on Chiles Rd); no customer relationship is claimed
+
+## Phase 2 (booking engine): [OWNER] items and follow-ups
+Everything runs with zero keys (mock mode). Items below turn it into the real thing.
+- [ ] Real prices: `src/config/pricing.ts` (`fixedPrices`, `dentPricing`, `addonPrices`, `depositAmount`, `travelFees`, `detailSpread`), then set `PRICES_ARE_PLACEHOLDERS = false`. Every number there is a placeholder; the UI shows an [OWNER] demo-pricing marker until you do
+- [ ] Real durations by service and vehicle size: `src/config/booking.ts` (`durations`, `dentMinutes`, `multiServiceSavingsMin`, add-on minutes)
+- [ ] Deposit and change policy windows (48h refund / 24h credit / under 24h kept, reschedule free 24h, closed inside 4h, max 2): `depositPolicy` in `src/config/booking.ts`. Have counsel check the wording before launch
+- [ ] Tech names, real weekly hours (Supabase `tech_availability`; the mock store uses `bookingConfig.defaultWeekly`), blackout dates, admin blocks
+- [ ] Travel radius: free radius, fee tiers and max service distance in `travelFees`; ZIP centroids in `src/lib/geo/zips.ts` are approximate (+/- 1-2 mi). Add ZIPs you serve that are missing (unknown ZIPs go to human review by design)
+- [ ] Supabase: create project, run `supabase/migrations/0001_init.sql` then `supabase/seed.sql`, create PRIVATE storage bucket (`SUPABASE_PHOTOS_BUCKET`), create owner login + `profiles` row with role `owner`
+- [ ] Set `BOOKING_TOKEN_SECRET` (random 32+ chars) and `CRON_SECRET`
+- [ ] Stripe: keys + webhook endpoint `/api/stripe/webhook` (event `payment_intent.succeeded`); test with Stripe test mode before live
+- [ ] Twilio: number or Messaging Service, A2P 10DLC brand + campaign registration (US carriers filter unregistered texting). Opt-in wording is `SMS_CONSENT_TEXT` in `src/config/booking.ts`; have counsel review it. Twilio handles STOP/HELP automatically for its numbers; also forward inbound STOP to `isStopKeyword` + set `customers.sms_opt_out_at` (Phase 4 inbound webhook)
+- [ ] Resend: verify sending domain, set `EMAIL_FROM`
+- [ ] Anthropic key for real photo quotes (model `claude-sonnet-5-5`). Without it the quote is a labelled DEMO rule-based range
+- [ ] Vercel cron: `vercel.json` runs `/api/cron/dispatch` every 5 minutes. Hobby plans only allow daily crons: use Pro, or point an external scheduler at the URL with `Authorization: Bearer $CRON_SECRET`
+- [ ] Google review link (`site.googleReviewUrl`) is used by the post-job message; the review line is omitted until it is set
+- [ ] Optional: Google Calendar sync env keys (write-only sync); not verified against the live API
+- [ ] Privacy policy and terms pages; the SMS consent text should link to them once they exist
+- [ ] Upstash Redis env (`UPSTASH_REDIS_REST_URL/TOKEN`) so rate limits work across serverless instances (in-memory limiter is per instance)
+- [ ] Phase 3 hooks ready: `sendOnTheWay(bookingId, {etaMinutes})`, `scheduleAfterCompletion(bookingId)` in `src/lib/notify`, and `transition()` in `src/lib/booking/state.ts`
+- [ ] Add `/booking/` to robots disallow (page is `noindex` already; robots.ts belongs to Phase 6)

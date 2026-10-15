@@ -82,3 +82,43 @@ src/generated/media.ts written by the media pipeline (frame count, paths, inline
 
 `track(event, props)` in `src/lib/analytics.ts` pushes to `window.dataLayer`. Wired now: `call_click`,
 `text_click`, `quote_requested`, `booking_started`, `cta_click`. Phase 6 connects GA4 / Meta / Google Ads.
+
+## Phase 2: booking engine
+
+`/book` is the 8-step flow (services, vehicle, photos, ZIP and travel fee, real availability, contact, deposit, confirmation).
+`/booking/[token]` is the signed-link reschedule/cancel page. Pure logic lives in `src/lib/{pricing,geo,availability,booking}`,
+the shared data layer in `src/lib/db` (typed `repo()`), automations in `src/lib/notify`, photo quote in `src/lib/quote`.
+
+```bash
+npm run test         # vitest: pricing, geo, tz/DST, availability, state machine, policy, quote, notify, full booking flow
+node scripts/book-flow.mjs http://localhost:3000   # Playwright walk of the whole flow on a phone viewport + axe (mock mode)
+```
+
+### Mock mode (no keys)
+| Service | Without keys | With keys |
+|---|---|---|
+| Supabase | in-memory seeded store (`MOCK_DB_FILE` persists to a file) | Postgres via `supabase/migrations/0001_init.sql`, RLS on, service-role client server-side |
+| Stripe | fake `pi_mock_*` intent, "DEMO MODE" confirm button | Payment Element, webhook-verified |
+| Twilio / Resend | logged (masked) + in-memory outbox | real sends |
+| Anthropic | deterministic rule-based quote labelled DEMO | `claude-sonnet-5-5` vision, structured JSON, clamped |
+| Google Calendar | no-op | write-only sync per tech calendar |
+
+### Env keys by service
+| Service | Keys |
+|---|---|
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PHOTOS_BUCKET` (private bucket) |
+| Stripe | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` (webhook URL `/api/stripe/webhook`, event `payment_intent.succeeded`) |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` or `TWILIO_MESSAGING_SERVICE_SID` |
+| Resend | `RESEND_API_KEY`, `EMAIL_FROM` |
+| Anthropic | `ANTHROPIC_API_KEY`, optional `ANTHROPIC_MODEL` |
+| Google Calendar | `GOOGLE_CALENDAR_CLIENT_EMAIL`, `GOOGLE_CALENDAR_PRIVATE_KEY`, `GOOGLE_CALENDAR_IDS` |
+| App | `BOOKING_TOKEN_SECRET` (required with Supabase), `CRON_SECRET` (required in production), `BASE_ZIP`, optional `UPSTASH_REDIS_REST_URL/TOKEN` |
+
+### How it fits together
+- Prices, durations, deposit, travel fees, policy windows and SMS consent wording are config: `src/config/pricing.ts`, `src/config/booking.ts`.
+- API: `/api/availability`, `/api/quote`, `/api/photos`, `/api/booking` (create, `Idempotency-Key` required), `/api/booking/[token]` (view, reschedule, cancel, pay, release, capi),
+  `/api/stripe/webhook`, `/api/geo/zip`, `/api/lead`, `/api/cron/dispatch`. All validated with zod, rate limited, no PII in logs.
+- Cron: `vercel.json` hits `/api/cron/dispatch` every 5 minutes (needs `CRON_SECRET`). It expires unpaid holds and sends due messages
+  (confirmation, 24h and 2h reminders, on-the-way, invoice + review request 2h after completion, 6-month rebook).
+- Phase 3 hooks: `sendOnTheWay()` and `scheduleAfterCompletion()` from `src/lib/notify`, `transition()` from `src/lib/booking/state`, `repo()` from `src/lib/db`.
+- Database: run `supabase/migrations/0001_init.sql`, then `supabase/seed.sql` (services, two placeholder techs, hours, a demo dealer).

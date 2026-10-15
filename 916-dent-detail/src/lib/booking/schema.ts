@@ -72,6 +72,7 @@ export const tokenActionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('confirm-payment') }),
   z.object({ action: z.literal('mock-pay') }),
   z.object({ action: z.literal('release') }),
+  z.object({ action: z.literal('capi'), eventId: z.string().min(8).max(80), marketingConsent: z.boolean(), fbp: opt(120), fbc: opt(240), sourceUrl: opt(300) }),
 ]);
 
 export const leadSchema = z.object({
