@@ -375,6 +375,7 @@ const create_booking: Runner<'create_booking'> = async (inp, ctx) => {
     await db.leads.remove(dup).catch(() => undefined);
   } else if (!convLeadId && booking.lead_id) {
     ctx.rec.conv = await db.conversations.update(ctx.rec.conv.id, { lead_id: booking.lead_id });
+    await db.leads.update(booking.lead_id, { source: ctx.identity.channel === 'sms' ? 'sms' : 'chat' }); // createBooking labelled it 'direct'
   }
   await ensureLead(ctx.rec, ctx.identity.channel, { name: inp.name, email: inp.email, phone, zip: slot.zip, customer_id: booking.customer_id ?? null, stage: 'quoted' });
   if (booking.customer_id && ctx.rec.conv.customer_id !== booking.customer_id) ctx.rec.conv = await db.conversations.update(ctx.rec.conv.id, { customer_id: booking.customer_id });

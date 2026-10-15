@@ -8,8 +8,9 @@ import { mockRepo } from '@/lib/db/mock';
 import { smsOutbox } from '@/lib/sms';
 import { handleMessage, type AgentOptions } from '@/lib/concierge/agent';
 import { smsExternalId } from '@/lib/concierge/state';
+import { AnthropicModel } from '@/lib/concierge/anthropic-model';
 import { MockPolicyModel, type MockOptions } from '@/lib/concierge/mock-model';
-import type { Attachment, ChannelIdentity, InboundMessage, ModelClient, TurnResult } from '@/lib/concierge/types';
+import type { Attachment, ChannelIdentity, InboundMessage, ModelClient, ModelRequest, ModelResponse, TurnResult } from '@/lib/concierge/types';
 
 /** Mon 2026-10-19 10:00 America/Los_Angeles. Slots exist from the following day on (12 h lead time). */
 export const NOW = localToUtc('2026-10-19', 10 * 60)!;
@@ -17,8 +18,13 @@ export const HOUR = 3_600_000;
 export const PHONE = '+19165550142';
 export const OTHER_PHONE = '+19165550177';
 
+/** BOT_LIVE=1 + a key runs the scenarios against the real model (tolerant assertions only). Default: offline mock. */
+export const LIVE = process.env.BOT_LIVE === '1' && Boolean(process.env.ANTHROPIC_API_KEY);
+const LIVE_KEY = process.env.ANTHROPIC_API_KEY;
+
 export function clearEnv() {
   for (const k of ['ANTHROPIC_API_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER', 'TWILIO_MESSAGING_SERVICE_SID', 'OWNER_ALERT_PHONES', 'CONCIERGE_MAX_COST_USD', 'BOOKING_TOKEN_SECRET']) delete process.env[k];
+  if (LIVE) process.env.ANTHROPIC_API_KEY = LIVE_KEY;
 }
 
 export async function freshDb() {
@@ -44,6 +50,20 @@ export async function uploadPhotos(n: number, caption?: string): Promise<Attachm
 
 export const smsId = (phone = PHONE): ChannelIdentity => ({ channel: 'sms', externalId: smsExternalId(phone), phone, phoneVerified: true });
 export const webId = (over: Partial<ChannelIdentity> = {}): ChannelIdentity => ({ channel: 'web', externalId: 'web-session', phone: null, phoneVerified: false, ip: '203.0.113.9', ...over });
+
+/** Wraps any model: counts calls and keeps every request, so tests can assert what the model was (not) asked. */
+export class SpyModel implements ModelClient {
+  requests: ModelRequest[] = [];
+  responses: ModelResponse[] = [];
+  constructor(public inner: ModelClient) {}
+  async complete(req: ModelRequest): Promise<ModelResponse> { this.requests.push(req); const r = await this.inner.complete(req); this.responses.push(r); return r; }
+  get calls() { return this.requests.length; }
+  /** Everything the model saw in customer-controlled positions (all message text). */
+  seen(): string { return JSON.stringify(this.requests.map((r) => r.messages)); }
+}
+
+/** The model under test: live Anthropic in BOT_LIVE mode, else the scripted mock policy. */
+export const modelUnderTest = (mock: MockOptions = {}): ModelClient => (LIVE ? new AnthropicModel() : new MockPolicyModel(mock));
 
 export class Chat {
   conversationId: string | undefined;
@@ -91,3 +111,11 @@ export async function seedBooking(opts: { phone?: string; inHours: number; servi
 
 export { confirmDeposit, createBooking };
 export type { ModelClient };
+
+// ---- direct tool-executor tests (no model): build a ToolContext for a fresh conversation
+import { findOrCreateConversation } from '@/lib/concierge/state';
+import type { ToolContext } from '@/lib/concierge/tools';
+export async function toolCtx(identity: ChannelIdentity = smsId(), over: { turn?: number; now?: number } = {}): Promise<ToolContext> {
+  const rec = await findOrCreateConversation(identity);
+  return { rec, identity, now: over.now ?? NOW, turn: over.turn ?? 1, turnLog: { urls: new Set(), done: {}, quoted: false } };
+}

@@ -133,7 +133,6 @@ async function run(msg: InboundMessage, opts: AgentOptions, now: number, convers
   const { identity } = msg;
   const rec = (await loadConversationById(conversationId))!; // re-read under the lock
   const st = rec.state;
-  const isNewConversation = st.turn === 0;
   const phone = identity.phone;
   const done = (r: Partial<TurnResult>) => withToken(rec, baseResult(rec, r), now);
 
@@ -365,8 +364,10 @@ async function run(msg: InboundMessage, opts: AgentOptions, now: number, convers
     if (key) {
       const recent = await recentTurns(rec.conv.id, conciergeConfig.historyWindow + 4);
       const leaving = recent.length > conciergeConfig.historyWindow ? summarizeTurns(recent.slice(0, recent.length - conciergeConfig.historyWindow)) : [];
-      const firstTopic = isNewConversation ? summarizeTurns([{ role: 'user', content: textForModel }]) : [];
-      await rememberTurn({ key: phoneKey(key), channel: identity.channel, state: rec.state, newTopics: [...firstTopic, ...leaving.slice(-1)], customerId: rec.conv.customer_id, newConversation: isNewConversation, now }).catch((e) => log('warn', 'concierge.memory_failed', { error: (e as Error).name }));
+      const firstTime = !rec.state.memoryLinked;
+      const firstTopic = firstTime ? summarizeTurns([{ role: 'user', content: textForModel }]) : [];
+      await rememberTurn({ key: phoneKey(key), channel: identity.channel, state: rec.state, newTopics: [...firstTopic, ...leaving.slice(-1)], customerId: rec.conv.customer_id, newConversation: firstTime, now }).catch((e) => log('warn', 'concierge.memory_failed', { error: (e as Error).name }));
+      if (firstTime) { rec.state.memoryLinked = true; await saveState(rec); }
     }
     log('info', 'concierge.turn', { conversation: rec.conv.id, channel: identity.channel, phone: maskPhone(key), tools: toolCalls.map((t) => t.name), filtered: filtered.reasons, cost: Number(cost.toFixed(5)), status });
     return done({

@@ -45,16 +45,16 @@ export async function handleMissedCall(p: { from: string; callSid?: string; now?
   if (await isOptedOut(phone)) return { action: 'skipped', reason: 'opted_out' };
 
   const key = hashKey(`missed:${phone}`);
-  const since = new Date(now - conciergeConfig.missedCall.dedupeHours * 3_600_000).toISOString();
-  const prior = await db.events.list({ where: { type: 'concierge.missed_call', entity_id: key }, ranges: [{ col: 'created_at', gte: since }], limit: 1 });
-  if (prior.length) return { action: 'skipped', reason: 'deduped' };
+  const windowMs = conciergeConfig.missedCall.dedupeHours * 3_600_000;
+  const prior = await db.events.list({ where: { type: 'concierge.missed_call', entity_id: key }, orderBy: 'created_at', desc: true, limit: 5 });
+  if (prior.some((e) => now - Number((e.data as { at?: number }).at ?? 0) < windowMs)) return { action: 'skipped', reason: 'deduped' };
 
   const identity: ChannelIdentity = { channel: 'sms', externalId: smsExternalId(phone), phone, phoneVerified: true };
   const rec = await findOrCreateConversation(identity);
   const lastMs = rec.conv.last_message_at ? Date.parse(rec.conv.last_message_at) : 0;
   if (lastMs && now - lastMs < conciergeConfig.missedCall.dedupeHours * 3_600_000) return { action: 'skipped', reason: 'active_conversation' };
 
-  await db.events.insert({ type: 'concierge.missed_call', entity_type: 'phone', entity_id: key, actor: 'system', data: { call: (p.callSid ?? '').slice(0, 40) } });
+  await db.events.insert({ type: 'concierge.missed_call', entity_type: 'phone', entity_id: key, actor: 'system', data: { at: now, call: (p.callSid ?? '').slice(0, 40) } });
   await ensureLead(rec, 'sms', { phone, notes: 'Missed call; text-back started.' });
 
   if (isQuietHour(now, notifyConfig.quiet)) {

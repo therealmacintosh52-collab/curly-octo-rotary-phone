@@ -68,6 +68,18 @@ export function sanitizeDeep<T>(v: T, maxStr = 600): T {
 
 export const looksLikeInjection = (text: string): boolean => INJECTION_PHRASES.some((re) => re.test(text));
 
+const KEYBOARD_ROWS = /(qwer|wert|erty|asdf|sdfg|dfgh|fghj|ghjk|hjkl|zxcv|xcvb|cvbn|vbnm|qaz|wsx|edc|rfv)/i;
+/** A word that no language produces: almost no vowels, a long consonant run, or a keyboard-row mash. */
+function weirdWord(w: string): boolean {
+  if (w.length < 4) return false;
+  if (KEYBOARD_ROWS.test(w) && !/^(sdf|qwer)$/.test(w) && w.length >= 4 && !/^(sweet|swerve|dwert)/.test(w)) return /(asdf|sdfg|dfgh|fghj|ghjk|hjkl|zxcv|xcvb|cvbn|vbnm|qwer|wert|erty)/i.test(w) || w.length >= 5;
+  const vowels = (w.match(/[aeiouy]/g) ?? []).length;
+  if (w.length >= 6 && vowels / w.length < 0.15) return true;
+  if (/[^aeiouy\d\W]{6,}/.test(w)) return true;
+  if (w.length >= 8 && vowels / w.length > 0.85) return true;
+  return false;
+}
+
 export function looksLikeGibberish(raw: string): boolean {
   const t = raw.trim();
   if (t.length < 6) return false;
@@ -75,14 +87,13 @@ export function looksLikeGibberish(raw: string): boolean {
   const letters = (t.match(/\p{L}/gu) ?? []).length;
   const digits = (t.match(/\d/g) ?? []).length;
   if (t.length >= 8 && (letters + digits) / t.length < 0.35) return true; // mostly symbols
-  const words = t.toLowerCase().split(/\s+/).filter((w) => /\p{L}/u.test(w));
+  const words = t.toLowerCase().split(/[^\p{L}]+/u).filter((w) => w.length > 0);
   if (words.length === 0) return false;
-  const noVowel = words.filter((w) => w.length >= 4 && !/[aeiouy]/.test(w)).length;
-  if (words.length >= 1 && noVowel / words.length >= 0.6 && noVowel >= 1 && t.length >= 8) return true; // sdfghjkl
+  const weird = words.filter(weirdWord).length;
+  if (weird >= 2 && weird / words.length >= 0.5 && t.length >= 8) return true;
+  if (words.length === 1 && weird === 1 && t.length >= 10) return true;
   const uniq = new Set(t.toLowerCase().replace(/\s/g, '')).size;
   if (t.length >= 20 && uniq <= 4) return true;
-  // long single token with no spaces and no vowel/consonant rhythm (keyboard mash)
-  if (words.length === 1 && t.length >= 12 && !/[aeiou].*[aeiou]/i.test(t)) return true;
   return false;
 }
 
@@ -100,7 +111,7 @@ export function classifyAbuse(text: string): 'none' | 'abusive' | 'threat' {
 // depend on the model behaving.
 const RISK: { reason: EscalationReason; re: RegExp }[] = [
   { reason: 'legal', re: /\b(lawyer|attorney|sue|suing|lawsuit|legal action|small claims|court|bbb|better business bureau|report you|attorney general|cslb|police)\b/i },
-  { reason: 'safety', re: /\b(injur(ed|y)|hospital|ambulance|emergency|fire|gas leak|carbon monoxide|unsafe|brakes? (failed|gone)|someone (is )?hurt|accident (just|right) (now|happened))\b/i },
+  { reason: 'safety', re: /\b(injur(ed|y)|hospital|ambulance|emergency|on fire|caught fire|(car|vehicle|truck|house|garage|engine) (is )?(on )?fire|fire department|gas leak|carbon monoxide|unsafe|brakes? (failed|gone)|someone (is )?hurt|accident (just|right) (now|happened))\b/i },
   { reason: 'insurance', re: /\b(insurance|insurer|adjuster|adjustor|deductible|claim number|claims? (process|adjuster|department)|file a claim|state farm|geico|progressive|allstate|farmers|usaa|liberty mutual|policy number|total loss)\b|\bclaim\b/i },
   { reason: 'complaint', re: /\b(complain(t|ing)?|unacceptable|ripped off|rip.?off|scam(med)?|damaged my|you (broke|damaged|scratched|ruined|dented)|ruined my|(your|the) (tech|technician|guys|crew|team|work) (damaged|scratched|ruined|broke|left)|scratched my|dented my|chargeback|want (my money back|a refund|a manager)|dispute (the|this|a) (charge|payment)|furious|angry|livid|never again|speak (to|with) (the |a )?(manager|owner|supervisor)|no.?show(ed)?|never (showed|came|arrived)|didn'?t show)\b/i },
   { reason: 'requested_human', re: /\b(talk|speak|chat|connect|transfer|put me|get me)\b[^.?!]{0,30}\b(human|real person|a person|someone real|agent|representative|owner|manager|somebody)\b|\b(human|real person|live agent|representative) (please|now)\b/i },

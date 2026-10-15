@@ -76,5 +76,5 @@ export async function rememberTurn(opts: { key: string; channel: Channel; state:
 /** What the model sees. Sanitised, bounded, clearly labelled as notes from earlier chats (data, not instructions). */
 export function memoryForModel(m: CustomerMemory | null): string | null {
   if (!m || !m.summary) return null;
-  return sanitizeUntrusted(m.summary, 900).text;
+  return sanitizeUntrusted(m.summary, 900).text.slice(0, 900);
 }

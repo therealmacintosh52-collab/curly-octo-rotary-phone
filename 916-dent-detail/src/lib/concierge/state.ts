@@ -40,6 +40,8 @@ export type ConvState = {
   lastUserHash?: string;
   /** missed-call opener held for quiet hours; sent by /api/concierge/cron */
   pendingOpener?: { sendAfter: number };
+  /** this conversation has been counted in the customer's memory row */
+  memoryLinked?: boolean;
 };
 
 export const emptyState = (): ConvState => ({ v: 1, turn: 0, photos: [], offered: [], bookingIds: [], collected: {}, strikes: 0, injectionAttempts: 0, spam: 0 });

@@ -209,15 +209,15 @@ export class MockPolicyModel implements ModelClient {
     }
     // contact details sent for a previously chosen slot (slot id remembered through collected state is not kept: ask to choose)
     const c2 = contactFrom(text);
-    const chosen = slots.find((s) => this.prevAssistant.includes(s.when)) ?? (slots.length === 1 ? slots[0] : undefined);
+    const chosen = slots.find((s) => this.prevAssistant.includes(`${s.when} works`));
     if (chosen && c2.name && c2.email && c2.address && vehicleFrom(text)) {
       const v = vehicleFrom(text)!;
       return { tools: [{ name: 'create_booking', input: { slot_id: chosen.slot_id, name: c2.name, email: c2.email, address_line: c2.address, vehicle: { year: v.year, make: v.make, model: v.model } } }] };
     }
 
     // existing bookings
-    if (has(t, /\b(cancel)\b.*\b(booking|appointment|reservation)\b|\bcancel (it|my)\b/)) return { tools: [{ name: 'lookup_booking', input: phoneFrom(text) ? { phone: phoneFrom(text) } : {} }] };
     if (st.cancel_awaiting_confirmation_for && has(t, /\b(yes|yep|yeah|confirm|go ahead|do it|please cancel)\b/)) return { tools: [{ name: 'cancel_booking', input: { booking_id: st.cancel_awaiting_confirmation_for, confirmed: true } }] };
+    if (has(t, /\b(cancel)\b.*\b(booking|appointment|reservation)\b|\bcancel (it|my)\b/)) return { tools: [{ name: 'lookup_booking', input: phoneFrom(text) ? { phone: phoneFrom(text) } : {} }] };
     if (has(t, /\b(reschedule|move|change)\b.*\b(booking|appointment|time|date)\b|\breschedule\b/)) return { tools: [{ name: 'lookup_booking', input: phoneFrom(text) ? { phone: phoneFrom(text) } : {} }] };
     if (has(t, /\b(my|check|look ?up|find)\b.*\b(booking|appointment|reservation)\b|\bwhen is my\b/)) return { tools: [{ name: 'lookup_booking', input: phoneFrom(text) ? { phone: phoneFrom(text) } : {} }] };
 
@@ -315,7 +315,7 @@ export class MockPolicyModel implements ModelClient {
         return { text: String(r.message ?? 'I could not cancel that here.') };
       }
       case 'reschedule_booking':
-        if (blocked === 'rescheduled') return { text: `Done, you're moved to ${String(r.new_time)}. ${String(r.note)}` };
+        if (blocked === 'rescheduled') return { text: `Done, you're moved to ${String(r.new_time)}. Your deposit moves with you.` };
         if (blocked === 'closed_window' || blocked === 'too_many_reschedules') return { tools: [{ name: 'escalate_to_human', input: { reason: 'other', summary: `Customer wants to change a booking inside the closed window: ${String(r.message)}` } }] };
         return { text: String(r.message ?? 'I could not move that booking.') };
       case 'escalate_to_human': {
