@@ -246,3 +246,19 @@ export async function finishJob(jobId: string, actor: string, o: { summary?: str
 
 export const serviceNames = (ids: string[]): string => ids.map((s) => serviceById(s)?.plain ?? s).join(' + ');
 export { addonPrices };
+
+// ---- compact state the tech UI renders after every action -------------------------------------------------------
+export type JobSnapshot = {
+  status: string; startedAt: string | null; finishedAt: string | null; etaMinutes: number | null;
+  lines: LineItem[]; math: InvoiceMath; invoice: { id: string; number: string | null; status: string } | null; payLink: { url: string; mock: boolean } | null;
+};
+
+export async function snapshotFor(jobId: string): Promise<JobSnapshot | null> {
+  const b = await loadJobBundle(jobId);
+  if (!b) return null;
+  return {
+    status: b.booking.status, startedAt: b.job.started_at ?? null, finishedAt: b.job.finished_at ?? null, etaMinutes: b.job.eta_minutes ?? null,
+    lines: b.lines, math: b.math, invoice: b.invoice ? { id: b.invoice.id, number: b.invoice.number ?? null, status: b.invoice.status } : null,
+    payLink: b.job.payment_link_url ? { url: b.job.payment_link_url, mock: Boolean(b.job.payment_link_id?.startsWith('cs_mock_')) } : null,
+  };
+}
