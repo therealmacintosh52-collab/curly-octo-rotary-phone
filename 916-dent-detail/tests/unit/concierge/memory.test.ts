@@ -68,7 +68,8 @@ describe('across channels', () => {
     const chat = new Chat(smsId('+19165550190'), { now: NOW, model: spy });
     for (let i = 0; i < 12; i++) await chat.say(`Question number ${i}, what services do you offer?`);
     const last = spy.requests.at(-1)!;
-    expect(last.messages.length).toBeLessThanOrEqual(16);
+    const turnStart = last.messages.findLastIndex((m) => m.role === 'user' && typeof m.content === 'string');
+    expect(turnStart + 1).toBeLessThanOrEqual(15); // replayed history (14) + the current turn; the tool loop adds more after it
     const mem = (await loadMemory(phoneKey('+19165550190')))!;
     expect((mem.facts as { topics?: string[] }).topics!.length).toBeGreaterThan(1);
     expect((mem.facts as { topics?: string[] }).topics!.length).toBeLessThanOrEqual(8);

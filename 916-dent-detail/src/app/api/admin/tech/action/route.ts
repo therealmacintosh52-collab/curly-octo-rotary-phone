@@ -8,7 +8,7 @@ import { MANUAL_METHODS } from '@/lib/admin/payments';
 import { addNoteRecord } from '@/lib/admin/records';
 import { ok } from '@/lib/api/http';
 import { ANY_ROLE } from '@/lib/auth/roles';
-import { useVisit } from '@/lib/memberships';
+import { consumeVisit } from '@/lib/memberships';
 import { repo } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
         const m = await repo().memberships.get(b.membershipId);
         const bk = await repo().bookings.get(bookingId);
         if (!m || m.customer_id !== bk?.customer_id) throw new HttpError(404, 'not_found', 'Membership not found.');
-        try { return ok({ left: await useVisit(m.id, bookingId, actor) }); } catch (e) { throw new HttpError(409, 'no_credits', (e as Error).message); }
+        try { return ok({ left: await consumeVisit(m.id, bookingId, actor) }); } catch (e) { throw new HttpError(409, 'no_credits', (e as Error).message); }
       }
       case 'finish': { const r = await finishJob(job.id, actor, { summary: b.summary }); return ok({ replay: r.replay, invoiceId: r.invoice.id, number: r.invoice.number, balance: r.math.balance, status: r.invoice.status, invoiceUrl: r.invoiceUrl }); }
     }

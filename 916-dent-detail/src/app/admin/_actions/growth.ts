@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { HttpError } from '@/lib/admin/api';
 import { actorOf } from '@/lib/admin/events';
 import { createBillingPortal } from '@/lib/stripe/subscriptions';
-import { adjustVisits, cancelMembership, grantForPeriod, periodKey, startMembership, useVisit } from '@/lib/memberships';
+import { adjustVisits, cancelMembership, grantForPeriod, periodKey, startMembership, consumeVisit } from '@/lib/memberships';
 import { ensureReferralCode } from '@/lib/referrals';
 import { repo } from '@/lib/db';
 import { optNum, parseForm, reqText, run, STAFF, uuid } from './util';
@@ -37,7 +37,7 @@ export async function membershipAdminAction(_: ActionResult, fd: FormData): Prom
     if (!m) throw new HttpError(404, 'not_found', 'Membership not found.');
     const actor = actorOf(s);
     let message = 'Done.';
-    if (i.op === 'use') { const left = await useVisit(m.id, null, actor).catch((e: Error) => { throw new HttpError(409, 'no_credits', e.message); }); message = `Visit used. ${left} left.`; }
+    if (i.op === 'use') { const left = await consumeVisit(m.id, null, actor).catch((e: Error) => { throw new HttpError(409, 'no_credits', e.message); }); message = `Visit used. ${left} left.`; }
     else if (i.op === 'grant') { const n = await grantForPeriod(m, periodKey(), actor); message = n ? `Granted ${n} visit(s).` : 'This period was already granted.'; }
     else if (i.op === 'adjust') { if (!i.visits) throw new HttpError(400, 'visits', 'Enter how many visits to add or remove.'); await adjustVisits(m.id, i.visits, i.note || 'manual adjustment', actor); message = 'Adjusted.'; }
     else if (i.op === 'cancel') { await cancelMembership(m.id, actor); message = 'Cancelled.'; }

@@ -1,7 +1,7 @@
 'use client';
 // Staff slot finder. Loads real availability from /api/admin/schedule/slots (same engine as the public flow) and lets
 // the owner pick one, or tick "Override rules" to type any start time (double booking is still refused server-side).
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Slot = { startsAt: string; date: string; label: string; techId: string; techIds: string[] };
 type Fixed = { services: string[]; addons: string[]; sizeClass: string; zip: string };
@@ -19,39 +19,39 @@ export function SlotPicker({ techs, fixed, excludeBookingId, defaultTechId = '',
   const [chosen, setChosen] = useState('');
   const seq = useRef(0);
 
-  const load = useCallback(async () => {
-    let q: Fixed | null = fixed ?? null;
-    if (!q) {
-      const form = root.current?.closest('form');
-      if (!form) return;
-      const fd = new FormData(form);
-      q = { services: fd.getAll('services').map(String), addons: fd.getAll('addons').map(String), sizeClass: String(fd.get('sizeClass') ?? 'sedan'), zip: String(fd.get('zip') ?? '').trim() };
-    }
-    if (!q.services.length || !/^\d{5}$/.test(q.zip)) { setSlots([]); setNote('Fill in services, size and ZIP to see open times.'); return; }
-    const my = ++seq.current;
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/schedule/slots', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...q, days: 10, excludeBookingId }) });
-      const j = await res.json();
-      if (my !== seq.current) return;
-      if (!res.ok) { setSlots([]); setNote(j.error?.message ?? 'Could not load times.'); }
-      else {
-        setSlots(j.slots as Slot[]);
-        setNote(j.area?.status !== 'in_area' ? `${j.area.message} Times shown anyway; booking needs "Override rules".` : (j.slots as Slot[]).length ? `${(j.slots as Slot[]).length} open times over the next 10 days.` : 'No open times in the next 10 days. Use Override rules to place it by hand.');
-      }
-    } catch { if (my === seq.current) { setSlots([]); setNote('No connection.'); } }
-    if (my === seq.current) setLoading(false);
-  }, [fixed, excludeBookingId]);
-
   useEffect(() => {
+    const load = async () => {
+      await Promise.resolve(); // never set state synchronously inside the effect body
+      let q: Fixed | null = fixed ?? null;
+      if (!q) {
+        const form = root.current?.closest('form');
+        if (!form) return;
+        const fd = new FormData(form);
+        q = { services: fd.getAll('services').map(String), addons: fd.getAll('addons').map(String), sizeClass: String(fd.get('sizeClass') ?? 'sedan'), zip: String(fd.get('zip') ?? '').trim() };
+      }
+      if (!q.services.length || !/^\d{5}$/.test(q.zip)) { setSlots([]); setNote('Fill in services, size and ZIP to see open times.'); return; }
+      const my = ++seq.current;
+      setLoading(true);
+      try {
+        const res = await fetch('/api/admin/schedule/slots', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...q, days: 10, excludeBookingId }) });
+        const j = await res.json();
+        if (my !== seq.current) return;
+        if (!res.ok) { setSlots([]); setNote(j.error?.message ?? 'Could not load times.'); }
+        else {
+          setSlots(j.slots as Slot[]);
+          setNote(j.area?.status !== 'in_area' ? `${j.area.message} Times shown anyway; booking needs "Override rules".` : (j.slots as Slot[]).length ? `${(j.slots as Slot[]).length} open times over the next 10 days.` : 'No open times in the next 10 days. Use Override rules to place it by hand.');
+        }
+      } catch { if (my === seq.current) { setSlots([]); setNote('No connection.'); } }
+      if (my === seq.current) setLoading(false);
+    };
     void load();
     if (fixed) return;
     const form = root.current?.closest('form');
     if (!form) return;
-    const h = (e: Event) => { const t = e.target as HTMLElement; const n = t.getAttribute('name'); if (n === 'services' || n === 'addons' || n === 'sizeClass' || n === 'zip') void load(); };
+    const h = (e: Event) => { const n = (e.target as HTMLElement).getAttribute('name'); if (n === 'services' || n === 'addons' || n === 'sizeClass' || n === 'zip') void load(); };
     form.addEventListener('change', h);
     return () => form.removeEventListener('change', h);
-  }, [load, fixed]);
+  }, [fixed, excludeBookingId]);
 
   const shown = slots.filter((s) => !tech || s.techIds.includes(tech));
   const byDay = new Map<string, Slot[]>();

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { repo } from '@/lib/db';
-import { VISITS_PER_PERIOD, balanceOf, cancelMembership, grantAmount, grantForPeriod, handleSubscriptionEvent, plans, startMembership, useVisit, periodKey } from '@/lib/memberships';
+import { VISITS_PER_PERIOD, balanceOf, cancelMembership, grantAmount, grantForPeriod, handleSubscriptionEvent, plans, startMembership, consumeVisit, periodKey } from '@/lib/memberships';
 import { memberships as cfg } from '@/config/pricing';
 import { createMembershipCheckout, MembershipConfigError } from '@/lib/stripe/subscriptions';
 
@@ -30,9 +30,9 @@ describe('mock membership lifecycle', () => {
     expect(await grantForPeriod(m, periodKey())).toBe(0); // same period: no second grant
     expect(await balanceOf(m.id)).toBe(1);
     await expect(startMembership(c, 'protect', 'x', 'o')).rejects.toThrow(/already/);
-    expect(await useVisit(m.id, 'booking-1', 'o')).toBe(0);
-    expect(await useVisit(m.id, 'booking-1', 'o').catch(() => -1)).toBe(0); // same booking: no double spend (returns balance 0 via dup check?)
-    await expect(useVisit(m.id, 'booking-2', 'o')).rejects.toThrow(/No visit credits/);
+    expect(await consumeVisit(m.id, 'booking-1', 'o')).toBe(0);
+    expect(await consumeVisit(m.id, 'booking-1', 'o').catch(() => -1)).toBe(0); // same booking: no double spend (returns balance 0 via dup check?)
+    await expect(consumeVisit(m.id, 'booking-2', 'o')).rejects.toThrow(/No visit credits/);
     await grantForPeriod(m, '2099-01');
     expect(await balanceOf(m.id)).toBe(1);
     expect((await cancelMembership(m.id, 'o')).status).toBe('cancelled');

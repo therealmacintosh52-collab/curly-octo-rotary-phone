@@ -82,7 +82,7 @@ export function JobPanel(p: PanelProps) {
   const payLink = async () => { const d = await act('pay_link', { action: 'pay_link' }, (s) => s, false); if (d) { const x = d as { url: string; mock: boolean }; setPayUrl({ url: x.url, mock: x.mock }); setMsg({ kind: 'ok', text: x.mock ? 'DEMO pay link created.' : 'Pay link ready. Text it or show the customer.' }); } };
   const demoPay = async () => { const d = await act('demo_pay', { action: 'demo_pay' }, (s) => s, false); if (d) setMsg({ kind: 'ok', text: 'DEMO payment recorded.' }); };
   const checkLink = async () => { const d = await act('pay_link_check', { action: 'pay_link_check' }, (s) => s, false); setMsg((d as { paid?: boolean } | null)?.paid ? { kind: 'ok', text: 'Paid. Thank you!' } : { kind: 'info', text: 'Not paid yet.' }); };
-  const useVisit = async () => { if (!p.membership) return; const d = await act('use_visit', { action: 'use_visit', membershipId: p.membership.id }, (s) => s, false); if (d) { setMemLeft((d as { left: number }).left); setMsg({ kind: 'ok', text: 'Membership visit used.' }); } };
+  const consumeVisit = async () => { if (!p.membership) return; const d = await act('use_visit', { action: 'use_visit', membershipId: p.membership.id }, (s) => s, false); if (d) { setMemLeft((d as { left: number }).left); setMsg({ kind: 'ok', text: 'Membership visit used.' }); } };
 
   const addNote = async () => {
     const body = noteText.trim(); if (!body) return;
@@ -220,7 +220,7 @@ export function JobPanel(p: PanelProps) {
         {p.membership && memLeft !== null && (
           <div className="rounded-xl border border-[#6d5622] bg-[#1f1a0e] p-3 text-sm">
             <p className="text-gold-light">{p.membership.tier} member · {memLeft} visit credit{memLeft === 1 ? '' : 's'} left</p>
-            {!done && memLeft >= 1 && <button type="button" className="adm-btn adm-btn-line mt-2" onClick={useVisit} disabled={!!busy}>Use a membership visit for this job</button>}
+            {!done && memLeft >= 1 && <button type="button" className="adm-btn adm-btn-line mt-2" onClick={consumeVisit} disabled={!!busy}>Use a membership visit for this job</button>}
           </div>
         )}
       </section>
@@ -229,7 +229,7 @@ export function JobPanel(p: PanelProps) {
         <h2 id="sig-h" className="text-base font-semibold">Customer signature <span className="text-sm font-normal text-[#a9acb3]">(optional)</span></h2>
         {sig ? (
           <div className="space-y-2">
-            {sig !== 'saved' && /* eslint-disable-next-line @next/next/no-img-element */ <img src={`/api/admin/photo?path=${encodeURIComponent(sig)}`} alt="Saved customer signature" className="h-28 w-full rounded-xl bg-white object-contain" />}
+            {sig !== 'saved' && <img src={`/api/admin/photo?path=${encodeURIComponent(sig)}`} alt="Saved customer signature" className="h-28 w-full rounded-xl bg-white object-contain" />}
             <p className="text-sm text-[#8fe0b0]" data-testid="sig-saved">Signature saved.</p>
             {!done && <button type="button" className="adm-btn adm-btn-line" onClick={() => setSig(null)}>Sign again</button>}
           </div>

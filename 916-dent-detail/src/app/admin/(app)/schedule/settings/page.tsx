@@ -8,7 +8,7 @@ import { requireStaff } from '@/lib/auth/server';
 import { repo } from '@/lib/db';
 import { addBlackoutAction, addBlockAction, deleteRowAction, resetSettingsAction, saveSettingsAction, toggleWeatherAction } from '../../../_actions/schedule';
 import { ActionButton, ActionForm } from '../../../_ui/forms';
-import { Badge, Card, Empty, Field, PageHeader, Row, Section } from '../../../_ui';
+import { Badge, Card, Empty, Field, PageHeader, Section } from '../../../_ui';
 
 export const metadata: Metadata = { title: 'Schedule settings' };
 export const dynamic = 'force-dynamic';

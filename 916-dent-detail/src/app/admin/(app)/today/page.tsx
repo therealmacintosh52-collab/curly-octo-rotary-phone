@@ -7,7 +7,7 @@ import { addressOf, mapsUrl, smsUrl, telUrl } from '@/lib/admin/links';
 import { isStaff } from '@/lib/auth/roles';
 import { requireSession } from '@/lib/auth/server';
 import { repo } from '@/lib/db';
-import { travelMinutes } from '@/lib/geo';
+import { routeLegs } from '@/lib/admin/route';
 import { Badge, Card, Empty, PageHeader, Section } from '../../_ui';
 
 export const metadata: Metadata = { title: 'Today' };
@@ -37,7 +37,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const dayTitle = date === today ? 'Today' : formatLocal(Date.parse(`${date}T12:00:00Z`), { weekday: 'long', month: 'short', day: 'numeric' }, 'UTC');
   const q = (o: Record<string, string>) => `/admin/today?${new URLSearchParams({ ...(sp.tech ? { tech: sp.tech } : {}), ...o })}`;
   const remaining = stops.filter((b) => ['confirmed', 'on_the_way', 'in_progress'].includes(b.status)).length;
-  let prevZip: string | null = tech?.home_zip ?? null;
+  const legs = routeLegs(stops.map((b) => b.zip), tech?.home_zip);
   return (
     <>
       <PageHeader title={dayTitle} eyebrow={tech ? tech.name.replace('[OWNER] ', '') : isStaff(s.role) ? 'All technicians' : 'Your route'} />
@@ -61,8 +61,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
             {stops.map((b, i) => {
               const c = cMap.get(b.customer_id ?? ''); const j = jMap.get(b.id);
               const addr = addressOf(b);
-              const drive = i === 0 && !prevZip ? null : travelMinutes(prevZip, b.zip);
-              prevZip = b.zip ?? prevZip;
+              const drive = legs[i] ?? null;
               const open = j ? `/admin/jobs/${j.id}` : `/admin/jobs/${b.id}`;
               return (
                 <li key={b.id}>

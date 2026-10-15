@@ -39,7 +39,7 @@ export async function grantForPeriod(m: Membership, key = periodKey(), actor = '
   return n;
 }
 
-export async function useVisit(membershipId: string, bookingId: string | null, actor: string): Promise<number> {
+export async function consumeVisit(membershipId: string, bookingId: string | null, actor: string): Promise<number> {
   const bal = await balanceOf(membershipId);
   if (bookingId) {
     const dup = (await repo().membership_visits.list({ where: { membership_id: membershipId, kind: 'use' } })).find((r) => r.booking_id === bookingId);
