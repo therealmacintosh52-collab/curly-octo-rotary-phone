@@ -165,6 +165,8 @@ export type RetailSettings = {
   shop_supplies_taxable: boolean;
   parts_taxable_default: boolean;
   labor_taxable_default: boolean;
+  /** 0067: default parts markup %, to suggest a list price from a cost. Staff who price only. */
+  parts_markup_pct?: number | null;
   updated_at: string;
 };
 
@@ -1531,7 +1533,7 @@ export type Database = {
       complete_ro_work: { Args: { p_job: string; p: { odometer_out: number | string; parts_disposition?: "offered" | "returned" | "declined" | null; jobs: { id: string; cause: string; correction: string }[] } }; Returns: { job_id: string; completed_at: string; odometer_out: number } };
       quality_check_ro: { Args: { p_job: string; p_note?: string | null }; Returns: { job_id: string; qc_at: string } };
       ro_invoice_review: { Args: { p_job: string }; Returns: InvoiceReview };
-      add_finding_lines: { Args: { p_finding: string; p_lines: { line_type: "labor" | "part" | "fee" | "sublet"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string }[] }; Returns: PricedFinding };
+      add_finding_lines: { Args: { p_finding: string; p_lines: { line_type: "labor" | "part" | "fee" | "sublet"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string; cost?: number }[] }; Returns: PricedFinding };
       convert_ro_to_invoice: { Args: { p_job: string }; Returns: { job_id: string; invoice_number: string; invoiced_at: string } };
       check_in_appointment: { Args: { p_id: string; p: CheckInPayload }; Returns: AppointmentView };
       signed_documents: { Args: { p_estimate: string }; Returns: SignedDocumentRow[] };

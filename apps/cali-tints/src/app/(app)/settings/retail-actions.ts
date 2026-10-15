@@ -317,6 +317,7 @@ const suppliesSchema = z.object({
   shop_supplies_taxable: z.boolean(),
   parts_taxable_default: z.boolean(),
   labor_taxable_default: z.boolean(),
+  parts_markup_pct: z.number().min(0).max(1000).nullable().optional(),
 });
 export type SuppliesInput = z.input<typeof suppliesSchema>;
 

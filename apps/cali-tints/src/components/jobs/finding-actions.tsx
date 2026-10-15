@@ -13,6 +13,7 @@ import { readClip, uploadFindingMedia, type ClipPick, type FindingSubject } from
 import { formatMoney } from "@/lib/money";
 import { emptyRow, rowsPayload, rowsTotals, type FindingPricing, type FindingRow } from "@/lib/retail/finding-quote";
 import { detectPlatform, smsHref } from "@/lib/retail/phone";
+import { listPriceFromCost, marginOf } from "@/lib/retail/quote";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -173,6 +174,15 @@ function FindingQuoteSheet({ f, pricing, onClose }: { f: JobFinding; pricing: Fi
   const [pending, start] = useTransition();
   const totals = rowsTotals(rows, pricing);
   const set = (i: number, patch: Partial<FindingRow>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  // Your cost fills the list price (cost + the shop's markup) until the price is typed by hand.
+  const setCost = (i: number, cost: string) =>
+    setRows((rs) =>
+      rs.map((r, j) => {
+        if (j !== i) return r;
+        const suggested = !r.priceByHand && cost.trim() !== "" ? listPriceFromCost(Number(cost), pricing.policy?.parts_markup_pct ?? null) : null;
+        return { ...r, cost, ...(suggested !== null ? { price: String(suggested) } : {}) };
+      }),
+    );
 
   function save() {
     if (totals.error) return void toast.error(totals.error);
@@ -213,13 +223,22 @@ function FindingQuoteSheet({ f, pricing, onClose }: { f: JobFinding; pricing: Fi
                 </div>
               )}
               {r.type === "part" && (
-                <div className="grid grid-cols-[4.5rem_1fr_1fr] gap-2">
-                  <label className="grid gap-1"><span className="text-caption text-subtle">Qty</span><Input inputMode="decimal" value={r.qty} onChange={(e) => set(i, { qty: e.target.value })} placeholder="Qty" aria-label="Quantity" data-testid="quote-qty" /></label>
-                  <label className="grid gap-1"><span className="text-caption text-subtle">Price each</span><Input inputMode="decimal" value={r.price} onChange={(e) => set(i, { price: e.target.value })} placeholder="Price each" aria-label="Price each" data-testid="quote-price" /></label>
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-[4.5rem_1fr_1fr] gap-2">
+                    <label className="grid gap-1"><span className="text-caption text-subtle">Qty</span><Input inputMode="decimal" value={r.qty} onChange={(e) => set(i, { qty: e.target.value })} placeholder="Qty" aria-label="Quantity" data-testid="quote-qty" /></label>
+                    <label className="grid gap-1"><span className="text-caption text-subtle">Your cost, each <span aria-hidden>🔒</span></span><Input inputMode="decimal" value={r.cost ?? ""} onChange={(e) => setCost(i, e.target.value)} placeholder="Hidden" aria-label="Your cost each (hidden from the customer)" data-testid="quote-cost" /></label>
+                    <label className="grid gap-1"><span className="text-caption text-subtle">List price, each</span><Input inputMode="decimal" value={r.price} onChange={(e) => set(i, { price: e.target.value, priceByHand: true })} placeholder="Customer pays" aria-label="List price each" data-testid="quote-price" /></label>
+                  </div>
                   <label className="grid gap-1"><span className="text-caption text-subtle">Part #</span><Input value={r.part_number} onChange={(e) => set(i, { part_number: e.target.value })} placeholder="Part #" aria-label="Part number" maxLength={60} /></label>
+                  <RowMargin r={r} markup={pricing.policy?.parts_markup_pct ?? null} onUseMarkup={(price) => set(i, { price, priceByHand: false })} />
                 </div>
               )}
-              {r.type === "fee" && <Input inputMode="decimal" value={r.price} onChange={(e) => set(i, { price: e.target.value })} placeholder="Amount" aria-label="Amount" data-testid="quote-price" />}
+              {r.type === "fee" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="grid gap-1"><span className="text-caption text-subtle">Your cost <span aria-hidden>🔒</span></span><Input inputMode="decimal" value={r.cost ?? ""} onChange={(e) => set(i, { cost: e.target.value })} placeholder="Hidden" aria-label="Your cost (hidden from the customer)" data-testid="quote-cost" /></label>
+                  <label className="grid gap-1"><span className="text-caption text-subtle">List price</span><Input inputMode="decimal" value={r.price} onChange={(e) => set(i, { price: e.target.value })} placeholder="Amount" aria-label="Amount" data-testid="quote-price" /></label>
+                </div>
+              )}
             </div>
           ))}
           <div className="flex flex-wrap gap-2">
@@ -241,5 +260,20 @@ function FindingQuoteSheet({ f, pricing, onClose }: { f: JobFinding; pricing: Fi
         </SheetFooter>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** Your margin on a part row, and a button to fill the list price from the cost + the shop's markup. */
+function RowMargin({ r, markup, onUseMarkup }: { r: FindingRow; markup: number | null; onUseMarkup: (price: string) => void }) {
+  const cost = (r.cost ?? "").trim() === "" ? null : Number(r.cost);
+  const price = r.price.trim() === "" ? null : Number(r.price);
+  const m = marginOf(price, cost, Math.max(Number(r.qty) || 1, 0.01));
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption" data-testid="quote-margin">
+      {m ? <span className={m.profit >= 0 ? "font-medium" : "font-medium text-destructive"}>Margin {formatMoney(m.profit)} ({m.pct}%)</span> : <span className="text-subtle">Type your cost and the list price to see your margin.</span>}
+      {markup !== null && cost !== null && Number.isFinite(cost) && (
+        <button type="button" className="font-medium text-primary hover:underline" onClick={() => { const v = listPriceFromCost(cost, markup); if (v !== null) onUseMarkup(String(v)); }} data-testid="quote-use-markup">Use cost + {markup}%</button>
+      )}
+    </div>
   );
 }

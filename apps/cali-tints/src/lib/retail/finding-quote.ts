@@ -19,10 +19,10 @@ export function findingPricing(catalog: Pick<RetailCatalog, "tax_rate" | "settin
 }
 
 /** One row of the sheet: labor (hours × rate), a part (qty × price) or a fee. */
-export type FindingRow = { type: "labor" | "part" | "fee"; label: string; hours: string; rate: string; qty: string; price: string; part_number: string };
+export type FindingRow = { type: "labor" | "part" | "fee"; label: string; hours: string; rate: string; qty: string; price: string; part_number: string; /** Your cost each: staff money, never shown to the customer (0067). */ cost?: string; /** The list price was typed by hand: stop suggesting it from the cost. */ priceByHand?: boolean };
 
 export function emptyRow(type: FindingRow["type"], pricing: FindingPricing, label = ""): FindingRow {
-  return { type, label, hours: type === "labor" ? "1" : "", rate: type === "labor" && pricing.defaultRate !== null ? String(pricing.defaultRate) : "", qty: "1", price: "", part_number: "" };
+  return { type, label, hours: type === "labor" ? "1" : "", rate: type === "labor" && pricing.defaultRate !== null ? String(pricing.defaultRate) : "", qty: "1", price: "", part_number: "", cost: "" };
 }
 
 const num = (v: string) => (v.trim() === "" ? 0 : Number(v));
@@ -34,8 +34,9 @@ export function rowToDraft(r: FindingRow): EstimateLineDraft | null {
   if (empty) return null;
   const base = emptyLine(r.type === "labor" ? "labor" : r.type === "part" ? "part" : "fee", { label });
   if (r.type === "labor") return { ...base, hours: num(r.hours), rate: r.rate.trim() === "" ? null : num(r.rate) };
-  if (r.type === "part") return { ...base, qty: num(r.qty) || 1, price: num(r.price), part_number: r.part_number.trim() || null };
-  return { ...base, price: num(r.price) };
+  const cost = (r.cost ?? "").trim() === "" ? null : num(r.cost ?? "");
+  if (r.type === "part") return { ...base, qty: num(r.qty) || 1, price: num(r.price), part_number: r.part_number.trim() || null, cost };
+  return { ...base, price: num(r.price), cost };
 }
 
 export type SheetTotals = OptionTotals & { lines: number; error: string | null };
@@ -57,14 +58,14 @@ export function rowsTotals(rows: FindingRow[], pricing: FindingPricing): SheetTo
 }
 
 /** The payload add_finding_lines takes. */
-export function rowsPayload(rows: FindingRow[]): { line_type: "labor" | "part" | "fee"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string }[] {
+export function rowsPayload(rows: FindingRow[]): { line_type: "labor" | "part" | "fee"; label: string; hours?: number; rate?: number; qty?: number; price?: number; part_number?: string; cost?: number }[] {
   const out = [];
   for (const r of rows) {
     const d = rowToDraft(r);
     if (!d) continue;
     if (r.type === "labor") out.push({ line_type: "labor" as const, label: r.label.trim(), hours: num(r.hours), ...(r.rate.trim() !== "" ? { rate: num(r.rate) } : {}) });
-    else if (r.type === "part") out.push({ line_type: "part" as const, label: r.label.trim(), qty: num(r.qty) || 1, price: num(r.price), ...(r.part_number.trim() ? { part_number: r.part_number.trim() } : {}) });
-    else out.push({ line_type: "fee" as const, label: r.label.trim(), price: num(r.price) });
+    else if (r.type === "part") out.push({ line_type: "part" as const, label: r.label.trim(), qty: num(r.qty) || 1, price: num(r.price), ...(r.part_number.trim() ? { part_number: r.part_number.trim() } : {}), ...((r.cost ?? "").trim() !== "" ? { cost: num(r.cost ?? "") } : {}) });
+    else out.push({ line_type: "fee" as const, label: r.label.trim(), price: num(r.price), ...((r.cost ?? "").trim() !== "" ? { cost: num(r.cost ?? "") } : {}) });
   }
   return out;
 }

@@ -146,6 +146,8 @@ export type EstimateLineDraft = {
 };
 
 export interface SuppliesPolicy {
+  /** Default parts markup (0067): the list price is suggested as cost × (1 + pct / 100). */
+  parts_markup_pct?: number | null;
   shop_supplies_pct?: number | null;
   shop_supplies_cap?: number | null;
   shop_supplies_taxable?: boolean | null;
@@ -218,4 +220,17 @@ export function optionTotals(lines: { line_type?: LineType | null; line_total: n
     total: round2(subtotal + supplies + tax),
     duration_minutes: lines.reduce((s, l) => s + ((l.line_type ?? "service") === "service" ? l.duration_minutes * Math.max(l.qty, 1) : l.duration_minutes), 0),
   };
+}
+
+/** The list price each suggested from a cost each and the shop's default markup %, to the cent (null without a markup or a cost). */
+export function listPriceFromCost(cost: number, markupPct: number | null | undefined): number | null {
+  if (markupPct === null || markupPct === undefined || !Number.isFinite(cost) || cost < 0) return null;
+  return Math.round(cost * (1 + markupPct / 100) * 100) / 100;
+}
+
+/** What a line earns: profit (list price minus cost, times the quantity) and the share of the list price. Null without both numbers. */
+export function marginOf(price: number | null | undefined, cost: number | null | undefined, qty = 1): { profit: number; pct: number } | null {
+  if (price === null || price === undefined || cost === null || cost === undefined || !Number.isFinite(price) || !Number.isFinite(cost) || price <= 0) return null;
+  const profit = Math.round((price - cost) * qty * 100) / 100;
+  return { profit, pct: Math.round(((price - cost) / price) * 1000) / 10 };
 }

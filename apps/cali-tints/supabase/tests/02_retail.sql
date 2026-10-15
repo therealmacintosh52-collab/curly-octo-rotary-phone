@@ -2371,3 +2371,54 @@ select pg_temp.logout();
 select pg_temp.anon();
 select public.log_customer_view('x', 'estimate');
 select pg_temp.logout();
+
+-- 0067: default parts markup; the cost of a part stays staff-only money
+create or replace function pg_temp.set_markup(p_pct numeric) returns void language sql security definer as $$ update public.retail_settings set parts_markup_pct = p_pct where company_id = (select company_id from public.profiles where id = '10000000-0000-4000-8000-000000000001') $$;
+create or replace function pg_temp.try_markup(p_pct numeric) returns text language plpgsql security definer as $$
+begin
+  begin perform pg_temp.set_markup(p_pct); return 'ok'; exception when check_violation then return 'refused'; end;
+end $$;
+select pg_temp.set_markup(40);
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$ declare c jsonb := public.retail_catalog(); begin assert (c -> 'settings' ->> 'parts_markup_pct')::numeric = 40, '0067: the owner reads the markup'; end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$ declare c jsonb := public.retail_catalog(); begin assert (c -> 'settings' ->> 'parts_markup_pct')::numeric = 40, '0067: an advisor reads the markup'; end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$ declare c jsonb := public.retail_catalog(); begin assert not (c -> 'settings' ? 'parts_markup_pct'), '0067: a manager does not get the markup'; end $$;
+select pg_temp.logout();
+do $$ begin assert pg_temp.try_markup(5000) = 'refused' and pg_temp.try_markup(-1) = 'refused', '0067: a markup is 0 to 1000 percent'; end $$;
+-- the cost of a part: owner and advisor see it, a manager does not, the customer's link never has it
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'est_sup'); d jsonb;
+begin
+  d := public.estimate_detail(v_est);
+  assert (select (l ->> 'cost')::numeric from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part' limit 1) = 22, '0067: the owner sees what the part cost';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000006');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'est_sup'); d jsonb;
+begin
+  d := public.estimate_detail(v_est);
+  assert (select (l ->> 'cost')::numeric from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part' limit 1) = 22, '0067: an advisor sees the cost';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000004');
+do $$
+declare v_est uuid := (select v from r_ids where k = 'est_sup'); d jsonb;
+begin
+  d := public.estimate_detail(v_est);
+  assert (select l -> 'cost' from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where l ->> 'line_type' = 'part' limit 1) = 'null'::jsonb, '0067: a manager never sees the cost';
+end $$;
+select pg_temp.logout();
+select pg_temp.anon();
+do $$
+declare v_token text := (select token from r_tok); d jsonb;
+begin
+  d := public.estimate_by_token(v_token);
+  assert position('"cost"' in d::text) = 0 or not exists (select 1 from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where (l ->> 'cost') is not null), '0067: the customer''s link carries no cost';
+end $$;
+select pg_temp.logout();

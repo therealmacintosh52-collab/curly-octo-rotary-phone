@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, ClockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
+import { ArrowLeftIcon, ClockIcon, LockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, PartCondition, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { createEstimateAction, deleteDraftEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
@@ -14,7 +14,7 @@ import { diagnosisFirst } from "@/lib/retail/sections";
 import { useSession } from "@/components/app/session-provider";
 import { addDaysYmd, toDateInput } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
-import { depositFor, emptyLine, optionTotals, priceLine, type EstimateLineDraft, type LineType, type PricedLine, type QuoteModifier, type QuoteService } from "@/lib/retail/quote";
+import { depositFor, emptyLine, listPriceFromCost, marginOf, optionTotals, priceLine, type EstimateLineDraft, type LineType, type PricedLine, type QuoteModifier, type QuoteService } from "@/lib/retail/quote";
 import { estimateConditionNote, PART_CONDITIONS } from "@/lib/retail/part-condition";
 import { SIZE_CLASSES, SIZE_LABEL } from "@/lib/retail/size-class";
 import { Page, PageHeader } from "@/components/app/page-header";
@@ -552,7 +552,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                                                   {l.line_type === "labor" && <div className="text-caption text-subtle">{l.hours} h × {formatMoney(l.rate ?? quoteCatalog.defaultRate ?? 0)}{l.taxable ? " · taxed" : ""}</div>}
                                                   {l.line_type === "part" && <div className="text-caption text-subtle">{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.price ?? 0)}` : null, l.part_number, l.vendor, estimateConditionNote(l.part_condition), l.taxable === false ? "no tax" : "taxed"].filter(Boolean).join(" · ")}</div>}
                                                   {(l.line_type === "fee" || l.line_type === "sublet") && <div className="text-caption text-subtle">{[l.vendor, l.taxable ? "taxed" : null].filter(Boolean).join(" · ")}</div>}
-                                                  {l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}{ql ? ` · margin ${formatMoney(ql.line_total - Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}` : ""}</div>}
+                                                  {l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}{ql ? ` · margin ${formatMoney(ql.line_total - Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}${ql.line_total > 0 ? ` (${Math.round(((ql.line_total - Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty)) / ql.line_total) * 100)}%)` : ""}` : ""} <span className="inline-flex items-center gap-0.5"><LockIcon className="size-3" /> hidden from the customer</span></div>}
                                                 </div>
                                                 <div className="flex shrink-0 items-center gap-2">
                                                   {l.line_type === "service" && !svc?.open_amount && (
@@ -777,6 +777,20 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
   const [condition, setCondition] = useState<PartCondition>(initial?.part_condition ?? "new");
   const [taxable, setTaxable] = useState(initial?.taxable != null ? !!initial.taxable : type === "part" ? (policy?.parts_taxable_default ?? true) : type === "labor" ? !!policy?.labor_taxable_default : false);
   const [cost, setCost] = useState(initial?.cost != null ? String(initial.cost) : "");
+  // The list price follows the cost (cost + the shop's markup) until it is typed by hand.
+  const [priceByHand, setPriceByHand] = useState(initial?.price != null);
+  const markupPct = policy?.parts_markup_pct ?? null;
+  const costN = cost.trim() === "" ? null : Number(cost);
+  const priceN = price.trim() === "" ? null : Number(price);
+  const margin = marginOf(priceN, costN, type === "part" ? Math.max(Number(qty) || 1, 0.01) : 1);
+  function changeCost(v: string) {
+    setCost(v);
+    const n = v.trim() === "" ? null : Number(v);
+    if (!priceByHand && n !== null) {
+      const suggested = listPriceFromCost(n, markupPct);
+      if (suggested !== null) setPrice(String(suggested));
+    }
+  }
   const title = initial ? "Change this line" : type === "labor" ? "Labor" : type === "part" ? "A part" : type === "fee" ? "A fee" : type === "sublet" ? "Outside work (sublet)" : "Something not on the menu";
 
   function submit() {
@@ -832,7 +846,27 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {type === "part" && <div className="grid gap-1.5"><Label htmlFor="ln-qty">Quantity</Label><Input id="ln-qty" type="number" inputMode="decimal" min={1} step="1" value={qty} onChange={(e) => setQty(e.target.value)} /></div>}
-              <div className="grid gap-1.5"><Label htmlFor="ln-price">{type === "part" ? "Price each" : "Amount"}</Label><Input id="ln-price" type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" data-testid="line-price" /></div>
+              {type !== "service" && (
+                <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2" data-testid="line-pricing">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="ln-cost"><LockIcon className="size-3.5 text-muted-foreground" /> Your cost{type === "part" ? ", each" : ""}</Label>
+                    <Input id="ln-cost" type="number" inputMode="decimal" min={0} step="0.01" value={cost} onChange={(e) => changeCost(e.target.value)} placeholder="0.00" data-testid="line-cost" />
+                    <p className="text-caption text-subtle">Hidden: the customer never sees this.</p>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="ln-price">{type === "part" ? "List price, each" : "List price"}</Label>
+                    <Input id="ln-price" type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => { setPriceByHand(true); setPrice(e.target.value); }} placeholder="0.00" data-testid="line-price" />
+                    <p className="text-caption text-subtle">What the customer pays.</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption sm:col-span-2" data-testid="line-margin">
+                    {margin ? <span className={margin.profit >= 0 ? "font-medium text-foreground" : "font-medium text-destructive"}>Margin {formatMoney(margin.profit)} ({margin.pct}%)</span> : <span className="text-subtle">Type your cost and the list price to see your margin.</span>}
+                    {markupPct !== null && costN !== null && Number.isFinite(costN) && (
+                      <button type="button" className="font-medium text-primary hover:underline" onClick={() => { const v = listPriceFromCost(costN, markupPct); if (v !== null) { setPrice(String(v)); setPriceByHand(false); } }} data-testid="line-use-markup">Use cost + {markupPct}%</button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {type === "service" && <div className="grid gap-1.5"><Label htmlFor="ln-price">Amount</Label><Input id="ln-price" type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" data-testid="line-price" /></div>}
               {type === "part" && <div className="grid gap-1.5"><Label htmlFor="ln-part">Part number (optional)</Label><Input id="ln-part" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} maxLength={60} /></div>}
               {type === "part" && (
                 <div className="grid gap-1.5">
@@ -853,10 +887,12 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
           {type !== "service" && (
             <label className="flex items-center justify-between gap-3 text-sm"><span>Taxable</span><Switch checked={taxable} onCheckedChange={setTaxable} /></label>
           )}
-          <div className="grid gap-1.5">
-            <Label htmlFor="ln-cost">Your cost{type === "part" ? " each" : ""} (staff only, optional)</Label>
-            <Input id="ln-cost" type="number" inputMode="decimal" min={0} step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="never shown to the customer" />
-          </div>
+          {(type === "labor" || type === "service") && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="ln-cost"><LockIcon className="size-3.5 text-muted-foreground" /> Your cost (hidden from the customer, optional)</Label>
+              <Input id="ln-cost" type="number" inputMode="decimal" min={0} step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="never shown to the customer" data-testid="line-cost" />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>

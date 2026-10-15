@@ -37,3 +37,20 @@ describe("finding quote sheet", () => {
     ]);
   });
 });
+
+describe("a part's hidden cost on the finding sheet (0067)", () => {
+  it("sends the cost with the part and the fee, never with labor", () => {
+    const rows: FindingRow[] = [
+      row({ type: "part", label: "Pads", qty: "2", price: "60", cost: "40" }),
+      row({ type: "fee", label: "Disposal", price: "12", cost: "5" }),
+      row({ type: "labor", label: "Install", hours: "1", rate: "100", cost: "99" }),
+    ];
+    const p = rowsPayload(rows);
+    expect(p[0]).toMatchObject({ line_type: "part", price: 60, cost: 40 });
+    expect(p[1]).toMatchObject({ line_type: "fee", price: 12, cost: 5 });
+    expect("cost" in p[2]).toBe(false);
+  });
+  it("leaves the cost out when it is blank", () => {
+    expect("cost" in rowsPayload([row({ label: "Belt", price: "45" })])[0]).toBe(false);
+  });
+});

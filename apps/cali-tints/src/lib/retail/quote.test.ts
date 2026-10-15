@@ -89,3 +89,24 @@ describe("line types and shop supplies (mirror public._estimate_price_line / _es
     expect(() => priceLine(emptyLine("part", { price: 5 }), "sedan", catalog)).toThrow(/name/);
   });
 });
+
+describe("parts cost and list price (0067)", () => {
+  it("suggests the list price from the cost and the shop's markup", async () => {
+    const { listPriceFromCost } = await import("./quote");
+    expect(listPriceFromCost(40, 50)).toBe(60);
+    expect(listPriceFromCost(22, 40)).toBe(30.8);
+    expect(listPriceFromCost(19.99, 33)).toBe(26.59);
+    expect(listPriceFromCost(40, null)).toBeNull();
+    expect(listPriceFromCost(Number.NaN, 40)).toBeNull();
+    expect(listPriceFromCost(0, 40)).toBe(0);
+  });
+  it("works out the margin of a line: profit and share of the list price", async () => {
+    const { marginOf } = await import("./quote");
+    expect(marginOf(60, 40)).toEqual({ profit: 20, pct: 33.3 });
+    expect(marginOf(60, 40, 2)).toEqual({ profit: 40, pct: 33.3 });
+    expect(marginOf(30, 40)).toEqual({ profit: -10, pct: -33.3 });
+    expect(marginOf(60, null)).toBeNull();
+    expect(marginOf(null, 40)).toBeNull();
+    expect(marginOf(0, 10)).toBeNull();
+  });
+});

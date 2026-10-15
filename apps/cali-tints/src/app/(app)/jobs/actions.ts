@@ -274,6 +274,7 @@ const findingLineSchema = z.object({
   qty: z.number().positive().max(999).optional(),
   price: z.number().min(0).max(100000).optional(),
   part_number: z.string().trim().max(60).optional(),
+  cost: z.number().min(0).max(100000).optional(),
 });
 
 /** Price a finding on the spot: labor, parts and fees go onto one estimate (its own, or a supplement draft on the RO). Owner, admin, advisor. */

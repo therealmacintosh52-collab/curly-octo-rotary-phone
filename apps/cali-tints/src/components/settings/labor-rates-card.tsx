@@ -132,12 +132,15 @@ export function SuppliesCard({ settings }: { settings: RetailSettings | null }) 
   const [supTax, setSupTax] = useState(!!settings?.shop_supplies_taxable);
   const [partsTax, setPartsTax] = useState(settings?.parts_taxable_default ?? true);
   const [laborTax, setLaborTax] = useState(!!settings?.labor_taxable_default);
+  const [markup, setMarkup] = useState(settings?.parts_markup_pct === null || settings?.parts_markup_pct === undefined ? "" : String(settings.parts_markup_pct));
   function save() {
     const p = Number(pct);
     if (!(p >= 0 && p <= 100)) return void toast.error("Supplies: 0 to 100 percent");
+    const mk = markup.trim() === "" ? null : Number(markup);
+    if (mk !== null && !(mk >= 0 && mk <= 1000)) return void toast.error("Parts markup: 0 to 1000 percent");
     start(async () => {
       if (demo) return void toast.success("Saved", { description: "Guest preview — nothing changed" });
-      const r = await saveSuppliesAction({ shop_supplies_pct: p, shop_supplies_cap: cap.trim() === "" ? null : Number(cap), shop_supplies_taxable: supTax, parts_taxable_default: partsTax, labor_taxable_default: laborTax });
+      const r = await saveSuppliesAction({ shop_supplies_pct: p, shop_supplies_cap: cap.trim() === "" ? null : Number(cap), shop_supplies_taxable: supTax, parts_taxable_default: partsTax, labor_taxable_default: laborTax, parts_markup_pct: mk });
       if (!r.ok) return void toast.error(r.error);
       toast.success("Saved");
       router.refresh();
@@ -153,6 +156,11 @@ export function SuppliesCard({ settings }: { settings: RetailSettings | null }) 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5"><Label htmlFor="sup-pct">Shop supplies, % of labor</Label><Input id="sup-pct" type="number" inputMode="decimal" min={0} max={100} step="0.5" value={pct} onChange={(e) => setPct(e.target.value)} /></div>
           <div className="grid gap-1.5"><Label htmlFor="sup-cap">Cap per estimate (blank = none)</Label><Input id="sup-cap" type="number" inputMode="decimal" min={0} step="0.01" value={cap} onChange={(e) => setCap(e.target.value)} placeholder="25.00" /></div>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="parts-markup">Parts markup, % over your cost (blank = none)</Label>
+          <Input id="parts-markup" type="number" inputMode="decimal" min={0} max={1000} step="1" value={markup} onChange={(e) => setMarkup(e.target.value)} placeholder="40" data-testid="parts-markup" />
+          <p className="text-caption text-subtle">When you type what a part cost you on an estimate, the list price is filled in as cost + this percent. You can overwrite it on any part. The customer only ever sees the list price.</p>
         </div>
         <label className="flex items-center justify-between gap-3 text-sm"><span>Tax the shop supplies</span><Switch checked={supTax} onCheckedChange={setSupTax} /></label>
         <label className="flex items-center justify-between gap-3 text-sm"><span>Parts are taxable by default</span><Switch checked={partsTax} onCheckedChange={setPartsTax} /></label>
