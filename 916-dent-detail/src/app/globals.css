@@ -112,6 +112,8 @@
   .hero-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
 
   html.scrub .beat-2, html.scrub .beat-3, html.scrub .hero-after { opacity: 0; transform: translateY(14px); }
+  /* keyboard users tabbing into not-yet-revealed CTAs must see them */
+  html.scrub .hero-copy:focus-within .beat, html.scrub .hero-after:focus-within { opacity: 1 !important; transform: none !important; }
 
   html:not(.scrub) .hero-copy > * { animation: fade-up 0.9s var(--ease-out-quint) both; }
   html:not(.scrub) .hero-copy > *:nth-child(2) { animation-delay: 0.12s; }
