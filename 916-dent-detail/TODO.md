@@ -41,7 +41,7 @@
 ## Remaining phases (SPEC.md)
 - [x] Phase 2: booking engine (/book): services → vehicle → photos → ZIP/travel fee from 95624 → availability → contact → Stripe deposit → confirmation; AI photo quote range; SMS/email automations. Built locally in mock mode; see the Phase 2 section below
 - [ ] Phase 3: CRM + /admin (Supabase, RLS), pipeline, tech view, memberships via Stripe, referrals, reports
-- [ ] Phase 4: 916 Concierge assistant (site chat + Twilio SMS), tools, guardrails, missed-call text-back
+- [x] Phase 4: 916 Concierge assistant (site chat + Twilio SMS), tools, guardrails, missed-call text-back (built and tested in mock mode; live model behaviour NOT verified, see below)
 - [ ] Phase 5: dealer portal (/dealers accounts, bulk VIN submission, statements, net terms, leave-behind PDF)
 - [x] Phase 6: SEO + local (9 service pages, 14 city pages, JSON-LD, sitemap/robots, MDX blog, tracking). Built locally; see the Phase 6 section below for owner items
 - [ ] Phase 7: growth pack (/marketing markdown)
@@ -95,3 +95,21 @@ Everything runs with zero keys (mock mode). Items below turn it into the real th
 - [ ] Upstash Redis env (`UPSTASH_REDIS_REST_URL/TOKEN`) so rate limits work across serverless instances (in-memory limiter is per instance)
 - [ ] Phase 3 hooks ready: `sendOnTheWay(bookingId, {etaMinutes})`, `scheduleAfterCompletion(bookingId)` in `src/lib/notify`, and `transition()` in `src/lib/booking/state.ts`
 - [ ] Add `/booking/` to robots disallow (page is `noindex` already; robots.ts belongs to Phase 6)
+
+## Phase 4 (916 Concierge): [OWNER] items and follow-ups
+Everything runs with zero keys. The items below make it real; the first one matters most.
+- [ ] **Run the live scenarios and read real transcripts before launch.** `BOT_LIVE=1 ANTHROPIC_API_KEY=... npx vitest run tests/bot/scenarios.test.ts`, then chat with it yourself for an hour. Every bot test so far uses the offline mock policy, which proves the server-side enforcement, not live model behaviour.
+- [ ] Add `ANTHROPIC_API_KEY`; watch `cacheRead` in `concierge.usage` events go non-zero from the second message on to confirm prompt caching; tune `CONCIERGE_MAX_COST_USD` (default $0.50 per conversation) from real cost.
+- [ ] Set `OWNER_ALERT_PHONES` (E.164, comma separated). Without it escalations are only logged and visible in the inbox query.
+- [ ] Run `supabase/migrations/0003_concierge.sql` (after 0001; adds conversation state/escalation columns, `leads.source` chat/sms, `customer_memory`, a unique index for webhook dedupe). Never executed against Postgres by the agent: review it, run it, then try one SMS and one web chat end to end.
+- [ ] Twilio: follow "Twilio console wiring" in README (SMS webhook, optional voice webhook, `NEXT_PUBLIC_SITE_URL` or `TWILIO_WEBHOOK_BASE_URL`), keep Twilio opt-out handling on, A2P 10DLC registration. Test STOP and HELP from a real phone.
+- [ ] Phone verification for web chat uses SMS codes (cost + nuisance); decide whether to keep web bookings behind it (current) or let the bot only quote on web and book by SMS.
+- [ ] SMS reminder consent is never inferred from chat (bot bookings get email confirmations; SMS only inside the conversation itself). Decide if you want an explicit "text me reminders" yes/no step in the bot flow; wording must be counsel-reviewed (`SMS_CONSENT_TEXT`).
+- [ ] Confirm the customer-facing facts in `src/lib/concierge/facts.ts`: paint-safety and body-shop wording, water/power wording (taken from the published mobile-detailing post: access to the car; tap/outlet helpful, not required), "credited to the final invoice". The business phone is only offered once `site.phone.placeholder` is false.
+- [ ] Hours are not known (`site.hours` null), so the bot never states hours. Set them and add them to the facts if you want it to answer.
+- [ ] Add a retention job for `messages` / `conversations` (transcripts are customer PII), e.g. delete or anonymise after N months.
+- [ ] Upstash Redis env so chat/SMS/verify rate limits work across serverless instances (the in-memory limiter, IP abuse ledger and per-conversation lock are per instance).
+- [ ] Phase 3: show the needs-human inbox (`listNeedsHuman`, `conversationTranscript`, `resumeConversation` in `src/lib/concierge/state.ts`) and include `chat` / `sms` in lead-source reports.
+- [ ] Enable server-side `fallbacks` for model refusals once you have live access (currently a refusal hands the chat to a human).
+- [ ] Instagram / Facebook DMs: contract and stub in `src/lib/concierge/adapters/meta.ts`; needs a Meta app + webhook route.
+- [ ] Owner decision: owner text alerts include the customer's phone and a 240-char excerpt of what they said. Confirm that is acceptable.

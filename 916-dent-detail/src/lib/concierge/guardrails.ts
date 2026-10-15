@@ -152,12 +152,26 @@ export async function checkInboundLimits(p: { ip?: string; conversationId: strin
   return { ok: true };
 }
 
-/** IP-level abuse ledger so a locked-out visitor cannot just open a new chat. Returns true when the IP is over budget. */
-export async function recordIpAbuse(ip: string | undefined): Promise<boolean> {
-  if (!ip || ip === 'unknown') return false;
-  const r = await rateLimit(`cc:abuse:${hashKey(ip)}`, conciergeConfig.limits.ipAbusePerHour, 3600);
-  return !r.ok;
+/**
+ * IP-level abuse ledger so a locked-out visitor cannot just open a new chat. Per-instance memory (documented limitation in
+ * THREAT_MODEL.md): enough to stop a casual repeat offender, not a distributed attacker (the rate limiter + Upstash covers volume).
+ */
+const ipAbuse = new Map<string, { n: number; reset: number }>();
+export function noteIpAbuse(ip: string | undefined, now = Date.now()): void {
+  if (!ip || ip === 'unknown') return;
+  const k = hashKey(`abuse:${ip}`);
+  const cur = ipAbuse.get(k);
+  const row = cur && cur.reset > now ? cur : { n: 0, reset: now + 3_600_000 };
+  row.n++;
+  ipAbuse.set(k, row);
+  if (ipAbuse.size > 2000) for (const [key, v] of ipAbuse) if (v.reset <= now) ipAbuse.delete(key);
 }
+export function ipIsBlocked(ip: string | undefined, now = Date.now()): boolean {
+  if (!ip || ip === 'unknown') return false;
+  const row = ipAbuse.get(hashKey(`abuse:${ip}`));
+  return Boolean(row && row.reset > now && row.n >= conciergeConfig.limits.ipAbusePerHour);
+}
+export const resetIpAbuse = () => ipAbuse.clear();
 export { clientIp };
 
 // ------------------------------------------------------------------------------------------------ output filter

@@ -90,3 +90,19 @@ describe('STOP / START / HELP before the model', () => {
     expect(smsOutbox()).toHaveLength(0);
   });
 });
+
+describe('abuse lockout follows the IP, not just the chat', () => {
+  it('after repeated lockouts from one IP, a brand-new chat from that IP is locked at once; other IPs are fine', async () => {
+    const { webId } = await import('../../bot/harness');
+    for (let i = 0; i < 6; i++) {
+      const c = new Chat(webId({ ip: '203.0.113.200' }), { now: NOW, model: new SpyModel(new MockPolicyModel()) });
+      await c.say('fuck you');
+      await c.say('fuck you again');
+      await c.say('you piece of shit');
+    }
+    const fresh = new Chat(webId({ ip: '203.0.113.200' }), { now: NOW, model: new SpyModel(new MockPolicyModel()) });
+    expect((await fresh.say('hi, how much for a detail?')).status).toBe('locked');
+    const other = new Chat(webId({ ip: '203.0.113.201' }), { now: NOW, model: new SpyModel(new MockPolicyModel()) });
+    expect((await other.say('hi, how much for a detail?')).status).toBe('ok');
+  });
+});

@@ -18,7 +18,7 @@ import {
   START_REPLY, STOP_REPLY, TOO_LONG_REPLY,
 } from './facts';
 import {
-  HARD_ESCALATE, amountsIn, checkInboundLimits, classifyAbuse, detectRisk, filterReply, looksLikeGibberish, recordIpAbuse,
+  HARD_ESCALATE, amountsIn, checkInboundLimits, classifyAbuse, detectRisk, filterReply, ipIsBlocked, looksLikeGibberish, noteIpAbuse,
   redactArgs, sanitizeUntrusted, type FilterContext,
 } from './guardrails';
 import { loadMemory, memoryForModel, phoneKey, rememberTurn, summarizeTurns } from './memory';
@@ -165,8 +165,8 @@ async function run(msg: InboundMessage, opts: AgentOptions, now: number, convers
     if (optedOutNow) return done({ status: 'opted_out' }); // they said STOP: we send nothing, including no model call
   }
 
-  // 2. lockout
-  if (st.lockedUntil && st.lockedUntil > now) return done({ status: 'locked', reply: identity.channel === 'sms' ? null : LOCKED_REPLY });
+  // 2. lockout (this conversation, or an IP that keeps getting locked out)
+  if ((st.lockedUntil && st.lockedUntil > now) || (identity.channel === 'web' && ipIsBlocked(identity.ip, now))) return done({ status: 'locked', reply: identity.channel === 'sms' ? null : LOCKED_REPLY });
 
   // 3. rate limits (per IP, conversation, phone)
   const lim = await checkInboundLimits({ ip: identity.ip, conversationId: rec.conv.id, phone, channel: identity.channel });
@@ -203,7 +203,7 @@ async function run(msg: InboundMessage, opts: AgentOptions, now: number, convers
     st.lockedUntil = now + conciergeConfig.limits.lockMinutes * 60_000;
     await ensureLead(rec, identity.channel, { stage: 'lost', notes: `Locked: ${reason}` }).catch(() => undefined);
     await escalate(rec, identity, reason, summary, now);
-    await recordIpAbuse(identity.ip);
+    noteIpAbuse(identity.ip, now);
   };
 
   const risk = detectRisk(textForModel);

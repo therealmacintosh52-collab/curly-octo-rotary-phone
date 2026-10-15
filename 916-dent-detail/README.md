@@ -122,3 +122,59 @@ node scripts/book-flow.mjs http://localhost:3000   # Playwright walk of the whol
   (confirmation, 24h and 2h reminders, on-the-way, invoice + review request 2h after completion, 6-month rebook).
 - Phase 3 hooks: `sendOnTheWay()` and `scheduleAfterCompletion()` from `src/lib/notify`, `transition()` from `src/lib/booking/state`, `repo()` from `src/lib/db`.
 - Database: run `supabase/migrations/0001_init.sql`, then `supabase/seed.sql` (services, two placeholder techs, hours, a demo dealer).
+
+## Phase 4: 916 Concierge (AI booking assistant)
+Site chat widget, SMS (Twilio) and missed-call text-back, one agent behind all of them. Runs with **zero keys** (deterministic mock policy that still
+goes through the real tool executor and real guardrails); with `ANTHROPIC_API_KEY` it uses `claude-sonnet-5-5` (tool use, prompt caching, usage accounting).
+Threat model and every control: `src/lib/concierge/THREAT_MODEL.md`. Decisions: `DECISIONS.md` P4-001..P4-020.
+
+### Pieces
+| Path | What |
+|---|---|
+| `src/lib/concierge/agent.ts` | channel-agnostic loop: gates -> model tool loop (max 8 iterations, 40 s, per-conversation USD/token cap with hand-off) -> output filter -> persist |
+| `tools.ts` | the 11 tools (`get_services`, `check_service_area`, `get_quote_range`, `check_availability`, `create_booking`, `send_deposit_link`, `reschedule_booking`, `cancel_booking`, `lookup_booking`, `create_lead`, `escalate_to_human`), zod-validated, authorization + provenance enforced server-side. Reuses `lib/{booking,availability,quote,pricing,geo}`; nothing re-implemented |
+| `prompt.ts`, `facts.ts` | persona + policy (static, cache-stable), objection playbook, customer-facing wording read from config |
+| `guardrails.ts` | sanitiser/fence, gibberish/abuse/legal/safety triggers, rate limits, output filter, PII-minimised logging helpers |
+| `memory.ts`, `state.ts` | shared memory per verified phone (Supabase `customer_memory`), conversation state, CRM lead per conversation, needs-human inbox queries |
+| `channels.ts`, `adapters/meta.ts` | channel adapter interface (web, sms) + documented stub for IG/FB DMs |
+| `twilio.ts`, `missedcall.ts`, `optout.ts`, `verify.ts` | signature validation, TwiML, MMS fetch; text-back; STOP/START/HELP; web phone verification |
+| `anthropic-model.ts`, `mock-model.ts`, `models.ts` | live client, offline policy (with adversarial modes for tests), cost math |
+| `src/components/chat/*` | widget: `ConciergeLauncher` (the only code shipped on every page) + lazy `ChatPanel` |
+| API | `POST /api/chat` (SSE), `/api/sms`, `/api/voice/{incoming,missed}`, `/api/concierge/{verify,history,cron}` |
+| Schema | `supabase/migrations/0003_concierge.sql` (run after 0001; independent of 0002/0004) |
+
+### Env (all optional; empty = mock)
+`ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `CONCIERGE_MAX_COST_USD` (default 0.50 per conversation), `OWNER_ALERT_PHONES` (E.164, comma separated: escalation texts and call forwarding),
+`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` or `TWILIO_MESSAGING_SERVICE_SID`, `NEXT_PUBLIC_SITE_URL` (must be the public origin Twilio calls) or `TWILIO_WEBHOOK_BASE_URL`,
+`CRON_SECRET`, `BOOKING_TOKEN_SECRET` (also signs chat session tokens), optional `UPSTASH_REDIS_REST_URL/TOKEN`, `SMS_REPLY_MODE` (`async`|`twiml`), `CONCIERGE_SMS_KEYWORD_REPLIES=1`.
+
+### Twilio console wiring (exact)
+**Inbound SMS/MMS**
+1. Console > Phone Numbers > Manage > Active numbers > your number > *Messaging configuration* > **A message comes in** = *Webhook*, `https://YOUR-DOMAIN/api/sms`, **HTTP POST**.
+   If the number sits in a Messaging Service, set it there instead: Messaging > Services > your service > Integration > *Send a webhook*, Request URL `https://YOUR-DOMAIN/api/sms` (the service setting overrides the number).
+2. Set `NEXT_PUBLIC_SITE_URL=https://YOUR-DOMAIN` (or `TWILIO_WEBHOOK_BASE_URL`). The signature check hashes the exact URL Twilio called; a mismatch means every message is rejected with 403.
+3. Leave Twilio's default opt-out handling on (STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT / START, UNSTOP / HELP). Our webhook still records the opt-out on `customers.sms_opt_out_at` and stays silent for that number; it does **not** send a second reply when Twilio is live. Put our HELP wording in Twilio's opt-out settings (`HELP_REPLY` in `facts.ts`). If you turn Twilio's keyword replies off, set `CONCIERGE_SMS_KEYWORD_REPLIES=1`.
+4. Replies go out through `lib/sms` after the webhook returns an empty TwiML (a slow model never hits Twilio's 15 s limit). Without Twilio keys the reply comes back inside the TwiML (handy with a tunnel).
+5. A2P 10DLC brand + campaign registration is required for US delivery (see Phase 2 list). The bot's first message to a number always carries the STOP line.
+
+**Missed calls** (pick one)
+- **A. Twilio number is the business line.** *Voice configuration* > **A call comes in** = Webhook, `https://YOUR-DOMAIN/api/voice/incoming`, POST. It rings the numbers in `OWNER_ALERT_PHONES` for 20 s (`<Dial action=/api/voice/missed>`). If nobody answers (`no-answer`, `busy`, `failed`, `canceled`) Twilio calls `/api/voice/missed`, which texts the caller within seconds and plays a short goodbye.
+- **B. Your existing number forwards only unanswered calls to Twilio** (carrier conditional forwarding). Set the Twilio number's **A call comes in** webhook to `https://YOUR-DOMAIN/api/voice/missed?mode=forwarded`, POST. Every call that reaches it counts as missed.
+
+Rules enforced in code: one text-back per number per 6 h, none while a chat is active, none to opted-out numbers, owners or blocked caller ids, none between 9pm and 8am Pacific (queued; `/api/concierge/cron` sends it at 8am, scheduled in `vercel.json` every 10 min with `CRON_SECRET`; Hobby plans only run daily crons).
+Both voice routes validate `X-Twilio-Signature` the same way. With Supabase live and Twilio unconfigured they return 503.
+
+### Web chat details
+- Floating button on every public page (hidden under `/admin`), full-height sheet on phones, 400 px card on desktop. The chat panel is one lazy chunk that downloads only on pointer/focus/touch/click of the button: nothing loads on idle, so Lighthouse is unaffected (numbers in the P4 handoff).
+- Streams over SSE from `/api/chat`: tool-progress `status` events, then the reply in paced chunks. The reply is streamed **after** the output filter approves it (a filter cannot judge half a sentence), so this is not raw token streaming.
+- Photos: client-side resize, `POST /api/photos`, then attached to the message by path; the quote tool accepts only photos attached in that conversation.
+- Phone verification (needed to book or to look up / change / cancel): inline form, SMS code (live) or the fixed demo code `424242` (**offline demo only; never when Supabase is live**).
+- Cards (estimate, held time + "Pay $50 deposit" button, bookings list, verify form, hand-off) come from tool results, never from model text.
+- Conversation id + signed session token live in `localStorage` (`d916_concierge_v1`); reload restores the transcript via `/api/concierge/history`.
+
+### Hand-off contract for the admin inbox (Phase 3)
+`conversations.status = 'escalated'` and `needs_human = true`, with `escalation_reason`, `escalated_at`, `lead_id`, `customer_id`, `summary`. Read with `listNeedsHuman()`, `conversationTranscript(id)`; give the bot back with `resumeConversation(id)` (all in `src/lib/concierge/state.ts`; or query `repo().conversations` directly). Leads from the bot have `source` `chat` or `sms`; the original attribution is in `utm_*` and `first_touch.derived_source`. Cost per conversation is `conversations.cost_usd`; per-turn usage events are `events.type = 'concierge.usage'` (no content).
+
+### Tests
+`npx vitest run tests/bot tests/unit/concierge` (offline, mock policy). `tests/bot/scenarios.test.ts`: 15 scenarios, each with its expected behaviours written down. `tests/bot/adversarial.test.ts`: 13 cases where the mock model misbehaves and the server blocks it.
+Live model: `BOT_LIVE=1 ANTHROPIC_API_KEY=... npx vitest run tests/bot/scenarios.test.ts` (tolerant assertions; costs a few cents). Browser flow: `node scripts/concierge-flow.mjs http://localhost:3000` (Playwright, 390x844, axe, screenshots in `.shots/concierge/`).

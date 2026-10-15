@@ -18,7 +18,9 @@ export async function POST(req: Request) {
     const auth = authenticateWebhook(req, params);
     if (auth === 'unconfigured') return fail(503, 'voice_unconfigured', 'Voice is not configured.');
     if (auth === 'bad_signature') { log('warn', 'voice.bad_signature'); return fail(403, 'bad_signature', 'Invalid signature.'); }
-    if (!wasMissed(params)) return twiml(); // answered or completed: nothing to do
+    // ?mode=forwarded: the carrier forwards only unanswered calls to this Twilio number, so every call that reaches it is a missed call
+    const forwarded = new URL(req.url).searchParams.get('mode') === 'forwarded';
+    if (!forwarded && !wasMissed(params)) return twiml(); // answered or completed: nothing to do
     const received = Date.now();
     const out = await handleMissedCall({ from: params.From ?? params.Caller ?? '', callSid: params.CallSid, receivedAtMs: received });
     log('info', 'voice.missed', { action: out.action });

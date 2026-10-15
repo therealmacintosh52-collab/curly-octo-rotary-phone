@@ -6,6 +6,7 @@ import { confirmDeposit, createBooking } from '@/lib/booking/service';
 import { repo } from '@/lib/db';
 import { mockRepo } from '@/lib/db/mock';
 import { smsOutbox } from '@/lib/sms';
+import { resetIpAbuse } from '@/lib/concierge/guardrails';
 import { handleMessage, type AgentOptions } from '@/lib/concierge/agent';
 import { smsExternalId } from '@/lib/concierge/state';
 import { AnthropicModel } from '@/lib/concierge/anthropic-model';
@@ -33,6 +34,7 @@ export async function freshDb() {
   smsOutbox().length = 0;
   const G = globalThis as unknown as { __rl?: Map<string, unknown> };
   G.__rl?.clear();
+  resetIpAbuse();
 }
 
 /** Smallest bytes that pass the magic-number check. Mock quotes never decode the image. */

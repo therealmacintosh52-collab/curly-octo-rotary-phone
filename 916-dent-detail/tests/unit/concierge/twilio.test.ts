@@ -135,6 +135,10 @@ describe('POST /api/voice/missed', () => {
     expect(out[0]!.body).toMatch(/AI assistant/);
     expect(out[0]!.body).toMatch(/Reply STOP/);
   });
+  it('?mode=forwarded: every call that reaches the number counts (carrier forwards only unanswered calls)', async () => {
+    await voicePost(req(`${vurl}?mode=forwarded`, { From: '+19165550143', CallSid: 'CA9', CallStatus: 'ringing' }));
+    expect(smsOutbox().filter((m) => m.to === '+19165550143')).toHaveLength(1);
+  });
   it('answered calls trigger nothing', async () => {
     await voicePost(req(vurl, { From: PHONE, CallSid: 'CA2', DialCallStatus: 'completed' }));
     expect(smsOutbox()).toHaveLength(0);
