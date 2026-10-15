@@ -1,7 +1,11 @@
 // Copy for /dealers. Plain-spoken, for used-car and recon managers. No invented numbers: the research (marketing/research/
 // dealer-targets.md) found no sourced dealer rate or turnaround figure, so nothing here states one. Soft claims (same-day,
 // COI) are flagged [OWNER] confirm on the page until the owner confirms them (TODO.md).
-import type { Faq } from '@/content/seo/types';
+import type { Faq } from './seo/types';
+
+/** [OWNER] flip to true once each soft claim is confirmed true (TODO.md). While false the landing page and the printed
+ *  leave-behind show a visible [OWNER] confirm marker next to the claim. */
+export const claimsConfirmed = { sameDay: false, coi: false };
 
 export const dealerSteps = [
   { n: '01', t: 'Open an account', b: 'Sign up in two minutes. We review every dealer account by hand and email you when it is approved.' },
@@ -12,9 +16,9 @@ export const dealerSteps = [
 
 export const dealerValue = [
   { t: 'Faster to frontline-ready', b: 'Dents and detailing happen where the car is parked. No transport run, no waiting for a body-shop slot, no repaint on paint-intact panels.' },
-  { t: 'Same-day, on your lot', b: 'We work the cars where they sit and plan visit days around your lot.', owner: 'confirm same-day availability' },
+  { t: 'Same-day, on your lot', b: 'We work the cars where they sit and plan visit days around your lot.', claim: 'sameDay', owner: 'confirm same-day availability' },
   { t: 'Per-panel wholesale pricing', b: 'One rate sheet for recon volume, priced per panel so you can estimate recon before you buy a car.' },
-  { t: 'Certificate of insurance on request', b: 'Ask and we send a COI for your vendor file.', owner: 'confirm coverage and COI' },
+  { t: 'Certificate of insurance on request', b: 'Ask and we send a COI for your vendor file.', claim: 'coi', owner: 'confirm coverage and COI' },
 ] as const;
 
 export const dealerAudience = [

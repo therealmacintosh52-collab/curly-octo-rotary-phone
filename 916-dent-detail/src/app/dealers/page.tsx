@@ -7,7 +7,7 @@ import { FaqList } from '@/components/sections/FaqList';
 import { PriceTable } from '@/components/dealers/PriceTable';
 import { SheetForm } from '@/components/dealers/SheetForm';
 import { CallLink } from '@/components/CtaLinks';
-import { dealerAudience, dealerFaqs, dealerSteps, dealerValue, portalFeatures } from '@/content/dealers';
+import { claimsConfirmed, dealerAudience, dealerFaqs, dealerSteps, dealerValue, portalFeatures } from '@/content/dealers';
 import { breadcrumbSchema, faqSchema } from '@/lib/seo/schema';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { site } from '@/config/site';
@@ -42,7 +42,7 @@ export default function DealersPage() {
             <li key={x.t} className="card p-7">
               <h3 className="text-base">{x.t}</h3>
               <p className="mt-3 text-steel">{x.b}</p>
-              {'owner' in x && <p className="mt-3"><span className="owner-mark">[OWNER] {x.owner}</span></p>}
+              {'claim' in x && !claimsConfirmed[x.claim] && <p className="mt-3"><span className="owner-mark">[OWNER] {x.owner}</span></p>}
             </li>
           ))}
         </ul>

@@ -1,6 +1,7 @@
 // Dealer service catalog + wholesale rate resolution. Rates ONLY come from src/config/pricing.ts (dealerWholesale) or an
 // owner-set per-dealer override in dealers.wholesale_pricing. Nothing here contains a price.
-import { dealerServiceIds, dealerWholesale, type DealerServiceId, type Money } from '@/config/pricing';
+// Relative .ts import (not the @/ alias) so scripts/leave-behind.mjs can load this file with Node's type stripping.
+import { dealerServiceIds, dealerWholesale, type DealerServiceId, type Money } from '../../config/pricing.ts';
 
 export type { DealerServiceId };
 

@@ -60,3 +60,6 @@ textarea.dl-input { min-height: 120px; resize: vertical; line-height: 1.5; }
 .dl-step { display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: 0 .8rem; border-radius: 999px; font-size: .8rem; font-weight: 600; border: 1px solid var(--color-line); color: #a9acb3; }
 .dl-step[data-state="done"] { color: #8fe0b0; border-color: #2f6b49; }
 .dl-step[data-state="now"] { background: var(--color-gold); color: var(--color-onyx); border-color: var(--color-gold); }
+
+/* the real file input is visually hidden: show its focus on the label that styles as the button */
+label:has(> input.sr-only:focus-visible), .dl-drop:has(input.sr-only:focus-visible) > label { outline: 2px solid var(--color-gold-light); outline-offset: 3px; }
