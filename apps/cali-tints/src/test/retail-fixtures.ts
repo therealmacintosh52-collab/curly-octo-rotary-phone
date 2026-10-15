@@ -782,10 +782,16 @@ export function retailChargeFixture(jobId: string, money: boolean, stage: PaySta
 }
 
 export const INVOICE_TOKEN = "demo-invoice-token-marcus-tesla-0002";
+/** A paid invoice nobody has signed yet: the customer's link shows "Sign from your phone" (0068). */
+export const UNSIGNED_TOKEN = "demo-invoice-token-ana-unsigned-0005";
 
 export function receiptFixture(token: string, money: boolean): ReceiptView | null {
   if (token === WIP_TOKEN) return wipReceiptFixture(money);
   if (token === DOC_TOKEN) return invoiceDocFixture(false);
+  if (token === UNSIGNED_TOKEN) {
+    const signed = receiptFixture(RECEIPT_TOKEN, false)!;
+    return { ...signed, token, signed_name: null, signed_at: null, has_signature: false };
+  }
   if (token === INVOICE_TOKEN) {
     // The customer's copy of the unpaid invoice (RI-000042): what is due and what the tech found (internal notes left out).
     const inv = retailInvoiceDetailFixture(JOBS[C2][0].id)!;

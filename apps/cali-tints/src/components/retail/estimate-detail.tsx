@@ -1,5 +1,6 @@
 "use client";
 
+import { PrintButton } from "@/components/retail/print-button";
 import { estimateConditionNote } from "@/lib/retail/part-condition";
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -426,7 +427,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             <RoWorkCard jobId={visit.jobId} work={visit.work} canComplete={visit.canComplete} canQc={visit.canQc} unauthorized={visit.unauthorized} invoiced={visit.invoiced} />
             {!visit.invoiced && <RoInvoiceCard jobId={visit.jobId} authorizations={visit.authorizations} unauthorized={visit.unauthorized} lineCount={visit.lineCount} invoiced={visit.invoiced} canConvert={visit.canPrice} showMoney={showMoney} review={visit.review} />}
             {visit.invoiced ? (
-              <RetailPayment jobId={visit.jobId} payment={visit.payment} charge={visit.charge} canRecordByHand={visit.canPrice} open />
+              <RetailPayment jobId={visit.jobId} payment={visit.payment} charge={visit.charge} canRecordByHand={visit.canPrice} open customerPhone={e.customer?.phone ?? null} />
             ) : (
               <p className="px-1 text-caption text-subtle" data-testid="payment-waits">Payment opens at the counter once the invoice is made.</p>
             )}
@@ -587,11 +588,14 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
               </Button>
             )}
             {showMoney && (
-              <Button asChild variant="outline">
-                <a href={`/api/estimates/${e.id}/pdf`} data-testid="estimate-pdf">
-                  <FileDownIcon /> PDF
-                </a>
-              </Button>
+              <>
+                <Button asChild variant="outline">
+                  <a href={visit?.invoiced ? `/api/receipts/${visit.jobId}/pdf` : `/api/estimates/${e.id}/pdf`} data-testid="estimate-pdf">
+                    <FileDownIcon /> {visit?.invoiced ? "Invoice PDF" : "PDF"}
+                  </a>
+                </Button>
+                <PrintButton href={visit?.invoiced ? `/api/receipts/${visit.jobId}/pdf` : `/api/estimates/${e.id}/pdf`} label={visit?.invoiced ? "Print invoice" : "Print"} testId="estimate-print" />
+              </>
             )}
             </>
           )}

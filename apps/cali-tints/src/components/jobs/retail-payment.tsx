@@ -1,8 +1,9 @@
 "use client";
 
+import { PrintButton } from "@/components/retail/print-button";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BanknoteIcon, CheckCircle2Icon, CopyIcon, CreditCardIcon, FileDownIcon, PenLineIcon } from "lucide-react";
+import { BanknoteIcon, CheckCircle2Icon, CopyIcon, CreditCardIcon, FileDownIcon, PenLineIcon, SendIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { RetailCharge } from "@/lib/db/types";
 import { receiptLinkAction, recordRetailPaymentAction, retailChargeAction, signReceiptAction } from "@/app/(app)/jobs/actions";
@@ -11,6 +12,7 @@ import { payWithClover, useCloverBridge } from "@/lib/native/clover";
 import { formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { paymentMethod } from "@/lib/retail/payment-labels";
+import { detectPlatform, smsHref } from "@/lib/retail/phone";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +49,7 @@ export const RO_EVENTS = { collect: "ro:collect", sign: "ro:sign" } as const;
  * Inside the Clover app one tap opens the device's payment screen; the owner,
  * an admin or the advisor records cash, check, Zelle, Venmo or a card by hand.
  */
-export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }: { jobId: string; payment: RetailPaymentInfo; /** From retail_charge; null when unknown (demo without a charge). */ charge: RetailCharge | null; canRecordByHand: boolean; open: boolean }) {
+export function RetailPayment({ jobId, payment, charge, canRecordByHand, open, customerPhone = null }: { jobId: string; payment: RetailPaymentInfo; /** From retail_charge; null when unknown (demo without a charge). */ charge: RetailCharge | null; canRecordByHand: boolean; open: boolean; /** For the "Send to sign" text; without it the text opens with no recipient. */ customerPhone?: string | null }) {
   const router = useRouter();
   const { demo, isAdmin, canPrices } = useSession();
   const inClover = useCloverBridge();
@@ -100,6 +102,15 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
     }
   }
 
+  /** A customer who is not at the counter signs the paid invoice from their own link (text it, or copy it). */
+  async function sendToSign() {
+    const r = await receiptLinkAction(jobId);
+    if (!r.ok) return void toast.error(r.error);
+    const body = `Your invoice from Cali Tints is paid. Please sign to confirm you received your vehicle: ${r.data.url}`;
+    const href = smsHref(customerPhone, body, detectPlatform(navigator.userAgent)) ?? `sms:${detectPlatform(navigator.userAgent) === "ios" ? "&" : "?"}body=${encodeURIComponent(body)}`;
+    window.location.href = href;
+  }
+
   const paid = !!payment.paid_at;
   const ledger = charge?.payments ?? [];
   const received = ledger.filter((p) => p.kind === "balance").length;
@@ -148,8 +159,14 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
             <div className="rounded-lg border border-warning/40 bg-warning/8 p-3 text-sm">
               <div className="font-medium">Paid. Now the customer signs for the car.</div>
               <Button size="sm" className="mt-2" onClick={() => setSigning(true)} data-testid="sign-receipt">
-                <PenLineIcon /> Customer signs
+                <PenLineIcon /> Customer signs here
               </Button>
+              {isAdmin && (
+                <Button size="sm" variant="outline" className="ml-2 mt-2" onClick={sendToSign} data-testid="send-to-sign">
+                  <SendIcon /> Send to sign
+                </Button>
+              )}
+              <p className="mt-2 text-caption text-subtle">Not at the counter? Text them the link: they sign from their phone.</p>
             </div>
           ) : !pickedUp ? (
             <Button size="sm" variant="outline" className="justify-self-start" onClick={() => setSigning(true)} data-testid="sign-receipt">
@@ -167,6 +184,7 @@ export function RetailPayment({ jobId, payment, charge, canRecordByHand, open }:
                 <a href={`/api/receipts/${jobId}/pdf`} data-testid="receipt-pdf-staff"><FileDownIcon /> Receipt PDF</a>
               </Button>
             )}
+            {canPrices && <PrintButton href={`/api/receipts/${jobId}/pdf`} size="sm" label="Print" testId="receipt-print-staff" />}
           </div>
         </CardContent>
         {signing && <SignDialog jobId={jobId} paidAmount={payment.paid_amount} paidAt={payment.paid_at} showMoney={!!canPrices} onClose={() => setSigning(false)} />}

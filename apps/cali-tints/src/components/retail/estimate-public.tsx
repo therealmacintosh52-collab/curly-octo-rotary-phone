@@ -1,5 +1,6 @@
 "use client";
 
+import { PrintButton } from "@/components/retail/print-button";
 import { estimateConditionNote } from "@/lib/retail/part-condition";
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -143,6 +144,7 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
         <div className="mt-3 flex flex-wrap items-center gap-2 text-caption text-subtle">
           {e.expires_at && <span className="inline-flex items-center gap-1"><ClockIcon className="size-3.5" /> Good until {formatDate(e.expires_at)}</span>}
           <a href={`/api/e/${token}/pdf`} className="inline-flex items-center gap-1 underline-offset-2 hover:underline" data-testid="public-pdf"><FileDownIcon className="size-3.5" /> PDF copy</a>
+          <PrintButton href={`/api/e/${token}/pdf`} size="sm" variant="ghost" label="Print" testId="public-print" />
         </div>
       </section>
 

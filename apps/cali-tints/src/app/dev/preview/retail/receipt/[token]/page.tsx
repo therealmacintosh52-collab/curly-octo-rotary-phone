@@ -7,5 +7,5 @@ export default async function DevReceiptPreview(props: PageProps<"/dev/preview/r
   const { token } = await props.params;
   const r = receiptFixture(token, false);
   if (!r) notFound();
-  return <ReceiptView r={r} token={token} />;
+  return <ReceiptView r={r} token={token} demo />;
 }

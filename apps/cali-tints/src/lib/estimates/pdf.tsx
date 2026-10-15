@@ -1,3 +1,4 @@
+import { SignatureLine } from "@/lib/documents/signature-line";
 import { FindingsPdfSection } from "./findings-pdf";
 import { estimateConditionNote } from "@/lib/retail/part-condition";
 import { sectionHeading } from "@/lib/retail/sections";
@@ -178,6 +179,13 @@ export function EstimateDocument({ e, logoDataUri, signatureDataUri }: { e: Esti
               <Text style={{ fontFamily: "Helvetica-Bold", marginTop: 8, marginBottom: 3 }}>Terms</Text>
               <Text style={s.small}>{e.policy.policy_text}</Text>
             </>
+          ) : null}
+          {!accepted && e.status !== "declined" && e.status !== "expired" ? (
+            <SignatureLine
+              title="Customer authorization"
+              statement={`I authorize the work described above${e.total !== null && e.total !== undefined ? `, total ${formatMoney(e.total)} plus tax where shown` : ""}. I understand that any additional work needs my approval before it is done, and that each part is new unless it is marked used, rebuilt or reconditioned.`}
+              extra={e.options.length > 1 ? "Option chosen (Good / Better / Best) and add-ons" : undefined}
+            />
           ) : null}
           {accepted && auth ? (
             <View style={s.sig}>

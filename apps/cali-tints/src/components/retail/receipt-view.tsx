@@ -1,4 +1,6 @@
 import { CheckCircle2Icon, FileDownIcon } from "lucide-react";
+import { PrintButton } from "@/components/retail/print-button";
+import { ReceiptSign } from "@/components/retail/receipt-sign";
 import type { ReceiptView as Receipt } from "@/lib/db/types";
 import { formatDateTime } from "@/lib/dates";
 import { formatMoney, formatTaxRate } from "@/lib/money";
@@ -12,7 +14,7 @@ import { InvoiceDocument } from "./invoice-document";
 const METHOD = PAYMENT_METHOD;
 
 /** The customer's receipt page: what was done, what was paid and how, the signature at pickup, a PDF. */
-export function ReceiptView({ r, token }: { r: Receipt; token: string }) {
+export function ReceiptView({ r, token, demo = false }: { r: Receipt; token: string; demo?: boolean }) {
   // Approved but not invoiced yet (0052). Older invoices always carry invoiced_at.
   const wip = !r.paid_at && r.invoiced_at === null;
   return (
@@ -63,10 +65,14 @@ export function ReceiptView({ r, token }: { r: Receipt; token: string }) {
       )}
       {wip && <p className="text-sm text-muted-foreground" data-testid="receipt-wip">We are working on it. Your invoice comes from this same repair order when the work is done, and it will match what you approved.</p>}
       {!r.paid_at && !wip && <p className="text-sm text-muted-foreground" data-testid="receipt-unpaid">Nothing to pay online: you pay at the shop when you pick up the car{r.company.phone ? `, or call us at ${r.company.phone}` : ""}.</p>}
+      {r.paid_at && !r.signed_name && <ReceiptSign token={token} paid={r.total} demo={demo} />}
       <PublicFindings findings={r.findings ?? []} />
-      <Button asChild variant="outline">
-        <a href={`/api/r/${token}/pdf`} data-testid="receipt-pdf"><FileDownIcon /> Download the PDF</a>
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline">
+          <a href={`/api/r/${token}/pdf`} data-testid="receipt-pdf"><FileDownIcon /> Download the PDF</a>
+        </Button>
+        <PrintButton href={`/api/r/${token}/pdf`} testId="receipt-print" />
+      </div>
       <footer className="mt-auto pt-4 text-center text-caption text-subtle">{r.company.name}{r.company.phone ? ` · ${r.company.phone}` : ""}</footer>
     </main>
   );

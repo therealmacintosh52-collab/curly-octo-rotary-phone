@@ -28,6 +28,14 @@ describe("estimate pdf", () => {
     expect(estimatePublicFixture(ESTIMATE_TOKEN)!.findings).toHaveLength(2);
   });
 
+  it("an estimate still waiting for an answer prints a signature line for the customer in the shop; a declined one does not", async () => {
+    const e = estimateViewFixture(ESTIMATE_IDS.ana, true)!;
+    expect(["sent", "viewed", "draft"]).toContain(e.status);
+    const open = await estimatePdf(e, null, null);
+    const declined = await estimatePdf({ ...e, status: "declined" }, null, null);
+    expect(open.length).toBeGreaterThan(declined.length);
+  });
+
   it("renders an approved estimate with the signature", async () => {
     const e = estimateViewFixture(ESTIMATE_IDS.luis, true)!;
     const buf = await estimatePdf(e, null, SIG);

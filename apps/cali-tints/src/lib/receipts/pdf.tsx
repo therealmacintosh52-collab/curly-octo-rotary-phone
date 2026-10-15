@@ -1,3 +1,4 @@
+import { SignatureLine } from "@/lib/documents/signature-line";
 import "server-only";
 
 import React from "react";
@@ -223,6 +224,12 @@ export function ReceiptDocument({ r, logoDataUri, signatureDataUri }: { r: Recei
           </View>
         ) : null}
 
+        {!r.signed_name ? (
+          <SignatureLine
+            title="Customer signature"
+            statement={r.paid_at ? `I received my vehicle, the work was done as described, and I paid ${formatMoney((r.total ?? 0) - (r.balance ?? 0))} in all, last payment on ${format(new Date(r.paid_at), "MMM d, yyyy")}.` : `I received my vehicle and the work was done as described.${r.balance ? ` Amount due: ${formatMoney(r.balance)}.` : ""}`}
+          />
+        ) : null}
         {r.signed_name ? (
           <View style={s.sig} wrap={false}>
             {signatureDataUri ? (

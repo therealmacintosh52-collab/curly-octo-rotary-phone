@@ -2422,3 +2422,46 @@ begin
   assert position('"cost"' in d::text) = 0 or not exists (select 1 from jsonb_array_elements(d -> 'options' -> 0 -> 'lines') l where (l ->> 'cost') is not null), '0067: the customer''s link carries no cost';
 end $$;
 select pg_temp.logout();
+
+-- 0068: a customer signs the paid invoice from their own link
+create or replace function pg_temp.mark_paid(p_job uuid, p_paid boolean) returns void language plpgsql security definer as $$
+begin
+  perform set_config('app.bypass_lock', 'on', true);
+  update public.jobs set paid_at = case when p_paid then now() else null end, receipt_signed_at = null, receipt_signature_path = null, receipt_signed_name = null where id = p_job;
+  perform set_config('app.bypass_lock', 'off', true);
+end $$;
+create or replace function pg_temp.job_signed(p_job uuid) returns jsonb language sql security definer as $$ select jsonb_build_object('name', receipt_signed_name, 'online', receipt_signed_online, 'ip', receipt_signed_ip, 'consent', receipt_consent, 'at', receipt_signed_at) from public.jobs where id = p_job $$;
+create or replace function pg_temp.company_of(p_job uuid) returns uuid language sql security definer as $$ select company_id from public.jobs where id = p_job $$;
+select pg_temp.mark_paid((select v from r_ids where k = 'job_r200'), false);
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+select set_config('app.t68', public.receipt_link((select v from r_ids where k = 'job_r200')), false);
+select pg_temp.logout();
+select pg_temp.anon();
+do $$
+declare v_t text := current_setting('app.t68'); v_job uuid := (select v from r_ids where k = 'job_r200'); v_path text := pg_temp.company_of((select v from r_ids where k = 'job_r200'))::text || '/receipts/' || (select v from r_ids where k = 'job_r200')::text || '/sig.png';
+begin
+  begin perform public.sign_receipt_by_token(v_t, 'Jordan Lee', v_path); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
+end $$;
+select pg_temp.logout();
+select pg_temp.mark_paid((select v from r_ids where k = 'job_r200'), true);
+select pg_temp.anon();
+do $$
+declare v_t text := current_setting('app.t68'); v_job uuid := (select v from r_ids where k = 'job_r200'); v_company text := pg_temp.company_of((select v from r_ids where k = 'job_r200'))::text; r jsonb; s jsonb;
+begin
+  begin perform public.sign_receipt_by_token('short', 'x', 'x'); raise exception 'expected refused'; exception when sqlstate 'P0002' then null; end;
+  begin perform public.sign_receipt_by_token(v_t, '  ', v_company || '/receipts/' || v_job || '/a.png'); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  begin perform public.sign_receipt_by_token(v_t, 'Jordan Lee', v_company || '/receipts/' || gen_random_uuid() || '/a.png'); raise exception 'expected refused'; exception when sqlstate '22023' then null; end;
+  r := public.sign_receipt_by_token(v_t, 'Jordan Lee', v_company || '/receipts/' || v_job || '/a.png', '203.0.113.7', 'Mozilla/5.0 test', 'I received my vehicle and I paid');
+  s := pg_temp.job_signed(v_job);
+  assert (s ->> 'name') = 'Jordan Lee' and (s ->> 'online')::boolean and (s ->> 'ip') = '203.0.113.7' and (s ->> 'consent') like 'I received%' and (s ->> 'at') is not null, '0068: the signature, name, time, ip and consent are kept: ' || s::text;
+  begin perform public.sign_receipt_by_token(v_t, 'Someone Else', v_company || '/receipts/' || v_job || '/b.png'); raise exception 'expected refused'; exception when sqlstate 'P0001' then null; end;
+  assert (public.receipt_by_token(v_t) ->> 'signed_name') = 'Jordan Lee', '0068: the invoice link shows who signed';
+end $$;
+select pg_temp.logout();
+select pg_temp.login('10000000-0000-4000-8000-000000000001');
+do $$
+declare l jsonb := public.visit_activity(public.job_primary_estimate((select v from r_ids where k = 'job_r200')));
+begin
+  assert exists (select 1 from jsonb_array_elements(l) x where x ->> 'text' like '%Pickup signature taken%' and x ->> 'who' = 'Customer'), '0068: the log shows the customer''s online signature: ' || l::text;
+end $$;
+select pg_temp.logout();

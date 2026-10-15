@@ -1410,6 +1410,7 @@ export type Database = {
     Tables: {
       companies: Table<Company>;
       ro_documents: Table<RoDocument>;
+      receipt_tokens: Table<{ job_id: string; company_id: string; token: string; created_at: string }>;
       profiles: Table<Profile>;
       dealerships: Table<Dealership>;
       services: Table<Service>;
@@ -1544,6 +1545,7 @@ export type Database = {
       visit_activity: { Args: { p_estimate: string; p_limit?: number }; Returns: ActivityEntry[] };
       log_visit_view: { Args: { p_estimate: string; p_what: ViewKind }; Returns: undefined };
       log_customer_view: { Args: { p_token: string; p_what: "estimate" | "invoice" | "pdf" }; Returns: undefined };
+      sign_receipt_by_token: { Args: { p_token: string; p_name: string; p_signature_path: string; p_ip?: string | null; p_user_agent?: string | null; p_consent?: string | null }; Returns: { job_id: string; company_id: string; signed_at: string } };
       send_to_tech: { Args: { p_estimate: string; p_tech: string | null }; Returns: undefined };
       transfer_estimate: { Args: { p_estimate: string; p_to: string; p_status?: string; p_message?: string | null }; Returns: string };
       respond_transfer: { Args: { p_id: string; p_accept: boolean }; Returns: undefined };

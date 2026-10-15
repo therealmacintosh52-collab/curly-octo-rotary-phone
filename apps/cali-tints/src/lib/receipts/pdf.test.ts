@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { INVOICE_TOKEN, invoiceDocFixture, receiptFixture, RECEIPT_TOKEN, retailInvoiceDetailFixture, retailInvoiceListFixture } from "@/test/retail-fixtures";
+import { writeFileSync } from "node:fs";
+import { INVOICE_TOKEN, invoiceDocFixture, receiptFixture, RECEIPT_TOKEN, retailInvoiceDetailFixture, retailInvoiceListFixture, UNSIGNED_TOKEN } from "@/test/retail-fixtures";
+import { REMOTE_SIGN_CONSENT } from "@/lib/retail/receipt-consent";
 import { receiptPdf } from "./pdf";
 import { receiptFileStem } from "./load";
 import { taxLabel } from "@/components/retail/invoice-document";
@@ -77,5 +79,24 @@ describe("the invoice laid out like the shop prints it", () => {
     const later = renderTemplate(DEFAULT_TEMPLATES.declined_work.body, { first_name: "Ana", vehicle: "Camry", declined_list: "Rear pads ($240.00)", book_url: "https://x/book", company: "Cali" });
     expect(later).toContain("Rear pads ($240.00)");
     expect(later).not.toContain("{{");
+  });
+});
+
+describe("signing the paid invoice", () => {
+  it("an unsigned paid invoice renders with a blank signature line, a signed one with the drawn mark", async () => {
+    const unsigned = receiptFixture(UNSIGNED_TOKEN, false)!;
+    expect(unsigned.paid_at).not.toBeNull();
+    expect(unsigned.signed_name).toBeNull();
+    const blank = await receiptPdf(unsigned, null, null);
+    if (process.env.RENDER_OUT_DIR) writeFileSync(`${process.env.RENDER_OUT_DIR}/invoice-unsigned.pdf`, blank);
+    expect(blank.subarray(0, 5).toString()).toBe("%PDF-");
+    const signed = await receiptPdf({ ...unsigned, signed_name: "Ana Lopez", has_signature: true }, null, SIG);
+    expect(signed.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(signed.length).not.toBe(blank.length);
+  });
+
+  it("the remote signature carries the same statement as the pickup signature", () => {
+    expect(REMOTE_SIGN_CONSENT).toMatch(/received my vehicle/);
+    expect(REMOTE_SIGN_CONSENT).toMatch(/paid/);
   });
 });
