@@ -16,9 +16,10 @@ export function Spinner({ label }: { label: string }) {
 /** Heading that receives focus when its step opens so screen-reader and keyboard users land at the top of the new step. */
 export function StepFrame({ id, title, lede, children, focusKey }: { id: string; title: string; lede?: string; children: ReactNode; focusKey: number }) {
   const ref = useRef<HTMLHeadingElement>(null);
-  const first = useRef(true);
   useEffect(() => {
-    if (first.current) { first.current = false; return; } // do not steal focus on first paint
+    // focusKey is 0 until the visitor first moves between steps: never steal focus on first paint. Every step mounts its own
+    // StepFrame, so a "first effect run" check would also skip the heading focus on EVERY step change (a keyboard-only bug found in P8 e2e).
+    if (focusKey === 0) return;
     ref.current?.focus({ preventScroll: true });
     ref.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
   }, [focusKey]);

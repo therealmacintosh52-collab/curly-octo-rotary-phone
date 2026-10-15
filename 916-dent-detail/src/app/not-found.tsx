@@ -6,7 +6,7 @@ import { allCities, allServices, cityPath, servicePath } from '@/lib/seo/content
 export const metadata: Metadata = {
   title: { absolute: 'Page not found | 916 Dent & Detail' },
   description: 'That page does not exist. Browse our services and service areas, or send a photo for a dent repair or detailing quote.',
-  robots: { index: false, follow: true },
+  // no `robots` here: Next adds <meta name="robots" content="noindex"> to every 404 itself, and a second tag made two conflicting robots metas
 };
 
 export default function NotFound() {

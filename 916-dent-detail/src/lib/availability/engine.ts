@@ -60,6 +60,8 @@ function isLive(b: LiveBooking, now: number, excludeId?: string): boolean {
 export function computeAvailability(input: AvailabilityInput): { slots: Slot[]; days: DayInfo[] } {
   const cfg: AvailabilityConfig = { ...defaultAvailabilityConfig(), ...input.config };
   const { now, request } = input;
+  // a zero, negative, NaN or absurd (> 24 h) duration can never fit a day: no slots (and no RangeError from date math)
+  if (!Number.isFinite(request.durationMin) || request.durationMin <= 0 || request.durationMin > 24 * 60) return { slots: [], days: [] };
   const today = utcToLocal(now, cfg.timezone).date;
   const first = request.fromDate && request.fromDate > today ? request.fromDate : today;
   const horizonEnd = addDays(today, cfg.horizonDays);

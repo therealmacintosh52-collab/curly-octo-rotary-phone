@@ -6,7 +6,7 @@ import { chromium } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const base = process.argv[2] || 'http://localhost:3000';
-const routes = ['/', '/services', '/dealers', '/pricing', '/reviews', '/book', '/this-page-does-not-exist'];
+const routes = ['/', '/services', '/services/paintless-dent-repair', '/areas', '/areas/folsom', '/blog', '/blog/can-every-dent-be-fixed-without-paint', '/dealers', '/dealers/signup', '/dealers/signin', '/pricing', '/reviews', '/book', '/privacy', '/terms', '/this-page-does-not-exist'];
 const contexts = [
   { name: 'mobile', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'no-preference' },
   { name: 'desktop', viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' },

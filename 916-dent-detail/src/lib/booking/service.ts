@@ -152,12 +152,16 @@ export async function confirmDeposit(bookingId: string, now = Date.now()): Promi
     throw new BookingError('hold_expired', 'This reservation expired before payment arrived. Your deposit is being refunded. Please book again.', 409);
   }
   const next = transition(b.status as BookingStatus, 'deposit_paid');
-  const updated = await db.bookings.update(b.id, { status: next, deposit_status: 'paid', hold_expires_at: null });
+  // Compare-and-set: the Stripe webhook and the customer's own verify call routinely arrive together. Only the caller that actually
+  // moves the booking out of its current status continues; the other returns the (now confirmed) booking, so there is exactly one
+  // job, one payment, one reminder set and one confirmation message (found by the P8 concurrency test: two jobs were created).
+  const updated = await db.bookings.updateIf(b.id, { status: b.status }, { status: next, deposit_status: 'paid', hold_expires_at: null });
+  if (!updated) return (await db.bookings.get(b.id))!;
   if (b.payment_intent_id && !(await db.payments.first({ where: { stripe_payment_intent_id: b.payment_intent_id } }))) {
     await db.payments.insert({ booking_id: b.id, customer_id: b.customer_id ?? null, kind: 'deposit', amount: b.deposit_amount, status: 'succeeded', method: 'card', stripe_payment_intent_id: b.payment_intent_id, mock: b.payment_intent_id.startsWith('pi_mock_') });
   }
   if (b.lead_id) await db.leads.update(b.lead_id, { stage: 'booked' }).catch(() => undefined);
-  await db.jobs.insert({ booking_id: b.id, customer_id: b.customer_id ?? null, vehicle_id: b.vehicle_id ?? null, tech_id: b.tech_id ?? null, stage: 'booked' });
+  if (!(await db.jobs.first({ where: { booking_id: b.id } }))) await db.jobs.insert({ booking_id: b.id, customer_id: b.customer_id ?? null, vehicle_id: b.vehicle_id ?? null, tech_id: b.tech_id ?? null, stage: 'booked' });
   await scheduleForBooking(b.id, { now });
   const tech = b.tech_id ? await db.techs.get(b.tech_id) : null;
   const eventId = await syncBookingEvent('upsert', updated, tech);
