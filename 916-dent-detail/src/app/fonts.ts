@@ -1,8 +1,8 @@
 import localFont from 'next/font/local';
 
-// Self-hosted from @fontsource/michroma@5.3.0 and @fontsource/inter@5.3.0 (OFL-1.1, see src/fonts/LICENSE-*).
+// Self-hosted, subset from @fontsource/michroma@5.3.0 + @fontsource/inter@5.3.0 by scripts/subset-fonts.sh (OFL-1.1).
 export const michroma = localFont({
-  src: '../fonts/michroma-latin-400-normal.woff2',
+  src: '../fonts/michroma-400.woff2',
   weight: '400',
   style: 'normal',
   display: 'swap',
@@ -13,8 +13,8 @@ export const michroma = localFont({
 
 export const inter = localFont({
   src: [
-    { path: '../fonts/inter-latin-400-normal.woff2', weight: '400', style: 'normal' },
-    { path: '../fonts/inter-latin-600-normal.woff2', weight: '600', style: 'normal' },
+    { path: '../fonts/inter-400.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/inter-600.woff2', weight: '600', style: 'normal' },
   ],
   display: 'swap',
   variable: '--font-inter',

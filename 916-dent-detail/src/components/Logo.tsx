@@ -7,7 +7,7 @@ export function Logo({ className = '' }: { className?: string }) {
   return (
     <Link href="/" className={`group inline-flex items-center gap-2.5 rounded-lg ${className}`} aria-label={`${site.name}, home`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/d-mark-96.webp" width={40} height={40} alt="" className="h-9 w-9 lg:h-10 lg:w-10" />
+      <img src="/brand/d-mark-80.webp" width={40} height={40} alt="" className="h-9 w-9 lg:h-10 lg:w-10" />
       <span className="font-display text-[0.78rem] leading-tight tracking-[0.12em] text-ivory lg:text-[0.86rem]">
         916 DENT <span className="text-gold">&amp;</span> DETAIL
       </span>

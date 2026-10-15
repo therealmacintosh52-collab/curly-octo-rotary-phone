@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { frameSrc, heroMedia } from '@/generated/media';
-import { loadMotion, motionMode } from '@/lib/motion';
+import { loadMotion, motionMode, onFirstIntent } from '@/lib/motion';
 
 const N = heroMedia.frameCount;
 const PRELOAD = 10;
@@ -131,15 +131,11 @@ export function HeroScrub() {
       restUnlocked = true;
       pump();
     };
-    // Rest of the frames: on first scroll intent, or a few seconds after load (LCP stays untouched).
-    const intent = () => unlockRest();
-    for (const ev of ['wheel', 'touchstart', 'keydown', 'scroll', 'pointerdown'] as const) {
-      window.addEventListener(ev, intent, { passive: true, once: true });
-      cleanups.push(() => window.removeEventListener(ev, intent));
-    }
+    // First PRELOAD frames: 2.5 s after load (at idle) or on first intent, whichever is first.
+    // Everything else (rest of the frames + GSAP/Lenis): on first user intent. None of it may
+    // compete with first paint, LCP or hydration.
     const afterLoad = () => {
-      idle(pump);
-      const t = window.setTimeout(unlockRest, 3500);
+      const t = window.setTimeout(() => idle(pump), 2500);
       cleanups.push(() => clearTimeout(t));
     };
     if (document.readyState === 'complete') afterLoad();
@@ -161,7 +157,8 @@ export function HeroScrub() {
     cleanups.push(() => mq.removeEventListener('change', onBreakpoint));
 
     // ScrollTrigger: progress over the whole track → frame index + copy beats.
-    loadMotion().then(({ gsap }) => {
+    cleanups.push(onFirstIntent(() => { unlockRest(); pump(); void startScrub(); }));
+    const startScrub = () => loadMotion().then(({ gsap }) => {
       if (disposed) return;
       const q = (s: string) => track.querySelectorAll<HTMLElement>(s);
       const state = { f: 0 };

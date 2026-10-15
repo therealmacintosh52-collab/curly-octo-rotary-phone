@@ -1,10 +1,28 @@
 import { Hero } from '@/components/hero/Hero';
+import { SectionMotion } from '@/components/SectionMotion';
+import { FaqJsonLd } from '@/components/JsonLd';
+import { faqs } from '@/content/home';
+import {
+  BeforeAfterSection, ClosingCta, DealerBand, Eco, Faq, GlossShield, HowItWorks, Memberships, Reviews, ServiceArea, ServicesGrid,
+} from '@/components/sections/Sections';
 
 export default function Home() {
   return (
     <>
       <Hero />
-      <div className="wrap section"><h2 className="h2">Sections land in step 4</h2><div className="h-[150vh]" /></div>
+      <HowItWorks />
+      <ServicesGrid />
+      <BeforeAfterSection />
+      <GlossShield />
+      <Eco />
+      <Reviews />
+      <ServiceArea />
+      <Memberships />
+      <DealerBand />
+      <Faq />
+      <ClosingCta />
+      <SectionMotion />
+      <FaqJsonLd items={faqs} />
     </>
   );
 }

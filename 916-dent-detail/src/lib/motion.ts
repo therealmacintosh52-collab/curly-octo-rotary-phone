@@ -34,3 +34,23 @@ export function loadMotion(): Promise<MotionStack> {
   })();
   return stack;
 }
+
+/**
+ * Run `cb` once, on the first sign the user is engaging (scroll, wheel, touch, pointer, key).
+ * Motion JS and the bulk of the hero frames are deferred to this moment so they never compete
+ * with first paint / hydration (keeps TBT low). Returns a disposer.
+ */
+const INTENT_EVENTS = ['scroll', 'wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
+export function onFirstIntent(cb: () => void): () => void {
+  let done = false;
+  const fire = () => {
+    if (done) return;
+    done = true;
+    off();
+    cb();
+  };
+  const off = () => INTENT_EVENTS.forEach((e) => window.removeEventListener(e, fire));
+  INTENT_EVENTS.forEach((e) => window.addEventListener(e, fire, { passive: true }));
+  if (window.scrollY > 0) queueMicrotask(fire); // restored scroll position
+  return off;
+}

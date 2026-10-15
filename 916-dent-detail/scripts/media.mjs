@@ -92,7 +92,7 @@ async function logo() {
   };
   const dmClean = await clean(dm);
   await sharp(dmClean).png({ compressionLevel: 9 }).toFile(join(out, 'd-mark-clean.png'));
-  for (const s of [96, 192]) await sharp(dmClean).resize(s).webp({ quality: 90, alphaQuality: 95 }).toFile(join(out, `d-mark-${s}.webp`));
+  for (const s of [80, 96, 192]) await sharp(dmClean).resize(s).webp({ quality: s <= 96 ? 80 : 90, alphaQuality: s <= 96 ? 80 : 95 }).toFile(join(out, `d-mark-${s}.webp`));
   // D + speed lines only (no roof) for 16/32 px icons
   const dOnly = await alphaBBox(buf, W, H, [415, 470, 900, 748], 140);
   // exact bbox (no square growth: that would reach the wordmark); padSquare letterboxes it later
@@ -202,7 +202,7 @@ async function frames() {
     for (const [k, crop] of variants) {
       for (const [tag, src] of [['poster', first], ['static', last]]) {
         const base = () => { const s = sharp(src).resize(720); return crop ? s.extract(crop) : s; };
-        await base().avif({ quality: 50, effort: 6 }).toFile(join(P, `${tag}-${k}.avif`));
+        await base().avif({ quality: 36, effort: 6 }).toFile(join(P, `${tag}-${k}.avif`)); // q36: dent stays crisp, ~22 KB (LCP budget)
         await base().webp({ quality: 78, effort: 6 }).toFile(join(P, `${tag}-${k}.webp`));
       }
     }
