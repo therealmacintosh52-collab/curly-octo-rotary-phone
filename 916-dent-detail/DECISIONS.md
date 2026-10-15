@@ -40,3 +40,4 @@
 | P6-014 | `NEXT_DIST_DIR` honored in next.config.ts and `.next-*` ignored by git and eslint so parallel agents can build without clobbering `.next`. | Parallel agents shared one tree. |
 | P6-015 | Meta description for / and /services shortened to <=155 (layout metadata no longer uses `site.description`). | check:seo limit. |
 
+| P-025 | Phase 6 accepted. Follow-ups: Phase 2 must call sendCapiEvent (event_id from track() + consent); privacy/terms page needed (add in Phase 8); redirects map reserves /contact,/estimate,/about; Lighthouse dips <90 happened under CPU load, re-measure on idle machine in Phase 8. | T-916-P6 handoff |
