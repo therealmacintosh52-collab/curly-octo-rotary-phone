@@ -20,6 +20,7 @@ import { createBookingSchema } from '@/lib/booking/schema';
 import type { BookingStatus } from '@/lib/booking/state';
 import { signBookingToken } from '@/lib/booking/tokens';
 import { repo, type BookingRow } from '@/lib/db';
+import { primeSettings } from '@/lib/admin/settings';
 import { assessZip } from '@/lib/geo';
 import { baseUrl } from '@/lib/notify/dispatch';
 import { computeDuration, computePrice, hasDent, validateSelection } from '@/lib/pricing';
@@ -290,6 +291,7 @@ const check_availability: Runner<'check_availability'> = async (inp, ctx) => {
   if (area.status !== 'in_area') return refuse('out_of_area', area.message, { area_status: area.status });
   rememberSelection(ctx, { services: sel.services, sizeClass: sel.sizeClass, zip });
 
+  await primeSettings(); // P3: owner duration overrides from /admin apply to bot offers too
   const durationMin = computeDuration({ services: sel.services, sizeClass: sel.sizeClass, addons: sel.addons, panels });
   const exterior = sel.services.some((s) => serviceById(s)?.exterior);
   const { slots } = await availabilityFor(ctx.now, { durationMin, zip, exterior, fromDate: inp.from_date, days: inp.days ?? 7, excludeBookingId });
@@ -351,6 +353,7 @@ const create_booking: Runner<'create_booking'> = async (inp, ctx) => {
   });
   if (!parsed.success) return fail('Some details are missing or invalid.', { fields: parsed.error.issues.slice(0, 6).map((i) => ({ field: i.path.join('.'), problem: i.message })) });
 
+  await primeSettings();
   const key = `cc${ctx.rec.conv.id.replace(/-/g, '')}${slot.id}`.slice(0, 80);
   let res: Awaited<ReturnType<typeof createBooking>>;
   try { res = await createBooking(parsed.data, key, ctx.now); }

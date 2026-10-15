@@ -231,6 +231,7 @@ await dealer.locator('#main').getByText('Approved', { exact: true }).first().wai
 check(true, 'dealer approved the add-on');
 check(await dealer.locator('.dl-step[data-state="now"]').innerText().then((t) => /In progress/.test(t)), 'stepper shows In progress');
 await dealer.reload({ waitUntil: 'networkidle' });
+console.log('  [debug] add-ons section:', (await dealer.locator('#ad-h').locator('xpath=..').innerText()).replace(/\s+/g, ' '));
 const historyText = await dealer.locator('#au-h').locator('xpath=..').innerText();
 check(/Add-on approved/.test(historyText) && /Status: In progress/.test(historyText), `audit trail lists the status change and the approval (${historyText.replace(/\s+/g, ' ').slice(0, 200)})`);
 // owner finishes car 1

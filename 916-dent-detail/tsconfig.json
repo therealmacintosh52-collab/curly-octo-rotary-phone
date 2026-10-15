@@ -41,7 +41,17 @@
     ".next-p6/types/**/*.ts",
     ".next-p6/dev/types/**/*.ts",
     ".next-p6t/types/**/*.ts",
-    ".next-p6t/dev/types/**/*.ts"
+    ".next-p6t/dev/types/**/*.ts",
+    ".next-p5dev/types/**/*.ts",
+    ".next-p5dev/dev/types/**/*.ts",
+    ".next-p4/types/**/*.ts",
+    ".next-p4/dev/types/**/*.ts",
+    ".next-p4b/types/**/*.ts",
+    ".next-p4b/dev/types/**/*.ts",
+    ".next-p3/types/**/*.ts",
+    ".next-p3/dev/types/**/*.ts",
+    ".next-p4c/types/**/*.ts",
+    ".next-p4c/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
