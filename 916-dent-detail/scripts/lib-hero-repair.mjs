@@ -8,7 +8,7 @@
 // Method: inside a fixed region, mask near-white pixels (not the blue reflections), dilate, then fill the hole by
 // Laplace diffusion from its border (a smooth dark blue patch, which is what the dent floor looks like on both sides in
 // time) and add 1 level of grain like the source. Pure JS, deterministic, no external tools.
-export const REPAIR = {
+const REPAIR = {
   box: { x0: 372, y0: 700, x1: 512, y1: 805 }, // where the chip lives (source px); the door seam (x~365) and rocker chrome (y>808) are outside
   from: 21,   // first frame touched
   full: 27,   // fully removed from here ...

@@ -2,20 +2,20 @@
 // Coordinates are in the 1408x1408 source logo's pixel space (brand/logo.jpg). They were fitted to the trace of the logo made by
 // scripts/trace-dmark.mjs (potrace, then Douglas-Peucker corner extraction): straight edges are exact lines, the bowl is two cubic curves
 // per side. The overlay check is in DECISIONS P9-004. Colours come from the brand tokens: gold #C9A24A on onyx #0B0B0C.
-export const GOLD = '#C9A24A';
-export const ONYX = '#0B0B0C';
+const GOLD = '#C9A24A';
+const ONYX = '#0B0B0C';
 
-export const D_PATH =
+const D_PATH =
   'M602 482L795 482C836 485 871 534 871 590C872 628 840 672 798 697C770 711 740 719 700 726L557 742L663 550L729 550L653 686L728 670' +
   'C765 659 796 632 808 610C818 565 800 525 755 524L638 524Z';
-export const LINES = [
+const LINES = [
   'M475 549L626 547L616 567L471 558Z',
   'M426 596L602 594L587 613L424 603Z',
   'M446 645L574 642L561 661L444 651Z',
 ];
 // D alone spans x 557..871, y 482..742. With the lines the mark spans x 424..871.
-export const BOX_D = { x: 557, y: 482, w: 314, h: 260 };
-export const BOX_FULL = { x: 424, y: 482, w: 447, h: 260 };
+const BOX_D = { x: 557, y: 482, w: 314, h: 260 };
+const BOX_FULL = { x: 424, y: 482, w: 447, h: 260 };
 
 /** Thicker, shorter lines for small icons: the logo's hairline speed lines would turn into a grey smudge at 32 px. */
 const BOLD_LINES = [
@@ -23,7 +23,7 @@ const BOLD_LINES = [
   'M470 590L602 588L588 617L466 608Z',
   'M500 637L574 635L560 664L496 655Z',
 ];
-export const BOX_BOLD = { x: 466, y: 482, w: 405, h: 260 };
+const BOX_BOLD = { x: 466, y: 482, w: 405, h: 260 };
 
 /**
  * One square SVG of the mark.

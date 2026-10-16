@@ -37,9 +37,9 @@ Node 20.9+ (built on Node 22). In the app: `/book` (booking), `/admin` (owner + 
 | `npm run setup:admin -- --email you@x.com` | creates the owner login (live: Supabase admin API; mock: prints the demo credentials) |
 | `npm run seed` | writes the mock database file (`--demo` adds sample data); live data uses `supabase/seed.sql` |
 | `npm run deploy` | **dry run by default**: prints the preflight + `vercel deploy --prod` plan. `-- --yes` runs it (see step 14) |
-| `npm run check:owner` | lists every `[OWNER]` placeholder still in the code (the launch checklist) |
+| `npm run check:owner` | the launch checklist: every owner placeholder still in the code, **grouped by category with counts** (`--json` for a machine-readable summary, `--show-filtered` lists the pattern matches that are ordinary code and were NOT counted, with the reason) |
 | `npm run check:seo` / `check:content` | SEO crawl gate / content-similarity gate (the latter also runs on `prebuild`) |
-| `npm run leave-behind` | regenerates `public/dealers/leave-behind.pdf` (set `NEXT_PUBLIC_SITE_URL` first so the QR code is right) |
+| `npm run leave-behind` | regenerates `public/dealers/leave-behind.pdf` (set `NEXT_PUBLIC_SITE_URL` first so the QR code is right). `-- --out=/tmp/x.pdf` writes elsewhere: **test with a dummy URL only through `--out`**, and commit only a build made with the real domain or with none. The output is byte-stable, so re-running never dirties git |
 | `npm run media` | regenerates every image/video asset in `public/` from `brand/` (needs `ffmpeg`) |
 
 ---
@@ -158,7 +158,7 @@ Google Cloud console > create a project > enable the **Google Calendar API** > I
 It is **write-only**: availability never reads Google, so vacations and personal blocks still go in `/admin/schedule/settings`.
 
 ## 10. Upstash Redis (optional, recommended on Vercel)
-Without it rate limits are per serverless instance. upstash.com > create a Redis database > REST API: `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+Without it rate limits are per serverless instance. upstash.com > create a Redis database > REST API: `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. The limiter (`src/lib/security/rate-limit.ts`) uses it automatically and falls back to in-memory limits for 30 s if Upstash is slow or down. Off Vercel also set `TRUST_PROXY` (`hops:N` for N proxies that append to `X-Forwarded-For`, or `none`); `npm run doctor -- --production` checks it.
 
 ## 11. Scheduled jobs (crons)
 `vercel.json` declares four crons (dispatch every 5 min, concierge every 10 min, transcript retention daily, dealer statements monthly). Set `CRON_SECRET` (step 2.7); Vercel sends it as
