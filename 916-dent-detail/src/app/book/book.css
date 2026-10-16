@@ -40,7 +40,7 @@
 .bk-chip[aria-pressed="true"] { background: var(--color-gold); color: var(--color-onyx); border-color: var(--color-gold); }
 .bk-chip:disabled { opacity: 0.4; }
 
-.bk-steps { counter-reset: s; display: flex; gap: 0.35rem; overflow-x: auto; scrollbar-width: none; padding-block: 2px; }
+.bk-steps { position: relative; counter-reset: s; display: flex; gap: 0.35rem; overflow-x: auto; scrollbar-width: none; padding-block: 2px; }
 .bk-steps::-webkit-scrollbar { display: none; }
 .bk-step { flex: 1 0 auto; min-width: 2.6rem; }
 .bk-step button, .bk-step span.bk-pill {

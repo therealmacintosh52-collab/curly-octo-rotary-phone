@@ -35,7 +35,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <nav aria-label="Date range" className="flex flex-wrap gap-2">
           {PRESETS.filter((p) => p !== 'custom').map((p) => <Link key={p} href={`/admin/reports?preset=${p}`} aria-current={r.preset === p ? 'page' : undefined} className={`adm-badge min-h-9 px-3 ${r.preset === p ? 'adm-badge-gold' : ''}`}>{PRESET_LABEL[p]}</Link>)}
         </nav>
-        <form action="/admin/reports" className="mt-3 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+        <form action="/admin/reports" className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2">
           <input type="hidden" name="preset" value="custom" />
           <Field label="From" htmlFor="from"><input id="from" name="from" type="date" defaultValue={r.from} className="adm-input" /></Field>
           <Field label="To" htmlFor="to"><input id="to" name="to" type="date" defaultValue={r.to} className="adm-input" /></Field>

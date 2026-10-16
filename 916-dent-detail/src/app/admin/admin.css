@@ -10,6 +10,7 @@
 }
 .adm-input::placeholder { color: #8c8f96; }
 .adm-input:focus-visible { border-color: var(--color-gold); outline: 2px solid var(--color-gold-light); outline-offset: 1px; }
+input.adm-input[type="date"], input.adm-input[type="time"] { min-width: 0; width: 100%; max-width: 100%; }
 textarea.adm-input { min-height: 96px; resize: vertical; }
 select.adm-input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #8c8f96 50%), linear-gradient(135deg, #8c8f96 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 2.2rem; }
 

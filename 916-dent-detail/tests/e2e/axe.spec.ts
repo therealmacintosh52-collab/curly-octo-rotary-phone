@@ -14,7 +14,7 @@ test.describe('axe: public routes', () => {
       await page.waitForTimeout(500);
       await exposeFullPage(page);
       expect(await axeSerious(page)).toEqual([]);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1)).toBe(false);
     });
   }
 });
@@ -29,7 +29,7 @@ test.describe('axe: admin (demo login)', () => {
       await page.goto(path, { waitUntil: 'load' });
       await page.waitForTimeout(400);
       expect(await axeSerious(page), path).toEqual([]);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), `${path} overflow`).toBe(false);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1), `${path} overflow`).toBe(false);
     }
   });
 });
@@ -50,7 +50,7 @@ test.describe('axe: dealer portal (demo account)', () => {
     for (const path of ['/dealers/dashboard', '/dealers/dashboard/submit', '/dealers/dashboard/vehicles', '/dealers/dashboard/billing']) {
       await page.goto(path, { waitUntil: 'networkidle' });
       expect(await axeSerious(page), path).toEqual([]);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), `${path} overflow`).toBe(false);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1), `${path} overflow`).toBe(false);
     }
   });
 });
