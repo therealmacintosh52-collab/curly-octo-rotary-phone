@@ -32,13 +32,17 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
 
   // Owner only: open jobs with a line logged as "Other" and no price yet. `?needs_price=1` narrows the list to them.
   const needsPriceOnly = session.canPrices && sp.needs_price === "1";
-  const [{ data: list, error }, { data: services }, { data: dealerships }, { data: detailers }, { data: flaggedRows }] = await Promise.all([
-    supabase.rpc("jobs_filtered", needsPriceOnly ? { ...jobFilterArgs(filters), p_limit: 500, p_offset: 0 } : jobFilterArgs(filters)),
+  // Managers and up: open Sold jobs with no PDI or Used; `?sold_missing=1` narrows the list to them (0071).
+  const soldOnly = session.isAdmin && sp.sold_missing === "1";
+  const [{ data: list, error }, { data: services }, { data: dealerships }, { data: detailers }, { data: flaggedRows }, { data: soldIds }] = await Promise.all([
+    supabase.rpc("jobs_filtered", needsPriceOnly || soldOnly ? { ...jobFilterArgs(filters), p_limit: 500, p_offset: 0 } : jobFilterArgs(filters)),
     supabase.from("services").select("id, name").is("line_kind", null).order("sort_order"),
     supabase.from("dealerships").select("id, name").eq("retail", false).order("name"),
     session.isAdmin ? supabase.from("profiles").select("id, full_name").eq("active", true).order("full_name") : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
     session.canPrices ? supabase.from("job_service_prices_v").select("job_id").eq("needs_price", true).is("invoice_id", null).is("deleted_at", null) : Promise.resolve({ data: [] as { job_id: string }[] }),
+    session.isAdmin ? supabase.rpc("jobs_missing_sold_charge", {}) : Promise.resolve({ data: [] as string[] }),
   ]);
+  const soldMissing = new Set(soldIds ?? []);
   if (error) throw new Error(error.message);
   const flagged = new Set((flaggedRows ?? []).map((r) => r.job_id));
   let result = (list as JobListResult | null) ?? EMPTY_JOB_LIST;
@@ -46,9 +50,14 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
     const rows = result.rows.filter((r) => flagged.has(r.id));
     result = { count: rows.length, rows };
   }
+  if (soldOnly) {
+    const rows = result.rows.filter((r) => soldMissing.has(r.id));
+    result = { count: rows.length, rows };
+  }
 
   const scope = [
     needsPriceOnly ? "Needing a price" : null,
+    soldOnly ? "Sold, needing PDI or Used" : null,
     filters.status !== "all" ? JOB_STATUS_LABELS[filters.status] : null,
     filters.dealership ? dealerships?.find((d) => d.id === filters.dealership)?.name : null,
     filters.detailer ? detailers?.find((d) => d.id === filters.detailer)?.full_name : null,
@@ -83,7 +92,7 @@ export default async function JobsPage(props: PageProps<"/jobs">) {
         >
           <JobFilters filters={typed} searchDate={filters.searchDate} services={services ?? []} dealerships={dealerships ?? []} detailers={detailers ?? []} isAdmin={session.isAdmin} />
         </Suspense>
-        <JobList rows={result.rows} page={filters.page} count={result.count} params={params} filtered={filtered} today={today} flagged={flagged.size > 0 ? [...flagged] : undefined} />
+        <JobList rows={result.rows} page={filters.page} count={result.count} params={params} filtered={filtered} today={today} flagged={flagged.size > 0 ? [...flagged] : undefined} soldFlagged={soldMissing.size > 0 ? [...soldMissing] : undefined} />
       </div>
     </Page>
   );

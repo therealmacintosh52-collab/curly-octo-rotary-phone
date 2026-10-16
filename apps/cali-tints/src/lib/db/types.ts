@@ -1572,6 +1572,7 @@ export type Database = {
       my_pin_status: { Args: Record<string, never>; Returns: { can_have_pin: boolean; has_pin: boolean; set_at: string | null } };
       clear_pin: { Args: { p_user: string }; Returns: undefined };
       pin_holders: { Args: Record<string, never>; Returns: string[] };
+      jobs_missing_sold_charge: { Args: Record<string, never>; Returns: string[] };
       restore_job: { Args: { p_id: string }; Returns: undefined };
       uninvoiced_jobs: { Args: { p_dealership_id: string; p_start: string; p_end: string }; Returns: Job[] };
       generate_invoice: {

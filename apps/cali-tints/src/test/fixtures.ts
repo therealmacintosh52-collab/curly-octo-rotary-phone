@@ -264,6 +264,7 @@ export function jobListFixture(): JobListRow[] {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonth = invoiceListFixture().filter((r) => r.period_start === ymdOf(new Date(now.getFullYear(), now.getMonth() - 1, 1)));
   let n = 0;
+  let leaveSold = true;
   const push = (c: FixtureCar, invoice: InvoiceListRow | null, deleted = false) => {
     n += 1;
     rows.push({
@@ -278,7 +279,8 @@ export function jobListFixture(): JobListRow[] {
       detailer_id: c.detailer === "Victor" ? "u2" : c.detailer === "Dee One" ? "u3" : "u5",
       detailer: null,
       // The second car of the month-in-progress was logged with "Other" and no price: the owner's "Needs price" flag in previews.
-      services: n === 2 && !invoice ? [c.service, "Other"] : c.service === "Used" && n % 5 === 0 ? [c.service, "Touch Up Detail"] : [c.service],
+      // A Sold car also carries PDI (0071); the first open Sold car is left Sold-only so the preview shows the manager's flag.
+      services: n === 2 && !invoice ? [c.service, "Other"] : c.service === "Used" && n % 5 === 0 ? [c.service, "Touch Up Detail"] : c.service === "Sold" && !(leaveSold && !invoice && ((leaveSold = false), true)) ? [c.service, "PDI"] : [c.service],
       invoice_id: invoice?.id ?? null,
       display_number: invoice?.display_number ?? null,
       invoice_status: invoice?.status ?? null,

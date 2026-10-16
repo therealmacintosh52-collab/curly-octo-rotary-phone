@@ -13,6 +13,7 @@ import { invoiceBundleFixture, jobListFixture } from "@/test/fixtures";
 import { JOB_STATUS_LABELS, parseJobFilters, resolveJobFilters } from "@/lib/jobs/query";
 import type { Profile } from "@/lib/db/types";
 import { toDateInput } from "@/lib/dates";
+import { soldNeedsCharge } from "@/lib/jobs/sold";
 
 const SERVICES = [
   { id: "s1", name: "PDI" },
@@ -49,6 +50,9 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
   // The owner sees which open jobs still need a price (fixture: the one logged with "Other").
   const flagged = canMoney ? jobListFixture().filter((r) => r.services.includes("Other") && !r.invoice_id && !r.deleted).map((r) => r.id) : [];
 
+  // Managers and up see which open Sold jobs still lack PDI or Used (0071; fixture: one car).
+  const soldFlagged = isAdmin ? jobListFixture().filter((r) => !r.retail && !r.invoice_id && !r.deleted && soldNeedsCharge(r.services)).map((r) => r.id) : [];
+
   const today = toDateInput(new Date());
   const filters = resolveJobFilters(typed, today);
   const q = filters.q?.toUpperCase();
@@ -60,6 +64,7 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
     if (st === "open" && (r.deleted || r.invoice_id)) return false;
     if (st === "invoiced" && (r.deleted || !r.invoice_id)) return false;
     if (st === "deleted" && !r.deleted) return false;
+    if (isAdmin && sp.sold_missing === "1" && !soldFlagged.includes(r.id)) return false;
     if (filters.dealership && r.dealership_id !== filters.dealership) return false;
     if (filters.detailer && r.detailer_id !== filters.detailer) return false;
     if (filters.service && !r.services.includes(SERVICES.find((s) => s.id === filters.service)?.name ?? "")) return false;
@@ -100,7 +105,7 @@ export default async function DevJobsPreview(props: PageProps<"/dev/preview/jobs
               >
                 <JobFilters filters={typed} searchDate={filters.searchDate} services={SERVICES} dealerships={DEALERSHIPS} detailers={DETAILERS} isAdmin={isAdmin} />
               </Suspense>
-              <JobList rows={rows.slice(0, 50)} page={1} count={rows.length} params={params} filtered={filtered} today={today} flagged={flagged} />
+              <JobList rows={rows.slice(0, 50)} page={1} count={rows.length} params={params} filtered={filtered} today={today} flagged={flagged} soldFlagged={soldFlagged} />
             </div>
           </Page>
         </AppShell>

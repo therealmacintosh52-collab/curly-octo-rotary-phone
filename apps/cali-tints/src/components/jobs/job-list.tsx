@@ -57,7 +57,7 @@ function PageLinks({ page, count, params }: { page: number; count: number; param
 }
 
 /** "On INV-000061" / "Waiting for the month's invoice" / "Deleted". The owner also sees "Needs price". */
-function JobState({ r, short, flagged }: { r: JobListRow; short?: boolean; flagged?: boolean }) {
+function JobState({ r, short, flagged, soldFlag }: { r: JobListRow; short?: boolean; flagged?: boolean; soldFlag?: boolean }) {
   if (r.deleted) return <Badge variant="destructive" title="Deleted · kept in the archive">Deleted</Badge>;
   if (r.retail) {
     if (r.paid_at) return <Badge variant="success" title="Retail customer · paid at the counter">Paid</Badge>;
@@ -65,6 +65,7 @@ function JobState({ r, short, flagged }: { r: JobListRow; short?: boolean; flagg
     if (r.invoiced_at === null) return <Badge variant="info" title="Retail customer · work in progress, not invoiced yet" data-testid="stage-wip">In progress</Badge>;
     return <Badge variant="warning" title="Retail customer · collect at the counter on the Clover">Collect</Badge>;
   }
+  if (soldFlag && !r.invoice_id) return <Badge variant="warning" title="Sold is not billed on its own · add PDI or Used with Edit job" data-testid="sold-flag">{short ? "Add PDI/Used" : "Sold: add PDI or Used"}</Badge>;
   if (flagged && !r.invoice_id) return <Badge variant="warning" title="Logged as Other without a price · set it with Edit job">Needs price</Badge>;
   if (r.invoice_id) return <Badge variant="info" title={`On invoice ${r.quickbooks_doc_number ?? r.display_number ?? ""}`}>{short ? "Invoiced" : (r.quickbooks_doc_number ? `QB ${r.quickbooks_doc_number}` : (r.display_number ?? "Invoiced"))}</Badge>;
   if (r.quickbooks_doc_number) return <Badge variant="muted" title={`On this month's QuickBooks invoice ${r.quickbooks_doc_number}, still open`}>{short ? `QB ${r.quickbooks_doc_number}` : `In QuickBooks · ${r.quickbooks_doc_number}`}</Badge>;
@@ -75,8 +76,9 @@ function JobState({ r, short, flagged }: { r: JobListRow; short?: boolean; flagg
  * The Jobs list: every car logged, newest first under day headers. Desktop:
  * dense table. Phone: tappable cards. No money anywhere.
  */
-export function JobList({ rows, page, count, params, filtered, today, flagged }: { rows: JobListRow[]; page: number; count: number; params: string; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers. */ today: string; /** Owner only: job ids with a line still needing a price. */ flagged?: string[] }) {
+export function JobList({ rows, page, count, params, filtered, today, flagged, soldFlagged }: { rows: JobListRow[]; page: number; count: number; params: string; filtered: boolean; /** Today (yyyy-mm-dd): rows are grouped under day headers. */ today: string; /** Owner only: job ids with a line still needing a price. */ flagged?: string[] ; /** Managers and up: open Sold jobs without PDI or Used (0071). */ soldFlagged?: string[]}) {
   const needsPrice = new Set(flagged ?? []);
+  const soldMissing = new Set(soldFlagged ?? []);
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -123,7 +125,7 @@ export function JobList({ rows, page, count, params, filtered, today, flagged }:
                       <div className="truncate text-caption text-muted-foreground">{r.services.join(", ") || "No services"}</div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <JobState r={r} short flagged={needsPrice.has(r.id)} />
+                      <JobState r={r} short flagged={needsPrice.has(r.id)} soldFlag={soldMissing.has(r.id)} />
                       {r.photo_count > 0 && (
                         <div className="mt-1 flex items-center justify-end gap-1 text-caption text-subtle">
                           <CameraIcon className="size-3.5" /> {r.photo_count}
@@ -190,7 +192,7 @@ export function JobList({ rows, page, count, params, filtered, today, flagged }:
                           <JobState r={r} />
                         </Link>
                       ) : (
-                        <JobState r={r} flagged={needsPrice.has(r.id)} />
+                        <JobState r={r} flagged={needsPrice.has(r.id)} soldFlag={soldMissing.has(r.id)} />
                       )}
                     </TableCell>
                   </TableRow>

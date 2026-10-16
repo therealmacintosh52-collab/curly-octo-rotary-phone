@@ -1,6 +1,10 @@
 -- SQL tests for RLS, RPCs and triggers. Runs on the local stub (see run.sh).
 -- Each block asserts and raises on failure; run.sh stops on the first error.
 
+-- 0071: these older flows use the Sold service as a plain $20 line. The Sold-needs-PDI-or-Used rule
+-- is switched off for them here and tested on its own in 05_sold_needs_pdi_or_used.sql.
+update public.services set sold_marker = false where id = '00000000-0000-4000-8000-000000000209';
+
 -- Helpers -------------------------------------------------------------------
 create or replace function pg_temp.login(p_id uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, false);

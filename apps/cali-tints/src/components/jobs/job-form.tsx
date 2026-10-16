@@ -14,6 +14,7 @@ import { fireConfetti, haptic } from "@/components/motion/confetti";
 import type { OutboxItem, RecentJob } from "@/lib/offline/db";
 import { decodeVin } from "@/lib/vin-client";
 import { normalizeVin, vinStatus } from "@/lib/vin";
+import { soldNeedsCharge, SOLD_NEEDS_CHARGE_MESSAGE } from "@/lib/jobs/sold";
 import { colorValue, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
 import { dateInputToIso, nowMs, toDateInput } from "@/lib/dates";
 import { sumPrices } from "@/lib/money";
@@ -199,6 +200,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     if (!model.trim()) return "Model is required";
     if (!colorValue(color)) return "Color is required";
     if (services.length === 0) return "Select at least one service";
+    if (soldNeedsCharge(services.map((s) => s.name))) return SOLD_NEEDS_CHARGE_MESSAGE;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performedAt)) return "Date is invalid";
     return null;
   }
@@ -549,6 +551,11 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
           </AnimatePresence>
         </div>
         <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={false} canSetAmount={canSetAmount} />
+        {soldNeedsCharge(services.map((s) => s.name)) && (
+          <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning" role="alert" data-testid="sold-hint">
+            Sold is not billed on its own. Pick <strong>PDI</strong> or <strong>Used</strong> too.
+          </p>
+        )}
       </section>
 
       {/* Photos */}

@@ -6,6 +6,7 @@ import { Dashboard, resolveBreakdownMonth, resolveRange } from "@/components/das
 import { DetailerDashboard } from "@/components/dashboard/detailer-dashboard";
 import { TeamDashboard } from "@/components/dashboard/team-dashboard";
 import { NeedsPriceBanner } from "@/components/dashboard/needs-price-banner";
+import { SoldChargeBanner } from "@/components/dashboard/sold-charge-banner";
 import { toDateInput } from "@/lib/dates";
 import type { DashboardStats, DetailerStats, Profile, TeamStats } from "@/lib/db/types";
 import { invoiceBundleFixture } from "@/test/fixtures";
@@ -91,6 +92,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
       <SessionProvider value={{ userId: manny.id, email: null, profile: manny, company, isAdmin: true, canSettings: true, canMoney: false, canPrices: true, demo: true }}>
         <SyncProvider>
           <AppShell>
+            <SoldChargeBanner count={1} />
             <TeamDashboard stats={teamFixture(today)} today={today} who={{ name: manny.full_name, tz: company.timezone }} retail={retailDashboardFixture(false)} />
             <p className="mt-8 text-center text-caption text-muted-foreground">
               Guest preview · this is what an admin or manager sees ·{" "}
@@ -130,6 +132,7 @@ export default async function DevDashboardPreview(props: PageProps<"/dev/preview
       <SyncProvider>
         <AppShell>
           <NeedsPriceBanner count={1} />
+          <SoldChargeBanner count={1} />
           <Dashboard stats={stats} range={range} today={today} who={{ name: profile.full_name, tz: company.timezone }} breakdown={{ ...bm, stats: { by_service: stats.by_service, by_day: stats.by_day } }} retail={retailDashboardFixture(true)} />
           <p className="mt-8 text-center text-caption text-muted-foreground">
             Guest preview ·{" "}

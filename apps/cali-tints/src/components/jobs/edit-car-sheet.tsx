@@ -10,6 +10,7 @@ import type { ActionResult } from "@/app/(app)/jobs/actions";
 import type { UpdateJobInput } from "@/lib/jobs/schema";
 import { dateInputToIso, toDateInput } from "@/lib/dates";
 import { normalizeVin, vinStatus } from "@/lib/vin";
+import { soldNeedsCharge, SOLD_NEEDS_CHARGE_MESSAGE } from "@/lib/jobs/sold";
 import { colorValue, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -120,6 +121,7 @@ export function EditCarSheet({
     if (!model.trim()) return toast.error("Model is required");
     if (!colorValue(color)) return toast.error("Color is required");
     if (!linesLocked && services.length === 0) return toast.error("Select at least one service");
+    if (!linesLocked && soldNeedsCharge(services.map((s) => s.name))) return toast.error(SOLD_NEEDS_CHARGE_MESSAGE);
     void (async () => {
       // Asked before the save starts (a dialog cannot open from inside the pending save).
       const grant = approve ? await approve() : "";
@@ -249,6 +251,11 @@ export function EditCarSheet({
             <div className="grid gap-2">
               <Label>Services</Label>
               <ServicePicker priceList={priceList} value={services} onChange={setServices} showMoney={showMoney} canSetAmount={canSetAmount} />
+              {soldNeedsCharge(services.map((s) => s.name)) && (
+                <p className="mt-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning" role="alert" data-testid="sold-hint">
+                  Sold is not billed on its own. Pick <strong>PDI</strong> or <strong>Used</strong> too.
+                </p>
+              )}
             </div>
           )}
           <div className="grid gap-1.5">

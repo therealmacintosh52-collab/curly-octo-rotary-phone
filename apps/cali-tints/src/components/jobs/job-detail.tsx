@@ -18,6 +18,7 @@ import type { ShareContext } from "./finding-actions";
 import type { FindingPricing } from "@/lib/retail/finding-quote";
 import type { EditableCar } from "./edit-car-sheet";
 import { cn } from "@/lib/utils";
+import { soldNeedsCharge } from "@/lib/jobs/sold";
 
 export interface JobDetailProps {
   job: EditableCar & {
@@ -136,6 +137,7 @@ export function JobDetail(p: JobDetailProps) {
             {retail && <Badge variant="muted">Retail</Badge>}
             {roTitle && <Badge variant="outline" data-testid="job-tag">Tag {job.tag_number}</Badge>}
             {canSetAmount && !deleted && job.services.some((s) => s.needs_price) && <Badge variant="warning">Needs a price</Badge>}
+            {!retail && !deleted && !inv && soldNeedsCharge(job.services.map((s) => s.name)) && <Badge variant="warning" data-testid="job-sold-flag">Sold: add PDI or Used</Badge>}
           </div>
         </div>
       </div>
