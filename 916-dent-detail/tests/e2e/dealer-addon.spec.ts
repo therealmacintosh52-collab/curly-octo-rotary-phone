@@ -3,7 +3,8 @@
 // The old script then waited for the text "Approved", which the account badge in the layout already shows, so it passed vacuously and the
 // add-on stayed unapproved (no history row, balance missing the $85). Now the button is disabled until hydration, and this test proves
 // (1) a click with no JS changes nothing on the server, (2) after hydration one click approves exactly once, (3) the state survives a reload.
-import { test, expect, type Page } from './fixtures';
+import type { Page } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const VIN = '1HGCM82633A004352';
 
@@ -19,7 +20,7 @@ async function setup(dealer: Page, owner: Page, stamp: string) {
   // owner approves the account in the admin UI
   await owner.goto('/admin/login');
   await owner.getByRole('button', { name: /DEMO Owner/ }).click();
-  await owner.waitForURL((u) => !u.pathname.endsWith('/login'));
+  await owner.waitForURL((u: URL) => !u.pathname.endsWith('/login'));
   await owner.goto('/admin/dealers', { waitUntil: 'load' });
   await owner.getByRole('link', { name: new RegExp(`Addon Motors ${stamp}`) }).click();
   await owner.getByRole('button', { name: 'Approve account' }).click();
