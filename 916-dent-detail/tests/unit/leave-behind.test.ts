@@ -17,7 +17,8 @@ const build = (name: string, site?: string) => {
 };
 const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 
-describe('npm run leave-behind', () => {
+// each case spawns node and renders a PDF (~2 s alone, much more when the whole suite runs in parallel): generous timeout, no retries
+describe('npm run leave-behind', { timeout: 120_000 }, () => {
   it('with NEXT_PUBLIC_SITE_URL set (dummy value) the QR points at it and there is no warning', () => {
     const { r, bytes } = build('dummy.pdf', 'https://dummy-916.example/');
     expect(r.status).toBe(0);

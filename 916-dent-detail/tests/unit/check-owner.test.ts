@@ -4,9 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 
 const script = join(import.meta.dirname, '..', '..', 'scripts', 'check-owner.mjs');
-const run = (...args: string[]) => spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' });
+const run = (...args: string[]) => spawnSync(process.execPath, [script, ...args], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: 60_000 });
 
-describe('check:owner', () => {
+describe('check:owner', { timeout: 120_000 }, () => {
   const j = JSON.parse(run('--json').stdout) as { total: number; categories: Record<string, number>; filtered: Record<string, number> };
 
   it('reports categories whose counts add up to the total, and exits 1 while any remain', () => {
