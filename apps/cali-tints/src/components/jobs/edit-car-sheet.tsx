@@ -10,7 +10,7 @@ import type { ActionResult } from "@/app/(app)/jobs/actions";
 import type { UpdateJobInput } from "@/lib/jobs/schema";
 import { dateInputToIso, toDateInput } from "@/lib/dates";
 import { normalizeVin, vinStatus } from "@/lib/vin";
-import { COLORS, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
+import { colorValue, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ServicePicker, type SelectedService } from "./service-picker";
 import { ModelCombobox } from "./model-combobox";
+import { ColorPicker } from "./color-picker";
 // The barcode engine (ZXing) is ~200 KB; it only loads the first time the scanner opens.
 const VinScanner = dynamic(() => import("./vin-scanner").then((mod) => mod.VinScanner), { ssr: false });
 
@@ -114,7 +115,7 @@ export function EditCarSheet({
     if (!year) return toast.error("Year is required");
     if (!(otherMake ? customMake.trim() : make)) return toast.error("Make is required");
     if (!model.trim()) return toast.error("Model is required");
-    if (!color) return toast.error("Color is required");
+    if (!colorValue(color)) return toast.error("Color is required");
     if (!linesLocked && services.length === 0) return toast.error("Select at least one service");
     start(async () => {
       const r = await save({
@@ -125,7 +126,7 @@ export function EditCarSheet({
         year: Number(year),
         make: make === "Other" ? customMake.trim() : make,
         model: model.trim(),
-        color,
+        color: colorValue(color),
         // Unchanged date keeps the original timestamp; a new date is stored per dateInputToIso.
         performed_at: performedAt === toDateInput(new Date(car.performed_at)) ? car.performed_at : dateInputToIso(performedAt),
         ro_po_number: car.ro_po_number ?? null,
@@ -207,21 +208,9 @@ export function EditCarSheet({
               <Label htmlFor="e-model">Model</Label>
               <ModelCombobox id="e-model" value={model} onChange={setModel} options={modelOptions} />
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="e-color">Color</Label>
-              <Select value={color} onValueChange={setColor}>
-                <SelectTrigger id="e-color">
-                  <SelectValue placeholder="Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COLORS.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                  {!COLORS.includes(color as (typeof COLORS)[number]) && color && <SelectItem value={color}>{color}</SelectItem>}
-                </SelectContent>
-              </Select>
+            <div className="col-span-full grid gap-1.5">
+              <Label>Color</Label>
+              <ColorPicker id="e-color" value={color} onChange={setColor} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="e-date">Date</Label>

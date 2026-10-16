@@ -14,7 +14,7 @@ import { fireConfetti, haptic } from "@/components/motion/confetti";
 import type { OutboxItem, RecentJob } from "@/lib/offline/db";
 import { decodeVin } from "@/lib/vin-client";
 import { normalizeVin, vinStatus } from "@/lib/vin";
-import { COLORS, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
+import { colorValue, DEFAULT_MAKE, MAKES, MERCEDES_MODELS, yearOptions } from "@/lib/vehicles";
 import { dateInputToIso, nowMs, toDateInput } from "@/lib/dates";
 import { sumPrices } from "@/lib/money";
 import { cn, errorMessage } from "@/lib/utils";
@@ -28,6 +28,7 @@ import { PhotoPicker, type PendingPhoto } from "./photo-picker";
 // The barcode engine (ZXing) is ~200 KB; it only loads the first time the scanner opens.
 const VinScanner = dynamic(() => import("./vin-scanner").then((mod) => mod.VinScanner), { ssr: false });
 import { ModelCombobox } from "./model-combobox";
+import { ColorPicker } from "./color-picker";
 import { DuplicateDialog, type DuplicateHit } from "./duplicate-dialog";
 
 const LAST_DEALERSHIP_KEY = "cali-tints:last-dealership";
@@ -196,7 +197,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
     if (!year) return "Year is required";
     if (!(make === "Other" ? customMake.trim() : make)) return "Make is required";
     if (!model.trim()) return "Model is required";
-    if (!color || color === "Other") return "Color is required";
+    if (!colorValue(color)) return "Color is required";
     if (services.length === 0) return "Select at least one service";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performedAt)) return "Date is invalid";
     return null;
@@ -249,7 +250,7 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
       year: year ? Number(year) : null,
       make: make === "Other" ? customMake.trim() || null : make || null,
       model: model.trim() || null,
-      color,
+      color: colorValue(color),
       performed_at: dateInputToIso(performedAt),
       ro_po_number: null,
       notes: notes.trim() || null,
@@ -521,20 +522,9 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
             <Label htmlFor="model">Model <span className="text-destructive">*</span></Label>
             <ModelCombobox id="model" value={model} onChange={setModel} options={modelOptions} placeholder="e.g. GLE 450" />
           </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="color">Color <span className="text-destructive">*</span></Label>
-            <Select value={color} onValueChange={setColor}>
-              <SelectTrigger id="color" aria-label="Color">
-                <SelectValue placeholder="Color" />
-              </SelectTrigger>
-              <SelectContent>
-                {COLORS.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="col-span-full grid gap-1.5">
+            <Label>Color <span className="text-destructive">*</span></Label>
+            <ColorPicker id="color" value={color} onChange={setColor} />
           </div>
         </div>
       </section>

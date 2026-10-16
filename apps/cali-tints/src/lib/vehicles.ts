@@ -75,24 +75,38 @@ export const MERCEDES_MODELS = [
   "Metris",
 ] as const;
 
-export const COLORS = [
-  "Black",
-  "Obsidian Black",
-  "Polar White",
-  "Selenite Grey",
-  "Graphite Grey",
-  "Iridium Silver",
-  "High-Tech Silver",
-  "Mojave Silver",
-  "Nautical Blue",
-  "Spectral Blue",
-  "Sodalite Blue",
-  "Cardinal Red",
-  "Patagonia Red",
-  "Emerald Green",
-  "Cirrus Silver",
-  "Other",
+/** The simple colors a detailer taps; anything else is typed under "Other". */
+export const COLOR_PRESETS = [
+  { name: "White", swatch: "#f5f5f4" },
+  { name: "Black", swatch: "#111111" },
+  { name: "Silver", swatch: "#c0c3c7" },
+  { name: "Gray", swatch: "#7b7f85" },
+  { name: "Red", swatch: "#c62828" },
+  { name: "Blue", swatch: "#1e5bb8" },
+  { name: "Green", swatch: "#2e7d32" },
+  { name: "Brown", swatch: "#6d4c41" },
+  { name: "Beige/Gold", swatch: "#c9b07a" },
+  { name: "Orange/Yellow", swatch: "#f0a21c" },
 ] as const;
+export const COLOR_OTHER = "Other";
+export const COLOR_MAX = 40;
+
+/** True when the saved color is one of the tap-to-pick names (case does not matter). */
+export function isPresetColor(value: string): boolean {
+  const v = value.trim().toLowerCase();
+  return COLOR_PRESETS.some((c) => c.name.toLowerCase() === v);
+}
+
+/**
+ * What to store: a tapped preset, or the typed color. The literal word "Other" is
+ * never a color (the old dropdown saved it and the form refused it).
+ */
+export function colorValue(choice: string, typed = ""): string {
+  const c = choice.trim();
+  if (c && c.toLowerCase() !== COLOR_OTHER.toLowerCase()) return c.slice(0, COLOR_MAX);
+  const t = typed.trim();
+  return t.toLowerCase() === COLOR_OTHER.toLowerCase() ? "" : t.slice(0, COLOR_MAX);
+}
 
 export function yearOptions(span = 15): number[] {
   const now = new Date().getFullYear() + 1; // next model year is on lots by fall

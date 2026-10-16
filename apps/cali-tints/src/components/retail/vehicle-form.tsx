@@ -10,7 +10,8 @@ import { saveVehicleAction } from "@/app/(app)/retail/actions";
 import { useSession } from "@/components/app/session-provider";
 import { decodeVin } from "@/lib/vin-client";
 import { normalizeVin, vinStatus } from "@/lib/vin";
-import { COLORS, yearOptions } from "@/lib/vehicles";
+import { colorValue, yearOptions } from "@/lib/vehicles";
+import { ColorPicker } from "@/components/jobs/color-picker";
 import { SIZE_CLASSES, sizeClassForBody } from "@/lib/retail/size-class";
 import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,7 @@ export function VehicleForm({
     start(async () => {
       if (demo) {
         toast.success("Saved · guest preview, not actually saved");
-        onSaved?.({ ...(vehicle ?? ({} as Vehicle)), id: vehicle?.id ?? "demo", customer_id: customerId, vin: d.vin || null, year: d.year ? Number(d.year) : null, make: d.make || null, model: d.model || null, size_class: size, color: d.color || null, plate: d.plate || null } as Vehicle);
+        onSaved?.({ ...(vehicle ?? ({} as Vehicle)), id: vehicle?.id ?? "demo", customer_id: customerId, vin: d.vin || null, year: d.year ? Number(d.year) : null, make: d.make || null, model: d.model || null, size_class: size, color: colorValue(d.color) || null, plate: d.plate || null } as Vehicle);
         return;
       }
       const r = await saveVehicleAction({
@@ -148,7 +149,7 @@ export function VehicleForm({
         body_class: d.body_class || null,
         // Only an explicit choice is sent as manual; otherwise the server derives it from the body class.
         size_class: sizeTouched ? size : undefined,
-        color: d.color || null,
+        color: colorValue(d.color) || null,
         plate: d.plate || null,
         notes: d.notes || null,
         odometer: d.odometer ? Number(d.odometer.replace(/\D/g, "")) : null,
@@ -233,20 +234,9 @@ export function VehicleForm({
           </Select>
           {!sizeTouched && d.body_class && <p className="text-caption text-subtle">From the VIN: {d.body_class}</p>}
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="v-color">Color</Label>
-          <Select value={d.color} onValueChange={(v) => set("color", v)}>
-            <SelectTrigger id="v-color" aria-label="Color">
-              <SelectValue placeholder="Color" />
-            </SelectTrigger>
-            <SelectContent>
-              {COLORS.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="col-span-full grid gap-1.5">
+          <Label>Color</Label>
+          <ColorPicker id="v-color" value={d.color} onChange={(v) => set("color", v)} />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="v-plate">Plate</Label>
