@@ -4,6 +4,7 @@
 // so chunks are paced slices of an already-safe reply, not raw model tokens. Send `Accept: application/json` for one JSON body.
 import { z } from 'zod';
 import { fail, limited, ok, clientIp } from '@/lib/api/http';
+import { readTextCapped } from '@/lib/security/body';
 import { guardAny } from '@/lib/concierge/route';
 import { PHOTO_PATH_RE } from '@/lib/booking/photos';
 import { handleMessage, INITIAL_SUGGESTIONS } from '@/lib/concierge/agent';
@@ -39,7 +40,9 @@ export async function POST(req: Request) {
   return guardAny('chat', async () => {
     const ip = clientIp(req);
     let json: unknown;
-    try { json = await req.json(); } catch { return fail(400, 'bad_json', 'Invalid JSON.'); }
+    const text = await readTextCapped(req, 32_000);
+    if (text === null) return fail(413, 'too_large', 'Request too large.');
+    try { json = JSON.parse(text); } catch { return fail(400, 'bad_json', 'Invalid JSON.'); }
     const p = bodySchema.safeParse(json);
     if (!p.success) return fail(400, 'invalid_input', 'Invalid message.');
     const b = p.data;

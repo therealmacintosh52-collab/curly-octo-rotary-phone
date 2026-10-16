@@ -1,3 +1,4 @@
+import { readTextCapped } from '@/lib/security/body';
 import { ok, fail, guard, requireContentLength } from '@/lib/api/http';
 import { HttpError, sameOrigin } from '@/lib/admin/api';
 import { jobForSession } from '@/lib/admin/access';
@@ -39,7 +40,8 @@ export async function PUT(req: Request) {
     if (!sameOrigin(req)) return fail(403, 'bad_origin', 'Cross-site request refused.');
     const s = await getSession();
     if (!s) return fail(401, 'unauthenticated', 'Please sign in.');
-    const b = (await req.json().catch(() => null)) as { photoId?: string; consent?: boolean } | null;
+    const body = await readTextCapped(req, 2_000);
+    const b = (body === null ? null : (() => { try { return JSON.parse(body); } catch { return null; } })()) as { photoId?: string; consent?: boolean } | null;
     if (!b?.photoId || typeof b.consent !== 'boolean') return fail(400, 'invalid_input', 'Bad request.');
     const photo = await repo().job_photos.get(b.photoId);
     if (!photo?.job_id) throw new HttpError(404, 'not_found', 'Photo not found.');

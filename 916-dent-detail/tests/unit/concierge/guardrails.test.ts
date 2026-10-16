@@ -5,6 +5,7 @@ import {
   redactArgs, sanitizeDeep, sanitizeUntrusted, type FilterContext,
 } from '@/lib/concierge/guardrails';
 import { CANARY, buildSystemPrompt, publicFacts } from '@/lib/concierge/prompt';
+import { resetRateLimits } from '@/lib/security/rate-limit';
 
 const system = buildSystemPrompt();
 const ctx = (over: Partial<FilterContext> = {}): FilterContext => ({
@@ -76,7 +77,7 @@ describe('inbound classifiers', () => {
 });
 
 describe('rate limits', () => {
-  beforeEach(() => { (globalThis as unknown as { __rl?: Map<string, unknown> }).__rl?.clear(); });
+  beforeEach(() => { resetRateLimits(); });
   it('limits per IP (web), per conversation and per phone, each independently', async () => {
     const results: boolean[] = [];
     for (let i = 0; i < 32; i++) results.push((await checkInboundLimits({ ip: '198.51.100.7', conversationId: `c${i}`, channel: 'web' })).ok);

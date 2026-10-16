@@ -1,3 +1,4 @@
+import { readTextCapped } from '@/lib/security/body';
 import { fail, guard, ok } from '@/lib/api/http';
 import { log } from '@/lib/api/log';
 import { recordPayment } from '@/lib/admin/payments';
@@ -17,7 +18,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   return guard('admin.stripe.webhook', async () => {
     if (!isStripeLive()) return ok({ received: true, mock: true });
-    const raw = await req.text();
+    const raw = await readTextCapped(req, 1_000_000);
+    if (raw === null) return fail(413, 'too_large', 'Request too large.');
     let ev;
     try { ev = verifyAdminWebhook(raw, req.headers.get('stripe-signature')); } catch { return fail(400, 'bad_signature', 'Invalid signature.'); }
     if (!ev) return fail(400, 'bad_signature', 'Invalid signature.');

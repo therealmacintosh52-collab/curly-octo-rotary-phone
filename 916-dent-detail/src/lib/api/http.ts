@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z, type ZodType } from 'zod';
 import { clientIpFrom } from '@/lib/security/client-ip';
 import { limiter } from '@/lib/security/rate-limit';
+import { readTextCapped } from '@/lib/security/body';
 
 export const noStore = { 'Cache-Control': 'no-store' };
 export const ok = <T,>(data: T, init: ResponseInit = {}) => NextResponse.json(data, { ...init, headers: { ...noStore, ...(init.headers ?? {}) } });
@@ -10,12 +11,10 @@ export const fail = (status: number, code: string, message: string, extra: Recor
   NextResponse.json({ error: { code, message, ...extra } }, { status, headers: noStore });
 
 export async function parseJson<T>(req: Request, schema: ZodType<T>, maxBytes = 64_000): Promise<{ ok: true; data: T } | { ok: false; res: NextResponse }> {
-  const len = Number(req.headers.get('content-length') ?? 0);
-  if (len > maxBytes) return { ok: false, res: fail(413, 'too_large', 'Request too large.') };
   let raw: unknown;
   try {
-    const text = await req.text();
-    if (text.length > maxBytes) return { ok: false, res: fail(413, 'too_large', 'Request too large.') };
+    const text = await readTextCapped(req, maxBytes); // streams and stops at the cap: a chunked body cannot be buffered whole
+    if (text === null) return { ok: false, res: fail(413, 'too_large', 'Request too large.') };
     raw = JSON.parse(text);
   } catch {
     return { ok: false, res: fail(400, 'bad_json', 'Invalid JSON.') };

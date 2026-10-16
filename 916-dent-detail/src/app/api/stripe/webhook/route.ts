@@ -1,3 +1,4 @@
+import { readTextCapped } from '@/lib/security/body';
 import { fail, guard, ok } from '@/lib/api/http';
 import { log } from '@/lib/api/log';
 import { confirmDeposit } from '@/lib/booking/service';
@@ -10,7 +11,8 @@ export async function POST(req: Request) {
   return guard('stripe.webhook', async () => {
     // Mock mode: nothing to verify and nothing to trust. Acknowledge so a misconfigured sender stops retrying.
     if (!isStripeLive()) return ok({ received: true, mock: true });
-    const raw = await req.text();
+    const raw = await readTextCapped(req, 1_000_000);
+    if (raw === null) return fail(413, 'too_large', 'Request too large.');
     let event;
     try { event = verifyWebhook(raw, req.headers.get('stripe-signature')); }
     catch { return fail(400, 'bad_signature', 'Invalid signature.'); }

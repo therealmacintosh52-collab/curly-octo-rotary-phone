@@ -13,6 +13,14 @@ const rndOctet = () => Math.floor(Math.random() * 250) + 1;
  */
 export const test = base.extend({
   extraHTTPHeaders: async ({}, provide) => { await provide({ 'x-forwarded-for': `10.${rndOctet()}.${rndOctet()}.${rndOctet()}` }); },
+  // The Content-Security-Policy is ENFORCED (SECURITY O-01). Chrome reports every block as a console error; any test that drives the
+  // `page` fixture therefore fails if it makes the browser refuse a script, style, image, frame or connection.
+  page: async ({ page }, provide) => {
+    const blocked: string[] = [];
+    page.on('console', (m) => { if (/Content Security Policy|Refused to (load|execute|connect|frame|apply|create|send)/i.test(m.text())) blocked.push(m.text().slice(0, 200)); });
+    await provide(page);
+    expect(blocked, 'CSP violations (see SECURITY.md O-01; allow the host in src/config/security-headers.ts only if it is really needed)').toEqual([]);
+  },
 });
 export { expect };
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SESSION_COOKIE, signSession, verifySession } from '@/lib/auth/session';
+import { SESSION_COOKIE, sessionDays, signSession, verifySession } from '@/lib/auth/session';
 import { homeFor, isPublicAdminPath, roleMayOpen, safeNext } from '@/lib/auth/roles';
 import { demoLoginEnabled } from '@/lib/auth/config';
 
@@ -80,5 +80,28 @@ describe('route permissions', () => {
     expect(safeNext('/admin/customers', 'tech')).toBe('/admin/today');
     expect(safeNext('/admin/login', 'owner')).toBe('/admin');
     expect(safeNext(null, 'tech')).toBe(homeFor('tech'));
+  });
+});
+
+describe('session lifetime (SECURITY O-05)', () => {
+  it('owner/admin sessions last 3 days, technicians 7, ADMIN_SESSION_DAYS overrides staff only and is clamped to 1-14', () => {
+    expect(sessionDays('owner', {})).toBe(3);
+    expect(sessionDays('admin', {})).toBe(3);
+    expect(sessionDays('tech', {})).toBe(7);
+    expect(sessionDays('owner', { ADMIN_SESSION_DAYS: '1' })).toBe(1);
+    expect(sessionDays('owner', { ADMIN_SESSION_DAYS: '99' })).toBe(14);
+    expect(sessionDays('owner', { ADMIN_SESSION_DAYS: '0' })).toBe(3);
+    expect(sessionDays('owner', { ADMIN_SESSION_DAYS: 'x' })).toBe(3);
+    expect(sessionDays('tech', { ADMIN_SESSION_DAYS: '1' })).toBe(7);
+  });
+  it('the signed expiry follows the role: an owner token is dead after 3 days, a tech token after 7', async () => {
+    vi.stubEnv('ADMIN_SESSION_SECRET', 'a-secret-that-is-long-enough');
+    const owner = await signSession(base);
+    const tech = await signSession({ ...base, role: 'tech' as never, techId: 't1' });
+    const day = 86_400_000;
+    expect(await verifySession(owner, Date.now() + 2.9 * day)).not.toBeNull();
+    expect(await verifySession(owner, Date.now() + 3.1 * day)).toBeNull();
+    expect(await verifySession(tech, Date.now() + 6.9 * day)).not.toBeNull();
+    expect(await verifySession(tech, Date.now() + 7.1 * day)).toBeNull();
   });
 });

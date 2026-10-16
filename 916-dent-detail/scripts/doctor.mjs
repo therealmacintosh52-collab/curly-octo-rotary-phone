@@ -123,6 +123,11 @@ if (env.ADMIN_DEMO_LOGIN === '1' && production) dangers.push('ADMIN_DEMO_LOGIN=1
 if (env.DEALERS_DEMO_LOGIN === '1' && production) dangers.push('DEALERS_DEMO_LOGIN=1 must NOT be set on the real site.');
 if (liveDb && !has('BOOKING_TOKEN_SECRET')) dangers.push('Supabase is configured but BOOKING_TOKEN_SECRET is not: booking links cannot be signed safely (the app refuses to start sending them).');
 if (has('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY') && !has('STRIPE_SECRET_KEY')) dangers.push('A Stripe publishable key without the secret key: the deposit step would break.');
+if (production && !has('VERCEL') && !has('TRUST_PROXY')) dangers.push('TRUST_PROXY is not set and this is not Vercel: client IPs for rate limiting default to the last X-Forwarded-For entry (hops:1). Set TRUST_PROXY=hops:N for your proxy chain, or none (SECURITY.md O-02).');
+if (has('TRUST_PROXY') && !/^(vercel|none|hops:\d{1,2})$/i.test(env.TRUST_PROXY)) dangers.push('TRUST_PROXY must be vercel, none or hops:N (for example hops:1).');
+if (has('CSP_MODE') && !/^(enforce|report-only|off)$/i.test(env.CSP_MODE)) dangers.push('CSP_MODE must be enforce, report-only or off.');
+if (production && /^(report-only|off)$/i.test(env.CSP_MODE ?? '')) dangers.push(`CSP_MODE=${env.CSP_MODE}: the Content-Security-Policy is not enforced.`);
+if (production && !has('UPSTASH_REDIS_REST_URL')) console.log('note: no UPSTASH_REDIS_REST_URL: rate limits are per server instance (fine for one instance; use Upstash on serverless).');
 if (production && !liveDb) dangers.push('Production launch needs Supabase: the in-memory database loses every booking on restart.');
 if (production) for (const r of report) if (r.launch && r.status === 'mock') dangers.push(`${r.name} is still in mock mode (launch needs it): ${r.missing.join(', ')}`);
 

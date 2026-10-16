@@ -66,4 +66,6 @@ export function createLimiter(env: Record<string, string | undefined> = process.
 
 // One process-wide limiter (survives hot reloads); built lazily so env is read at first use.
 const G = globalThis as unknown as { __d916Limiter?: ResilientLimiter };
+/** Test hook: forget every counter (and the Upstash cool-off). */
+export const resetRateLimits = (): void => { delete G.__d916Limiter; };
 export const limiter = (): ResilientLimiter => (G.__d916Limiter ??= createLimiter(process.env, { onError: (e) => console.warn(JSON.stringify({ level: 'warn', msg: 'ratelimit.upstash_failed', detail: String((e as Error)?.message ?? e).slice(0, 120) })) }));

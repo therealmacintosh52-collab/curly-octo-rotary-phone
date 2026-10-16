@@ -1,3 +1,4 @@
+import { readTextCapped } from '@/lib/security/body';
 import { fail, guard, ok } from '@/lib/api/http';
 import { applyStripeInvoiceEvent } from '@/lib/dealers/statements';
 import { verifyDealerWebhook } from '@/lib/dealers/stripe-invoicing';
@@ -12,7 +13,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: Request) {
   return guard('dealers.stripe.webhook', async () => {
-    const raw = await req.text();
+    const raw = await readTextCapped(req, 1_000_000);
+    if (raw === null) return fail(413, 'too_large', 'Request too large.');
     let event: Stripe.Event | null;
     try { event = verifyDealerWebhook(raw, req.headers.get('stripe-signature')); }
     catch { return fail(400, 'bad_signature', 'Invalid signature.'); }

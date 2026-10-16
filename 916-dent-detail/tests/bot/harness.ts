@@ -12,6 +12,7 @@ import { smsExternalId } from '@/lib/concierge/state';
 import { AnthropicModel } from '@/lib/concierge/anthropic-model';
 import { MockPolicyModel, type MockOptions } from '@/lib/concierge/mock-model';
 import type { Attachment, ChannelIdentity, InboundMessage, ModelClient, ModelRequest, ModelResponse, TurnResult } from '@/lib/concierge/types';
+import { resetRateLimits } from '@/lib/security/rate-limit';
 
 /** Mon 2026-10-19 10:00 America/Los_Angeles. Slots exist from the following day on (12 h lead time). */
 export const NOW = localToUtc('2026-10-19', 10 * 60)!;
@@ -32,8 +33,7 @@ export async function freshDb() {
   clearEnv();
   await mockRepo().reset?.();
   smsOutbox().length = 0;
-  const G = globalThis as unknown as { __rl?: Map<string, unknown> };
-  G.__rl?.clear();
+  resetRateLimits();
   resetIpAbuse();
 }
 

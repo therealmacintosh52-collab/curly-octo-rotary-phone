@@ -7,7 +7,7 @@
 // matching NEXT_PUBLIC_* id is set at build time, so a site with no trackers allows no tracker host.
 // CSP_MODE=enforce (default) | report-only | off.  Violations are POSTed to /api/csp-report (logged, rate limited, no storage).
 export type CspEnv = Record<string, string | undefined>;
-export const CSP_REPORT_PATH = '/api/csp-report';
+const CSP_REPORT_PATH = '/api/csp-report';
 
 const uniq = (a: string[]) => [...new Set(a.filter(Boolean))];
 
@@ -63,7 +63,7 @@ export function securityHeaders(env: CspEnv = process.env): Header[] {
     { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
     { key: 'X-DNS-Prefetch-Control', value: 'off' },
     // camera=(self) is the photo capture; payment only for us and Stripe; everything else off. interest-cohort/browsing-topics opt out of ad-tech cohorts.
-    { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(), payment=(self "https://js.stripe.com"), usb=(), serial=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=(), interest-cohort=(), browsing-topics=()' },
+    { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(), payment=(self "https://js.stripe.com"), usb=(), serial=(), accelerometer=(), gyroscope=(), magnetometer=(), interest-cohort=(), browsing-topics=()' },
     // Ignored on plain http (local); on https it pins the site for two years. No `preload`: submitting to the preload list is the owner's call.
     { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
     { key: 'Reporting-Endpoints', value: `csp-endpoint="${CSP_REPORT_PATH}"` },

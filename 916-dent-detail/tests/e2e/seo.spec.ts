@@ -46,7 +46,30 @@ test.describe('seo smoke', () => {
       expect(h['x-frame-options'], path).toBe('SAMEORIGIN');
       expect(h['permissions-policy'], path).toContain('microphone=()');
       expect(h['x-powered-by'], path).toBeUndefined();
+      expect(h['strict-transport-security'], path).toMatch(/max-age=63072000/);
+      const csp = h['content-security-policy'] ?? '';
+      expect(csp, path).toContain("default-src 'self'");
+      expect(csp, path).toContain("object-src 'none'");
+      expect(csp, path).toContain("frame-ancestors 'self'");
+      expect(csp, path).toContain('report-uri /api/csp-report');
+      expect(h['content-security-policy-report-only'], path).toBeUndefined();
     }
+  });
+
+  test('token pages are never cached, never indexed and never leak the URL through Referer; PDFs keep only the framing rule', async ({ request }) => {
+    for (const path of ['/booking/not-a-real-token', '/invoice/not-a-real-token']) {
+      const h = (await request.get(path)).headers();
+      expect(h['cache-control'], path).toMatch(/no-store/);
+      expect(h['referrer-policy'], path).toBe('no-referrer');
+      expect(h['x-robots-tag'], path).toMatch(/noindex/);
+    }
+    const pdf = (await request.get('/dealers/leave-behind.pdf')).headers();
+    expect(pdf['content-security-policy']).toBe("frame-ancestors 'self'; base-uri 'none'");
+  });
+
+  test('the CSP report endpoint takes a report and answers 204', async ({ request, baseURL }) => {
+    const r = await request.post('/api/csp-report', { data: { 'csp-report': { 'blocked-uri': 'https://evil.example/x.js?token=SECRET', 'effective-directive': 'script-src-elem', 'document-uri': `${baseURL}/book?x=1` } }, headers: { 'content-type': 'application/csp-report' } });
+    expect(r.status()).toBe(204);
   });
 
   test('robots.txt and sitemap.xml: private areas disallowed, every sitemap URL resolves, no private URL listed', async ({ request }) => {

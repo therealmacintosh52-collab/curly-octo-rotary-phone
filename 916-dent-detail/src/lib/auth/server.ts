@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { isSupabaseLive, repo } from '@/lib/db';
 import { ANY_ROLE, STAFF, homeFor, isAdminRole, isStaff, type AdminRole } from './roles';
-import { SESSION_COOKIE, SESSION_DAYS, signSession, verifySession, type Session } from './session';
+import { SESSION_COOKIE, sessionDays, signSession, verifySession, type Session } from './session';
 
 /** Verified session or null. Live mode re-reads the profile so a revoked/changed role applies immediately. */
 export const getSession = cache(async (): Promise<Session | null> => {
@@ -44,7 +44,7 @@ export async function ownerAllowed(): Promise<boolean> {
 export async function startSession(u: { sub: string; role: AdminRole; name: string; techId: string | null; mode: 'demo' | 'live' }): Promise<void> {
   const token = await signSession(u);
   (await cookies()).set(SESSION_COOKIE, token, {
-    httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: SESSION_DAYS * 86400,
+    httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: sessionDays(u.role) * 86400,
   });
 }
 

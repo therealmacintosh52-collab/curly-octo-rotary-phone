@@ -5,7 +5,13 @@
 import { isAdminRole, type AdminRole } from './roles';
 
 export const SESSION_COOKIE = 'd916_admin';
-export const SESSION_DAYS = 7;
+/** Technicians sign in on a phone in the field: 7 days. Owner/admin sessions can move money and read every customer: 3 days (ADMIN_SESSION_DAYS, 1-14, overrides). */
+const TECH_SESSION_DAYS = 7;
+export function sessionDays(role: AdminRole, env: Record<string, string | undefined> = process.env): number {
+  if (role === 'tech') return TECH_SESSION_DAYS;
+  const n = Number(env.ADMIN_SESSION_DAYS);
+  return Number.isFinite(n) && n >= 1 ? Math.min(14, Math.floor(n)) : 3;
+}
 
 export type Session = {
   v: 1;
@@ -46,7 +52,7 @@ async function hmacKey(secret: string, usage: 'sign' | 'verify'): Promise<Crypto
 export async function signSession(s: Omit<Session, 'v' | 'exp'> & { exp?: number }, now = Date.now()): Promise<string> {
   const secret = sessionSecret();
   if (!secret) throw new Error('ADMIN_SESSION_SECRET (16+ chars) is required');
-  const payload: Session = { ...s, v: 1, exp: s.exp ?? Math.floor(now / 1000) + SESSION_DAYS * 86400 };
+  const payload: Session = { ...s, v: 1, exp: s.exp ?? Math.floor(now / 1000) + sessionDays(s.role) * 86400 };
   const body = b64u(enc.encode(JSON.stringify(payload)));
   const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret, 'sign'), enc.encode(`admin-session:${body}`));
   return `${body}.${b64u(sig)}`;

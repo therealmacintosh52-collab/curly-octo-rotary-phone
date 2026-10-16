@@ -40,7 +40,9 @@ class MockTable<T extends { id: string }> implements Table<T> {
     if (!cur) throw new NotFoundError(this.name);
     const next = { ...cur } as Record<string, unknown>;
     for (const [k, v] of Object.entries(patch)) next[k] = norm(v);
-    next.updated_at = new Date().toISOString();
+    // strictly increasing per row: updated_at doubles as the row version for compare-and-set (updateIf), so two writes in one millisecond must differ
+    const prev = Date.parse(String(cur.updated_at));
+    next.updated_at = new Date(Math.max(Date.now(), Number.isFinite(prev) ? prev + 1 : 0)).toISOString();
     this.map.set(id, next);
     this.persist();
     return { ...next } as unknown as T;

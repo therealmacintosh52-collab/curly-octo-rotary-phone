@@ -1,6 +1,7 @@
 // Twilio webhook plumbing without the SDK: signature validation (HMAC-SHA1 over URL + sorted params), TwiML helpers,
 // and a hardened MMS media fetch. Signature validation is REQUIRED whenever Twilio is configured, and also whenever
 // real customer data is (Supabase live): an unsigned webhook would let anyone impersonate any phone number.
+import { readTextCapped } from '@/lib/security/body';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { savePhoto } from '@/lib/booking/photos';
 import { isSupabaseLive } from '@/lib/db';
@@ -40,8 +41,8 @@ export const twiml = (inner = '') => new Response(`<?xml version="1.0" encoding=
 export const twimlMessage = (text: string) => twiml(`<Message>${escapeXml(text)}</Message>`);
 
 export async function formParams(req: Request): Promise<Record<string, string>> {
-  const text = await req.text();
-  if (text.length > 64_000) throw new Error('too_large');
+  const text = await readTextCapped(req, 64_000);
+  if (text === null) throw new Error('too_large');
   const out: Record<string, string> = {};
   for (const [k, v] of new URLSearchParams(text)) out[k] = v;
   return out;
