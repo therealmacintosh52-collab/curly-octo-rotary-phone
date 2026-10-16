@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useManagerPin } from "@/components/jobs/manager-pin-dialog";
 
 /**
  * Edit or delete a job while it is still open (not on an invoice). Once the
@@ -44,6 +45,7 @@ export function JobActions({
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pending, start] = useTransition();
+  const pin = useManagerPin();
 
   if (!canEdit && !canDelete && !canRestore && !lockedReason) return null;
 
@@ -97,6 +99,7 @@ export function JobActions({
           linesLocked={!!job.retail}
           title={`Edit job · ${job.tag_number}`}
           description="Fix the stock number, VIN, car, date, services or notes. The change shows on the month's invoice."
+          approve={() => pin.ask("Editing this job")}
           save={async (input) => {
             if (demo) return { ok: true, data: undefined };
             return updateJobAction(input);
@@ -105,6 +108,7 @@ export function JobActions({
         />
       )}
 
+      {pin.dialog}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -113,22 +117,25 @@ export function JobActions({
           </DialogHeader>
           <DeleteReason
             pending={pending}
-            onConfirm={(reason) =>
+            onConfirm={async (reason) => {
+              // Asked before the delete starts (a dialog cannot open from inside the pending action).
+              const grant = await pin.ask("Deleting this job");
+              if (grant === null) return;
               start(async () => {
                 if (demo) {
                   toast.success("Job deleted", { description: "Guest preview — nothing changed" });
                   setDeleteOpen(false);
                   return;
                 }
-                const r = await softDeleteJobAction(job.id, reason);
+                const r = await softDeleteJobAction(job.id, reason, grant || undefined);
                 if (r.ok) {
                   toast.success("Job deleted");
                   setDeleteOpen(false);
                   router.push("/jobs");
                   router.refresh();
                 } else toast.error(r.error);
-              })
-            }
+              });
+            }}
           />
         </DialogContent>
       </Dialog>

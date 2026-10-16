@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CarFrontIcon, CircleHelpIcon, FileTextIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, StoreIcon } from "lucide-react";
+import { CarFrontIcon, CircleHelpIcon, FileTextIcon, KeyRoundIcon, LayoutDashboardIcon, PlusCircleIcon, SettingsIcon, StoreIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/offline/status-pill";
 import { SignOutButton } from "@/components/app/sign-out-button";
@@ -53,6 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { profile, company, isAdmin } = useSession();
   const ownerAdmin = isOwnerAdmin(profile.role);
   const owner = isOwner(profile.role);
+  const canApprove = ownerAdmin || profile.role === "manager"; // may keep an approval PIN (0070)
   const items = NAV.filter((i) => (isAdmin || !i.adminOnly) && (ownerAdmin || !i.ownerAdminOnly) && (owner || !i.ownerOnly));
   const home = "/";
   const sideRef = useRef<HTMLElement>(null);
@@ -87,6 +88,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="mt-auto flex flex-col gap-3 px-1">
+          {canApprove && (
+            <Link href="/pin" data-testid="nav-pin" className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
+              <KeyRoundIcon className="size-4" /> Approval PIN
+            </Link>
+          )}
           <Link href="/guide" className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
             <CircleHelpIcon className="size-4" /> How it works
           </Link>
@@ -104,6 +110,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <span className="flex items-center gap-1.5">
             <StatusPill />
+            {canApprove && (
+              <Link href="/pin" aria-label="Approval PIN" title="Approval PIN" data-testid="nav-pin-mobile" className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
+                <KeyRoundIcon className="size-5" />
+              </Link>
+            )}
             <Link href="/guide" aria-label="How it works" title="How it works" className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
               <CircleHelpIcon className="size-5" />
             </Link>

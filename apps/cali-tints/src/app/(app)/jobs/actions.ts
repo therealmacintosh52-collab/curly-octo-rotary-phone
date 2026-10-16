@@ -49,11 +49,21 @@ export async function updateJobAction(input: UpdateJobInput): Promise<ActionResu
   return { ok: true, data: undefined };
 }
 
-export async function softDeleteJobAction(id: string, reason: string): Promise<ActionResult> {
-  const session = await getSession();
-  if (!session.isAdmin) return { ok: false, error: "Admin only" };
+/** A manager typed their PIN on a detailer's phone: the result is a one-time approval for one edit or delete (0070). */
+export type PinResult = { ok: true; grant: string } | { ok: false; reason: "wrong" | "locked" | "format"; message: string };
+export async function verifyManagerPinAction(pin: string): Promise<PinResult> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("soft_delete_job", { p_id: id, p_reason: reason.trim() || null });
+  const { data, error } = await supabase.rpc("verify_manager_pin", { p_pin: pin.trim() });
+  if (error || !data) return { ok: false, reason: "wrong", message: error ? errorMessage(error) : "Could not check the PIN" };
+  if (data.ok && data.grant) return { ok: true, grant: data.grant };
+  if (data.reason === "locked") return { ok: false, reason: "locked", message: "Too many wrong PINs. Wait 10 minutes, or ask a manager to edit it." };
+  if (data.reason === "format") return { ok: false, reason: "format", message: "The PIN is 4 to 6 digits" };
+  return { ok: false, reason: "wrong", message: `That PIN is not right${typeof data.attempts_left === "number" ? ` (${data.attempts_left} tries left)` : ""}` };
+}
+
+export async function softDeleteJobAction(id: string, reason: string, approvalGrant?: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("soft_delete_job", { p_id: id, p_reason: reason.trim() || null, p_grant: approvalGrant ?? null });
   if (error) return { ok: false, error: errorMessage(error) };
   await liveQuickBooks(id);
   revalidateJob(id);

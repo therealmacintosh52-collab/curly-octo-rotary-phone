@@ -23,5 +23,7 @@ export const updateJobSchema = z.object({
   notes: z.string().trim().max(2000).nullable(),
   /** Left out for a retail repair order: its lines change through an estimate (0052). */
   services: z.array(serviceLine).min(1).optional(),
+  /** A detailer's edit needs a manager's approval (verify_manager_pin gives it; 0070). */
+  approval_grant: z.uuid().optional(),
 });
 export type UpdateJobInput = z.input<typeof updateJobSchema>;

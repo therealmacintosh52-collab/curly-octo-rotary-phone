@@ -6,6 +6,7 @@ import { KeyRoundIcon, LoaderCircleIcon, PencilIcon, PlusIcon, UserIcon } from "
 import { toast } from "sonner";
 import type { Profile, UserRole } from "@/lib/db/types";
 import { createUserAction, resetUserPasswordAction, updateUserAction } from "@/app/(app)/settings/actions";
+import { clearPinAction } from "@/app/(app)/pin/actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +35,8 @@ function randomPassword() {
   return Array.from(arr, (n) => chars[n % chars.length]).join("");
 }
 
-export function UsersManager({ users, currentUserId, currentRole, emailConfigured }: { users: Profile[]; currentUserId: string; currentRole: UserRole; emailConfigured: boolean }) {
+export function UsersManager({ users, pinHolders = null, currentUserId, currentRole, emailConfigured }: { users: Profile[]; /** Owner only: who has an approval PIN set (0070). Null for anyone else. */ pinHolders?: string[] | null; currentUserId: string; currentRole: UserRole; emailConfigured: boolean }) {
+  const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
   const [resetting, setResetting] = useState<Profile | null>(null);
@@ -65,11 +67,29 @@ export function UsersManager({ users, currentUserId, currentRole, emailConfigure
                     <Badge variant={u.role === "detailer" ? "outline" : "info"}>{ROLE_LABEL[u.role]}</Badge>
                     {!u.active && <Badge variant="muted">Inactive</Badge>}
                     {u.id === currentUserId && <Badge variant="muted">You</Badge>}
+                    {pinHolders && ["owner", "admin", "manager"].includes(u.role) && (pinHolders.includes(u.id) ? <Badge variant="success" data-testid="pin-set-badge">PIN set</Badge> : <Badge variant="warning" data-testid="pin-missing-badge">No PIN yet</Badge>)}
                   </div>
                   <div className="truncate text-sm text-muted-foreground">{u.email}</div>
                 </div>
               </div>
               <div className="flex shrink-0 gap-1">
+                {pinHolders?.includes(u.id) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    data-testid="reset-pin"
+                    onClick={async () => {
+                      if (!window.confirm(`Reset ${u.full_name || u.email}'s approval PIN? They set a new one themselves.`)) return;
+                      const r = await clearPinAction(u.id);
+                      if (r.ok) {
+                        toast.success("PIN reset");
+                        router.refresh();
+                      } else toast.error(r.error);
+                    }}
+                  >
+                    Reset PIN
+                  </Button>
+                )}
                 <Button size="icon-sm" variant="ghost" aria-label="Reset password" onClick={() => setResetting(u)}>
                   <KeyRoundIcon />
                 </Button>

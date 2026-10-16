@@ -89,7 +89,7 @@ export default async function DevJobByIdPreview(props: PageProps<"/dev/preview/j
             canSetAmount={isAdmin}
             charge={row.retail ? retailChargeFixture(row.id, isAdmin, payStage) : null}
             canEdit={open && (isAdmin || row.detailer_id === "u5")}
-            canDelete={open && isAdmin}
+            canDelete={open && (isAdmin || row.detailer_id === "u5")}
             canRestore={row.deleted && isAdmin}
             findings={row.retail ? jobFindingsFixture(row.id) : []}
             fromLastTime={row.retail ? fromLastTimeFixture(row.id) : []}

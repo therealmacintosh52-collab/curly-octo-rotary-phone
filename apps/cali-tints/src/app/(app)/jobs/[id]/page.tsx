@@ -154,7 +154,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     canSetAmount: session.canPrices,
     charge: charge ?? null,
     canEdit: own && open && !job.paid_at,
-    canDelete: session.isAdmin && open,
+    // A detailer may delete their own open job with a manager's PIN (0070); the database enforces it.
+    canDelete: open && (session.isAdmin || (own && !retail)),
     canRestore: session.isAdmin && !!job.deleted_at,
     findings: findings.map(withUrls),
     fromLastTime: fromLastTime.map(withUrls),

@@ -53,6 +53,7 @@ export function EditCarSheet({
   title,
   description,
   save,
+  approve,
   onClose,
   onSaved,
   showMoney = true,
@@ -66,6 +67,8 @@ export function EditCarSheet({
   title?: string;
   description?: string;
   save: (input: UpdateJobInput) => Promise<ActionResult>;
+  /** A detailer's edit needs a manager's PIN: resolves with the approval id, an empty string when none is needed, or null when cancelled (0070). */
+  approve?: () => Promise<string | null>;
   onClose: () => void;
   onSaved?: () => void;
   /** Prices on the chips and the override dialog (the owner editing a car on an invoice). Off on jobs. */
@@ -117,8 +120,13 @@ export function EditCarSheet({
     if (!model.trim()) return toast.error("Model is required");
     if (!colorValue(color)) return toast.error("Color is required");
     if (!linesLocked && services.length === 0) return toast.error("Select at least one service");
-    start(async () => {
+    void (async () => {
+      // Asked before the save starts (a dialog cannot open from inside the pending save).
+      const grant = approve ? await approve() : "";
+      if (grant === null) return void toast.error("Not saved: a manager's PIN is needed");
+      start(async () => {
       const r = await save({
+        approval_grant: grant || undefined,
         id: car.id,
         detailer_id: isAdmin ? detailerId : undefined,
         tag_number: tag.trim().toUpperCase(),
@@ -139,7 +147,8 @@ export function EditCarSheet({
         onSaved?.();
         router.refresh();
       } else toast.error(r.error);
-    });
+      });
+    })();
   }
 
   const modelOptions = make.startsWith("Mercedes") ? MERCEDES_MODELS : [];

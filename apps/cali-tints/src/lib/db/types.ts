@@ -1566,7 +1566,12 @@ export type Database = {
       };
       create_job: { Args: { p: JobPayload }; Returns: Job };
       update_job: { Args: { p_id: string; p: Partial<JobPayload> }; Returns: Job };
-      soft_delete_job: { Args: { p_id: string; p_reason?: string | null }; Returns: undefined };
+      soft_delete_job: { Args: { p_id: string; p_reason?: string | null; p_grant?: string | null }; Returns: undefined };
+      verify_manager_pin: { Args: { p_pin: string }; Returns: { ok: boolean; grant?: string; reason?: "wrong" | "locked" | "format"; attempts_left?: number; retry_minutes?: number } };
+      set_my_pin: { Args: { p_pin: string }; Returns: undefined };
+      my_pin_status: { Args: Record<string, never>; Returns: { can_have_pin: boolean; has_pin: boolean; set_at: string | null } };
+      clear_pin: { Args: { p_user: string }; Returns: undefined };
+      pin_holders: { Args: Record<string, never>; Returns: string[] };
       restore_job: { Args: { p_id: string }; Returns: undefined };
       uninvoiced_jobs: { Args: { p_dealership_id: string; p_start: string; p_end: string }; Returns: Job[] };
       generate_invoice: {
