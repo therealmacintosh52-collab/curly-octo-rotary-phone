@@ -28,12 +28,12 @@
 
 ## [OWNER] media (see handoff assessment for detail)
 - [ ] Optional: a horizontal (16:9) version of the hero video for desktop (`brand/hero-video-wide.mp4`); the pipeline picks it up next phase
-- [ ] Optional: higher-resolution source (1080w+) of the vertical video; the 720w frames are soft on large retina panels
-- [ ] Optional: a re-render of the dent-pop moment (frames ~24-44 of the source show a white chip and a ghost ring)
-- [ ] Optional: a flat/vector version of the D-mark (favicons at 16/32 px are limited by the 3D bevel source)
+- [ ] Optional: higher-resolution source (1080w+) of the vertical video; the 720w frames are soft on large retina panels. Measured in P9-002: a 2x Lanczos+sharpen upscale of the desktop frames gives no fidelity gain (PSNR -0.1 to -0.7 dB vs bilinear) for +10 MB, so only a real higher-resolution source will help
+- [x] The white chip / ghost ring in the dent-pop moment (source frames 21-36) is removed by `scripts/media.mjs` (P9-001; the dent morph itself is untouched). Optional: a clean re-render from the video tool would still be better than any repair
+- [x] Flat vector D-mark: all favicons and app icons are built from it (P9-004, `scripts/lib-dmark.mjs`, master `brand/d-mark-flat.svg`). Optional: have a designer redraw the mark properly; the current one is a trace-fitted copy of the logo's D
 
 ## Engineering follow-ups (Phase 1 leftovers)
-- [ ] Mobile Lighthouse LCP (simulated slow 4G + 4x CPU): home fixed (3.14 s -> 2.37 s median); 4 of 6 other measured pages still sit at 2.5-2.7 s median. See LAUNCH.md C and DECISIONS P8-013 for what was tried (variable Inter is bigger, inline CSS is worse) and the remaining lever (framework JS bytes before first paint)
+- [ ] Mobile Lighthouse LCP (simulated slow 4G + 4x CPU): see LAUNCH.md C and DECISIONS P9-011. The lab number is bimodal (about 2.0-2.1 s or 2.5-2.7 s per run) because of a ~5 ms race between first paint and the start of React hydration inside Lighthouse's simulation; real LCP is ~0.2 s locally and about 0.9 s (simulated FCP) on slow 4G. Two cuts were tried and A/B measured (a lazy consent banner without the `next/dynamic` preload; not preloading the heading font): neither moved the median outside run-to-run noise, and the second raised simulated FCP by ~150 ms and CLS to 0.03, so both were reverted. Framework JS is ~106 KB gzip of the ~150 KB first load. Re-measure on the real deployment (HTTP/2, brotli, CDN)
 - [x] INP lab proxy measured by a scripted trace (Event Timing, 4x CPU, median of 3): worst page median 120-168 ms on mobile (was 192-264 before P8 fixes). Field INP still needs real traffic
 - [ ] Mobile frame set is 12.1 MB total; consider 540w q70 (~5.8 MB) if field data shows heavy users on cellular
 - [x] Wire `track()` to GA4/Meta/Ads (Phase 6 done; needs the IDs below)
@@ -151,7 +151,7 @@ Everything below needs live accounts or real devices, so none of it could be don
 - [ ] Twilio: STOP / START / HELP / `REMIND ME` from a real phone, A2P 10DLC registration (start first), missed-call webhooks
 - [ ] Scheduler: Vercel Pro or `docs/SCHEDULER.md` recipe; check one `notify.dispatch` log line per run
 - [ ] Counsel review of `/privacy`, `/terms`, the SMS wording (3 places), deposit policy, net terms, retention periods
-- [ ] Content Security Policy (report-only first): SECURITY.md O-01. Supabase Auth hardening (disable public sign-ups, MFA): O-04
+- [x] Content Security Policy is ENFORCED (P9-005, SECURITY.md S-14); after launch watch the `csp.violation` log lines. Supabase Auth hardening (disable public sign-ups, MFA): O-04 (still yours)
 - [ ] Real-device pass (iOS Safari / Android Chrome camera, signature, offline outbox, Add to Home Screen) and a human screen-reader pass
 - [ ] Re-run `npm run lhci` against the real deployment (real hosting, real TLS, real CDN: the lab LCP numbers will change)
 - [ ] `npm run check:owner` must print 0 before `npm run deploy -- --yes` will pass (strict preflight)
