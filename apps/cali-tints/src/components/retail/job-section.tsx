@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookmarkPlusIcon, ChevronDownIcon, DollarSignIcon, EllipsisVerticalIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
+import { BookmarkPlusIcon, ChevronDownIcon, DollarSignIcon, EllipsisVerticalIcon, LockIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import type { EstimateJobPriority, InventoryItem } from "@/lib/db/types";
 import { bucketOf, gpLabel, jobFinancials, type BucketFigures, type JobBucket, type JobLine, type JobModel } from "@/lib/retail/job-financials";
 import { stockLabel } from "@/lib/retail/inventory";
@@ -31,7 +31,7 @@ const TABLES: { bucket: JobBucket; title: string; cols: string; heads: string[] 
  * and a dark totals bar with the profit per table for the people who may see cost. Read-only after
  * the customer approves; extra work is a new estimate.
  */
-export function JobSection({ index, job, estimateId, showMoney, editable, technicians, canAssignTech, onTitle, onPriority, onOpenLine, onRemoveLine, onTech, onRemoveJob, onSaveCanned, onQuickAdd, onSearchStock, onPickStock, extra }: {
+export function JobSection({ index, job, estimateId, showMoney, editable, technicians, canAssignTech, lineExtra, onTitle, onPriority, onOpenLine, onRemoveLine, onTech, onRemoveJob, onSaveCanned, onQuickAdd, onSearchStock, onPickStock, extra }: {
   index: number;
   job: JobModel;
   estimateId: string | null;
@@ -40,6 +40,8 @@ export function JobSection({ index, job, estimateId, showMoney, editable, techni
   technicians: { id: string; name: string; initials: string }[];
   /** Labor lines get a tech picker on an approved work order too (the advisor assigns the work). */
   canAssignTech?: boolean;
+  /** Extra controls under a line while editing (a menu service's quantity and condition add-ons). */
+  lineExtra?: (l: JobLine) => React.ReactNode;
   onTitle?: (t: string) => void;
   onPriority?: (p: EstimateJobPriority) => void;
   onOpenLine?: (lineKey: string) => void;
@@ -80,7 +82,7 @@ export function JobSection({ index, job, estimateId, showMoney, editable, techni
           const rows = job.lines.filter((l) => bucketOf(l.type) === t.bucket);
           if (!editable && rows.length === 0) return null;
           return (
-            <JobTable key={t.bucket} table={t} rows={rows} subtotal={fin[t.bucket]} estimateId={estimateId} showMoney={showMoney} editable={editable} technicians={technicians} canAssignTech={!!canAssignTech} onOpenLine={onOpenLine} onRemoveLine={onRemoveLine} onTech={onTech} onQuickAdd={onQuickAdd} onSearchStock={onSearchStock} onPickStock={onPickStock} />
+            <JobTable key={t.bucket} table={t} rows={rows} subtotal={fin[t.bucket]} estimateId={estimateId} showMoney={showMoney} editable={editable} technicians={technicians} canAssignTech={!!canAssignTech} lineExtra={editable ? lineExtra : undefined} onOpenLine={onOpenLine} onRemoveLine={onRemoveLine} onTech={onTech} onQuickAdd={onQuickAdd} onSearchStock={onSearchStock} onPickStock={onPickStock} />
           );
         })}
       </div>
@@ -133,7 +135,7 @@ function Figure({ label, f, showMoney, strong, testId }: { label: string; f: Buc
   );
 }
 
-function JobTable({ table, rows, subtotal, estimateId, showMoney, editable, technicians, canAssignTech, onOpenLine, onRemoveLine, onTech, onQuickAdd, onSearchStock, onPickStock }: {
+function JobTable({ table, rows, subtotal, estimateId, showMoney, editable, technicians, canAssignTech, lineExtra, onOpenLine, onRemoveLine, onTech, onQuickAdd, onSearchStock, onPickStock }: {
   table: (typeof TABLES)[number];
   rows: JobLine[];
   subtotal: BucketFigures;
@@ -142,6 +144,7 @@ function JobTable({ table, rows, subtotal, estimateId, showMoney, editable, tech
   editable: boolean;
   technicians: { id: string; name: string; initials: string }[];
   canAssignTech: boolean;
+  lineExtra?: (l: JobLine) => React.ReactNode;
   onOpenLine?: (k: string) => void;
   onRemoveLine?: (k: string) => void;
   onTech?: (k: string, t: string) => void;
@@ -152,7 +155,7 @@ function JobTable({ table, rows, subtotal, estimateId, showMoney, editable, tech
   const [open, setOpen] = useState(true);
   const type = table.bucket === "labor" ? "labor" : table.bucket === "parts" ? "part" : table.bucket === "fees" ? "fee" : "sublet";
   return (
-    <div data-testid={`table-${table.bucket}`}>
+    <div data-testid={`table-${table.bucket}`} className={cn(rows.length === 0 && "hidden sm:block")}>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-2 bg-muted/70 px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
         <ChevronDownIcon className={cn("size-3.5 transition-transform", !open && "-rotate-90")} />
         {table.title}
@@ -168,12 +171,12 @@ function JobTable({ table, rows, subtotal, estimateId, showMoney, editable, tech
               ))}
             </div>
           )}
-          <ul className="divide-y divide-border text-sm" data-testid="estimate-lines">
+          {rows.length > 0 && <ul className="divide-y divide-border text-sm" data-testid="estimate-lines">
             {rows.map((l) => (
               <li key={l.key} className={cn("grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-3 py-2", table.cols)} data-testid={`line-${l.type}`}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    {editable && onOpenLine && l.type !== "service" ? (
+                    {editable && onOpenLine && (l.openable ?? l.type !== "service") ? (
                       <button type="button" onClick={() => onOpenLine(l.key)} className="text-left font-medium underline-offset-2 hover:underline" aria-label={`Edit ${l.name}`} data-testid="line-edit">{l.name}</button>
                     ) : (
                       <span className={cn("font-medium", l.declined && "text-muted-foreground line-through")}>{l.name}</span>
@@ -183,7 +186,14 @@ function JobTable({ table, rows, subtotal, estimateId, showMoney, editable, tech
                   <div className="text-caption text-subtle">
                     {[l.type === "labor" && l.hours != null ? `${l.hours} h${l.rate != null && showMoney ? ` × ${formatMoney(l.rate)}` : ""}` : null, l.type === "part" && l.partNumber ? l.partNumber : null, l.note].filter(Boolean).join(" · ")}
                   </div>
-                  {showMoney && l.cost !== null && <div className="text-caption text-subtle">Cost {formatMoney(l.cost)}</div>}
+                  {showMoney && l.cost !== null && (
+                    <div className="text-caption text-subtle">
+                      Cost {formatMoney(l.cost)}
+                      {l.total !== null ? ` · margin ${formatMoney(l.total - l.cost)}${l.total > 0 ? ` (${Math.round(((l.total - l.cost) / l.total) * 100)}%)` : ""}` : ""}
+                      {editable && <span className="ml-1 inline-flex items-center gap-0.5"><LockIcon className="size-3" /> hidden from the customer</span>}
+                    </div>
+                  )}
+                  {lineExtra?.(l)}
                 </div>
                 {table.bucket === "labor" && (
                   <div className="order-3 col-span-2 sm:order-none sm:col-span-1 sm:text-right">
@@ -217,7 +227,7 @@ function JobTable({ table, rows, subtotal, estimateId, showMoney, editable, tech
                 </div>
               </li>
             ))}
-          </ul>
+          </ul>}
           {editable && onQuickAdd && <QuickAddRow type={type} onQuickAdd={onQuickAdd} onSearchStock={onSearchStock} onPickStock={onPickStock} />}
         </>
       )}

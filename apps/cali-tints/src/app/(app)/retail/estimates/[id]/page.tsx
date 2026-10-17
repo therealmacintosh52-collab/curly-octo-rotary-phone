@@ -9,15 +9,20 @@ import { logStaffView } from "@/lib/retail/activity";
 import { EstimateDetail } from "@/components/retail/estimate-detail";
 import { EstimateFindingsPanel } from "@/components/retail/estimate-findings-panel";
 import { findingPricing } from "@/lib/retail/finding-quote";
+import { EditEstimateView } from "./edit-view";
 
 export const metadata: Metadata = { title: "Estimate" };
 
 export default async function EstimatePage(props: PageProps<"/retail/estimates/[id]">) {
   const { id } = await props.params;
+  const sp = await props.searchParams;
   const session = await getSession();
   const supabase = await createClient();
   const { data: e, error } = await supabase.rpc("estimate_detail", { p_id: id });
   if (error || !e) notFound();
+  // Edit Mode, in place: the same address, with the builder. An approved work order is never edited (extra work is a new estimate).
+  const editable = e.status === "draft" || e.status === "sent" || e.status === "viewed";
+  if (sp.edit === "1" && session.canPrices && editable && !e.applied_at && (e.kind === "supplement" || !e.job_id)) return <EditEstimateView id={id} sp={sp} />;
   // The public link: the token is only handed to staff who can send (owner/admin), and only once the estimate exists.
   let publicUrl: string | null = null;
   if (session.canPrices) {

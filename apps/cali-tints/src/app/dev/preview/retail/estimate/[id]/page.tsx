@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import DevEstimateEditPreview from "./edit/page";
 import { SessionProvider } from "@/components/app/session-provider";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
@@ -14,6 +15,8 @@ import { previewSession } from "@/test/preview-session";
 export default async function DevEstimatePreview(props: PageProps<"/dev/preview/retail/estimate/[id]">) {
   const [{ id }, sp] = await Promise.all([props.params, props.searchParams]);
   const { session, canPrices, isAdmin } = previewSession(sp);
+  // Edit Mode is the same address with ?edit=1 (the guest demo shows the builder there too).
+  if (sp.edit === "1" && canPrices) return <DevEstimateEditPreview params={props.params} searchParams={props.searchParams} />;
   const base = estimateViewFixture(id, canPrices);
   if (!base) notFound();
   // ?work=done|qc and ?pay=partial|paid|signed|closed walk the visit through its stages.

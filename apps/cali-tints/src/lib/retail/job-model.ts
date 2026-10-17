@@ -38,10 +38,11 @@ export function jobsFromView(o: EstimateOptionView, opts: { accepted: boolean; s
 }
 
 /** The builder's draft option → the same job models, with the live prices (`priced[i]` belongs to `lines[i]`). Diagnosis is always the first job. */
-export function jobsFromDraft(opt: { jobs: { key: string; title: string; priority: "safety" | "soon" | "optional" }[]; lines: EstimateLineDraft[] }, priced: (PricedLine | undefined)[] | undefined, keyOf: (l: EstimateLineDraft) => string, serviceName: (id: string | null) => string | undefined, opts: { showMoney: boolean; defaultRate: number | null }): JobModel[] {
+export function jobsFromDraft(opt: { jobs: { key: string; title: string; priority: "safety" | "soon" | "optional" }[]; lines: EstimateLineDraft[] }, priced: (PricedLine | undefined)[] | undefined, keyOf: (l: EstimateLineDraft) => string, service: (id: string | null) => { name: string; open?: boolean } | undefined, opts: { showMoney: boolean; defaultRate: number | null }): JobModel[] {
   const toLine = (l: EstimateLineDraft, i: number): JobLine => {
     const p = priced?.[i];
-    const name = l.line_type === "service" ? (l.label ?? serviceName(l.service_id) ?? "Service") : (l.label ?? "");
+    const svc = l.line_type === "service" ? service(l.service_id) : undefined;
+    const name = l.line_type === "service" ? (l.label ?? svc?.name ?? "Service") : (l.label ?? "");
     return {
       key: keyOf(l),
       type: l.line_type,
@@ -57,6 +58,7 @@ export function jobsFromDraft(opt: { jobs: { key: string; title: string; priorit
       vendor: l.vendor ?? null,
       cost: opts.showMoney ? lineCostOf(l.line_type, l.cost, l.qty) : null,
       inventoryItemId: l.inventory_item_id ?? null,
+      openable: l.line_type !== "service" || !!svc?.open,
     };
   };
   const rows = opt.lines.map((l, i) => ({ l, i }));

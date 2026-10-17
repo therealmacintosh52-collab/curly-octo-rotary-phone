@@ -22,6 +22,8 @@ export type JobLine = {
   cost: number | null;
   declined?: boolean;
   inventoryItemId?: string | null;
+  /** The name opens an edit dialog (everything but a plain menu service). */
+  openable?: boolean;
 };
 
 export type JobModel = { key: string; title: string; priority: EstimateJobPriority; kind: "diagnosis" | "repair"; status: string; lines: JobLine[] };

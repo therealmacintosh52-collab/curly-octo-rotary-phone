@@ -474,7 +474,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
               ? { action: { key: "makeinvoice", label: "Make the invoice", enabled: !!canPrices, hint: "Approved, but there is no invoice yet." }, onClick: createInvoice }
               : undefined;
   const hasBar = !!override || (!!visit && !supplement && accepted && !visit.deleted);
-  const addServiceHref = open ? `/retail/estimates/${e.id}/edit` : ro ? `/retail/estimates/new?job=${ro.id}` : null;
+  const addServiceHref = open ? `/retail/estimates/${e.id}?edit=1` : ro ? `/retail/estimates/new?job=${ro.id}` : null;
   const bar = hasBar ? (
     <JobStageBar
       jobId={visit?.jobId}
@@ -501,7 +501,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
           <>
             {open && (
               <Button asChild variant="outline" size="sm" data-testid="bar-edit">
-                <Link href={`/retail/estimates/${e.id}/edit`}><PencilIcon /> Edit Mode</Link>
+                <Link href={`/retail/estimates/${e.id}?edit=1`}><PencilIcon /> Edit Mode</Link>
               </Button>
             )}
             {addServiceHref && !supplement && (
@@ -572,7 +572,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
             <>
             {open && (
               <Button asChild variant="outline">
-                <Link href={`/retail/estimates/${e.id}/edit`}>
+                <Link href={`/retail/estimates/${e.id}?edit=1`}>
                   <PencilIcon /> Edit Mode
                 </Link>
               </Button>

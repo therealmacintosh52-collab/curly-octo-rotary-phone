@@ -198,7 +198,7 @@ export function RoNotes(p: RoNotesProps) {
                         <p className="mt-1 text-caption text-subtle">
                           Recommends: {f.recommended_service}
                           {p.estimateId && p.canQuote && p.estimateOpen && f.kind === "finding" && f.status === "open" && (
-                            <> · <Link href={`/retail/estimates/${p.estimateId}/edit?findings=${f.id}`} className="font-medium text-primary hover:underline" data-testid="finding-add-to-estimate">Add to this estimate</Link></>
+                            <> · <Link href={`/retail/estimates/${p.estimateId}?edit=1&findings=${f.id}`} className="font-medium text-primary hover:underline" data-testid="finding-add-to-estimate">Add to this estimate</Link></>
                           )}
                         </p>
                       )}
