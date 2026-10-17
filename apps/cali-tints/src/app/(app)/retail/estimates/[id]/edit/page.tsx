@@ -26,9 +26,9 @@ export default async function EditEstimatePage(props: PageProps<"/retail/estimat
   const withCustomer = picker.recent.some((c) => c.id === e.customer.id) ? picker : await loadPickerCustomers(supabase, { customer: e.customer.id, vehicle: e.vehicle?.id });
   // The findings side tab (and "Add to this estimate" on a recommendation: ?findings=<id,...> appends their lines).
   const ids = typeof sp.findings === "string" ? sp.findings.split(",").filter(Boolean) : [];
-  const [{ data: rawFindings }, services, { data: token }] = await Promise.all([supabase.rpc("estimate_findings", { p_estimate: id }), recommendableServices(supabase), supabase.rpc("estimate_link", { p_id: id })]);
+  const [{ data: rawFindings }, services, { data: token }, { data: canned }, { data: technicians }] = await Promise.all([supabase.rpc("estimate_findings", { p_estimate: id }), recommendableServices(supabase), supabase.rpc("estimate_link", { p_id: id }), supabase.rpc("retail_canned_jobs"), supabase.rpc("retail_technicians")]);
   const findings = await withMediaUrls(supabase, rawFindings ?? []);
   const extraLines = ids.length ? linesFromFindings(findings as JobFinding[], ids, catalog) : undefined;
   const panel = <EstimateFindingsPanel e={e} findings={findings} services={services} canPrices={session.canPrices} isAdmin={session.isAdmin} userId={session.userId} findingsUrl={token ? `${appUrl() ?? ""}/e/${token}` : null} large />; // no "add to estimate" icon here: the builder holds the lines, and saving it would overwrite a line added behind its back
-  return <EstimateBuilder catalog={catalog} recent={withCustomer.initialPick?.customer ? [withCustomer.initialPick.customer, ...withCustomer.recent.filter((c) => c.id !== e.customer.id)] : withCustomer.recent} estimate={e} extraLines={extraLines} findingsPanel={panel} findingsCount={findings.length} />;
+  return <EstimateBuilder catalog={catalog} recent={withCustomer.initialPick?.customer ? [withCustomer.initialPick.customer, ...withCustomer.recent.filter((c) => c.id !== e.customer.id)] : withCustomer.recent} estimate={e} extraLines={extraLines} findingsPanel={panel} findingsCount={findings.length} canned={canned ?? []} technicians={technicians ?? []} />;
 }

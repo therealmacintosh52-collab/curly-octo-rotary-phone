@@ -1217,3 +1217,17 @@ export function visitInspectionsFixture(estimateId: string): import("@/lib/db/ty
     },
   ];
 }
+
+/** 0074: the shop's canned jobs (names and lines are examples until the shop writes its own). */
+export function cannedJobsFixture(): import("@/lib/db/types").CannedJob[] {
+  const base = { category: null, makes: [], year_from: null, year_to: null, notes: null, active: true, inspection_template_id: null, inspection: null };
+  return [
+    { ...base, id: "c0000000-0000-4000-8000-000000000001", name: "Check In Check List", priority: "soon", lines: [{ line_type: "labor", name: "Check in check list", hours: 0 }], line_count: 1, inspection_template_id: "a0000000-0000-4000-8000-000000000001", inspection: "Check-in checklist" },
+    { ...base, id: "c0000000-0000-4000-8000-000000000002", name: "Front brake pads and rotors", category: "Brakes", priority: "safety", line_count: 4, lines: [{ line_type: "labor", name: "Replace front pads and rotors", hours: 1.5 }, { line_type: "part", name: "Pad set", qty: 1, cost: 55, part_number: "BP-100", vendor: "NAPA" }, { line_type: "part", name: "Rotors (pair)", qty: 1, price: 140, cost: 95 }, { line_type: "fee", name: "Brake cleaner and disposal", price: 8 }] },
+    { ...base, id: "c0000000-0000-4000-8000-000000000003", name: "Oil change (full synthetic)", category: "Maintenance", priority: "soon", makes: ["Toyota", "Honda"], year_from: 2005, line_count: 3, lines: [{ line_type: "labor", name: "Oil and filter change", hours: 0.5 }, { line_type: "part", name: "5W-30 full synthetic, 5 qt", qty: 1, price: 42 }, { line_type: "part", name: "Oil filter", qty: 1, price: 12 }] },
+    { ...base, id: "c0000000-0000-4000-8000-000000000004", name: "A/C recharge", category: "A/C", priority: "optional", line_count: 2, lines: [{ line_type: "labor", name: "Evacuate and recharge", hours: 1 }, { line_type: "part", name: "Refrigerant", qty: 1, price: 65 }] },
+  ];
+}
+export function pastServicesFixture(): import("@/lib/db/types").PastService[] {
+  return [{ id: "c1000000-0000-4000-8000-000000000001", title: "Front brakes", priority: "safety", estimate_number: "EST-000008", date: "2026-09-18T17:00:00Z", status: "done", lines: [{ line_type: "labor", name: "Replace front pads", hours: 1.5 }, { line_type: "part", name: "Pad set", qty: 1, price: 90, part_number: "BP-100" }] }];
+}

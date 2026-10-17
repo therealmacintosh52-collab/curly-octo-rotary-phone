@@ -25,7 +25,7 @@ export default async function EstimatePage(props: PageProps<"/retail/estimates/[
     if (token) publicUrl = `${appUrl() ?? ""}/e/${token}`;
   }
   // The side panel: what the tech found, on the estimate now and on the invoice after approval. The customer sees it by link.
-  const [{ data: rawFindings }, services, { data: catalog }, { data: rawLast }, { data: jobEstimates }, { data: documents }, { data: inspections }, { data: inspectionTemplates }] = await Promise.all([
+  const [{ data: rawFindings }, services, { data: catalog }, { data: rawLast }, { data: jobEstimates }, { data: documents }, { data: inspections }, { data: inspectionTemplates }, { data: technicians }] = await Promise.all([
     supabase.rpc("estimate_findings", { p_estimate: id }),
     recommendableServices(supabase),
     session.canPrices ? supabase.rpc("retail_catalog") : Promise.resolve({ data: null }),
@@ -34,6 +34,7 @@ export default async function EstimatePage(props: PageProps<"/retail/estimates/[
     supabase.rpc("signed_documents", { p_estimate: id }),
     supabase.rpc("visit_inspections", { p_estimate: id }),
     supabase.rpc("inspection_templates_list"),
+    session.canPrices ? supabase.rpc("retail_technicians") : Promise.resolve({ data: [] as { id: string; name: string; initials: string }[] }),
   ]);
   const findings = await withMediaUrls(supabase, rawFindings ?? []);
   const fromLastTime = await withMediaUrls(supabase, rawLast ?? []);
@@ -48,5 +49,5 @@ export default async function EstimatePage(props: PageProps<"/retail/estimates/[
   // The log: who opened it (this open is written first so it shows), and the whole history for the people who may read it.
   await logStaffView(supabase, e.id, visit?.invoiced ? "invoice" : "estimate");
   const { data: activity } = session.isAdmin ? await supabase.rpc("visit_activity", { p_estimate: e.id }) : { data: null };
-  return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} visit={visit} supplements={jobEstimates ?? []} documents={documents ?? []} activity={activity} inspections={inspections ?? []} inspectionTemplates={inspectionTemplates ?? []} />;
+  return <EstimateDetail e={e} showMoney={session.canPrices} publicUrl={publicUrl} notes={notes} findingsCount={findings.length} visit={visit} supplements={jobEstimates ?? []} documents={documents ?? []} activity={activity} inspections={inspections ?? []} inspectionTemplates={inspectionTemplates ?? []} technicians={technicians ?? []} />;
 }

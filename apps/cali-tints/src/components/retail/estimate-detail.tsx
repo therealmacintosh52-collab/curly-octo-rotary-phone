@@ -37,6 +37,7 @@ import { ActivityCard } from "./activity-card";
 import { EstimateMeta } from "./estimate-meta";
 import { SendToTechButton } from "./send-to-tech";
 import { InspectionCard } from "./inspection-card";
+import { LineTech } from "./line-tech";
 import { TransferButton } from "./transfer-dialog";
 import { EstimateStageBadge } from "./estimate-stage-badge";
 import { documentNumber, viewStage } from "@/lib/retail/estimate-stage";
@@ -55,7 +56,7 @@ const money = (n: number | null | undefined) => (n === null || n === undefined ?
  * send it, record an approval taken in person or by phone, decline it, turn
  * it into the job. Managers and detailers see everything but the money.
  */
-export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit, supplements = [], documents = [], activity = null, inspections = [], inspectionTemplates = [] }: { /** The checklists on this visit and the lists a new one can start from (0073). */ inspections?: VisitInspection[]; inspectionTemplates?: InspectionTemplate[]; /** Who viewed it and who did what, with date and time (0066); only for the people who may read it. */ activity?: ActivityEntry[] | null; /** The frozen signed copies of this visit (0062). */ documents?: SignedDocumentRow[]; /** The extra-work estimates written on this visit (they appear in the Signatures card). */ supplements?: JobEstimate[]; e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
+export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, visit, supplements = [], documents = [], activity = null, inspections = [], inspectionTemplates = [], technicians = [] }: { /** The shop's techs, for assigning a labor line (0074). */ technicians?: { id: string; name: string; initials: string }[]; /** The checklists on this visit and the lists a new one can start from (0073). */ inspections?: VisitInspection[]; inspectionTemplates?: InspectionTemplate[]; /** Who viewed it and who did what, with date and time (0066); only for the people who may read it. */ activity?: ActivityEntry[] | null; /** The frozen signed copies of this visit (0062). */ documents?: SignedDocumentRow[]; /** The extra-work estimates written on this visit (they appear in the Signatures card). */ supplements?: JobEstimate[]; e: EstimateView; showMoney: boolean; publicUrl: string | null; /** Once approved: the work done, the authorizations, the payments and the invoice, read through the visit (0057). */ visit?: VisitPanel | null; /** The findings side panel (notes, photos, clips, recommendations); beside the estimate on a wide screen, a tab on a phone. */ notes?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { canPrices, isAdmin, demo } = useSession();
   const [pending, start] = useTransition();
@@ -184,6 +185,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
                           {accepted && o.tier === "single" && l.customer_approved === false && <Badge variant="muted">Declined</Badge>}
                         </div>
                         {lineMeta(l) && <div className="text-caption text-subtle">{lineMeta(l)}</div>}
+                        {(l.line_type ?? "service") === "labor" && <LineTech estimateId={e.id} lineId={l.id} tech={l.tech} techId={l.tech_id} technicians={technicians} canAssign={!!canPrices && !supplement && e.status !== "declined"} />}
                         {l.benefit_text && <div className="text-caption text-subtle">{l.benefit_text}</div>}
                         {l.modifiers.length > 0 && <div className="text-caption text-warning">{l.modifiers.map((m) => m.label).join(", ")}</div>}
                         {showMoney && l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * ((l.line_type ?? "service") === "labor" ? 1 : l.qty))}</div>}

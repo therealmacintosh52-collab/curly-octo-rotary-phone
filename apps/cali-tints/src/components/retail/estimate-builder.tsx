@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, ClockIcon, LockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
+import { ArrowLeftIcon, BookmarkPlusIcon, ClockIcon, LockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, PartCondition, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
+import type { CannedJob, EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, PartCondition, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { createEstimateAction, deleteDraftEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { decodeVinAction, lookupPlateAction, saveVehicleAction } from "@/app/(app)/retail/actions";
+import { saveCannedJobAction } from "@/app/(app)/retail/canned-actions";
+import { addInspectionAction } from "@/app/(app)/retail/inspection-actions";
+import { cannedLinesFromDraft, expandCanned, type CannedContext } from "@/lib/retail/canned";
 import { isVinShape, normalizeVin } from "@/lib/vin";
 import { isPlateShape, normalizePlate } from "@/lib/retail/plate-provider";
 import { diagnosisFirst } from "@/lib/retail/sections";
@@ -32,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { CarFinder } from "./car-finder";
 import { CarSwitcher, CustomerPicker, type CustomerPick, type PickedCustomer } from "./customer-picker";
 import { ServiceMenu } from "./service-menu";
+import { AddServiceDialog, type AddServicePick } from "./add-service-dialog";
 
 type LineDraft = EstimateLineDraft;
 type CarFields = { year: string; make: string; model: string; trim: string; vin: string; plate: string; engine_size: string; engine_code: string };
@@ -63,7 +67,7 @@ function fromView(e: EstimateView, services: RetailCatalogService[]): { options:
   const line = (l: EstimateView["options"][number]["lines"][number]): LineDraft => {
     const type = l.line_type ?? "service";
     if (type === "service") return emptyLine("service", { section: l.section ?? "repair", service_id: l.service_id ?? "", qty: l.qty, label: isOpen(l.service_id) ? l.name : null, price: isOpen(l.service_id) ? l.unit_price : null, modifiers: l.modifiers.map((m) => m.code), cost: l.cost ?? null, finding_id: l.finding_id ?? null });
-    return emptyLine(type, { section: l.section ?? "repair", label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, part_number: l.part_number ?? null, part_condition: l.part_condition ?? "new", vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
+    return emptyLine(type, { section: l.section ?? "repair", label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, tech_id: l.tech_id ?? null, part_number: l.part_number ?? null, part_condition: l.part_condition ?? "new", vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
   };
   return {
     options: e.options.map((o) => {
@@ -78,7 +82,7 @@ function fromView(e: EstimateView, services: RetailCatalogService[]): { options:
 function toInput(l: LineDraft): EstimateLineInput {
   const extra = { cost: l.cost, finding_id: l.finding_id, section: l.section, job: l.job };
   if (l.line_type === "service") return { line_type: "service", service_id: l.service_id ?? "", qty: l.qty, label: l.label, price: l.price, modifiers: l.modifiers, ...extra };
-  if (l.line_type === "labor") return { line_type: "labor", label: l.label ?? "", hours: Number(l.hours ?? 0), rate: l.rate, taxable: l.taxable, ...extra };
+  if (l.line_type === "labor") return { line_type: "labor", label: l.label ?? "", hours: Number(l.hours ?? 0), rate: l.rate, taxable: l.taxable, tech_id: l.tech_id ?? null, ...extra };
   if (l.line_type === "part") return { line_type: "part", label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), part_number: l.part_number, part_condition: l.part_condition ?? "new", vendor: l.vendor, taxable: l.taxable, ...extra };
   return { line_type: l.line_type, label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), vendor: l.vendor, taxable: l.taxable, ...extra };
 }
@@ -113,7 +117,7 @@ function withExtra<T extends { options: OptionDraft[] }>(base: T, extra?: LineDr
   return { ...base, options: [{ ...base.options[0], jobs: [...base.options[0].jobs, ...jobs], lines: [...base.options[0].lines, ...keyed] }, ...base.options.slice(1)] };
 }
 
-export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines, findingsPanel }: { catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; trim?: string; engine_size?: string; engine_code?: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[]; /** The findings side tab (server-rendered notes panel) and how many findings it holds. */ findingsPanel?: React.ReactNode; findingsCount?: number }) {
+export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines, findingsPanel, canned: cannedProp = [], technicians = [], demoPast = [] }: { /** The shop's canned jobs (0074), the techs a labor line can go to, and, in the guest preview, the past services. */ canned?: CannedJob[]; technicians?: { id: string; name: string; initials: string }[]; demoPast?: import("@/lib/db/types").PastService[]; catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; trim?: string; engine_size?: string; engine_code?: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[]; /** The findings side tab (server-rendered notes panel) and how many findings it holds. */ findingsPanel?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -122,6 +126,9 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   const quoteCatalog = useMemo(() => toQuoteCatalog(catalog), [catalog]);
   const rates = useMemo(() => (catalog.labor_rates ?? []).filter((r) => r.active), [catalog.labor_rates]);
   const validDays = catalog.settings?.estimate_valid_days ?? 14;
+  const [cannedExtra, setCannedExtra] = useState<CannedJob[]>([]);
+  const canned = useMemo(() => [...cannedProp, ...cannedExtra], [cannedProp, cannedExtra]);
+  const [savingCanned, setSavingCanned] = useState<{ title: string; priority: EstimateJobPriority; lines: LineDraft[] } | null>(null);
   const ro = job ?? (estimate?.job ? { id: estimate.job.id, ro_number: estimate.job.ro_number, tag_number: estimate.job.tag_number } : null);
 
   const initialCustomer: CustomerPick = estimate
@@ -183,6 +190,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   }, [car.vin]);
   const creating = useRef(false);
   const [size, setSize] = useState<VehicleSize>(estimate?.size_class ?? pickedVehicle?.size_class ?? "sedan");
+  const cannedCtx: CannedContext = useMemo(() => ({ defaultRate: quoteCatalog.defaultRate, markupPct: catalog.settings?.parts_markup_pct, services: quoteCatalog.services, size }), [quoteCatalog, catalog.settings?.parts_markup_pct, size]);
   const initial = useMemo(() => (estimate ? withExtra(fromView(estimate, catalog.services), extraLines) : { options: [{ key: nextKey(), tier: "single" as EstimateTier, name: "Quote", description: "", recommended: true, jobs: jobsForLines(initialLines ?? []), lines: (initialLines ?? []).map((l) => (l.finding_id ? { ...l, job: `f-${l.finding_id}` } : l)) }], addons: [] }), [estimate, catalog.services, initialLines, extraLines]);
   const [options, setOptions] = useState<OptionDraft[]>(initial.options);
   const [addons, setAddons] = useState<AddonDraft[]>(initial.addons);
@@ -248,6 +256,21 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
   }
   function addJob(key: string) {
     setOption(key, (o) => ({ ...o, jobs: [...o.jobs, { key: nextKey(), title: "", priority: "soon" }] }));
+  }
+  /** A canned (or past) job lands as one named job with all its lines; a checklist it carries is added to the saved estimate. */
+  function addCannedJob(key: string, p: AddServicePick) {
+    const x = expandCanned({ name: p.title, priority: p.priority, lines: p.lines }, { markupPct: catalog.settings?.parts_markup_pct });
+    const jobKey = nextKey();
+    setOption(key, (o) => ({ ...o, jobs: [...o.jobs, { key: jobKey, title: x.title, priority: x.priority }], lines: [...o.lines, ...x.lines.map((l) => ({ ...l, job: jobKey }))] }));
+    if (p.inspectionTemplateId && estimate?.id && !demo) {
+      void addInspectionAction(estimate.id, { template: p.inspectionTemplateId }).then((r) => {
+        if (!r.ok) toast.error(r.error);
+        else toast.success("Checklist added: it is on the estimate page");
+      });
+    }
+  }
+  function setLineTech(key: string, line: LineDraft, techId: string) {
+    setOption(key, (o) => ({ ...o, lines: o.lines.map((l) => (lineKey(l) === lineKey(line) ? { ...l, tech_id: techId || null } : l)) }));
   }
   function setJob(key: string, jobKey: string, patch: Partial<JobDraft>) {
     setOption(key, (o) => ({ ...o, jobs: o.jobs.map((j) => (j.key === jobKey ? { ...j, ...patch } : j)) }));
@@ -549,7 +572,17 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                                                     {l.finding_id && <Badge variant="outline">from a finding</Badge>}
                                                   </div>
                                                   {l.line_type === "service" && svc?.benefit_text && !l.label && <div className="truncate text-caption text-subtle">{svc.benefit_text}</div>}
-                                                  {l.line_type === "labor" && <div className="text-caption text-subtle">{l.hours} h × {formatMoney(l.rate ?? quoteCatalog.defaultRate ?? 0)}{l.taxable ? " · taxed" : ""}</div>}
+                                                  {l.line_type === "labor" && (
+                                                    <div className="flex flex-wrap items-center gap-2 text-caption text-subtle">
+                                                      <span>{l.hours} h × {formatMoney(l.rate ?? quoteCatalog.defaultRate ?? 0)}{l.taxable ? " · taxed" : ""}</span>
+                                                      {technicians.length > 0 && (
+                                                        <select value={l.tech_id ?? ""} onChange={(e) => setLineTech(o.key, l, e.target.value)} aria-label={`Tech for ${name}`} className="h-6 rounded-md border border-border bg-input px-1.5 text-caption" data-testid="line-tech">
+                                                          <option value="">No tech yet</option>
+                                                          {technicians.map((t) => <option key={t.id} value={t.id}>{t.initials}: {t.name}</option>)}
+                                                        </select>
+                                                      )}
+                                                    </div>
+                                                  )}
                                                   {l.line_type === "part" && <div className="text-caption text-subtle">{[l.qty !== 1 ? `${l.qty} × ${formatMoney(l.price ?? 0)}` : null, l.part_number, l.vendor, estimateConditionNote(l.part_condition), l.taxable === false ? "no tax" : "taxed"].filter(Boolean).join(" · ")}</div>}
                                                   {(l.line_type === "fee" || l.line_type === "sublet") && <div className="text-caption text-subtle">{[l.vendor, l.taxable ? "taxed" : null].filter(Boolean).join(" · ")}</div>}
                                                   {l.cost !== null && l.cost !== undefined && <div className="text-caption text-subtle">Cost {formatMoney(Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}{ql ? ` · margin ${formatMoney(ql.line_total - Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty))}${ql.line_total > 0 ? ` (${Math.round(((ql.line_total - Number(l.cost) * (l.line_type === "labor" ? 1 : l.qty)) / ql.line_total) * 100)}%)` : ""}` : ""} <span className="inline-flex items-center gap-0.5"><LockIcon className="size-3" /> hidden from the customer</span></div>}
@@ -604,7 +637,10 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                 <CardContent className={cn("grid gap-5", options.length === 1 && "pt-5")}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h2 className="text-base font-semibold">The work</h2>
-                    <ServiceMenu services={menu} selected={new Set(o.lines.filter((l) => l.line_type === "service").map((l) => l.service_id ?? ""))} size={size} onToggle={(svc) => toggleLine(o.key, svc)} onBlankJob={() => addJob(o.key)} onOther={other ? () => setAdding({ scope: "option", key: o.key, section: "repair", job: undefined, type: "service" }) : undefined} label="Add a service" testId="service-menu" />
+                    <div className="flex flex-wrap items-center gap-2">
+                    <AddServiceDialog canned={canned} car={{ year: car.year, make: car.make, model: car.model }} vehicleId={pick.vehicleId} customerId={pick.customer?.id ?? null} ctx={cannedCtx} menu={menu} demoPast={demoPast} onPick={(p) => addCannedJob(o.key, p)} onMenuPick={(svc) => toggleLine(o.key, svc)} onBlankJob={() => addJob(o.key)} />
+                    <ServiceMenu services={menu} selected={new Set(o.lines.filter((l) => l.line_type === "service").map((l) => l.service_id ?? ""))} size={size} onToggle={(svc) => toggleLine(o.key, svc)} onBlankJob={() => addJob(o.key)} onOther={other ? () => setAdding({ scope: "option", key: o.key, section: "repair", job: undefined, type: "service" }) : undefined} label="Quick menu" testId="service-menu" />
+                    </div>
                   </div>
                   <section className="grid gap-3 rounded-xl border border-border bg-card/40 p-3" data-testid="section-diagnosis">
                     <h3 className="font-semibold">Diagnosis</h3>
@@ -627,6 +663,11 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
                             )}
                             {g.job && (
                               <Segmented size="sm" aria-label="Priority" value={g.job.priority} onValueChange={(v) => setJob(o.key, g.job!.key, { priority: v as EstimateJobPriority })} items={(["safety", "soon", "optional"] as const).map((pr) => ({ value: pr, label: PRIORITY_LABEL[pr] }))} />
+                            )}
+                            {g.job && jr.length > 0 && (
+                              <Button type="button" variant="ghost" size="icon-sm" aria-label={`Save ${g.job.title || "this job"} as a canned job`} title="Save as canned job" onClick={() => setSavingCanned({ title: g.job!.title, priority: g.job!.priority, lines: jr.map((r) => r.l) })} data-testid="job-save-canned">
+                                <BookmarkPlusIcon />
+                              </Button>
                             )}
                             {g.job && (
                               <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove ${g.job.title || ""}`} onClick={() => removeJob(o.key, g.job!.key)} data-testid="job-remove">
@@ -758,6 +799,18 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
       </div>
 
       {editing && <LineDialog type={editing.line.line_type} initial={editing.line} rates={rates} defaultRate={quoteCatalog.defaultRate} policy={catalog.settings} other={other} onClose={() => setEditing(null)} onAdd={replaceLine} />}
+      {savingCanned && (
+        <SaveCannedDialog
+          draft={savingCanned}
+          make={car.make.trim()}
+          year={car.year.trim()}
+          onClose={() => setSavingCanned(null)}
+          onSaved={(job) => {
+            setCannedExtra((l) => [...l, job]);
+            setSavingCanned(null);
+          }}
+        />
+      )}
       {adding && <LineDialog type={adding.type} rates={rates} defaultRate={quoteCatalog.defaultRate} policy={catalog.settings} other={other} onClose={() => setAdding(null)} onAdd={addLine} />}
     </Page>
   );
@@ -911,5 +964,53 @@ function CarInput({ id, label, value, onChange, onBlur, placeholder, inputMode, 
       <Label htmlFor={id}>{label}</Label>
       <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength ?? 60} autoComplete="off" className={mono ? "font-mono" : undefined} data-testid={testId} />
     </div>
+  );
+}
+
+/** Save a job on this estimate as a canned job: its lines (labor, parts, fees) and priority, optionally for this make only. */
+function SaveCannedDialog({ draft, make, year, onClose, onSaved }: { draft: { title: string; priority: EstimateJobPriority; lines: LineDraft[] }; make: string; year: string; onClose: () => void; onSaved: (job: CannedJob) => void }) {
+  const { demo } = useSession();
+  const [pending, start] = useTransition();
+  const [name, setName] = useState(draft.title);
+  const [onlyMake, setOnlyMake] = useState(false);
+  const lines = cannedLinesFromDraft(draft.lines);
+  function save() {
+    const input = { name: name.trim(), priority: draft.priority, makes: onlyMake && make ? [make] : [], lines };
+    start(async () => {
+      if (demo) {
+        toast.success("Saved as a canned job", { description: "Guest preview — nothing changed" });
+        return onSaved({ id: `demo-${crypto.randomUUID()}`, name: input.name, category: null, makes: input.makes, year_from: null, year_to: null, priority: draft.priority, notes: null, active: true, inspection_template_id: null, inspection: null, lines, line_count: lines.length });
+      }
+      const r = await saveCannedJobAction(input);
+      if (!r.ok) return void toast.error(r.error);
+      toast.success("Saved as a canned job");
+      onSaved({ id: r.data, name: input.name, category: null, makes: input.makes, year_from: null, year_to: null, priority: draft.priority, notes: null, active: true, inspection_template_id: null, inspection: null, lines, line_count: lines.length });
+    });
+  }
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Save as canned job</DialogTitle>
+          <DialogDescription>Next time, one tap in Add a Service brings this whole job back: {lines.length} {lines.length === 1 ? "line" : "lines"} with their hours, parts and fees.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor="canned-name">Name</Label>
+            <Input id="canned-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} data-testid="canned-name" />
+          </div>
+          {make && (
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={onlyMake} onCheckedChange={setOnlyMake} /> Only for {make}{year ? ` (this car is a ${year})` : ""}
+            </label>
+          )}
+        </div>
+        <DialogFooter>
+          <Button onClick={save} loading={pending} disabled={!name.trim() || lines.length === 0} data-testid="canned-save">
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

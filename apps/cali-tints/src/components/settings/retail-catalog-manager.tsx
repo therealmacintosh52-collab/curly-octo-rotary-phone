@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircleIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { InspectionTemplate, PriceModifier, ResourceKind, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
+import type { CannedJob, InspectionTemplate, PriceModifier, ResourceKind, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { saveModifierAction, saveRetailServiceAction, setServiceMenusAction, setSizePriceAction } from "@/app/(app)/settings/retail-actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatMoney } from "@/lib/money";
@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { CannedJobsCard } from "./canned-jobs-card";
 import { InspectionTemplatesCard } from "./inspection-templates-card";
 import { LaborRatesCard, SuppliesCard } from "./labor-rates-card";
 
@@ -32,7 +33,7 @@ const RESOURCE_LABEL: Record<ResourceKind, string> = { bay: "Bay", lift: "Lift",
  * long each takes and what it needs, the price per size class, and the
  * condition add-ons. Seeded prices stay flagged "placeholder" until edited.
  */
-export function RetailCatalogManager({ catalog, inspectionTemplates = [] }: { catalog: RetailCatalog; inspectionTemplates?: InspectionTemplate[] }) {
+export function RetailCatalogManager({ catalog, inspectionTemplates = [], cannedJobs = [] }: { catalog: RetailCatalog; inspectionTemplates?: InspectionTemplate[]; cannedJobs?: CannedJob[] }) {
   const [editing, setEditing] = useState<RetailCatalogService | "new" | null>(null);
   const [editingMod, setEditingMod] = useState<PriceModifier | "new" | null>(null);
   const retail = catalog.services.filter((s) => s.retail && !s.open_amount);
@@ -153,6 +154,7 @@ export function RetailCatalogManager({ catalog, inspectionTemplates = [] }: { ca
 
       <LaborRatesCard rates={catalog.labor_rates ?? []} />
       <SuppliesCard settings={catalog.settings} />
+      <CannedJobsCard jobs={cannedJobs} templates={inspectionTemplates} defaultRate={(catalog.labor_rates ?? []).find((r) => r.is_default && r.active)?.rate ?? null} markupPct={catalog.settings?.parts_markup_pct} />
       <InspectionTemplatesCard templates={inspectionTemplates} />
 
       <Card>

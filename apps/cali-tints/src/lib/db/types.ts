@@ -248,6 +248,9 @@ export type EstimateLineView = {
   part_condition?: PartCondition;
   vendor?: string | null;
   finding_id?: string | null;
+  /** Who does a labor line (0074): initials only, and the id so the advisor can change it. */
+  tech?: string | null;
+  tech_id?: string | null;
   /** Staff money only, never on the public view. */
   cost?: number | null;
   /** Single option: the customer's answer per line (null until answered). */
@@ -430,7 +433,7 @@ export type EstimateListResult = { count: number; counts?: Partial<Record<Estima
 /** What the builder sends to create_estimate / update_estimate. A service line prices through the matrix; the others carry their own numbers (0044). */
 export type EstimateLineInput = (
   | { line_type?: "service"; service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[]; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
-  | { line_type: "labor"; label: string; hours: number; rate?: number | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
+  | { line_type: "labor"; label: string; hours: number; rate?: number | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection; tech_id?: string | null }
   | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; part_condition?: PartCondition; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
   | { line_type: "fee" | "sublet"; label: string; qty?: number; price: number; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
 ) & { /** The key of the named job this line belongs to (0054). */ job?: string };
@@ -905,6 +908,12 @@ export type FindingSeverity = "ok" | "soon" | "urgent";
 /** open → quoted (on an estimate) → approved / declined (by the customer) → done. Staff may set open, declined, done. */
 export type FindingStatus = "open" | "quoted" | "approved" | "declined" | "done";
 export type FindingMedia = { id: string; kind: PhotoKind; storage_path: string; mime: string | null; duration_s: number | null; size_bytes: number | null; created_at: string; url?: string | null };
+/** 0074: a saved job. The lines are a template; the server prices every line again when they land on an estimate. */
+export type CannedLine = { line_type: EstimateLineType; name?: string; service_id?: string; qty?: number; hours?: number; rate?: number; price?: number; cost?: number; part_number?: string; vendor?: string; taxable?: boolean; part_condition?: PartCondition };
+export type CannedJob = { id: string; name: string; category: string | null; makes: string[]; year_from: number | null; year_to: number | null; priority: EstimateJobPriority; notes: string | null; active: boolean; inspection_template_id: string | null; inspection: string | null; lines: CannedLine[]; line_count: number };
+export type CannedJobInput = { id?: string; name: string; category?: string | null; makes?: string[]; year_from?: number | null; year_to?: number | null; priority?: EstimateJobPriority; lines: CannedLine[]; inspection_template_id?: string | null; notes?: string | null; active?: boolean };
+/** past_services(): a job approved on an earlier visit of this car or customer. */
+export type PastService = { id: string; title: string; priority: EstimateJobPriority; estimate_number: string; date: string; status: string; lines: CannedLine[] };
 /** 0073: a checklist on a visit. grey = not checked yet, ok = green, attention = red, na = not applicable. */
 export type InspectionState = "pending" | "ok" | "attention" | "na";
 export type InspectionItem = { id: string; label: string; group: string | null; state: InspectionState; note: string | null; finding_id: string | null; checked_at: string | null; checked_by: string | null };
@@ -1541,6 +1550,11 @@ export type Database = {
       job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
       estimate_findings: { Args: { p_estimate: string }; Returns: JobFinding[] };
       inspection_templates_list: { Args: Record<string, never>; Returns: InspectionTemplate[] };
+      retail_canned_jobs: { Args: Record<string, never>; Returns: CannedJob[] };
+      save_canned_job: { Args: { p: CannedJobInput }; Returns: string };
+      delete_canned_job: { Args: { p_id: string }; Returns: undefined };
+      past_services: { Args: { p_vehicle?: string | null; p_customer?: string | null }; Returns: PastService[] };
+      set_line_tech: { Args: { p_line: string; p_tech: string | null }; Returns: undefined };
       save_inspection_template: { Args: { p: { id?: string; name: string; items: { label: string; group?: string }[]; active?: boolean } }; Returns: string };
       delete_inspection_template: { Args: { p_id: string }; Returns: undefined };
       visit_inspections: { Args: { p_estimate: string }; Returns: VisitInspection[] };

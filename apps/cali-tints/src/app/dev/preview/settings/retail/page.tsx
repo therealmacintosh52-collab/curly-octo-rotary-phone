@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { Page, PageHeader } from "@/components/app/page-header";
 import { SettingsNav } from "@/components/settings/settings-nav";
 import { RetailCatalogManager } from "@/components/settings/retail-catalog-manager";
-import { inspectionTemplatesFixture, retailCatalogFixture } from "@/test/retail-fixtures";
+import { cannedJobsFixture, inspectionTemplatesFixture, retailCatalogFixture } from "@/test/retail-fixtures";
 import { previewSession } from "@/test/preview-session";
 
 /** Fixture preview of Settings → Shop menu. */
@@ -21,7 +21,7 @@ export default async function DevRetailSettingsPreview(props: PageProps<"/dev/pr
               <SettingsNav />
             </div>
             <div className="mt-5">
-              <RetailCatalogManager catalog={retailCatalogFixture(true)} inspectionTemplates={inspectionTemplatesFixture()} />
+              <RetailCatalogManager catalog={retailCatalogFixture(true)} inspectionTemplates={inspectionTemplatesFixture()} cannedJobs={cannedJobsFixture()} />
             </div>
           </Page>
         </AppShell>

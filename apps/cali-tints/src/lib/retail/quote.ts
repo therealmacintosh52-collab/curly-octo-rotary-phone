@@ -139,6 +139,8 @@ export type EstimateLineDraft = {
   taxable: boolean | null;
   cost: number | null;
   finding_id: string | null;
+  /** Labor only: the tech who does it (0074). */
+  tech_id?: string | null;
   /** Itemized under Diagnosis or Repairs. */
   section: "diagnosis" | "repair";
   /** The key of the named job (brakes, A/C…) this line belongs to; none = the default Repairs job (0054). */

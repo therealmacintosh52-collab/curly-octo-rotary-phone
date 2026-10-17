@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Shop menu" };
 export default async function RetailSettingsPage() {
   await requireOwner();
   const supabase = await createClient();
-  const [{ data, error }, { data: templates }] = await Promise.all([supabase.rpc("retail_catalog"), supabase.rpc("inspection_templates_list")]);
+  const [{ data, error }, { data: templates }, { data: canned }] = await Promise.all([supabase.rpc("retail_catalog"), supabase.rpc("inspection_templates_list"), supabase.rpc("retail_canned_jobs")]);
   if (error || !data) throw new Error(error?.message ?? "Could not load the catalog");
-  return <RetailCatalogManager catalog={data} inspectionTemplates={templates ?? []} />;
+  return <RetailCatalogManager catalog={data} inspectionTemplates={templates ?? []} cannedJobs={canned ?? []} />;
 }

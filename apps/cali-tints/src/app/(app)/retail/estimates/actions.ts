@@ -16,7 +16,7 @@ import { customerLinkForJob } from "@/lib/retail/customer-link";
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
 const money = z.number().min(0).max(100000);
-const extra = { job: z.string().max(40).optional(), section: z.enum(["diagnosis", "repair"]).optional(), taxable: z.boolean().nullable().optional(), cost: money.nullable().optional(), finding_id: z.uuid().nullable().optional() };
+const extra = { job: z.string().max(40).optional(), section: z.enum(["diagnosis", "repair"]).optional(), taxable: z.boolean().nullable().optional(), cost: money.nullable().optional(), finding_id: z.uuid().nullable().optional(), tech_id: z.uuid().nullable().optional() };
 /** A service line prices through the size matrix; labor, parts, fees and sublets carry their own numbers (0044). */
 const lineSchema = z.discriminatedUnion("line_type", [
   z.object({ line_type: z.literal("service"), service_id: z.uuid(), qty: z.number().positive().max(99).optional(), label: z.string().trim().max(120).nullable().optional(), price: money.nullable().optional(), modifiers: z.array(z.string().trim().max(40)).max(10).optional(), ...extra }),
