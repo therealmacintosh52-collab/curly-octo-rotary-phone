@@ -38,6 +38,7 @@ import { EstimateMeta } from "./estimate-meta";
 import { SendToTechButton } from "./send-to-tech";
 import { InspectionCard } from "./inspection-card";
 import { LineTech } from "./line-tech";
+import { ShortcutRow } from "./shortcut-row";
 import { TransferButton } from "./transfer-dialog";
 import { EstimateStageBadge } from "./estimate-stage-badge";
 import { documentNumber, viewStage } from "@/lib/retail/estimate-stage";
@@ -608,6 +609,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
       </div>
 
       <div className="mt-4"><EstimateMeta e={e} tech={invoiceDoc?.tech ?? null} /></div>
+      {!supplement && <div className="mt-3"><ShortcutRow e={e} /></div>}
       <div className="mt-3 grid gap-3 md:grid-cols-2" data-testid="estimate-parties">
         <Card>
           <CardContent className="grid gap-1 pt-5 text-sm">
