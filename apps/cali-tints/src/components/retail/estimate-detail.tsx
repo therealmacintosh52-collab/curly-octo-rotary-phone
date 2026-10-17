@@ -5,7 +5,7 @@ import { estimateConditionNote } from "@/lib/retail/part-condition";
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CarIcon, ChevronDownIcon, UserIcon, ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
+import { CarIcon, UserIcon, ArrowLeftIcon, CalendarPlusIcon, CheckIcon, ClipboardCheckIcon, CopyIcon, FileDownIcon, LinkIcon, MailIcon, MessageSquareTextIcon, PencilIcon, PlusIcon, SendIcon, Share2Icon, StarIcon, ThumbsDownIcon, FileTextIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { ActivityEntry, EstimateView, InspectionTemplate, JobEstimate, SignedDocumentRow, VisitInspection } from "@/lib/db/types";
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
@@ -39,6 +39,8 @@ import { SendToTechButton } from "./send-to-tech";
 import { InspectionCard } from "./inspection-card";
 import { LineTech } from "./line-tech";
 import { ShortcutRow } from "./shortcut-row";
+import { JobSection } from "./job-section";
+import { jobsFromView } from "@/lib/retail/job-model";
 import { TransferButton } from "./transfer-dialog";
 import { EstimateStageBadge } from "./estimate-stage-badge";
 import { documentNumber, viewStage } from "@/lib/retail/estimate-stage";
@@ -195,31 +197,13 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
                     </li>
           );
           if (o.tier === "single" && jobs.length > 0) {
-            // One option: the work is numbered sections that open and close, like the shop's own estimate.
-            const groups = jobs.map((j) => ({ job: j, ls: lines.filter((l) => l.estimate_job_id === j.id) }));
-            const rest = lines.filter((l) => !jobs.some((j) => j.id === l.estimate_job_id));
+            // One option: the work is numbered jobs laid out like the shop's own screens (tables, a totals bar with profit).
+            const models = jobsFromView(o, { accepted, showMoney });
             return (
-              <div key={o.id} className="grid gap-2" data-testid="estimate-option">
-                {groups.map(({ job: j, ls }, gi) => {
-                  const total = ls.reduce((sum, x) => sum + (x.line_total ?? 0), 0);
-                  return (
-                    <details key={j.id} open className="group rounded-xl border border-border bg-card surface-raised" data-job={j.title}>
-                      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 font-semibold marker:hidden" data-testid="line-section">
-                        <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground -rotate-90 transition-transform group-open:rotate-0" />
-                        <span>{gi + 1}. {j.title}</span>
-                        {j.kind !== "diagnosis" && <Badge variant={j.priority === "safety" ? "destructive" : j.priority === "soon" ? "warning" : "muted"} data-testid="job-priority">{{ safety: "Safety", soon: "Due soon", optional: "Optional" }[j.priority]}</Badge>}
-                        {j.status !== "recommended" && <Badge variant={j.status === "declined" ? "muted" : "success"}>{{ approved: "Approved", declined: "Declined", done: "Done", recommended: "" }[j.status]}</Badge>}
-                        {showMoney && <span className="ml-auto tabular-nums text-muted-foreground">{money(total)}</span>}
-                      </summary>
-                      <ul className="divide-y divide-border border-t border-border px-4 text-sm">{ls.map((l) => lineRow(l))}</ul>
-                    </details>
-                  );
-                })}
-                {rest.length > 0 && (
-                  <div className="rounded-xl border border-border bg-card px-4 text-sm surface-raised">
-                    <ul className="divide-y divide-border">{rest.map((l) => lineRow(l))}</ul>
-                  </div>
-                )}
+              <div key={o.id} className="grid gap-3" data-testid="estimate-option">
+                {models.map((m, gi) => (
+                  <JobSection key={m.key} index={gi + 1} job={m} estimateId={e.id} showMoney={showMoney} editable={false} technicians={technicians} canAssignTech={!!canPrices && !supplement && e.status !== "declined"} />
+                ))}
                 {showMoney && (o.shop_supplies ?? 0) > 0 && <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums">{money(o.shop_supplies)}</span></div>}
               </div>
             );
