@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircleIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { PriceModifier, ResourceKind, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
+import type { InspectionTemplate, PriceModifier, ResourceKind, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { saveModifierAction, saveRetailServiceAction, setServiceMenusAction, setSizePriceAction } from "@/app/(app)/settings/retail-actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatMoney } from "@/lib/money";
@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { InspectionTemplatesCard } from "./inspection-templates-card";
 import { LaborRatesCard, SuppliesCard } from "./labor-rates-card";
 
 const mins = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}` : `${m}m`);
@@ -31,7 +32,7 @@ const RESOURCE_LABEL: Record<ResourceKind, string> = { bay: "Bay", lift: "Lift",
  * long each takes and what it needs, the price per size class, and the
  * condition add-ons. Seeded prices stay flagged "placeholder" until edited.
  */
-export function RetailCatalogManager({ catalog }: { catalog: RetailCatalog }) {
+export function RetailCatalogManager({ catalog, inspectionTemplates = [] }: { catalog: RetailCatalog; inspectionTemplates?: InspectionTemplate[] }) {
   const [editing, setEditing] = useState<RetailCatalogService | "new" | null>(null);
   const [editingMod, setEditingMod] = useState<PriceModifier | "new" | null>(null);
   const retail = catalog.services.filter((s) => s.retail && !s.open_amount);
@@ -152,6 +153,7 @@ export function RetailCatalogManager({ catalog }: { catalog: RetailCatalog }) {
 
       <LaborRatesCard rates={catalog.labor_rates ?? []} />
       <SuppliesCard settings={catalog.settings} />
+      <InspectionTemplatesCard templates={inspectionTemplates} />
 
       <Card>
         <CardHeader>

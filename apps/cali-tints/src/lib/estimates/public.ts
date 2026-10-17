@@ -20,7 +20,8 @@ export function isTokenShape(token: string | undefined | null): token is string 
 
 export async function loadPublicEstimate(token: string): Promise<EstimateView | null> {
   if (!isTokenShape(token)) return null;
-  const { data, error } = await anonClient().rpc("estimate_by_token", { p_token: token });
+  const db = anonClient();
+  const [{ data, error }, { data: inspections }] = await Promise.all([db.rpc("estimate_by_token", { p_token: token }), db.rpc("inspections_by_token", { p_token: token })]);
   if (error || !data) return null;
-  return data;
+  return inspections?.length ? { ...data, inspections } : data;
 }

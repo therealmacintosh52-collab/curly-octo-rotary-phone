@@ -595,7 +595,7 @@ export function estimateViewFixture(id: string, money: boolean): EstimateView | 
 }
 
 export function estimatePublicFixture(token: string): EstimateView | null {
-  if (token === ESTIMATE_TOKEN) return build(true, true, estimateBase(E1)!);
+  if (token === ESTIMATE_TOKEN) return { ...build(true, true, estimateBase(E1)!), inspections: [{ id: "a1000000-0000-4000-8000-000000000009", name: "Multi-point inspection", job_title: null, items: [{ label: "Battery", group: null, state: "ok" }, { label: "Wiper blades", group: null, state: "attention" }, { label: "Serpentine belt", group: null, state: "na" }] }] };
   if (token === ESTIMATE_TOKEN_RO) return build(true, true, estimateBase(E4)!);
   if (token === ESTIMATE_TOKEN_DRAFT) return build(true, true, estimateBase(E3)!);
   return null;
@@ -1193,4 +1193,27 @@ export function activityFixture(id: string, money: boolean): import("@/lib/db/ty
     e(7.4, "MK", "estimates", "Estimate EST-000008 written"),
   ];
   return out;
+}
+
+/** 0073: the shop's inspection lists, and the check-in list ticked part way on the in-progress visit (E8). */
+export function inspectionTemplatesFixture(): import("@/lib/db/types").InspectionTemplate[] {
+  return [
+    { id: "a0000000-0000-4000-8000-000000000001", name: "Check-in checklist", active: true, items: ["Lights on dash", "Oil change sticker", "DOT inspection sticker", "Tire condition", "Body damage / four corners", "Exterior lights", "Reflective tape", "Evident leaks or odors", "Windshield condition", "Wiper blades"].map((label) => ({ label })) },
+    { id: "a0000000-0000-4000-8000-000000000002", name: "Pre-purchase inspection", active: true, items: [{ label: "Title and VIN match", group: "Paperwork" }, { label: "Engine oil level and color", group: "Under the hood" }, { label: "Brake pads and rotors", group: "Underneath" }, { label: "Road test", group: "Drive" }] },
+    { id: "a0000000-0000-4000-8000-000000000003", name: "Multi-point inspection", active: true, items: ["Battery", "Windshield chips and cracks", "Air filter", "Wiper blades", "Serpentine belt"].map((label) => ({ label })) },
+  ];
+}
+export function visitInspectionsFixture(estimateId: string): import("@/lib/db/types").VisitInspection[] {
+  if (estimateId !== E8) return [];
+  const states = ["ok", "attention", "pending", "ok", "na"] as const;
+  return [
+    {
+      id: "a1000000-0000-4000-8000-000000000001",
+      name: "Check-in checklist",
+      estimate_job_id: null,
+      job_title: null,
+      show_customer: false,
+      items: ["Lights on dash", "Oil change sticker", "DOT inspection sticker", "Tire condition", "Wiper blades"].map((label, n) => ({ id: `a2000000-0000-4000-8000-00000000000${n + 1}`, label, group: null, state: states[n], note: n === 1 ? "Overdue by 2,000 mi" : null, finding_id: null, checked_at: states[n] === "pending" ? null : "2026-10-15T17:10:00Z", checked_by: states[n] === "pending" ? null : "VR" })),
+    },
+  ];
 }

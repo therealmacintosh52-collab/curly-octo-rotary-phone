@@ -366,3 +366,32 @@ export async function deleteLaborRateAction(id: string): Promise<ActionResult> {
   revalidate();
   return { ok: true, data: undefined };
 }
+
+/** A reusable inspection checklist (0073). Owner or admin; the items are copied onto a visit when it is added. */
+const inspectionTemplateSchema = z.object({
+  id: z.uuid().optional(),
+  name: z.string().trim().min(1, "Give the list a name").max(80),
+  items: z.array(z.object({ label: z.string().trim().min(1).max(120), group: z.string().trim().max(60).optional() })).max(80),
+  active: z.boolean().optional(),
+});
+export type InspectionTemplateInput = z.input<typeof inspectionTemplateSchema>;
+
+export async function saveInspectionTemplateAction(input: InspectionTemplateInput): Promise<ActionResult<string>> {
+  await requireOwnerAdmin();
+  const parsed = inspectionTemplateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("save_inspection_template", { p: parsed.data });
+  if (error || !data) return { ok: false, error: errorMessage(error) };
+  revalidate();
+  return { ok: true, data };
+}
+
+export async function deleteInspectionTemplateAction(id: string): Promise<ActionResult> {
+  await requireOwnerAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_inspection_template", { p_id: id });
+  if (error) return { ok: false, error: errorMessage(error) };
+  revalidate();
+  return { ok: true, data: undefined };
+}

@@ -356,6 +356,8 @@ export type EstimateView = {
   shop_supplies?: number | null;
   job?: { id: string; ro_number: string | null; invoice_number?: string | null; invoiced_at?: string | null; tag_number: string; performed_at: string; paid_at: string | null; /** "Close · Picked up" was pressed (0056). */ picked_up_at?: string | null; /** 0057: where the work stands, and the quote that hosts the visit. */ completed_at?: string | null; qc_at?: string | null; primary_estimate_id?: string | null; odometer_out?: number | null; odometer: number | null } | null;
   /** The findings this estimate quotes (media URLs signed by the page). */
+  /** Checklists the shop chose to show (0073); only on the customer link. */
+  inspections?: PublicInspection[];
   findings?: JobFinding[];
   subtotal: number | null;
   tax_rate: number | null;
@@ -903,6 +905,13 @@ export type FindingSeverity = "ok" | "soon" | "urgent";
 /** open → quoted (on an estimate) → approved / declined (by the customer) → done. Staff may set open, declined, done. */
 export type FindingStatus = "open" | "quoted" | "approved" | "declined" | "done";
 export type FindingMedia = { id: string; kind: PhotoKind; storage_path: string; mime: string | null; duration_s: number | null; size_bytes: number | null; created_at: string; url?: string | null };
+/** 0073: a checklist on a visit. grey = not checked yet, ok = green, attention = red, na = not applicable. */
+export type InspectionState = "pending" | "ok" | "attention" | "na";
+export type InspectionItem = { id: string; label: string; group: string | null; state: InspectionState; note: string | null; finding_id: string | null; checked_at: string | null; checked_by: string | null };
+export type VisitInspection = { id: string; name: string; estimate_job_id: string | null; job_title: string | null; show_customer: boolean; items: InspectionItem[] };
+export type InspectionTemplate = { id: string; name: string; items: { label: string; group?: string }[]; active: boolean };
+/** inspections_by_token(): what the customer link shows of a shared checklist (no notes). */
+export type PublicInspection = { id: string; name: string; job_title: string | null; items: { label: string; group: string | null; state: InspectionState }[] };
 /** job_findings(): one note or finding on the repair order's notes tab, with its media. */
 export type JobFinding = {
   id: string;
@@ -1531,6 +1540,18 @@ export type Database = {
       delete_finding: { Args: { p_id: string }; Returns: { id: string; paths: string[] } };
       job_findings: { Args: { p_job: string }; Returns: JobFinding[] };
       estimate_findings: { Args: { p_estimate: string }; Returns: JobFinding[] };
+      inspection_templates_list: { Args: Record<string, never>; Returns: InspectionTemplate[] };
+      save_inspection_template: { Args: { p: { id?: string; name: string; items: { label: string; group?: string }[]; active?: boolean } }; Returns: string };
+      delete_inspection_template: { Args: { p_id: string }; Returns: undefined };
+      visit_inspections: { Args: { p_estimate: string }; Returns: VisitInspection[] };
+      add_inspection: { Args: { p_estimate: string; p_template?: string | null; p_name?: string | null; p_job?: string | null }; Returns: VisitInspection };
+      set_inspection_item: { Args: { p_item: string; p_state: InspectionState; p_note?: string | null }; Returns: VisitInspection };
+      add_inspection_item: { Args: { p_inspection: string; p_label: string }; Returns: VisitInspection };
+      delete_inspection_item: { Args: { p_item: string }; Returns: VisitInspection };
+      delete_inspection: { Args: { p_id: string }; Returns: undefined };
+      set_inspection_customer: { Args: { p_id: string; p_show: boolean }; Returns: undefined };
+      inspection_item_to_finding: { Args: { p_item: string }; Returns: JobFinding };
+      inspections_by_token: { Args: { p_token: string }; Returns: PublicInspection[] };
       add_finding_media: { Args: { p_finding: string; p: { path: string; mime: string; size: number; duration?: number | null } }; Returns: { id: string } };
       complete_ro_work: { Args: { p_job: string; p: { odometer_out: number | string; parts_disposition?: "offered" | "returned" | "declined" | null; jobs: { id: string; cause: string; correction: string }[] } }; Returns: { job_id: string; completed_at: string; odometer_out: number } };
       quality_check_ro: { Args: { p_job: string; p_note?: string | null }; Returns: { job_id: string; qc_at: string } };

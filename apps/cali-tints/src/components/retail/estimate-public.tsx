@@ -6,7 +6,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "r
 import { useRouter } from "next/navigation";
 import { CheckCircle2Icon, CheckIcon, ClockIcon, FileDownIcon, PlayIcon, StarIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { EstimateJobPriority, EstimateOptionView, EstimateView, JobFinding } from "@/lib/db/types";
+import type { EstimateJobPriority, EstimateOptionView, EstimateView, JobFinding, PublicInspection } from "@/lib/db/types";
 import { markEstimateViewedAction, respondEstimateAction } from "@/app/e/[token]/actions";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney, formatTaxRate } from "@/lib/money";
@@ -173,6 +173,8 @@ export function EstimatePublic({ e, token, demo = false }: { e: EstimateView; to
           <div className="text-muted-foreground">Prices may have changed; ask the shop for a fresh one{e.company.phone ? ` at ${e.company.phone}` : ""}.</div>
         </section>
       )}
+
+      <PublicInspections inspections={e.inspections ?? []} />
 
       {(e.findings ?? []).length > 0 && (
         <section className="rounded-2xl border border-border bg-card p-4 xl:sticky xl:top-6 xl:col-start-2! xl:row-span-6 xl:row-start-2 xl:self-start" data-testid="public-findings">
@@ -399,6 +401,30 @@ const PRIORITY: Record<EstimateJobPriority, { label: string; cls: string }> = {
  * each with what the tech found (photos, the note, what we recommend), its
  * lines, and its own approve / decline. Diagnosis is the first job.
  */
+/** The checklists the shop shared: each ticked row in plain words (never the tech's notes). */
+function PublicInspections({ inspections }: { inspections: PublicInspection[] }) {
+  if (inspections.length === 0) return null;
+  return (
+    <section className="rounded-2xl border border-border bg-card p-4" data-testid="public-inspections">
+      <h2 className="font-semibold">Inspection</h2>
+      {inspections.map((i) => (
+        <div key={i.id} className="mt-2">
+          <h3 className="text-sm font-medium">{i.name}</h3>
+          <ul className="mt-1 grid gap-1 text-sm">
+            {i.items.map((it, n) => (
+              <li key={n} className="flex items-center gap-2" data-state={it.state}>
+                <span className={cn("inline-block size-2.5 shrink-0 rounded-full", it.state === "ok" ? "bg-success" : it.state === "attention" ? "bg-destructive" : "bg-muted-foreground/40")} />
+                <span className={cn(it.state === "na" && "text-muted-foreground line-through")}>{it.label}</span>
+                <span className="text-caption text-subtle">{it.state === "ok" ? "good" : it.state === "attention" ? "needs attention" : it.state === "na" ? "n/a" : ""}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function PublicJobs({ o, kept, setKept, locked, findings }: { o: EstimateOptionView; kept: string[]; setKept: (f: (prev: string[]) => string[]) => void; locked: boolean; findings: JobFinding[] }) {
   const [open, setOpen] = useState<JobFinding["media"][number] | null>(null);
   const jobs = o.jobs ?? [];

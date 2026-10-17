@@ -66,3 +66,5 @@ select public.seed_automation_defaults('00000000-0000-4000-8000-000000000001');
 insert into public.labor_rates (company_id, name, rate, is_default, sort_order)
 select c.id, 'Shop rate', 120, true, 10 from public.companies c
 where not exists (select 1 from public.labor_rates lr where lr.company_id = c.id);
+-- 0073: starter inspection lists.
+select public._seed_inspection_templates('00000000-0000-4000-8000-000000000001');
