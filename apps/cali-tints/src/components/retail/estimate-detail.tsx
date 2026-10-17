@@ -40,6 +40,8 @@ import { InspectionCard } from "./inspection-card";
 import { LineTech } from "./line-tech";
 import { ShortcutRow } from "./shortcut-row";
 import { JobSection } from "./job-section";
+import { RecommendationsTable, type ApprovePreset } from "./recommendations-table";
+import { optionTotals, type SuppliesPolicy } from "@/lib/retail/quote";
 import { jobsFromView } from "@/lib/retail/job-model";
 import { TransferButton } from "./transfer-dialog";
 import { EstimateStageBadge } from "./estimate-stage-badge";
@@ -65,6 +67,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
   const [pending, start] = useTransition();
   const [sentUrl, setSentUrl] = useState<string | null>(e.status === "draft" ? null : publicUrl);
   const [accepting, setAccepting] = useState(false);
+  const [preset, setPreset] = useState<ApprovePreset | null>(null);
   const [declining, setDeclining] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "unknown">("unknown");
   useEffect(() => {
@@ -157,6 +160,9 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
           <div data-testid="estimate-invoice-document">
             <InvoiceDocument r={invoiceDoc} />
           </div>
+        )}
+        {!invoiceDoc && canPrices && open && !supplement && e.options.length === 1 && e.options[0].tier === "single" && (
+          <RecommendationsTable key={e.options[0].lines.map((l) => l.id).join()} e={e} option={e.options[0]} onApprove={(p) => { setPreset(p); setAccepting(true); }} onDeclineAll={() => setDeclining(true)} />
         )}
         {!invoiceDoc && e.options.map((o) => {
           const isChosen = chosen?.id === o.id;
@@ -666,14 +672,14 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
       )}
 
       {bar}
-      {canPrices && <MarkAcceptedDialog e={e} open={accepting} onOpenChange={setAccepting} />}
+      {canPrices && <MarkAcceptedDialog key={preset ? `${preset.method}:${preset.lineIds.join()}` : "all"} e={e} open={accepting} onOpenChange={(o) => { setAccepting(o); if (!o) setPreset(null); }} preset={preset} />}
       <DeclineDialog open={declining} onOpenChange={setDeclining} onDecline={decline} pending={pending} />
     </Page>
   );
 }
 
 /** Staff record an approval given at the counter, on the phone or by email. */
-function MarkAcceptedDialog({ e, open, onOpenChange }: { e: EstimateView; open: boolean; onOpenChange: (o: boolean) => void }) {
+function MarkAcceptedDialog({ e, open, onOpenChange, preset }: { e: EstimateView; open: boolean; onOpenChange: (o: boolean) => void; /** Some of the jobs only (from the Recommendations table): the others are recorded as declined. */ preset?: ApprovePreset | null }) {
   const router = useRouter();
   const { demo, canPrices } = useSession();
   const [agree, setAgree] = useState(false);
@@ -681,9 +687,9 @@ function MarkAcceptedDialog({ e, open, onOpenChange }: { e: EstimateView; open: 
   const padRef = useRef<HTMLDivElement>(null);
   const [pending, start] = useTransition();
   const [optionId, setOptionId] = useState(e.options.find((o) => o.recommended)?.id ?? e.options[0]?.id ?? "");
-  const [lines, setLines] = useState<string[]>(e.addons.filter((a) => a.default_on).map((a) => a.id));
+  const [lines, setLines] = useState<string[]>([...(preset?.lineIds ?? []), ...e.addons.filter((a) => a.default_on).map((a) => a.id)]);
   const [name, setName] = useState(e.customer.display_name ?? "");
-  const [method, setMethod] = useState<"in_person" | "phone" | "email">("in_person");
+  const [method, setMethod] = useState<"in_person" | "phone" | "email">(preset?.method ?? "in_person");
   const chosen = e.options.find((o) => o.id === optionId) ?? null;
   const canSubmit = !!optionId && (method !== "in_person" || (hasInk && agree && name.trim().length >= 2));
   function submit() {
@@ -723,15 +729,18 @@ function MarkAcceptedDialog({ e, open, onOpenChange }: { e: EstimateView; open: 
             <div className="rounded-lg border border-border px-3 py-2.5 text-sm" data-testid="accept-price">
               <div className="text-label text-subtle">What they are approving</div>
               <ul className="mt-1 grid gap-0.5">
-                {chosen.lines.map((l) => (
+                {chosen.lines.filter((l) => !preset || preset.lineIds.includes(l.id)).map((l) => (
                   <li key={l.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{l.name}</span><span className="tabular-nums">{formatMoney(l.line_total ?? 0)}</span></li>
                 ))}
                 {e.addons.filter((a) => lines.includes(a.id)).map((a) => (
                   <li key={a.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{a.name}</span><span className="tabular-nums">{formatMoney(a.line_total ?? 0)}</span></li>
                 ))}
               </ul>
-              <div className="mt-1.5 flex justify-between border-t border-border pt-1.5 font-semibold"><span>Total, plus tax</span><span className="tabular-nums" data-testid="accept-total">{formatMoney((chosen.total ?? 0) + e.addons.filter((a) => lines.includes(a.id)).reduce((n, a) => n + (a.line_total ?? 0), 0))}</span></div>
+              <div className="mt-1.5 flex justify-between border-t border-border pt-1.5 font-semibold"><span>Total, plus tax</span><span className="tabular-nums" data-testid="accept-total">{formatMoney((preset ? optionTotals(chosen.lines.filter((l) => preset.lineIds.includes(l.id)).map((l) => ({ line_type: l.line_type ?? "service", line_total: l.line_total ?? 0, taxable: l.taxable, duration_minutes: l.duration_minutes, qty: l.qty })), e.tax_rate ?? 0, (e.policy ?? null) as SuppliesPolicy | null).total : (chosen.total ?? 0)) + e.addons.filter((a) => lines.includes(a.id)).reduce((n, a) => n + (a.line_total ?? 0), 0))}</span></div>
             </div>
+          )}
+          {preset && preset.declinedTitles.length > 0 && (
+            <p className="rounded-lg bg-muted/60 px-3 py-2 text-caption text-muted-foreground" data-testid="accept-declined">Recorded as declined, and kept on the car&apos;s record: {preset.declinedTitles.join(", ")}.</p>
           )}
           {e.options.length > 1 && (
             <div className="grid gap-1.5">
