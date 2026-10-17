@@ -90,6 +90,22 @@ describe("QuickBooks client", () => {
     expect((err as QuickBooksApiError).code).toBe("3200");
   });
 
+  it("lists a customer's invoices in a date window, oldest first, one page at a time", async () => {
+    const queries: string[] = [];
+    const f = fakeFetch((url) => {
+      queries.push(url.searchParams.get("query") ?? "");
+      return { body: { QueryResponse: { Invoice: [{ Id: "11", DocNumber: "1061", TxnDate: "2026-02-28", Line: [{ Id: "1", Description: "Stock 4821", Amount: 200, DetailType: "SalesItemLineDetail" }] }], startPosition: 1, maxResults: 1 } } };
+    });
+    const c = new QuickBooksClient("production", "9", "tok", f);
+    const rows = await c.listInvoices({ customerId: "7", from: "2026-01-01", to: "2026-06-30", start: 1001 });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ Id: "11", DocNumber: "1061" });
+    expect(queries[0]).toBe("select * from Invoice where CustomerRef = '7' and TxnDate >= '2026-01-01' and TxnDate <= '2026-06-30' orderby TxnDate startposition 1001 maxresults 1000");
+    // a page can never be asked for more than QuickBooks allows, or from before the first row
+    await c.listInvoices({ customerId: "7", from: "2026-01-01", to: "2026-06-30", start: 0, max: 5000 });
+    expect(queries[1]).toContain("startposition 1 maxresults 1000");
+  });
+
   it("escapes quotes in query strings", () => {
     expect(escapeQ("Mike's Autos")).toBe("Mike\\'s Autos");
   });

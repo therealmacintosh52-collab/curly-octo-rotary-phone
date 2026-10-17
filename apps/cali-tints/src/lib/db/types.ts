@@ -1410,6 +1410,7 @@ export type Database = {
     Tables: {
       companies: Table<Company>;
       ro_documents: Table<RoDocument>;
+      quickbooks_billed_lines: Table<{ id: number; company_id: string; dealership_id: string | null; qbo_invoice_id: string; doc_number: string | null; line_key: string; txn_date: string | null; service_date: string | null; stock_number: string | null; vin: string | null; description: string | null; amount: number | null; parsed_ok: boolean; source: "history" | "app"; imported_at: string }>;
       receipt_tokens: Table<{ job_id: string; company_id: string; token: string; created_at: string }>;
       profiles: Table<Profile>;
       dealerships: Table<Dealership>;
@@ -1573,6 +1574,8 @@ export type Database = {
       clear_pin: { Args: { p_user: string }; Returns: undefined };
       pin_holders: { Args: Record<string, never>; Returns: string[] };
       jobs_missing_sold_charge: { Args: Record<string, never>; Returns: string[] };
+      find_quickbooks_billed: { Args: { p_tag_number: string; p_vin?: string | null; p_dealership_id?: string | null }; Returns: { id: number; doc_number: string | null; billed_on: string | null; stock_number: string | null; vin: string | null; description: string | null; amount: number | null }[] };
+      quickbooks_history_stats: { Args: Record<string, never>; Returns: { lines: number; unread: number; invoices: number; last_import: string | null } | null };
       restore_job: { Args: { p_id: string }; Returns: undefined };
       uninvoiced_jobs: { Args: { p_dealership_id: string; p_start: string; p_end: string }; Returns: Job[] };
       generate_invoice: {

@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangleIcon, BookOpenCheckIcon, CheckCircle2Icon, LogInIcon, RefreshCwIcon, UnplugIcon } from "lucide-react";
+import { AlertTriangleIcon, BookOpenCheckIcon, CheckCircle2Icon, HistoryIcon, LogInIcon, RefreshCwIcon, UnplugIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Company } from "@/lib/db/types";
-import { disconnectQuickBooksAction, syncQuickBooksAction, updateQuickBooksSettingsAction } from "@/app/(app)/settings/actions";
+import { disconnectQuickBooksAction, importQuickBooksHistoryAction, syncQuickBooksAction, updateQuickBooksSettingsAction } from "@/app/(app)/settings/actions";
+import { historyWindows } from "@/lib/quickbooks/history-parse";
+import { toDateInput } from "@/lib/dates";
 import { useSession } from "@/components/app/session-provider";
 import { formatDateTime } from "@/lib/dates";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -15,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Hint, Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type CompanyQbo = Pick<Company, "quickbooks_realm_id" | "quickbooks_company_name" | "quickbooks_env" | "quickbooks_connected_at" | "quickbooks_item_name" | "quickbooks_auto_push" | "quickbooks_last_sync_at" | "quickbooks_last_error">;
 
@@ -29,7 +32,14 @@ export interface QuickBooksNotice {
  * from then on every monthly invoice is created in QuickBooks and payments
  * recorded there come back here. Keys live in the hosting environment.
  */
-export function QuickBooksCard({ company, configured, notice = null }: { company: CompanyQbo; configured: boolean; notice?: QuickBooksNotice | null }) {
+export interface HistoryStats {
+  lines: number;
+  unread: number;
+  invoices: number;
+  last_import: string | null;
+}
+
+export function QuickBooksCard({ company, configured, notice = null, dealerships = [], history = null }: { company: CompanyQbo; configured: boolean; notice?: QuickBooksNotice | null; /** The dealerships whose past invoices can be imported. */ dealerships?: { id: string; name: string }[]; history?: HistoryStats | null }) {
   const router = useRouter();
   const { demo } = useSession();
   const [saving, startSave] = useTransition();
@@ -173,10 +183,116 @@ export function QuickBooksCard({ company, configured, notice = null }: { company
             </Button>
           </div>
         </form>
+        {connected && <HistoryImport dealerships={dealerships} stats={history} />}
         <p className="text-caption text-subtle">
           QuickBooks numbers the invoices; those numbers show on jobs and invoices here. Using QuickBooks Desktop? Use Export → CSV or the invoice&apos;s Excel download and import it there.
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Read the dealerships' past invoices from QuickBooks so New job can warn when a car was already billed.
+ * Nothing is created: the lines are kept in a lookup list of their own. Safe to run again.
+ */
+function HistoryImport({ dealerships, stats }: { dealerships: { id: string; name: string }[]; stats: HistoryStats | null }) {
+  const router = useRouter();
+  const { demo } = useSession();
+  const [months, setMonths] = useState("24");
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [report, setReport] = useState<{ invoices: number; lines: number; unread: number; skipped: string[] } | null>(null);
+
+  async function run() {
+    setRunning(true);
+    setReport(null);
+    const totals = { invoices: 0, lines: 0, unread: 0, skipped: [] as string[] };
+    try {
+      if (demo) {
+        for (const d of dealerships) {
+          setProgress(`${d.name} · reading…`);
+          await new Promise((r) => setTimeout(r, 350));
+        }
+        setReport({ invoices: 42, lines: 318, unread: 9, skipped: [] });
+        toast.success("Past invoices read", { description: "Guest preview · simulated" });
+        return;
+      }
+      const windows = historyWindows(toDateInput(new Date()), Number(months));
+      for (const d of dealerships) {
+        windowLoop: for (const w of windows) {
+          let start = 1;
+          for (;;) {
+            setProgress(`${d.name} · ${w.from} to ${w.to}`);
+            const r = await importQuickBooksHistoryAction({ dealershipId: d.id, from: w.from, to: w.to, start });
+            if (!r.ok) throw new Error(r.error);
+            totals.invoices += r.data.invoices;
+            totals.lines += r.data.lines;
+            totals.unread += r.data.unread;
+            if (r.data.skipped) {
+              totals.skipped.push(`${d.name}: ${r.data.skipped}`);
+              break windowLoop;
+            }
+            if (r.data.next === null) break;
+            start = r.data.next;
+          }
+        }
+      }
+      setReport(totals);
+      toast.success(`Read ${totals.invoices} past ${totals.invoices === 1 ? "invoice" : "invoices"}`);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "The import stopped");
+      setReport(totals);
+    } finally {
+      setRunning(false);
+      setProgress(null);
+    }
+  }
+
+  return (
+    <div className="grid gap-3 rounded-lg border border-border px-3 py-3" data-testid="quickbooks-history">
+      <div className="grid gap-0.5">
+        <span className="flex items-center gap-2 text-sm font-medium">
+          <HistoryIcon className="size-4 text-primary" /> Past invoices: stop double billing
+        </span>
+        <span className="text-xs text-muted-foreground">
+          Reads the dealerships&apos; older invoices from QuickBooks so New job warns when a stock number or VIN was already billed. It only reads: nothing is created or changed in QuickBooks, and no job is made. Run it once, and again any time.
+        </span>
+      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="grid gap-1.5">
+          <Label htmlFor="qbo-history-months">How far back</Label>
+          <Select value={months} onValueChange={setMonths} disabled={running}>
+            <SelectTrigger id="qbo-history-months" className="w-40" data-testid="quickbooks-history-months">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="12">12 months</SelectItem>
+              <SelectItem value="24">24 months</SelectItem>
+              <SelectItem value="36">36 months</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button type="button" size="sm" variant="outline" loading={running} onClick={run} disabled={dealerships.length === 0} data-testid="quickbooks-history-run">
+          Import past invoices
+        </Button>
+      </div>
+      {progress && <p className="text-xs text-muted-foreground" data-testid="quickbooks-history-progress">{progress}</p>}
+      {report && (
+        <p className="text-sm" data-testid="quickbooks-history-report">
+          Read {report.invoices} {report.invoices === 1 ? "invoice" : "invoices"}, {report.lines} lines
+          {report.unread > 0 ? `; ${report.unread} lines have no stock number or VIN I could read, so they cannot warn.` : "."}
+          {report.skipped.map((m) => (
+            <span key={m} className="block text-warning">{m}</span>
+          ))}
+        </p>
+      )}
+      {!report && stats && stats.lines > 0 && (
+        <p className="text-xs text-muted-foreground" data-testid="quickbooks-history-stats">
+          Last import {stats.last_import ? formatDateTime(stats.last_import) : ""}: {stats.invoices} invoices, {stats.lines} lines{stats.unread ? ` (${stats.unread} unreadable)` : ""}.
+        </p>
+      )}
+    </div>
   );
 }

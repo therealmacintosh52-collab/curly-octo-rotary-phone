@@ -15,10 +15,14 @@ export interface DuplicateHit {
   services?: string | null;
   /** Present when the earlier job is already on a live invoice. */
   invoice_number?: string | null;
+  /** The car is on a past invoice in QuickBooks (imported history, 0072), not a job logged here. */
+  quickbooks?: boolean;
 }
 
 export function DuplicateDialog({ hits, onCancel, onContinue }: { hits: DuplicateHit[] | null; onCancel: () => void; onContinue: () => void }) {
-  const billed = (hits ?? []).some((h) => h.invoice_number);
+  const billed = (hits ?? []).some((h) => h.invoice_number && !h.quickbooks);
+  const inQuickBooks = (hits ?? []).some((h) => h.quickbooks);
+  const loggedHere = (hits ?? []).some((h) => !h.quickbooks);
   return (
     <Dialog open={!!hits} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent>
@@ -27,8 +31,9 @@ export function DuplicateDialog({ hits, onCancel, onContinue }: { hits: Duplicat
             <AlertTriangleIcon className="size-5 text-warning" /> Possible duplicate
           </DialogTitle>
           <DialogDescription>
-            This tag or VIN was already logged in the last 7 days.
+            {loggedHere ? "This tag or VIN was already logged in the last 7 days." : ""}
             {billed ? " At least one of those jobs has already been invoiced to the dealer." : ""}
+            {inQuickBooks ? `${loggedHere ? " " : ""}This stock number or VIN is already on an invoice in QuickBooks.` : ""}
           </DialogDescription>
         </DialogHeader>
         <ul className="divide-y divide-border rounded-lg border border-border">
@@ -38,8 +43,8 @@ export function DuplicateDialog({ hits, onCancel, onContinue }: { hits: Duplicat
                 <span className="flex items-center gap-2 font-semibold">
                   {h.tag_number}
                   {h.invoice_number && (
-                    <Badge variant="destructive">
-                      <ReceiptIcon /> Billed on {h.invoice_number}
+                    <Badge variant="destructive" data-testid={h.quickbooks ? "duplicate-quickbooks" : undefined}>
+                      <ReceiptIcon /> {h.quickbooks ? `In QuickBooks · ${h.invoice_number}` : `Billed on ${h.invoice_number}`}
                     </Badge>
                   )}
                 </span>

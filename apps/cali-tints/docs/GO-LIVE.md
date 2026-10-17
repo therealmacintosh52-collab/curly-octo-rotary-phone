@@ -25,7 +25,7 @@ Mike already pays for QuickBooks Online and the Clover devices. Total run cost: 
 
 1. New project (US West), strong database password, save it.
 2. Project Settings → API: copy the project URL and the publishable key; Settings → API keys: create a secret (service role) key.
-3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0071` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
+3. Apply the schema: in `apps/cali-tints`, `.env.local` with `SUPABASE_DB_URL` (Settings → Database → Session pooler string) then `pnpm db:push` (runs `supabase/migrations/0001` … `0072` in order; re-runnable) and `psql "$SUPABASE_DB_URL" -f supabase/seed.sql` for the company row, dealerships and the service menu.
 4. Authentication → URL configuration: Site URL `https://app.calitints.com`, Redirect URLs `https://app.calitints.com/auth/callback` and `https://app.calitints.com/auth/reset`. Email templates: the defaults are fine; the invite goes through this.
 5. Storage: the buckets (`job-photos`, `logos`, `submission-confirmations`) are created by the migrations. Nothing to click.
 6. Backups: Pro includes daily backups; turn on Point-in-time recovery if Mike wants hour-level restores (+$100/mo, usually not needed).
@@ -58,6 +58,7 @@ Add and verify the sending domain (DNS records), create an API key, set `EMAIL_F
 1. On developer.intuit.com (your login): create an app, QuickBooks Online Accounting scope. Keys & credentials → Production: copy the client id and secret into Vercel (`QUICKBOOKS_*`), add the redirect URI `https://app.calitints.com/api/quickbooks/callback`. Production keys need the app's *Production settings* filled in (privacy URL `https://app.calitints.com/privacy`, terms URL `/terms`, a host domain, EULA); Intuit approves that in a day or two. Test with the Development keys and `QUICKBOOKS_ENV=sandbox` against a sandbox company first.
 2. Mike: Settings → QuickBooks Online → **Connect QuickBooks**, sign in with the Intuit login that owns the books, pick the company. Open invoices go over at once.
 3. Check: log a test job; within seconds it is a line on a new open invoice in QuickBooks for that dealership (the job row shows `QB <number>`). Edit the job: the line changes. Delete it: the line goes. In QuickBooks the customer (dealership) and the *Auto detailing* item exist.
+3b. **Import the past invoices (once):** Settings → QuickBooks Online → **Import past invoices** (24 months to start). New job then warns when a stock number or VIN is already on an old QuickBooks invoice. Check it: open an old invoice in QuickBooks, log a test job with one of its stock numbers, and the warning names that invoice; the card reports how many old lines had no stock number or VIN to read. Each dealership must have a QuickBooks customer with exactly its name here.
 4. Record a test payment in QuickBooks on a closed month's invoice; after the next daily run (or **Sync now**) the invoice here shows it. Sending the invoice from QuickBooks marks it Sent here after the next sync.
 
 ## 7. The Clover app (you: 1 to 2 weeks of calendar time, mostly waiting)

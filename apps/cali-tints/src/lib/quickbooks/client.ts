@@ -66,6 +66,21 @@ export interface QboInvoice {
   EmailStatus?: "NotSet" | "NeedToSend" | "EmailSent" | string;
   sparse?: boolean;
 }
+/** A line of any kind on an invoice read back from QuickBooks (history): only some carry a description and a service date. */
+export interface QboAnyLine {
+  Id?: string;
+  LineNum?: number;
+  Description?: string;
+  Amount?: number;
+  DetailType?: string;
+  SalesItemLineDetail?: { ServiceDate?: string };
+}
+export interface QboHistoryInvoice {
+  Id: string;
+  DocNumber?: string;
+  TxnDate?: string;
+  Line?: QboAnyLine[];
+}
 export interface QboCompanyInfo {
   CompanyName: string;
   LegalName?: string;
@@ -150,6 +165,19 @@ export class QuickBooksClient {
   async createServiceItem(name: string, incomeAccountId: string): Promise<QboItem> {
     const r = await this.request<{ Item: QboItem }>("POST", "item", { Name: name, Type: "Service", IncomeAccountRef: { value: incomeAccountId } });
     return r.Item;
+  }
+
+  /**
+   * One page of a customer's invoices in a date window, oldest first (history, 0072). QuickBooks returns at most
+   * 1000 rows per query; `start` is 1-based. A page shorter than `max` is the last one.
+   */
+  async listInvoices(opts: { customerId: string; from: string; to: string; start?: number; max?: number }): Promise<QboHistoryInvoice[]> {
+    const max = Math.min(Math.max(opts.max ?? 1000, 1), 1000);
+    const start = Math.max(opts.start ?? 1, 1);
+    return this.query<QboHistoryInvoice>(
+      "Invoice",
+      `select * from Invoice where CustomerRef = '${escapeQ(opts.customerId)}' and TxnDate >= '${opts.from}' and TxnDate <= '${opts.to}' orderby TxnDate startposition ${start} maxresults ${max}`,
+    );
   }
 
   async getInvoice(id: string): Promise<QboInvoice> {

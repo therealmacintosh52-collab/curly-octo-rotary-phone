@@ -8,7 +8,8 @@ import { requireOwner, requireOwnerAdmin } from "@/lib/auth";
 import { errorMessage } from "@/lib/utils";
 import type { ActionResult } from "@/app/(app)/jobs/actions";
 import { closeMonth, type MonthCloseReport } from "@/lib/invoices/submit";
-import { syncQuickBooks, type SyncReport } from "@/lib/quickbooks/sync";
+import { clientFor, syncQuickBooks, type SyncReport } from "@/lib/quickbooks/sync";
+import { importHistoryChunk, type HistoryChunk } from "@/lib/quickbooks/history";
 import { disconnect as disconnectQuickBooks } from "@/lib/quickbooks/connection";
 
 const optionalText = (max: number) => z.string().trim().max(max).transform((s) => s || null);
@@ -274,6 +275,28 @@ export async function syncQuickBooksAction(): Promise<ActionResult<SyncReport>> 
     revalidatePath("/settings");
     revalidatePath("/invoices");
     return { ok: true, data: report };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+/**
+ * Owner: read one dealership's past invoices from QuickBooks for one date window and keep the lines as "already
+ * billed" (0072). The screen calls this again with `start` = the returned `next` until it is null, then moves on
+ * to the next window or dealership, so no single call runs long.
+ */
+export async function importQuickBooksHistoryAction(input: { dealershipId: string; from: string; to: string; start: number }): Promise<ActionResult<HistoryChunk>> {
+  const session = await requireOwner();
+  const iso = /^\d{4}-\d{2}-\d{2}$/;
+  if (!/^[0-9a-f-]{36}$/i.test(input.dealershipId) || !iso.test(input.from) || !iso.test(input.to) || !Number.isInteger(input.start) || input.start < 1) return { ok: false, error: "Invalid request" };
+  try {
+    const db = createAdminClient();
+    const c = await clientFor(db, session.company.id);
+    if (!c) return { ok: false, error: "QuickBooks is not connected" };
+    if ("error" in c) return { ok: false, error: c.error };
+    const chunk = await importHistoryChunk(db, c.client, session.company.id, input);
+    revalidatePath("/settings");
+    return { ok: true, data: chunk };
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }

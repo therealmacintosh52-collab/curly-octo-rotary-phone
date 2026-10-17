@@ -209,11 +209,19 @@ export function JobForm({ dealerships, priceLists, detailers, recentJobs }: Prop
   async function checkDuplicates(): Promise<DuplicateHit[]> {
     const local = await findLocalDuplicates(tag, vin || null).catch(() => [] as RecentJob[]);
     let remote: DuplicateHit[] = [];
+    // Guest demo: this stock number stands in for a car already billed on a past QuickBooks invoice.
+    if (demo && tag.trim() === "4821") remote = [{ id: "qb-demo", tag_number: "4821", vin: null, performed_at: "2026-03-12T00:00:00Z", model: null, services: "Mar 12 · Stock 4821 · 2024 Mercedes-Benz GLE 450 · Used", invoice_number: "QB 1042", quickbooks: true }];
     if (navigator.onLine && !demo) {
       try {
         const { createClient } = await import("@/lib/supabase/client");
         const { data } = await createClient().rpc("find_duplicate_jobs", { p_tag_number: tag.trim(), p_vin: vin || null, p_dealership_id: null });
         remote = data ?? [];
+        // Past invoices imported from QuickBooks (0072): any date, same dealership or VIN.
+        const { data: billed } = await createClient().rpc("find_quickbooks_billed", { p_tag_number: tag.trim(), p_vin: vin || null, p_dealership_id: dealershipId || null });
+        remote = [
+          ...remote,
+          ...(billed ?? []).map((b): DuplicateHit => ({ id: `qb-${b.id}`, tag_number: b.stock_number ?? tag.trim().toUpperCase(), vin: b.vin, performed_at: b.billed_on ?? "", model: null, services: b.description, invoice_number: b.doc_number ? `QB ${b.doc_number}` : "QuickBooks", quickbooks: true })),
+        ];
       } catch {
         /* offline or slow: local check is enough */
       }

@@ -38,7 +38,7 @@ export default function DevSettingsPreview() {
               <SettingsNav />
             </div>
             <div className="mt-5 flex flex-col gap-10">
-              <QuickBooksCard company={company} configured />
+              <QuickBooksCard company={company} configured dealerships={dealerships.map((d) => ({ id: d.id, name: d.name }))} history={{ lines: 318, unread: 9, invoices: 42, last_import: new Date().toISOString() }} />
               <ServicesManager services={services} dealerships={dealerships.map((d) => ({ id: d.id, name: d.name }))} prices={[{ dealership_id: "d2", service_id: "s3", price: 215 }]} />
               <DealershipsManager dealerships={dealerships} />
               <UsersManager users={users} currentUserId="u1" currentRole="owner" emailConfigured />

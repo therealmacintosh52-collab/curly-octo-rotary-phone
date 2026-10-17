@@ -24,7 +24,7 @@ export interface SyncReport {
   notConnected?: boolean;
 }
 
-async function clientFor(db: Db, companyId: string): Promise<{ client: QuickBooksClient; realmId: string } | { error: string } | null> {
+export async function clientFor(db: Db, companyId: string): Promise<{ client: QuickBooksClient; realmId: string } | { error: string } | null> {
   const creds = await getCredentials(db, companyId);
   if (!creds) return null;
   if (creds.status !== "ok" || !creds.accessToken) return { error: creds.lastError ? `Reconnect QuickBooks: ${creds.lastError}` : "Reconnect QuickBooks" };
