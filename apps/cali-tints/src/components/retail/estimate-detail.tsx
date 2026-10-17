@@ -11,7 +11,7 @@ import type { ActivityEntry, EstimateView, InspectionTemplate, JobEstimate, Sign
 import { convertEstimateAction, declineEstimateAction, markEstimateAcceptedAction, sendEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { useSession } from "@/components/app/session-provider";
 import { formatDate, formatDateTime } from "@/lib/dates";
-import { formatMoney, formatTaxRate } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import { detectPlatform, formatPhone, smsHref } from "@/lib/retail/phone";
 import { SIZE_LABEL } from "@/lib/retail/size-class";
 import { Page } from "@/components/app/page-header";
@@ -40,6 +40,8 @@ import { InspectionCard } from "./inspection-card";
 import { LineTech } from "./line-tech";
 import { ShortcutRow } from "./shortcut-row";
 import { JobSection } from "./job-section";
+import { SummaryCard } from "./summary-card";
+import { LogTab } from "./log-tab";
 import { RecommendationsTable, type ApprovePreset } from "./recommendations-table";
 import { optionTotals, type SuppliesPolicy } from "@/lib/retail/quote";
 import { jobsFromView } from "@/lib/retail/job-model";
@@ -306,16 +308,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
 
       <div className="contents">
         {showMoney && !invoiceDoc && (
-          <Card data-testid="estimate-money">
-            <CardContent className="grid gap-1.5 pt-5 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">{accepted ? "Subtotal" : e.options.length > 1 ? "Subtotal (recommended)" : "Subtotal"}</span><span className="tabular-nums">{money(e.subtotal)}</span></div>
-              {(e.shop_supplies ?? 0) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Shop supplies</span><span className="tabular-nums" data-testid="estimate-supplies">{money(e.shop_supplies)}</span></div>}
-              <div className="flex justify-between"><span className="text-muted-foreground">Tax ({formatTaxRate(Number(e.tax_rate ?? 0))})</span><span className="tabular-nums">{money(e.tax)}</span></div>
-              <div className="flex justify-between border-t border-border pt-2 text-base font-semibold"><span>Total</span><span className="tabular-nums" data-testid="estimate-total">{money(e.total)}</span></div>
-              {(e.deposit_required ?? 0) > 0 && <div className="flex justify-between text-caption text-subtle"><span>Deposit to book</span><span className="tabular-nums">{money(e.deposit_required)}</span></div>}
-              {e.po_number && <div className="flex justify-between text-caption text-subtle"><span>PO</span><span>{e.po_number}</span></div>}
-            </CardContent>
-          </Card>
+          <SummaryCard e={e} option={chosen ?? e.options.find((o) => o.recommended) ?? e.options[0] ?? null} accepted={accepted} />
         )}
 
         {canPrices && open && (
@@ -461,6 +454,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
           </Card>
         )}
         {isAdmin && activity && <ActivityCard entries={activity} />}
+        {isAdmin && activity && <LogTab entries={activity} />}
       </div>
     </div>
   );

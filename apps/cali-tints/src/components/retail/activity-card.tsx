@@ -43,7 +43,7 @@ export function ActivityCard({ entries }: { entries: ActivityEntry[] }) {
               return (
                 <li key={`${x.at}-${i}`}>
                   {head && <div className="mt-3 border-b border-border pb-1 text-label text-subtle first:mt-0">{dayLabelIn(x.at, tz, true)}, {new Date(x.at).toLocaleDateString("en-US", { year: "numeric", timeZone: tz })}</div>}
-                  <div className="grid grid-cols-[4.5rem_3rem_1fr] items-baseline gap-2 border-b border-border/50 py-1.5 text-sm last:border-b-0" data-testid="activity-row" data-kind={x.kind}>
+                  <div className="grid grid-cols-[4.5rem_4.25rem_1fr] items-baseline gap-2 border-b border-border/50 py-1.5 text-sm last:border-b-0" data-testid="activity-row" data-kind={x.kind}>
                     <span className="text-caption tabular-nums text-subtle">{timeIn(x.at, tz)}</span>
                     <span className={cn("text-caption font-semibold", x.who === "Customer" ? "text-primary" : x.who === "System" ? "text-subtle" : "text-foreground")} data-testid="activity-who">{x.who}</span>
                     <span className="min-w-0">
