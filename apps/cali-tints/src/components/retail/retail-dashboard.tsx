@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDaysIcon, ClockIcon, FileTextIcon, LayoutGridIcon, UserIcon, UsersIcon, WrenchIcon } from "lucide-react";
+import { CalendarDaysIcon, ClockIcon, FileTextIcon, LayoutGridIcon, PackageIcon, UserIcon, UsersIcon, WrenchIcon } from "lucide-react";
 import type { CalendarItem, EstimateListRow, EstimateStage, MyTransfers, RetailMoneySummary, RetailTechnician, TextQueueRow } from "@/lib/db/types";
 import { TextQueue } from "./text-queue";
 import { TransferInbox } from "./transfer-inbox";
@@ -43,6 +43,8 @@ export interface RetailDashboardData {
   texts: TextQueueRow[];
   /** Owner, admin, advisor: amounts and what is still owed. */
   showMoney: boolean;
+  /** Stocked parts at or under their reorder point (0075). */
+  lowStock?: number;
   /** What came in and what is still owed (pricers only). */
   money?: RetailMoneySummary | null;
 }
@@ -88,6 +90,11 @@ export function RetailDashboard({ data, shopName, tz }: { data: RetailDashboardD
         title="Jobs in the shop"
         actions={
           <>
+            <Button asChild variant="outline">
+              <Link href="/retail/parts" data-testid="retail-parts">
+                <PackageIcon /> Parts{(data.lowStock ?? 0) > 0 && <Badge variant="warning" data-testid="parts-low-badge">{data.lowStock}</Badge>}
+              </Link>
+            </Button>
             <Button asChild variant="outline">
               <Link href="/retail/customers/new">
                 <UsersIcon /> New customer

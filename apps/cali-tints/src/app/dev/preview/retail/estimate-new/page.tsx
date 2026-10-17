@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { RetailNav } from "@/components/retail/retail-nav";
 import { EstimateBuilder } from "@/components/retail/estimate-builder";
 import type { CustomerPick } from "@/components/retail/customer-picker";
-import { jobFindingsFixture, pickedCustomersFixture, retailCatalogFixture, RETAIL_JOB_CUSTOMER, cannedJobsFixture, pastServicesFixture, retailTechniciansFixture } from "@/test/retail-fixtures";
+import { jobFindingsFixture, pickedCustomersFixture, retailCatalogFixture, RETAIL_JOB_CUSTOMER, cannedJobsFixture, inventoryFixture, pastServicesFixture, retailTechniciansFixture } from "@/test/retail-fixtures";
 import { linesFromFindings } from "@/lib/estimates/from-findings";
 import { previewSession } from "@/test/preview-session";
 
@@ -29,7 +29,7 @@ export default async function DevEstimateNewPreview(props: PageProps<"/dev/previ
           <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
             <RetailNav />
           </div>
-          <EstimateBuilder canned={cannedJobsFixture()} technicians={retailTechniciansFixture()} demoPast={pastServicesFixture()} key={JSON.stringify(sp)} catalog={catalog} recent={recent} initialPick={initialPick} carHint={carHint} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={initialLines} />
+          <EstimateBuilder canned={cannedJobsFixture()} technicians={retailTechniciansFixture()} demoPast={pastServicesFixture()} demoInventory={inventoryFixture(true)} key={JSON.stringify(sp)} catalog={catalog} recent={recent} initialPick={initialPick} carHint={carHint} job={jobId && job ? { id: jobId, ro_number: jobId.endsWith("999") ? "RO-000042" : "RO-000041", tag_number: jobId.endsWith("999") ? "R-102" : "R-101" } : null} initialLines={initialLines} />
         </AppShell>
       </SyncProvider>
     </SessionProvider>

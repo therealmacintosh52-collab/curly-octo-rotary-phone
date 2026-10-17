@@ -42,6 +42,7 @@ const DEMO_REWRITES: [prefix: string, target: string, exact?: boolean][] = [
   ["/retail/estimates/new", "/dev/preview/retail/estimate-new"],
   ["/retail/estimates", "/dev/preview/retail/estimates", true],
   ["/retail/calendar", "/dev/preview/retail/calendar"],
+  ["/retail/parts", "/dev/preview/retail/parts"],
   ["/retail/invoices", "/dev/preview/retail/invoices", true],
   ["/retail/jobs", "/dev/preview/retail/jobs", true],
   ["/book", "/dev/preview/retail/book", true],

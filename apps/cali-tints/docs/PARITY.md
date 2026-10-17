@@ -158,7 +158,7 @@ Decisions that shaped the table (2026-10-12): same business (Mike's shop, retail
 
 | Feature | Source | Where it lives | Status | Flag |
 |---|---|---|---|---|
-| Inventory, parts status, POs, vendors, PartsTech | URB ORB TEK ALP DOC | — | Not built | — |
+| Inventory, parts status, POs, vendors, PartsTech | URB ORB TEK ALP DOC | — | Built (shelf, ledger, POs, receiving, vendors; no PartsTech) | — |
 | Account-level wholesale price lists | DOC URB | `dealership_service_prices` | Existing | none |
 | Dealer portal login, VIN submission, fleet automation | DOC URB | — | Not built | none |
 | Consolidated monthly invoice, terms, reminders, aging | DOC URB | `/invoices`, QuickBooks | Existing | none |

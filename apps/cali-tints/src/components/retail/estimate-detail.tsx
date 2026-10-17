@@ -609,7 +609,7 @@ export function EstimateDetail({ e, showMoney, publicUrl, notes, findingsCount, 
       </div>
 
       <div className="mt-4"><EstimateMeta e={e} tech={invoiceDoc?.tech ?? null} /></div>
-      {!supplement && <div className="mt-3"><ShortcutRow e={e} /></div>}
+      {!supplement && <div className="mt-3"><ShortcutRow e={e} canOrder={!!canPrices} /></div>}
       <div className="mt-3 grid gap-3 md:grid-cols-2" data-testid="estimate-parties">
         <Card>
           <CardContent className="grid gap-1 pt-5 text-sm">

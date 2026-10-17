@@ -26,7 +26,7 @@ export default async function DevRetailPreview(props: PageProps<"/dev/preview/re
             <RetailNav />
           </div>
           <RetailDashboard
-            data={{ tab, view, who, technicians: retailTechniciansFixture(), transfers: myTransfersFixture(),  customers: today.customers, open: open.rows, closed: closed.rows, counts: open.counts ?? {}, leads: today.leads, holds: today.holds, appointments: today.appointments, texts: textQueueFixture(), showMoney: canPrices, money: today.money ?? null }}
+            data={{ tab, view, who, technicians: retailTechniciansFixture(), transfers: myTransfersFixture(),  customers: today.customers, open: open.rows, closed: closed.rows, counts: open.counts ?? {}, leads: today.leads, holds: today.holds, appointments: today.appointments, texts: textQueueFixture(), showMoney: canPrices, money: today.money ?? null, lowStock: 2 }}
             shopName="Cali Tint · Fulton Ave"
             tz="America/Los_Angeles"
           />

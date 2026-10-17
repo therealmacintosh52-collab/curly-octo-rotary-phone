@@ -251,6 +251,8 @@ export type EstimateLineView = {
   /** Who does a labor line (0074): initials only, and the id so the advisor can change it. */
   tech?: string | null;
   tech_id?: string | null;
+  /** A part line that is a stocked part (0075). */
+  inventory_item_id?: string | null;
   /** Staff money only, never on the public view. */
   cost?: number | null;
   /** Single option: the customer's answer per line (null until answered). */
@@ -434,7 +436,7 @@ export type EstimateListResult = { count: number; counts?: Partial<Record<Estima
 export type EstimateLineInput = (
   | { line_type?: "service"; service_id: string; qty?: number; label?: string | null; price?: number | null; modifiers?: string[]; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
   | { line_type: "labor"; label: string; hours: number; rate?: number | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection; tech_id?: string | null }
-  | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; part_condition?: PartCondition; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
+  | { line_type: "part"; label: string; qty?: number; price: number; part_number?: string | null; part_condition?: PartCondition; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection; inventory_item_id?: string | null }
   | { line_type: "fee" | "sublet"; label: string; qty?: number; price: number; vendor?: string | null; taxable?: boolean | null; cost?: number | null; finding_id?: string | null; section?: EstimateSection }
 ) & { /** The key of the named job this line belongs to (0054). */ job?: string };
 export type EstimatePayload = {
@@ -908,6 +910,14 @@ export type FindingSeverity = "ok" | "soon" | "urgent";
 /** open → quoted (on an estimate) → approved / declined (by the customer) → done. Staff may set open, declined, done. */
 export type FindingStatus = "open" | "quoted" | "approved" | "declined" | "done";
 export type FindingMedia = { id: string; kind: PhotoKind; storage_path: string; mime: string | null; duration_s: number | null; size_bytes: number | null; created_at: string; url?: string | null };
+/** 0075: parts inventory. Cost and list price are null unless the viewer may see prices. */
+export type InventoryItem = { id: string; part_number: string; name: string; vendor_id: string | null; vendor: string | null; brand: string | null; bin: string | null; cost: number | null; list_price: number | null; qty_on_hand: number; reorder_at: number | null; taxable: boolean | null; active: boolean; low: boolean; negative: boolean };
+export type InventoryItemInput = { id?: string; part_number: string; name: string; vendor_id?: string | null; brand?: string | null; bin?: string | null; cost?: number | null; list_price?: number | null; reorder_at?: number | null; taxable?: boolean | null; active?: boolean; qty_on_hand?: number };
+export type Vendor = { id: string; name: string; phone: string | null; email: string | null; account_no: string | null; notes: string | null; active: boolean };
+export type PartOrderStatus = "draft" | "ordered" | "received" | "cancelled";
+export type PartOrderLine = { id: string; item_id: string | null; part_number: string | null; name: string; qty: number; cost: number | null; received_qty: number };
+export type PartOrder = { id: string; number: string; status: PartOrderStatus; note: string | null; vendor_id: string | null; vendor: string | null; estimate_id: string | null; estimate_number: string | null; ordered_at: string | null; received_at: string | null; created_at: string; line_count: number; total: number; lines?: PartOrderLine[] };
+export type StockMovement = { id: string; qty_delta: number; reason: "receive" | "sold" | "adjust" | "return"; note: string | null; created_at: string; by: string | null; order: string | null; estimate: string | null };
 /** 0074: a saved job. The lines are a template; the server prices every line again when they land on an estimate. */
 export type CannedLine = { line_type: EstimateLineType; name?: string; service_id?: string; qty?: number; hours?: number; rate?: number; price?: number; cost?: number; part_number?: string; vendor?: string; taxable?: boolean; part_condition?: PartCondition };
 export type CannedJob = { id: string; name: string; category: string | null; makes: string[]; year_from: number | null; year_to: number | null; priority: EstimateJobPriority; notes: string | null; active: boolean; inspection_template_id: string | null; inspection: string | null; lines: CannedLine[]; line_count: number };
@@ -1551,6 +1561,20 @@ export type Database = {
       estimate_findings: { Args: { p_estimate: string }; Returns: JobFinding[] };
       inspection_templates_list: { Args: Record<string, never>; Returns: InspectionTemplate[] };
       retail_canned_jobs: { Args: Record<string, never>; Returns: CannedJob[] };
+      vendors_list: { Args: Record<string, never>; Returns: Vendor[] };
+      save_vendor: { Args: { p: { id?: string; name: string; phone?: string | null; email?: string | null; account_no?: string | null; notes?: string | null; active?: boolean } }; Returns: string };
+      inventory_list: { Args: { p_q?: string | null; p_low?: boolean; p_limit?: number }; Returns: InventoryItem[] };
+      save_inventory_item: { Args: { p: InventoryItemInput }; Returns: InventoryItem };
+      adjust_stock: { Args: { p_item: string; p_delta: number; p_note?: string | null }; Returns: InventoryItem };
+      inventory_item_history: { Args: { p_item: string }; Returns: StockMovement[] };
+      parts_low_stock: { Args: Record<string, never>; Returns: number };
+      part_orders_list: { Args: { p_status?: PartOrderStatus | null }; Returns: PartOrder[] };
+      part_order_detail: { Args: { p_id: string }; Returns: PartOrder };
+      create_part_order: { Args: { p: { vendor_id?: string | null; estimate_id?: string | null; note?: string | null; lines: { item_id?: string | null; part_number?: string | null; name: string; qty: number; cost?: number | null }[] } }; Returns: PartOrder };
+      order_parts_for_estimate: { Args: { p_estimate: string }; Returns: PartOrder };
+      mark_part_order_ordered: { Args: { p_id: string; p_vendor?: string | null }; Returns: PartOrder };
+      cancel_part_order: { Args: { p_id: string }; Returns: undefined };
+      receive_part_order: { Args: { p_id: string; p_lines: { line_id: string; qty: number }[] }; Returns: PartOrder };
       save_canned_job: { Args: { p: CannedJobInput }; Returns: string };
       delete_canned_job: { Args: { p_id: string }; Returns: undefined };
       past_services: { Args: { p_vehicle?: string | null; p_customer?: string | null }; Returns: PastService[] };

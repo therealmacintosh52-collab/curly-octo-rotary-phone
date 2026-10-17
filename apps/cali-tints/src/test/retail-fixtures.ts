@@ -532,6 +532,7 @@ function estimateBase(id: string) {
         options: [{ id: "o8-single", tier: "single" as const, name: "Quote", description: null, recommended: true, lines: [
           { id: "l23", svc: null, type: "labor" as const, name: "Diagnose the brake squeal", hours: 1, price: 120, section: "diagnosis" as const },
           { id: "l24", svc: null, type: "labor" as const, name: "Replace front pads", hours: 3, price: 120 },
+          { id: "l25", svc: null, type: "part" as const, name: "Front pad kit (ceramic)", qty: 1, price: 95, part_number: "BP-100", cost: 52 },
         ] }],
         addons: [], selected: "o8-single", created: ago(0, 0.5), expires: new Date(Date.now() + 14 * 86400000).toISOString(), sent: ago(0, 0.45), accepted: ago(0, 0.4), applied: ago(0, 0.4),
         auth: { id: "au8", authorized_at: ago(0, 0.4), name: "Priya Nair", method: "in_person" as const, by_staff: "u1", selected_option_id: "o8-single", approved_line_ids: [], signature_path: "c1/estimates/e8/sig.png", pay_choice: "at_shop" as const, total: null },
@@ -1230,4 +1231,27 @@ export function cannedJobsFixture(): import("@/lib/db/types").CannedJob[] {
 }
 export function pastServicesFixture(): import("@/lib/db/types").PastService[] {
   return [{ id: "c1000000-0000-4000-8000-000000000001", title: "Front brakes", priority: "safety", estimate_number: "EST-000008", date: "2026-09-18T17:00:00Z", status: "done", lines: [{ line_type: "labor", name: "Replace front pads", hours: 1.5 }, { line_type: "part", name: "Pad set", qty: 1, price: 90, part_number: "BP-100" }] }];
+}
+
+/** 0075: the shelf, the vendors and the orders of the demo shop. */
+export const vendorsFixture = (): import("@/lib/db/types").Vendor[] => [
+  { id: "d0000000-0000-4000-8000-000000000001", name: "NAPA Auto Parts", phone: "(916) 555-0140", email: "orders@napa.example", account_no: "A-7731", notes: null, active: true },
+  { id: "d0000000-0000-4000-8000-000000000002", name: "O'Reilly Commercial", phone: "(916) 555-0177", email: null, account_no: null, notes: null, active: true },
+];
+export function inventoryFixture(money: boolean, q = "", low = false): import("@/lib/db/types").InventoryItem[] {
+  const rows: import("@/lib/db/types").InventoryItem[] = [
+    { id: "d1000000-0000-4000-8000-000000000001", part_number: "BP-100", name: "Brake pad set, front (ceramic)", vendor_id: "d0000000-0000-4000-8000-000000000001", vendor: "NAPA Auto Parts", brand: "Akebono", bin: "A3", cost: money ? 52 : null, list_price: money ? 95 : null, qty_on_hand: 5, reorder_at: 2, taxable: true, active: true, low: false, negative: false },
+    { id: "d1000000-0000-4000-8000-000000000002", part_number: "RT-9", name: "Rotor, front", vendor_id: "d0000000-0000-4000-8000-000000000001", vendor: "NAPA Auto Parts", brand: null, bin: "B1", cost: money ? 60 : null, list_price: money ? 120 : null, qty_on_hand: 1, reorder_at: 2, taxable: true, active: true, low: true, negative: false },
+    { id: "d1000000-0000-4000-8000-000000000003", part_number: "OF-4", name: "Oil filter", vendor_id: "d0000000-0000-4000-8000-000000000002", vendor: "O'Reilly Commercial", brand: "Wix", bin: "C2", cost: money ? 4.5 : null, list_price: money ? 12 : null, qty_on_hand: 14, reorder_at: 6, taxable: true, active: true, low: false, negative: false },
+    { id: "d1000000-0000-4000-8000-000000000004", part_number: "WB-22", name: "Wiper blade, 22 in", vendor_id: null, vendor: null, brand: null, bin: null, cost: money ? 6 : null, list_price: money ? 18 : null, qty_on_hand: 0, reorder_at: 2, taxable: true, active: true, low: true, negative: false },
+  ];
+  const t = q.trim().toLowerCase();
+  return rows.filter((r) => (!t || `${r.name} ${r.part_number} ${r.brand ?? ""} ${r.bin ?? ""}`.toLowerCase().includes(t)) && (!low || r.low));
+}
+export function partOrdersFixture(): import("@/lib/db/types").PartOrder[] {
+  const lines = [{ id: "d3000000-0000-4000-8000-000000000001", item_id: "d1000000-0000-4000-8000-000000000002", part_number: "RT-9", name: "Rotor, front", qty: 2, cost: 60, received_qty: 1 }, { id: "d3000000-0000-4000-8000-000000000002", item_id: null, part_number: "CB-1", name: "Caliper bolt kit", qty: 1, cost: 9, received_qty: 0 }];
+  return [
+    { id: "d2000000-0000-4000-8000-000000000001", number: "PO-000002", status: "ordered", note: "For EST-000008", vendor_id: "d0000000-0000-4000-8000-000000000001", vendor: "NAPA Auto Parts", estimate_id: "90000000-0000-4000-8000-000000000008", estimate_number: "EST-000008", ordered_at: "2026-10-16T16:00:00Z", received_at: null, created_at: "2026-10-16T15:50:00Z", line_count: 2, total: 129, lines },
+    { id: "d2000000-0000-4000-8000-000000000002", number: "PO-000001", status: "received", note: null, vendor_id: "d0000000-0000-4000-8000-000000000002", vendor: "O'Reilly Commercial", estimate_id: null, estimate_number: null, ordered_at: "2026-10-10T16:00:00Z", received_at: "2026-10-12T16:00:00Z", created_at: "2026-10-10T15:50:00Z", line_count: 1, total: 54, lines: [{ id: "d3000000-0000-4000-8000-000000000003", item_id: "d1000000-0000-4000-8000-000000000003", part_number: "OF-4", name: "Oil filter", qty: 12, cost: 4.5, received_qty: 12 }] },
+  ];
 }

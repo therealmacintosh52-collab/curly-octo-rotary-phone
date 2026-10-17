@@ -4,7 +4,7 @@ import { SyncProvider } from "@/components/offline/sync-provider";
 import { AppShell } from "@/components/app/app-shell";
 import { RetailNav } from "@/components/retail/retail-nav";
 import { EstimateBuilder } from "@/components/retail/estimate-builder";
-import { ESTIMATE_TOKEN, estimateViewFixture, pickedCustomersFixture, retailCatalogFixture, retailServicesFixture, cannedJobsFixture, pastServicesFixture, retailTechniciansFixture } from "@/test/retail-fixtures";
+import { ESTIMATE_TOKEN, estimateViewFixture, pickedCustomersFixture, retailCatalogFixture, retailServicesFixture, cannedJobsFixture, inventoryFixture, pastServicesFixture, retailTechniciansFixture } from "@/test/retail-fixtures";
 import { EstimateFindingsPanel } from "@/components/retail/estimate-findings-panel";
 import { previewSession } from "@/test/preview-session";
 
@@ -25,7 +25,7 @@ export default async function DevEstimateEditPreview(props: PageProps<"/dev/prev
           <EstimateBuilder
             canned={cannedJobsFixture()}
             technicians={retailTechniciansFixture()}
-            demoPast={pastServicesFixture()}
+            demoPast={pastServicesFixture()} demoInventory={inventoryFixture(true)}
             catalog={retailCatalogFixture(canPrices)}
             recent={pickedCustomersFixture()}
             estimate={e}

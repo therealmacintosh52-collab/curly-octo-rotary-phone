@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CopyIcon, HistoryIcon, KeyRoundIcon, ScanSearchIcon, DropletIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CopyIcon, DropletIcon, HistoryIcon, KeyRoundIcon, PackageIcon, ScanSearchIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { EstimateView } from "@/lib/db/types";
 import type { VinDecodeResult } from "@/lib/vin";
 import { vinStatus } from "@/lib/vin";
 import { decodeVin } from "@/lib/vin-client";
+import { orderPartsForEstimateAction } from "@/app/(app)/retail/parts/actions";
 import { useSession } from "@/components/app/session-provider";
 import { PrintButton } from "@/components/retail/print-button";
 import { Button } from "@/components/ui/button";
@@ -32,8 +34,19 @@ const remember = (v: { miles: string; months: string; oil: string }) => {
 };
 
 /** The shop's habits on a work order: key tag, oil change sticker, the car's service history, and its VIN. */
-export function ShortcutRow({ e }: { e: EstimateView }) {
+export function ShortcutRow({ e, canOrder = false }: { e: EstimateView; /** Owner, admin and advisor: make a draft order from the part lines that are not in stock. */ canOrder?: boolean }) {
   const { demo } = useSession();
+  const router = useRouter();
+  const [ordering, setOrdering] = useState(false);
+  const parts = e.options.some((o) => o.lines.some((l) => l.line_type === "part" && l.customer_approved !== false));
+  async function orderParts() {
+    if (demo) return void toast.success("Order started", { description: "Guest preview: it would open the draft order" });
+    setOrdering(true);
+    const r = await orderPartsForEstimateAction(e.id);
+    setOrdering(false);
+    if (!r.ok) return void toast.error(r.error);
+    router.push(`/retail/parts?tab=orders&open=${r.data.id}`);
+  }
   const [oilOpen, setOilOpen] = useState(false);
   const [vinOpen, setVinOpen] = useState(false);
   const vin = e.vehicle?.vin ?? null;
@@ -60,6 +73,11 @@ export function ShortcutRow({ e }: { e: EstimateView }) {
       {vin && (
         <Button type="button" variant="outline" size="sm" onClick={() => setVinOpen(true)} data-testid="shortcut-vin">
           <ScanSearchIcon /> VIN
+        </Button>
+      )}
+      {canOrder && parts && (
+        <Button type="button" variant="outline" size="sm" onClick={orderParts} loading={ordering} data-testid="shortcut-order-parts">
+          <PackageIcon /> Order parts
         </Button>
       )}
       {oilOpen && <OilStickerDialog id={e.id} demo={!!demo} onClose={() => setOilOpen(false)} onPreview={preview} />}

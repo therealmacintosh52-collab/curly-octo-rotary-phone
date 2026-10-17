@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, BookmarkPlusIcon, ClockIcon, LockIcon, PackageIcon, PlusIcon, ReceiptIcon, SparklesIcon, StarIcon, Trash2Icon, TruckIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { CannedJob, EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, PartCondition, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
+import type { CannedJob, InventoryItem, EstimateJobPriority, EstimateLineInput, EstimatePayload, EstimateTier, EstimateView, PartCondition, RetailCatalog, RetailCatalogService, VehicleSize } from "@/lib/db/types";
 import { createEstimateAction, deleteDraftEstimateAction, updateEstimateAction } from "@/app/(app)/retail/estimates/actions";
 import { decodeVinAction, lookupPlateAction, saveVehicleAction } from "@/app/(app)/retail/actions";
 import { saveCannedJobAction } from "@/app/(app)/retail/canned-actions";
+import { saveInventoryItemAction, searchInventoryAction } from "@/app/(app)/retail/parts/actions";
+import { stockLabel, suggestedPrice } from "@/lib/retail/inventory";
 import { addInspectionAction } from "@/app/(app)/retail/inspection-actions";
 import { cannedLinesFromDraft, expandCanned, type CannedContext } from "@/lib/retail/canned";
 import { isVinShape, normalizeVin } from "@/lib/vin";
@@ -67,7 +69,7 @@ function fromView(e: EstimateView, services: RetailCatalogService[]): { options:
   const line = (l: EstimateView["options"][number]["lines"][number]): LineDraft => {
     const type = l.line_type ?? "service";
     if (type === "service") return emptyLine("service", { section: l.section ?? "repair", service_id: l.service_id ?? "", qty: l.qty, label: isOpen(l.service_id) ? l.name : null, price: isOpen(l.service_id) ? l.unit_price : null, modifiers: l.modifiers.map((m) => m.code), cost: l.cost ?? null, finding_id: l.finding_id ?? null });
-    return emptyLine(type, { section: l.section ?? "repair", label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, tech_id: l.tech_id ?? null, part_number: l.part_number ?? null, part_condition: l.part_condition ?? "new", vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
+    return emptyLine(type, { section: l.section ?? "repair", label: l.name, qty: type === "labor" ? 1 : l.qty, price: type === "labor" ? null : l.unit_price, hours: l.hours ?? null, rate: l.rate ?? null, tech_id: l.tech_id ?? null, inventory_item_id: l.inventory_item_id ?? null, part_number: l.part_number ?? null, part_condition: l.part_condition ?? "new", vendor: l.vendor ?? null, taxable: l.taxable, cost: l.cost ?? null, finding_id: l.finding_id ?? null });
   };
   return {
     options: e.options.map((o) => {
@@ -83,7 +85,7 @@ function toInput(l: LineDraft): EstimateLineInput {
   const extra = { cost: l.cost, finding_id: l.finding_id, section: l.section, job: l.job };
   if (l.line_type === "service") return { line_type: "service", service_id: l.service_id ?? "", qty: l.qty, label: l.label, price: l.price, modifiers: l.modifiers, ...extra };
   if (l.line_type === "labor") return { line_type: "labor", label: l.label ?? "", hours: Number(l.hours ?? 0), rate: l.rate, taxable: l.taxable, tech_id: l.tech_id ?? null, ...extra };
-  if (l.line_type === "part") return { line_type: "part", label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), part_number: l.part_number, part_condition: l.part_condition ?? "new", vendor: l.vendor, taxable: l.taxable, ...extra };
+  if (l.line_type === "part") return { line_type: "part", label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), part_number: l.part_number, part_condition: l.part_condition ?? "new", vendor: l.vendor, taxable: l.taxable, inventory_item_id: l.inventory_item_id ?? null, ...extra };
   return { line_type: l.line_type, label: l.label ?? "", qty: l.qty, price: Number(l.price ?? 0), vendor: l.vendor, taxable: l.taxable, ...extra };
 }
 
@@ -117,7 +119,7 @@ function withExtra<T extends { options: OptionDraft[] }>(base: T, extra?: LineDr
   return { ...base, options: [{ ...base.options[0], jobs: [...base.options[0].jobs, ...jobs], lines: [...base.options[0].lines, ...keyed] }, ...base.options.slice(1)] };
 }
 
-export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines, findingsPanel, canned: cannedProp = [], technicians = [], demoPast = [] }: { /** The shop's canned jobs (0074), the techs a labor line can go to, and, in the guest preview, the past services. */ canned?: CannedJob[]; technicians?: { id: string; name: string; initials: string }[]; demoPast?: import("@/lib/db/types").PastService[]; catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; trim?: string; engine_size?: string; engine_code?: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[]; /** The findings side tab (server-rendered notes panel) and how many findings it holds. */ findingsPanel?: React.ReactNode; findingsCount?: number }) {
+export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimate, job, initialLines, extraLines, findingsPanel, canned: cannedProp = [], technicians = [], demoPast = [], demoInventory = [] }: { /** Guest preview: the stocked parts the part picker searches. */ demoInventory?: InventoryItem[]; /** The shop's canned jobs (0074), the techs a labor line can go to, and, in the guest preview, the past services. */ canned?: CannedJob[]; technicians?: { id: string; name: string; initials: string }[]; demoPast?: import("@/lib/db/types").PastService[]; catalog: RetailCatalog; recent: PickedCustomer[]; initialPick?: CustomerPick | null; /** A car that is not on file yet, handed over by the bar at the top of Retail. */ carHint?: { vin: string; plate: string; year: string; make: string; model: string; trim?: string; engine_size?: string; engine_code?: string; odometer: string }; estimate?: EstimateView | null; job?: { id: string; ro_number: string | null; tag_number: string } | null; initialLines?: LineDraft[]; /** Lines to append to the first option of an estimate being edited (recommendations added from the findings panel). */ extraLines?: LineDraft[]; /** The findings side tab (server-rendered notes panel) and how many findings it holds. */ findingsPanel?: React.ReactNode; findingsCount?: number }) {
   const router = useRouter();
   const { demo } = useSession();
   const [pending, start] = useTransition();
@@ -798,7 +800,7 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
       </div>
       </div>
 
-      {editing && <LineDialog type={editing.line.line_type} initial={editing.line} rates={rates} defaultRate={quoteCatalog.defaultRate} policy={catalog.settings} other={other} onClose={() => setEditing(null)} onAdd={replaceLine} />}
+      {editing && <LineDialog inventoryDemo={demoInventory} type={editing.line.line_type} initial={editing.line} rates={rates} defaultRate={quoteCatalog.defaultRate} policy={catalog.settings} other={other} onClose={() => setEditing(null)} onAdd={replaceLine} />}
       {savingCanned && (
         <SaveCannedDialog
           draft={savingCanned}
@@ -811,13 +813,13 @@ export function EstimateBuilder({ catalog, recent, initialPick, carHint, estimat
           }}
         />
       )}
-      {adding && <LineDialog type={adding.type} rates={rates} defaultRate={quoteCatalog.defaultRate} policy={catalog.settings} other={other} onClose={() => setAdding(null)} onAdd={addLine} />}
+      {adding && <LineDialog inventoryDemo={demoInventory} type={adding.type} rates={rates} defaultRate={quoteCatalog.defaultRate} policy={catalog.settings} other={other} onClose={() => setAdding(null)} onAdd={addLine} />}
     </Page>
   );
 }
 
 /** One line that is not a priced menu service: labor (hours × rate), a part, a fee, a sublet, or "Other" with a typed amount. */
-function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose, onAdd }: { type: LineType; initial?: LineDraft; rates: { id: string; name: string; rate: number; is_default: boolean }[]; defaultRate: number | null; policy: RetailCatalog["settings"]; other: RetailCatalogService | null; onClose: () => void; onAdd: (l: LineDraft) => void }) {
+function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose, onAdd, inventoryDemo }: { inventoryDemo: InventoryItem[]; type: LineType; initial?: LineDraft; rates: { id: string; name: string; rate: number; is_default: boolean }[]; defaultRate: number | null; policy: RetailCatalog["settings"]; other: RetailCatalogService | null; onClose: () => void; onAdd: (l: LineDraft) => void }) {
   const [label, setLabel] = useState(initial?.label ?? "");
   const [hours, setHours] = useState(initial?.hours != null ? String(initial.hours) : "1");
   const sameRate = initial?.rate != null ? rates.find((r) => Number(r.rate) === Number(initial.rate)) : undefined;
@@ -830,6 +832,40 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
   const [condition, setCondition] = useState<PartCondition>(initial?.part_condition ?? "new");
   const [taxable, setTaxable] = useState(initial?.taxable != null ? !!initial.taxable : type === "part" ? (policy?.parts_taxable_default ?? true) : type === "labor" ? !!policy?.labor_taxable_default : false);
   const [cost, setCost] = useState(initial?.cost != null ? String(initial.cost) : "");
+  // A stocked part (0075): search the shelf, tap to fill the line, or keep a typed part on the shelf.
+  const { demo } = useSession();
+  const [itemId, setItemId] = useState<string | null>(initial?.inventory_item_id ?? null);
+  const [picked, setPicked] = useState<InventoryItem | null>(null);
+  const [stockQ, setStockQ] = useState("");
+  const [stockHits, setStockHits] = useState<InventoryItem[] | null>(null);
+  const [keep, setKeep] = useState(false);
+  const [saving, setSaving] = useState(false);
+  async function searchStock(v: string) {
+    setStockQ(v);
+    if (v.trim().length < 2) return void setStockHits(null);
+    if (demo) {
+      const t = v.trim().toLowerCase();
+      return void setStockHits(inventoryDemo.filter((i) => `${i.name} ${i.part_number} ${i.brand ?? ""} ${i.bin ?? ""}`.toLowerCase().includes(t)).slice(0, 8));
+    }
+    const r = await searchInventoryAction(v.trim());
+    if (r.ok) setStockHits(r.data);
+  }
+  function pickStock(i: InventoryItem) {
+    setItemId(i.id);
+    setPicked(i);
+    setLabel(i.name);
+    setPartNumber(i.part_number);
+    setVendor(i.vendor ?? "");
+    setCost(i.cost != null ? String(i.cost) : "");
+    const sp = suggestedPrice(i, policy?.parts_markup_pct ?? null);
+    if (sp !== null) {
+      setPrice(String(sp));
+      setPriceByHand(true);
+    }
+    if (i.taxable != null) setTaxable(!!i.taxable);
+    setStockHits(null);
+    setStockQ("");
+  }
   // The list price follows the cost (cost + the shop's markup) until it is typed by hand.
   const [priceByHand, setPriceByHand] = useState(initial?.price != null);
   const markupPct = policy?.parts_markup_pct ?? null;
@@ -864,17 +900,51 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
       return onAdd(emptyLine("service", { service_id: other.id, label: name, price: Math.round(n * 100) / 100, cost: c }));
     }
     const q = Math.max(Number(qty) || 1, 0.01);
-    onAdd(emptyLine(type, { label: name, qty: type === "part" ? q : 1, price: Math.round(n * 100) / 100, part_number: partNumber.trim() || null, part_condition: type === "part" ? condition : undefined, vendor: vendor.trim() || null, taxable, cost: c }));
+    const line = emptyLine(type, { label: name, qty: type === "part" ? q : 1, price: Math.round(n * 100) / 100, part_number: partNumber.trim() || null, part_condition: type === "part" ? condition : undefined, vendor: vendor.trim() || null, taxable, cost: c, inventory_item_id: type === "part" ? itemId : null });
+    if (type === "part" && keep && !itemId && partNumber.trim() && !demo) {
+      setSaving(true);
+      void saveInventoryItemAction({ part_number: partNumber.trim(), name, cost: c, list_price: Math.round(n * 100) / 100, taxable }).then((r) => {
+        setSaving(false);
+        if (!r.ok) return void toast.error(r.error);
+        toast.success("Kept on your parts list");
+        onAdd({ ...line, inventory_item_id: r.data.id });
+      });
+      return;
+    }
+    onAdd(line);
   }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{type === "labor" ? "Hours at the shop rate; shop supplies follow the labor." : type === "service" ? "It shows on the estimate with this name and amount." : "It shows on the estimate as its own line."}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
+          {type === "part" && (
+            <div className="grid gap-1.5" data-testid="stock-picker">
+              <Label htmlFor="ln-stock">From your shelf</Label>
+              <Input id="ln-stock" value={stockQ} onChange={(e) => void searchStock(e.target.value)} placeholder="Search your parts by name, number or bin" data-testid="stock-search" />
+              {stockHits && (
+                <ul className="max-h-44 divide-y divide-border overflow-y-auto rounded-lg border border-border text-sm" data-testid="stock-hits">
+                  {stockHits.map((i) => {
+                    const st = stockLabel(i);
+                    return (
+                      <li key={i.id}>
+                        <button type="button" onClick={() => pickStock(i)} className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted" data-testid="stock-hit">
+                          <span className="min-w-0 truncate"><span className="font-medium">{i.name}</span> <span className="text-caption text-subtle">{i.part_number}{i.bin ? ` · bin ${i.bin}` : ""}</span></span>
+                          <span className={cn("shrink-0 text-caption", st.tone === "ok" ? "text-success" : "text-warning")}>{st.text}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {stockHits.length === 0 && <li className="px-3 py-2 text-muted-foreground">Nothing on your shelf matches: type the part below.</li>}
+                </ul>
+              )}
+              {itemId && <p className="text-caption text-subtle" data-testid="stock-linked">{picked ? `${stockLabel(picked).text}. ` : ""}This line uses a part from your shelf: its count goes down when the customer approves.</p>}
+            </div>
+          )}
           <div className="grid gap-1.5">
             <Label htmlFor="ln-label">What is it?</Label>
             <Input id="ln-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={120} autoFocus placeholder={type === "labor" ? "Replace front brake pads" : type === "part" ? "Brake pads, front" : type === "fee" ? "Disposal fee" : type === "sublet" ? "Rotor resurfacing" : "Seat extraction, rear row"} data-testid="line-label" />
@@ -940,6 +1010,9 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
           {type !== "service" && (
             <label className="flex items-center justify-between gap-3 text-sm"><span>Taxable</span><Switch checked={taxable} onCheckedChange={setTaxable} /></label>
           )}
+          {type === "part" && !itemId && !initial && partNumber.trim() && (
+            <label className="flex items-center justify-between gap-3 text-sm" data-testid="keep-on-shelf"><span>Add this part to my parts list</span><Switch checked={keep} onCheckedChange={setKeep} /></label>
+          )}
           {(type === "labor" || type === "service") && (
             <div className="grid gap-1.5">
               <Label htmlFor="ln-cost"><LockIcon className="size-3.5 text-muted-foreground" /> Your cost (hidden from the customer, optional)</Label>
@@ -949,7 +1022,7 @@ function LineDialog({ type, initial, rates, defaultRate, policy, other, onClose,
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} data-testid="line-add">{initial ? "Save" : "Add"}</Button>
+          <Button onClick={submit} loading={saving} data-testid="line-add">{initial ? "Save" : "Add"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
