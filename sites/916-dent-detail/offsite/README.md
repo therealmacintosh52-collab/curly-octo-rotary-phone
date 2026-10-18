@@ -13,7 +13,7 @@ Nothing here has been published, posted, mailed or sent; no accounts exist. Ever
 | `REVIEWS-KIT.md` | Review-link build, SMS/email/in-person scripts, cadence, 5-to-1-star replies, texting consent (attorney review) |
 | `PHOTO-SHOTLIST.md` | 22 shots in priority order, with consent, plate-blur and the hero-video rule |
 | `tap-to-review/` | `make.py --url <review link> [--short <link>]` builds the 4x6 in plate (SVG, PDF with TrimBox, PNG preview, `nfc-url.txt`). Only the SAMPLE is built: `SAMPLE-do-not-print.*` with a dummy link. The generator refuses placeholder or example URLs for a real run |
-| `business-card/` | `card.py`: front + 2 back variants (faithful, compliant) x 3 QR options; SVG, PDF (TrimBox/BleedBox), PNG; `BUILD-NOTES.md` explains every choice |
+| `business-card/` | `card.py`: front + 2 back variants (faithful, compliant) x 3 QR options; SVG, PDF (TrimBox/BleedBox), PNG; `BUILD-NOTES.md` explains every choice. **Every file is prefixed `SAMPLE-do-not-print-` (no `--domain`) or `DRAFT-phone-unconfirmed-do-not-print-` (domain given, no `--phone-confirmed`) and the back carries a red DRAFT band, because the phone digits are unconfirmed (TO-CONFIRM #1). Unprefixed files appear only with `--phone-confirmed`** |
 | `check_limits.py` | Re-checks every character limit and that master copy equals `ENTITY-PLAN.md` |
 | `_shared/` | Fonts (OFL), `textpath.py` (outlined text), `key_logo.py` (luminance key) |
 
@@ -30,7 +30,7 @@ Nothing here has been published, posted, mailed or sent; no accounts exist. Ever
 5. Copy the review link from the verified profile; make the `/review` redirect on the domain; run `tap-to-review/make.py`; order the plate and an NFC tag.
 6. Apple Business Connect, Bing Places, Yelp, Facebook, Instagram (`PROFILE-COPY.md`), then Nextdoor, BBB basic, aggregators (`CITATIONS.csv` P0 and P1).
 7. Take the P1 photos (`PHOTO-SHOTLIST.md`); settle the hero video; upload to GBP.
-8. Run `business-card/card.py --domain <domain>`; choose faithful or compliant; get a printed proof.
+8. Run `business-card/card.py --domain <domain> --phone-confirmed` (only after step 1); choose faithful or compliant; get a printed proof.
 9. Start review requests (every customer, no gating) once the link exists.
 10. Fill `status`, `live_url`, `nap_matches` in `CITATIONS.csv` as each listing goes live; recheck NAP monthly.
 

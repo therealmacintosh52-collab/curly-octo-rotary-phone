@@ -21,6 +21,7 @@ MI, IB, IS, IR = 'Michroma-Regular.ttf', 'Inter-Bold.otf', 'Inter-SemiBold.otf',
 U = 100; BL = 12.5; TW, TH = 350, 200; W, H = TW + 2*BL, TH + 2*BL      # 375 x 225
 SAFE = 25; SX0, SX1, SY0, SY1 = BL + SAFE, W - BL - SAFE, BL + SAFE, H - BL - SAFE   # 37.5..337.5 / 37.5..187.5
 DUMMY = '916-sample-domain.invalid'
+DRAFT = False   # set in main(): True until --phone-confirmed (TO-CONFIRM #1); stamps a red band on every back and prefixes every file name
 SLOPE = 0.7  # front stripe slope: x = c - SLOPE*y
 
 COPY = {
@@ -187,6 +188,8 @@ def back(variant, qr, domain, sample):
     o.append(T(IR, IG, 7.6, 276, gy + 2.6, IVORY, .005))
     if sample and qr == 'site':
         o.append(f'<rect x="276" y="53" width="60" height="22" fill="#B00020"/>' + T(IB, 'SAMPLE URL', 7.2, 306, 66, '#FFFFFF', .06, 'middle'))
+    if DRAFT:
+        o.append(f'<rect x="0" y="0" width="{W}" height="9" fill="#B00020"/>' + T(IB, 'DRAFT - PHONE NOT CONFIRMED - DO NOT PRINT', 5.6, W/2, 6.4, '#FFFFFF', .05, 'middle'))
     o.append('</svg>')
     return '\n'.join(o), data
 
@@ -197,16 +200,18 @@ def guides(svg):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--domain'); ap.add_argument('--sample', action='store_true')
-    ap.add_argument('--guides', action='store_true'); ap.add_argument('--out-dir', default=os.path.join(HERE, 'out'))
+    ap.add_argument('--guides', action='store_true'); ap.add_argument('--phone-confirmed', action='store_true', help='owner has confirmed 916-868-2447 and that it receives photo texts (TO-CONFIRM #1)'); ap.add_argument('--out-dir', default=os.path.join(HERE, 'out'))
     a = ap.parse_args()
+    global DRAFT
     sample = a.sample or not a.domain
+    DRAFT = not a.phone_confirmed
     domain = DUMMY if sample else a.domain
     if not sample and (re.search(r'\{\{|invalid|example|/|:', domain) or '.' not in domain):
         ap.error('--domain must be a bare real hostname such as mysite.com (no scheme, path or placeholder)')
     import cairosvg
     from pypdf import PdfReader, PdfWriter
     from pypdf.generic import RectangleObject
-    os.makedirs(a.out_dir, exist_ok=True); pre = 'SAMPLE-do-not-print-' if sample else ''
+    os.makedirs(a.out_dir, exist_ok=True); pre = 'SAMPLE-do-not-print-' if sample else ('DRAFT-phone-unconfirmed-do-not-print-' if DRAFT else '')
     pt = lambda v: v / U * 72
     def emit(name, svg):
         base = os.path.join(a.out_dir, name)
@@ -217,15 +222,15 @@ def main():
         w = PdfWriter(); p = PdfReader(base + '.pdf').pages[0]
         p.trimbox = RectangleObject([pt(BL), pt(BL), pt(W-BL), pt(H-BL)]); p.bleedbox = RectangleObject([0, 0, pt(W), pt(H)])
         w.add_page(p); w.write(base + '.pdf'); return base + '.pdf'
-    fpdf = emit('front', front())
+    fpdf = emit(f'{pre}front', front())
     for v in COPY:
         for q in ('site', 'vcard', 'none'):
             s, data = back(v, q, domain, sample)
-            nm = f'{pre}back-{v}-qr-{q}' if q == 'site' else f'back-{v}-qr-{q}'
+            nm = f'{pre}back-{v}-qr-{q}'
             bpdf = emit(nm, s)
             w = PdfWriter()
             for f in (fpdf, bpdf): w.add_page(PdfReader(f).pages[0])
-            w.write(os.path.join(a.out_dir, f'{pre if q=="site" else ""}card-{v}-qr-{q}.pdf'))
+            w.write(os.path.join(a.out_dir, f'{pre}card-{v}-qr-{q}.pdf'))
             if q != 'none': print(v, q, 'QR encodes:', data.strip().splitlines()[0] if q == 'site' else 'vCard (name, phone, Instagram)')
 if __name__ == '__main__':
     main()

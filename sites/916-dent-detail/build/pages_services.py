@@ -27,7 +27,7 @@ That is also why PDR has rules. It needs paint that is still intact, and metal t
             ("You check the panel", "Before we leave, you look at the finished panel with us. If the dent turned out harder than the photos showed, we tell you that too."),
         ]), g=True),
         plate("Door dings", "Can you fix a door ding or a parking-lot dent without repainting?", md("""
-Often, yes. A door ding or parking-lot dent is the most common job for paintless repair: a small to medium dent, usually rounded, in paint that has not cracked. Dings on the flat part of a door or fender tend to be reachable. Dings on a panel edge, on a braced area or right on a body line are harder, and some of those are not PDR jobs.
+Often, yes. A door ding or parking-lot dent is a common job for paintless repair: a small to medium dent, usually rounded, in paint that has not cracked. Dings on the flat part of a door or fender tend to be reachable. Dings on a panel edge, on a braced area or right on a body line are harder, and some of those are not PDR jobs.
 
 If the paint has a crack, a chip or a white, crazed look inside the dent, tell us when you text. That is the detail that most often changes the answer.""")),
         plate("Limits", "What can't paintless dent repair fix?", '<div class="prose"><p>PDR is not a cure for every dent. These are the cases where it usually is not the right tool:</p></div>'

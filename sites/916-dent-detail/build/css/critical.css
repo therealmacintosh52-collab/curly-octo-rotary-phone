@@ -46,9 +46,9 @@ ul,ol{margin:0 0 1em;padding-left:1.2em}
 .bar.two{grid-template-columns:1fr 1fr}
 html.kb .bar{display:none}
 .crumbs{margin:0 0 20px;font-size:13px;color:var(--steel)}
-.crumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 8px}
+.crumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:0 8px}
 .crumbs li+li::before{content:"/";margin-right:8px;color:var(--steel)}
-.crumbs a{color:var(--steel);display:inline-block;padding:10px 0;text-decoration:none;border-bottom:1px solid var(--hair)}
+.crumbs a{color:var(--steel);display:inline-flex;align-items:center;min-height:44px;min-width:44px;box-sizing:border-box;padding:10px 0;text-decoration:none;border-bottom:1px solid var(--hair)}
 .crumbs a:hover{color:var(--lgold)}
 .top{padding:28px 0 48px}
 .top h1,.page-h1{font:400 clamp(22px,5.6vw,40px)/1.2 var(--f-d);max-width:24ch}
@@ -73,6 +73,8 @@ html.kb .bar{display:none}
 html.scrub .hero-track{height:320svh}
 html.scrub .hero-stage{position:sticky;top:0;height:calc(100svh - var(--hd));min-height:0}
 html.scrub .hero h1 .l2,html.scrub .hero h1 .l3{opacity:0}
+@keyframes scrubfail{to{opacity:1}}
+html.scrub .hero h1 .l2,html.scrub .hero h1 .l3{animation:scrubfail 0s linear 5s forwards}
 html.scrub .hero-stage[data-step="2"] .l2,html.scrub .hero-stage[data-step="3"] .l2,html.scrub .hero-stage[data-step="3"] .l3{opacity:1}
 @media (prefers-reduced-motion:reduce){.hero h1 .ln{transition:none}}
 @media (min-width:900px){

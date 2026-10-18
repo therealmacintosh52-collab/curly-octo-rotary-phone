@@ -1,5 +1,5 @@
 # robots.txt for 916 Dent & Detail
-# Search and AI-search/retrieval crawlers are allowed. Names checked against each vendor's published docs on 2026-10-18.
+# Search and AI-search/retrieval crawlers are allowed. Names come from vendor docs where reachable and from secondary summaries otherwise; re-verify each against the vendor's own page before launch (TO-CONFIRM #27).
 User-agent: *
 Allow: /
 

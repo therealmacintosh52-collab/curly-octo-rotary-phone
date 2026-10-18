@@ -28,7 +28,7 @@ BANNED = [
     ("base ZIP", re.compile(r"95624")), ("price", re.compile(r"\$\s?\d")),
     ("review markup", re.compile(r'"@type":\s*"(AggregateRating|Review)"|aggregateRating', re.I)),
     ("stars", re.compile("[\u2605\u2606\u2B50]")),
-    ("placeholder", re.compile(r"example\.com|TODO|lorem|replace-with|\[CONFIRM|REPLACE WITH", re.I)),
+    ("placeholder", re.compile(r"example\.com|TODO|lorem|replace-with|\[CONFIRM|REPLACE WITH|will name here|will add [^<.]{0,60} here|once it is chosen", re.I)),
     ("other business", re.compile(r"Phil.?s Auto|Cali Tints|Quantum|Lodi\b", re.I)),
     ("address", re.compile(r"\b\d{3,5} [A-Z][a-z]+ (St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Way)\b")),
 ]

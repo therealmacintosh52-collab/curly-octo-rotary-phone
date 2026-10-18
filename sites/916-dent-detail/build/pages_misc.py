@@ -122,7 +122,7 @@ def about():
 We remove dents without paint or a body shop where the metal and paint allow it, and we detail cars inside and out. That covers [paintless dent repair](/paintless-dent-repair/), [hail damage repair](/hail-damage-repair/), [mobile detailing](/mobile-detailing/) with paint deep-clean, [paint correction](/paint-correction/), [ceramic coating](/ceramic-coating/) and [interior detailing](/interior-detailing/).""")),
         plate("How we work", "What can I expect when I contact you?", '<ul class="prose"><li>You send photos first, so we can look before anyone drives anywhere.</li><li>We tell you plainly when a dent is not a paintless repair job.</li><li>We come to you: your home, workplace or lot, in the [places we serve](/service-area/).</li><li>We serve individual drivers and businesses, including [dealerships, fleets, rental lots and body shops](/dealers-and-fleets/).</li></ul>'.replace("[places we serve](/service-area/)", '<a href="/service-area/">places we serve</a>').replace("[dealerships, fleets, rental lots and body shops](/dealers-and-fleets/)", '<a href="/dealers-and-fleets/">dealerships, fleets, rental lots and body shops</a>'), g=True),
         plate("Our name", "Why 916?", md("""
-916 is the area code for Sacramento. The tagline is **Precision · Care · Perfection.** and it is what we aim at on every car, which is also why we tell you when a dent is not a candidate rather than promise what the metal will not do.""")),
+916 is the area code for Sacramento, the area we serve. Our tagline is **Precision · Care · Perfection.**""")),
         end_cta("Send a photo", "Text two to four photos. We tell you what we can do.", "quote-text"),
     ]
     return dict(path="/about/", type="about", title="About Us | 916 Dent & Detail",

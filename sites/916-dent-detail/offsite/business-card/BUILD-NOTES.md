@@ -14,7 +14,7 @@ Rebuilt from the owner's printed card (`inputs/916-card-front.pdf`, `916-card-ba
 | `card-<variant>-qr-<option>.pdf` | Two-page print file: page 1 front, page 2 back |
 | `*-guides.png` | Review images with the trim (magenta) and safe area (cyan dashed). Not for print |
 
-Regenerate: `python3 card.py --domain yourdomain.com --guides` (real) or `python3 card.py --sample --guides`. The domain is a bare hostname; the script refuses tokens, `example` and `invalid`. QR target: `https://<domain>/photo-quote/?utm_source=card&utm_medium=print&utm_campaign=business-card`. Both QR kinds were decoded back from the rendered PNGs with OpenCV: the site URL and the vCard text came back exactly.
+Regenerate: `python3 card.py --domain yourdomain.com --phone-confirmed --guides` (real; without `--phone-confirmed` every file is named `DRAFT-phone-unconfirmed-do-not-print-*` and the back has a red band; with no domain every file is `SAMPLE-do-not-print-*`; added in Stage 6 verification) or `python3 card.py --sample --guides`. The domain is a bare hostname; the script refuses tokens, `example` and `invalid`. QR target: `https://<domain>/photo-quote/?utm_source=card&utm_medium=print&utm_campaign=business-card`. Both QR kinds were decoded back from the rendered PNGs with OpenCV: the site URL and the vCard text came back exactly.
 
 ## Variants: what changed and why
 

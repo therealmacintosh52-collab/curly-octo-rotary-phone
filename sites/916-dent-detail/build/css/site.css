@@ -117,7 +117,7 @@
 .ft li a{display:flex;align-items:center;min-height:44px;color:var(--ivory);text-decoration:none}
 .ft li a:hover{color:var(--lgold)}
 .ft p{font-size:15px}
-.ft .tel{font:400 22px/1.2 var(--f-d);color:var(--ivory);text-decoration:none;display:inline-block;padding:6px 0}
+.ft .tel{font:400 22px/1.2 var(--f-d);color:var(--ivory);text-decoration:none;display:inline-block;padding:12px 0}
 .ft-base{margin-top:32px;padding-top:20px;border-top:1px solid var(--hair);font-size:14px;color:var(--steel)}
 @media (min-width:760px){.ft-grid{grid-template-columns:1.4fr 1fr 1fr 1fr}}
 .guide-list{list-style:none;padding:0;margin:24px 0 0}
