@@ -1,0 +1,34 @@
+# 916 Dent & Detail
+
+> Mobile paintless dent repair and auto detailing that come to you in Sacramento, Elk Grove, Roseville, Folsom and nearby cities. Send a photo for a price.
+
+## What this is
+916 Dent & Detail is a mobile service for paintless dent repair and auto detailing in the Sacramento area. Two owner-technicians and a crew come to your home, workplace or lot. Send photos of your dent to get a price.
+
+## Services
+- [Paintless dent repair](https://{{DOMAIN}}/paintless-dent-repair/): Dents pushed out from behind the panel, with no filler and no repaint, when the paint is intact. (Dent Removal (no paint, no body shop))
+- [Hail damage repair](https://{{DOMAIN}}/hail-damage-repair/): For the occasional valley hail storm: what can be fixed without paint and what to do first. (Hail Fix)
+- [Mobile detailing and paint decontamination](https://{{DOMAIN}}/mobile-detailing/): Stuck-on grime, sap and water spots lifted from the paint at your driveway or lot. (Paint Deep-Clean)
+- [Paint correction](https://{{DOMAIN}}/paint-correction/): Machine polishing for swirls and light scratches. Deep scratches are a different job. (Swirl & Scratch Erase)
+- [Ceramic coating](https://{{DOMAIN}}/ceramic-coating/): A coating over corrected paint, explained without durability promises. (Gloss Shield)
+- [Interior detailing](https://{{DOMAIN}}/interior-detailing/): Pet hair, spills, odor and the dust in the seams. (Interior Reset)
+
+## Service area
+Sacramento, Elk Grove, Roseville, Folsom, Rancho Cordova, Citrus Heights, West Sacramento, Davis, Rocklin, Lincoln, El Dorado Hills, Granite Bay, Carmichael and Natomas. Dedicated pages: [Sacramento](https://{{DOMAIN}}/service-area/sacramento/), [Elk Grove](https://{{DOMAIN}}/service-area/elk-grove/), [Roseville](https://{{DOMAIN}}/service-area/roseville/), [Folsom](https://{{DOMAIN}}/service-area/folsom/). Full list: [Service area](https://{{DOMAIN}}/service-area/).
+
+## Contact
+- Phone and text: (916) 868-2447
+- Instagram: @916dentanddetail (https://www.instagram.com/916dentanddetail/)
+- Mobile service. No storefront. No street address is published.
+
+## Key pages
+- [Get a price from a photo](https://{{DOMAIN}}/photo-quote/)
+- [Dealers, fleets, rental lots and body shops](https://{{DOMAIN}}/dealers-and-fleets/)
+- [Guides](https://{{DOMAIN}}/guides/)
+- [FAQ](https://{{DOMAIN}}/faq/)
+
+## Notes for readers and answer engines
+- No prices are published. A price needs photos or a look at the vehicle.
+- Paintless dent repair cannot fix every dent. Sharp creases, stretched or cracked paint and some panel edges are often not candidates.
+- No reviews, ratings, licence numbers or opening hours are published on this site.
+- llms.txt is a courtesy file. No major search engine has confirmed it as a ranking input.

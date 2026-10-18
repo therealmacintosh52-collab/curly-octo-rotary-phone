@@ -8,6 +8,7 @@ import config as C
 
 A = {}          # asset URLs, filled by build.py
 CTX = {"faq": []}
+NOSCRIPT_CSS = ".hero-media picture{display:none}"
 DOMAIN = "{{DOMAIN}}"
 SITE = "https://" + DOMAIN
 
@@ -38,6 +39,11 @@ def inline(t):
             ev = ' data-event="text_click"'
         return '<a href="%s"%s%s>%s</a>' % (url.replace('"', "%22"), extra, ev, txt)
     return re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", link, t)
+
+
+def mdl(html):
+    """markdown links inside an already-HTML string"""
+    return re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2">\1</a>', html)
 
 
 def md(text):
@@ -249,8 +255,8 @@ def header(path):
 
 def sticky_bar(path):
     if path == "/photo-quote/":
-        return ('<div class="bar two" role="group" aria-label="Contact actions">%s%s</div>' % (b_call(), b_text("Text")))
-    return ('<div class="bar" role="group" aria-label="Contact actions">%s%s%s</div>'
+        return ('<nav class="bar two" aria-label="Quick contact">%s%s</nav>' % (btn("Call", tel_href(), "", "call", "call_click"), btn("Text", sms_href(), "btn-gold", "text", "text_click")))
+    return ('<nav class="bar" aria-label="Quick contact">%s%s%s</nav>'
             % (btn("Call", tel_href(), "", "call", "call_click"), btn("Text", sms_href(), "", "text", "text_click"),
                btn("Get price", "/photo-quote/", "btn-gold", "camera", "photo_quote_cta_click")))
 
@@ -301,6 +307,8 @@ def graph(page):
     url = SITE + page["path"]
     g = []
     t = page["type"]
+    if t == "404":
+        return {}
     if t == "home":
         g.append(business_node(True))
         g.append({"@type": "WebSite", "@id": SITE + "/#website", "name": C.NAME, "url": SITE + "/", "inLanguage": "en-US", "publisher": {"@id": SITE + "/#business"}})
@@ -367,9 +375,10 @@ def head(page, crit_css, gate_js):
             '<link rel="preload" as="image" href="%s/static-d.avif" type="image/avif" media="(min-width:900px) and (prefers-reduced-motion:reduce)" fetchpriority="high">' % H,
         ]
     phone = '' if C.PHONE_CONFIRMED else '<meta name="phone-status" content="unconfirmed">'
-    ld = json.dumps(graph(page), ensure_ascii=False, separators=(",", ":"))
+    gr = graph(page)
+    ld = json.dumps(gr, ensure_ascii=False, separators=(",", ":")) if gr else ""
     gate = "<script>%s</script>" % gate_js if page["type"] == "home" else ""
-    nos = '<noscript><style>.hero-media picture,.hero-media .hero-scrim{display:none}</style></noscript>' if page["type"] == "home" else ""
+    nos = '<noscript><style>%s</style></noscript>' % NOSCRIPT_CSS if page["type"] == "home" else ""
     return ('<!doctype html><html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             '<title>%s</title><meta name="description" content="%s"><link rel="canonical" href="%s">%s'
             '<meta name="theme-color" content="#0B0B0C"><meta name="color-scheme" content="dark">%s'
@@ -378,10 +387,10 @@ def head(page, crit_css, gate_js):
             '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="%s"><meta name="twitter:description" content="%s"><meta name="twitter:image" content="%s">'
             '<meta name="analytics-id" content="{{ANALYTICS_ID}}">'
             '<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/site.webmanifest">'
-            '%s<style>%s</style>%s%s<script type="application/ld+json">%s</script></head>'
+            '%s<style>%s</style>%s%s%s</head>'
             % (esc(page["title"]), esc(page["desc"]), url, ind, phone, esc(C.NAME), esc(page["title"]), esc(page["desc"]), url, og,
                esc("916 Dent & Detail: " + plain(page["h1"])[:90]), esc(page["title"]), esc(page["desc"]), og,
-               "".join(pre), crit_css, nos, gate, ld))
+               "".join(pre), crit_css, nos, gate, ('<script type="application/ld+json">%s</script>' % ld) if ld else ""))
 
 
 def hero_html(page):
@@ -404,10 +413,10 @@ def hero_html(page):
     nos = '<noscript><img class="ns" src="%s/static-m.webp" width="720" height="1280" alt="%s"></noscript>' % (H, alt)
     return ('<section class="hero" aria-label="Introduction"><div class="hero-track" data-frames="%s/" data-n="31"><div class="hero-stage">'
             '<figure class="hero-media">%s%s<div class="hero-scrim"></div>%s</figure>'
-            '<div class="hero-copy"><h1><span class="hero-eyebrow">Mobile paintless dent repair &amp; detailing in Sacramento</span>'
+            '<div class="hero-copy"><div class="hero-top"><h1><span class="hero-eyebrow">Mobile paintless dent repair &amp; detailing in Sacramento</span>'
             '<span class="ln l1">%s</span> <span class="ln l2">%s</span> <span class="ln l3">%s</span></h1>'
             '<p class="hero-sub">Mobile paintless dent repair and detailing across Sacramento. No body shop. No repaint.</p>'
-            '<p class="hero-note">Most shallow-to-moderate dents with intact paint. We tell you if yours isn&rsquo;t one.</p>%s</div></div></div></section>'
+            '<p class="hero-note">Most shallow-to-moderate dents with intact paint. We tell you if yours isn&rsquo;t one.</p></div><div class="hero-bottom">%s</div></div></div></div></section>'
             % (H, pic, nos, cap, esc(l1), esc(l2), esc(l3), actions()))
 
 
@@ -422,4 +431,4 @@ def page_html(page, crit_css, gate_js):
     if page.get("form"):
         scripts += '<script src="%s" defer></script>' % A["js_form"]
     return (head(page, crit_css, gate_js) + '<body><a class="skip" href="#main">Skip to content</a>' + header(page["path"]) +
-            '<main id="main">' + top + link + "".join(blocks) + "</main>" + footer() + sticky_bar(page["path"]) + scripts + "</body></html>")
+            '<main id="main">' + top + link + "".join(('<div class="wrap srcs">%s</div>' % b) if b.startswith('<div class="src">') else b for b in blocks) + "</main>" + footer() + sticky_bar(page["path"]) + scripts + "</body></html>")

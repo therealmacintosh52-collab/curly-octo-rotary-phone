@@ -20,7 +20,7 @@ def home():
         plate("", "Will paintless repair work on my dent?", '<p class="prose">&ldquo;Dents gone&rdquo; is true for many dents, not all of them. Paintless dent repair (PDR) pushes the metal back from behind the panel. It works when the paint is intact and the dent is shallow-to-moderate and rounded. Sharp creases, stretched metal and cracked paint are different jobs.</p>'
               '<div class="cc"><div>%s<h3>Often fixable without paint</h3><ul><li>Shallow-to-moderate, rounded dents</li><li>Paint intact, with no cracks or chips in the dent</li><li>Door dings and parking-lot dents on most panels</li><li>Many hail dents, panel by panel</li></ul></div>'
               '<div>%s<h3>Usually not a PDR job</h3><ul><li>Sharp creases and folded metal</li><li>White stress marks or cracked, chipped paint</li><li>Some panel edges and braced areas</li><li>Structural damage, which belongs in a body shop</li></ul></div></div>'
-              '<p class="prose">Not sure which side yours is on? Our [plain self-check](/guides/can-this-dent-be-fixed-without-paint/) walks through it, or send a photo and we will tell you.</p>' % (dent_svg("shallow"), dent_svg("crease")),
+              '<p class="prose">Not sure which side yours is on? Our <a href="/guides/can-this-dent-be-fixed-without-paint/">plain self-check</a> walks through it, or send a photo and we will tell you.</p>' % (dent_svg("shallow"), dent_svg("crease")),
               g=True, rail="Honest limits", num="02", pid="limits"),
         plate("", "What can we do for your car?", rows(C.SERVICES), rail="Services", num="03", pid="services"),
         plate("", "What is Gloss Shield?",
@@ -40,7 +40,7 @@ def home():
               '<div class="note prose"><p><strong>What changes the price of a dent repair?</strong> Size, depth and sharpness of the dent, how many dents and panels, the panel material, how easy the spot is to reach, and the condition of the paint. That is why a price starts with a photo, not a guess.</p></div>'
               + rows([("/guides/what-affects-dent-repair-price/", "What changes the price of a dent repair", "Guide", "The drivers, with no made-up numbers."),
                       ("/guides/can-this-dent-be-fixed-without-paint/", "Can this dent be fixed without paint?", "Guide", "A plain self-check before you text."),
-                      ("/guides/pdr-vs-body-shop/", "Paintless dent repair or body shop?", "Guide", "How to choose between the two."),
+                      ("/guides/pdr-vs-body-shop/", "PDR or a body shop?", "Guide", "How to choose between the two."),
                       ("/guides/should-i-file-a-claim-for-a-small-dent/", "Should you file a claim for a small dent?", "Guide", "Deductible against repair cost.")]),
               g=True, rail="Guides", num="07", pid="guides"),
         plate("Next step", None, '<p class="big">Send a photo.</p><p class="prose">Two to four photos is plenty. We look, and we tell you what we can do.</p>' + actions("quote-text"), pid="close"),

@@ -56,7 +56,7 @@ SERVICES = [  # (url, plain name, real term, one line)
     ("/hail-damage-repair/", "Hail Fix", "Hail damage repair",
      "For the occasional valley hail storm: what can be fixed without paint and what to do first."),
     ("/mobile-detailing/", "Paint Deep-Clean", "Mobile detailing and paint decontamination",
-     "Bonded grime, sap and water spots lifted from the paint at your driveway or lot."),
+     "Stuck-on grime, sap and water spots lifted from the paint at your driveway or lot."),
     ("/paint-correction/", "Swirl & Scratch Erase", "Paint correction",
      "Machine polishing for swirls and light scratches. Deep scratches are a different job."),
     ("/ceramic-coating/", "Gloss Shield", "Ceramic coating",

@@ -8,6 +8,8 @@ function init(form){
   var endpoint=form.getAttribute('action')||'';
   var unconnected=endpoint.indexOf('{{')===0||!endpoint;
   form.setAttribute('novalidate','');
+  var pre=null;try{pre=new URLSearchParams(location.search).get('for')}catch(e){}
+  var need=$('#need',form);if(need&&(pre==='fleet'||pre==='dealer'))need.value='dealer';
   form.addEventListener('submit',function(e){
     e.preventDefault();
     if(unconnected||btn.disabled)return;

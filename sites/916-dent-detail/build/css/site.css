@@ -71,6 +71,7 @@
 .places a:hover{color:var(--lgold)}
 .places a span{font:600 12px/1 var(--f-b);letter-spacing:.1em;text-transform:uppercase;color:var(--steel)}
 @media (min-width:760px){.places{grid-template-columns:1fr 1fr;column-gap:48px}}
+.srcs{padding-bottom:32px}
 .src{font-size:14px;color:var(--steel);margin-top:32px;max-width:66ch}
 .src ul{padding-left:1.1em;margin:6px 0 0}
 .src a{color:var(--gold)}

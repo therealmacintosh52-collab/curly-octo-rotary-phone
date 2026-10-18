@@ -131,8 +131,8 @@ def main():
     key = kf.read_text().strip()
     put("%s.txt" % key, key)
     put("_redirects", REDIRECTS)
-    csp = ("default-src 'none'; script-src 'self' %s; style-src 'self' %s; img-src 'self' data:; font-src 'self'; connect-src 'self' {{FORM_ORIGIN}}; "
-           "form-action 'self' {{FORM_ORIGIN}}; manifest-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests") % (sri(gate), sri(crit))
+    csp = ("default-src 'none'; script-src 'self' %s; style-src 'self' %s %s; img-src 'self' data:; font-src 'self'; connect-src 'self' {{FORM_ORIGIN}}; "
+           "form-action 'self' {{FORM_ORIGIN}}; manifest-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests") % (sri(gate), sri(crit), sri(lib.NOSCRIPT_CSS))
     put("_headers", HEADERS.replace("__CSP__", csp))
     print("built %d pages, %d indexable; critical css %d bytes; hero %s" % (len(built), len(indexable), len(crit.encode()), A["hero"]))
 

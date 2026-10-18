@@ -1,0 +1,6 @@
+/* TEAM */
+916 Dent & Detail, mobile paintless dent repair and detailing, Sacramento area.
+
+/* SITE */
+Static HTML, CSS and a little vanilla JavaScript. Fonts: Michroma and Inter (SIL Open Font License).
+No trackers, no third-party scripts.

@@ -1,9 +1,10 @@
+import zlib
 import config as C
 from lib import *   # noqa
 
 
 def photo_card(text, h="Send a photo and we will tell you"):
-    return plate("", None, '<div class="card"><h2>%s</h2><p class="prose">%s</p>%s</div>' % (h, inline(text), actions()), pid="photo-card-" + str(abs(hash(text)) % 999))
+    return plate("", None, '<div class="card"><h2>%s</h2><p class="prose">%s</p>%s</div>' % (h, inline(text), actions()), pid="photo-card-%d" % (zlib.crc32(text.encode()) % 9999))
 
 
 def svc(path, title, desc, h1, kicker, answer, name, term, blocks, og_sub=None):
@@ -33,18 +34,18 @@ If the paint has a crack, a chip or a white, crazed look inside the dent, tell u
               '<div class="cc"><div>%s<h3>Sharp crease</h3><p>Metal folded into a line does not push back to a smooth surface. Many creases need conventional repair.</p></div>'
               '<div>%s<h3>Stretched or cracked paint</h3><p>White stress marks, cracks or chips mean the paint has already failed. Moving the metal can make that worse.</p></div></div>'
               '<ul class="prose"><li>Some panel edges, braced areas and spots with no access from behind</li><li>Aluminum panels, which can take more care and are judged case by case</li><li>Structural damage and areas near airbag sensors, which belong in a body shop</li></ul>'
-              '<p class="prose">Our [plain self-check](/guides/can-this-dent-be-fixed-without-paint/) goes through these one by one. We tell you after photos, or in person, if yours is not a PDR job.</p>' % (dent_svg("crease"), dent_svg("stretch")), g=True),
+              '<p class="prose">Our <a href="/guides/can-this-dent-be-fixed-without-paint/">plain self-check</a> goes through these one by one. We tell you after photos, or in person, if yours is not a PDR job.</p>' % (dent_svg("crease"), dent_svg("stretch")), g=True),
         plate("Price", "What changes the price of paintless dent repair?", md("""
 Dent size, depth and sharpness, how many dents are on the panel, which panels they are on, what the panel is made of, how easy the spot is to reach, and the condition of the paint. There is no honest way to price that from a description, which is why we start from photos. The [full list of price drivers](/guides/what-affects-dent-repair-price/) has no numbers because a number without a photo would be a guess.""")),
-        photo_card("Shallow, round and in intact paint is the best case. Send photos of yours and we tell you which side it is on."),
+        photo_card("Shallow, round and in intact paint is the easy case. Send photos of yours and we tell you which side it is on."),
         plate("Hail", "Is hail damage different?", md("""
-Hail leaves many dents at once, often shallow and round, which is PDR-friendly shape but a bigger job. We cover it on its own page: [hail damage repair](/hail-damage-repair/).""")),
+Hail leaves many dents at once, often shallow and round, the kind PDR handles well, but it is a bigger job. We cover it on its own page: [hail damage repair](/hail-damage-repair/).""")),
         faq_block([
             ("Will paintless dent repair damage my paint?", "The method does not sand, fill or repaint, so paint that is intact stays original. Paint that is already cracked, chipped or brittle can crack further when the metal is moved, which is why we ask for a close-up photo before we say yes."),
             ("How long does it take?", "We do not quote a time without seeing the dent, because it depends on how large it is, how many there are and where they sit. Send photos and we give you a plan for your car."),
             ("Do I need a garage or shade?", "Tell us where the car will be when you text: driveway, office lot, garage. We confirm whether the spot works for the job."),
             ("Do you work on aluminum panels?", "Panel material changes both the work and the price. Tell us the make, model and which panel, and we say whether we take it."),
-            ("Is it cheaper than a body shop?", "When a dent is a PDR candidate it skips the sanding, filling and painting steps where body work adds time and cost. That is a general pattern, not a promise: photos decide. See [paintless dent repair or body shop](/guides/pdr-vs-body-shop/)."),
+            ("Is it cheaper than a body shop?", "When a dent is a PDR candidate it skips the sanding, filling and painting steps where body work adds time and cost. That is a general pattern, not a promise: photos decide. See [PDR or body shop](/guides/pdr-vs-body-shop/)."),
         ], "Questions about dent removal"),
         sources([("CARSTAR Sacramento, paintless dent repair page (limits and process)", "https://www.carstar.com/locations/ca/sacramento-15427/paintless-dent-repair")], "Where the general limits come from"),
         related("Next pages", [("/hail-damage-repair/", "Hail damage repair", "When hail hits, panel by panel."), ("/guides/can-this-dent-be-fixed-without-paint/", "Can this dent be fixed without paint?", "A plain self-check."), ("/mobile-detailing/", "Mobile detailing", "Finish the car after the dent is gone.")]),
@@ -72,7 +73,7 @@ Yes, but not every year. Valley hail is occasional, not annual, so we treat hail
             ("Send us the photos", "We tell you which panels look fixable without paint and which do not. We give you a written estimate and photos your insurer can use."),
         ]), g=True),
         plate("Can PDR do it?", "Can paintless dent repair fix hail damage?", md("""
-Often it can, panel by panel. Hail dents tend to be shallow and rounded with the paint intact, the shape PDR handles best. What changes is the amount of work: forty small dents across a hood and roof is a different job from one door ding, and it is priced and scheduled differently.
+Often it can, panel by panel. Hail dents tend to be shallow and rounded with the paint intact, the shape PDR handles most easily. What changes is the amount of work: forty small dents across a hood and roof is a different job from one door ding, and it is priced and scheduled differently.
 
 Some panels are better in a body shop: those with cracked or chipped paint, creased metal, very dense overlapping dents, or edges and braced areas we cannot reach. We would rather tell you that from photos than find out after we arrive. The [self-check guide](/guides/can-this-dent-be-fixed-without-paint/) explains each limit, and the main [paintless dent repair page](/paintless-dent-repair/) explains the method.""")),
         plate("Insurance", "Does insurance cover hail damage, and should I file?", md("""
@@ -84,7 +85,7 @@ The claim itself is between you and your insurer. We give you a written estimate
             ("How long does hail repair take?", "It depends on how many dents there are and on which panels, so we do not quote a time before seeing photos. After we look, we give you a plan for your car."),
             ("Do you deal with the insurance company for me?", "The claim is between you and your insurer. We give you a written estimate and photos your insurer can use."),
             ("Is hail common in Sacramento?", "Valley hail is occasional, not annual. Two events are documented in the table above; neither source counts dented cars."),
-            ("Will every hail dent come out?", "No. Shallow, rounded dents in intact paint are the best case. Cracked paint, creases and unreachable areas may need other repair, and we tell you which is which."),
+            ("Will every hail dent come out?", "No. Shallow, rounded dents in intact paint are the easy case. Cracked paint, creases and unreachable areas may need other repair, and we tell you which is which."),
         ], "Questions about hail damage"),
         related("Next pages", [("/paintless-dent-repair/", "Paintless dent repair", "How the method works."), ("/guides/should-i-file-a-claim-for-a-small-dent/", "Small dent and insurance", "Deductible against repair cost."), ("/service-area/", "Service area", "The places we come to.")]),
         end_cta(),
@@ -92,7 +93,7 @@ The claim itself is between you and your insurer. We give you a written estimate
     return svc("/hail-damage-repair/", "Hail Damage Repair Sacramento | 916 Dent & Detail",
                "Hail dents on your car? See what paintless repair can fix panel by panel, what Sacramento hail has actually done, and what to photograph first.",
                "Hail damage on your car: what can be fixed without paint, and what to do first", "Hail Fix",
-               "Hail dents are often shallow and round, the shape paintless dent repair handles best, panel by panel, when the paint isn't cracked. Valley hail is occasional, not annual. Send photos of every damaged panel and we tell you which ones look fixable without paint and which need a body shop.",
+               "Hail dents are often shallow and round, the shape paintless dent repair handles most easily, panel by panel, when the paint isn't cracked. Valley hail is occasional, not annual. Send photos of every damaged panel and we tell you which ones look fixable without paint and which need a body shop.",
                "Hail Fix", "hail damage repair", b)
 
 
@@ -100,15 +101,15 @@ The claim itself is between you and your insurer. We give you a written estimate
 def detailing():
     b = [
         plate("Scope", "What does a mobile detail include?", '<p class="prose">That depends on the car and what you want. These are the jobs we do, each with its own page:</p>' + table("Detailing services", ["Service", "What it is for", "Read more"], [
-            ["Paint Deep-Clean", "Lifting bonded grime, sap and water spots that washing leaves behind", "Below, on this page"],
+            ["Paint Deep-Clean", "Lifting stuck-on grime, sap and water spots that washing leaves behind", "Below, on this page"],
             ["Swirl & Scratch Erase", "Swirl marks and light scratches in the clear coat", "[paint correction](/paint-correction/)"],
             ["Gloss Shield", "A protective layer over corrected paint", "[ceramic coating](/ceramic-coating/)"],
             ["Interior Reset", "Pet hair, spills, odor and dust in the seams", "[interior detailing](/interior-detailing/)"],
         ]) + '<p class="prose">Ask about additional services for protection and maintenance. Send a photo of the car and say what you want, and we tell you what makes sense.</p>'),
         plate("Paint Deep-Clean", "What is Paint Deep-Clean (paint decontamination)?", md("""
-A wash removes loose dirt. It does not remove what has bonded to the paint: iron particles from brake dust, road tar, tree sap, overspray and mineral water spots. Decontamination is the step that deals with those. Done before polishing or coating, it gives the next step a clean surface.
+A wash removes loose dirt. It does not remove what clings to the paint: iron particles from brake dust, road tar, tree sap, overspray and mineral water spots. Decontamination is the step that deals with those. Done before polishing or coating, it gives the next step a clean surface.
 
-A quick way to check your own car: put your hand in a thin plastic bag and glide it over clean, dry paint. If it feels gritty instead of smooth, something is bonded to the surface.
+A quick way to check your own car: put your hand in a thin plastic bag and glide it over clean, dry paint. If it feels gritty instead of smooth, something is stuck to the surface.
 
 ### Tree sap and water spots
 Fresh sap is easier to lift than sap that has baked on through a hot stretch, and mineral spots are easier before they etch. If you see either, tell us when you text and send a close photo. Some etched spots will have to be polished out instead, which is [paint correction](/paint-correction/).""") , g=True),
@@ -117,10 +118,10 @@ It depends on the job, so tell us where the car will be parked and whether the s
 
 Water is a real question for any mobile cleaning in this area. Sacramento County says businesses may not let wash water of any kind, even soapy water, run into storm drains, and Sacramento, Elk Grove, Folsom, Citrus Heights and Rancho Cordova each have their own stormwater rules. Dent removal uses no water at all. See the county's [stormwater program page](https://emd.saccounty.gov/us/en/faqs/stormwater-program.html).""")),
         plate("Choosing", "Is mobile detailing as good as a shop?", md("""
-For most cleaning and light correction work, location is not the deciding factor; the technician and the prep are. The honest differences:""") + table("Mobile and shop detailing", ["", "Mobile (at your place)", "Shop"], [
+For most cleaning and light correction work, location is not the deciding factor; the technician and the prep are. The honest differences:""") + table("Mobile and shop detailing", ["Topic", "Mobile (at your place)", "Shop"], [
             ["Convenience", "The car stays where you are", "You drop off and collect"],
             ["Conditions", "Sun, wind and dust depend on your spot", "A controlled space"],
-            ["Best fit", "Cleaning, deep-clean, interiors, light correction", "Heavier correction and coating when your spot is exposed"],
+            ["Suits", "Cleaning, deep-clean, interiors, light correction", "Heavier correction and coating when your spot is exposed"],
         ], True) + '<p class="prose">If your spot is exposed or windy, say so. We tell you whether the job works there or needs a better time or place.</p>', g=True),
         faq_block([
             ("How long does a mobile detail take?", "It depends on the car, its condition and what you want done, so we do not quote a time in advance. Send a photo and the goal and we give you a plan."),
@@ -186,17 +187,17 @@ A ceramic coating is a liquid applied to clean paint that cures into a thin, har
 
 What it does not do: it does not stop scratches or stone chips, it does not fix dents, and it does not make a car maintenance-free. It also seals in whatever is underneath, which is why preparation matters more than the product name.""")),
         plate("Prep", "Do I need paint correction before ceramic coating?", md("""
-If you want swirls and scratches gone, yes. A coating locks in the paint exactly as it is, defects included, so any polishing happens first, after a [paint deep-clean](/mobile-detailing/) that removes what bonded to the surface. If your paint is already in good shape, a thorough deep-clean may be all it needs. We decide that from photos and confirm it when we see the paint. The polishing step is explained on the [paint correction page](/paint-correction/).""", ), g=True),
+If you want swirls and scratches gone, yes. A coating locks in the paint exactly as it is, defects included, so any polishing happens first, after a [paint deep-clean](/mobile-detailing/) that removes what clings to the surface. If your paint is already in good shape, a thorough deep-clean may be all it needs. We decide that from photos and confirm it when we see the paint. The polishing step is explained on the [paint correction page](/paint-correction/).""", ), g=True),
         plate("Durability", "How long does ceramic coating last?", md("""
 There is no honest single number. How long a coating lasts depends on the product, how well the paint was prepared, how the car is parked, how it is washed, and how much sun it sees. Be wary of any duration promised without written terms that say what is and is not covered.
 
-Sacramento is a sun-heavy place: the city typically logs about 23 days at or above 100&deg;F in a normal year, and 2024 set a record with its 45th such day on September 24. A coating does not block heat. Ask for the manufacturer&rsquo;s data sheet rather than a promise.""".replace("&deg;", "°")) + sources([("CBS Sacramento, record triple-digit days in 2024", "https://www.cbsnews.com/sacramento/news/sacrament-new-record-for-most-triple-digit-heats-days-in-year-2024")])),
-        plate("Compare", "Ceramic coating or wax?", table("Wax and ceramic coating", ["", "Wax", "Ceramic coating"], [
-            ["Layer", "Soft and thin", "Harder, bonded to the paint"],
+Sacramento is a sun-heavy place: the city typically logs about 23 days at or above 100&deg;F in a normal year, and 2024 set a record with its 45th such day on September 24. A coating does not block heat. Ask for the manufacturer’s data sheet rather than a promise.""".replace("&deg;", "°")) + sources([("CBS Sacramento, record triple-digit days in 2024", "https://www.cbsnews.com/sacramento/news/sacrament-new-record-for-most-triple-digit-heats-days-in-year-2024")])),
+        plate("Compare", "Ceramic coating or wax?", table("Wax and ceramic coating", ["Topic", "Wax", "Ceramic coating"], [
+            ["Layer", "Soft and thin", "Harder, attached to the paint"],
             ["Reapplication", "Often", "Much less often, depending on product and care"],
             ["Prep needed", "Light", "Thorough: deep-clean and any polishing first"],
             ["Cost and time", "Lower", "Higher, because of the prep"],
-        ], True) + '<p class="prose">Neither stops scratches or dents. For dents, see [dent removal](/paintless-dent-repair/).</p>', g=True),
+        ], True) + '<p class="prose">Neither stops scratches or dents. For dents, see <a href="/paintless-dent-repair/">dent removal</a>.</p>', g=True),
         plate("Checklist", "What should I ask any ceramic coating installer?", '<ul class="prose"><li>Which product, from which manufacturer, and where is its data sheet?</li><li>What preparation is included, and how much polishing?</li><li>What are the cure and care instructions, and when can the car be washed?</li><li>What do the written terms cover, and what do they leave out?</li><li>Will the work be done somewhere shaded, and how is dust handled?</li></ul><p class="prose">We are glad to answer these for our own work. Ask about coating and protection options when you send a photo, and we tell you the product and the care it needs before you book.</p>'),
         faq_block([
             ("Is Gloss Shield a special product?", "Gloss Shield is our plain-language name for ceramic coating. Ask us which product we would use on your car and what care it needs, and we tell you before you book."),
@@ -226,7 +227,7 @@ Interior detailing is a deep clean of what you sit on and touch: seats, carpets 
             ["Odor", "Finding the source first, then cleaning it", "Smoke or spoiled milk can sit in foam and padding"],
             ["Sand and crumbs", "Reaching seams, rails and vents", "None; this is the point of a detail"],
         ]) + '<p class="prose">&ldquo;Reset&rdquo; is the goal: back to a clean starting point. We tell you from photos which marks we expect to lift and which may stay.</p>', g=True),
-        plate("Before you book", "What should I tell you before the interior detail?", '<ul class="prose"><li>Fabric or leather seats</li><li>What spilled and roughly when</li><li>Pets, smoke, or anything that smells</li><li>Any sign of water getting in, such as damp carpet or a musty smell. That is a different problem from dirt and we will say so.</li><li>Where the car will be, and whether there is an outlet and some shade</li></ul><p class="prose">Take a few photos of the worst areas in daylight. The [photo guide](/photo-quote/) works for interiors too.</p>'),
+        plate("Before you book", "What should I tell you before the interior detail?", '<ul class="prose"><li>Fabric or leather seats</li><li>What spilled and roughly when</li><li>Pets, smoke, or anything that smells</li><li>Any sign of water getting in, such as damp carpet or a musty smell. That is a different problem from dirt and we will say so.</li><li>Where the car will be, and whether there is an outlet and some shade</li></ul><p class="prose">Take a few photos of the worst areas in daylight. The <a href="/photo-quote/">photo guide</a> works for interiors too.</p>'),
         plate("Your part", "Should I clean the car out first?", md("""
 Please take out personal items, papers and anything valuable, and bag any rubbish. You do not need to vacuum or scrub first; that is the work. Child seats come out or stay as you prefer, and we tell you if one needs to be removed to reach what is under it."""), g=True),
         faq_block([
