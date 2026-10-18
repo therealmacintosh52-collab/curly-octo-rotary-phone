@@ -1,0 +1,51 @@
+# ASSUMPTIONS: decisions made without asking (BLUEPRINT rule 9)
+
+Orchestrator decisions (O) were given before this stage and are recorded as made; they are challenged only with evidence. Stage decisions (S) are mine. Each can be reversed by editing one named place. IDs here are `S-nn` to keep them apart from the owner approvals (`A-###`) in the repo's `ops/DECISIONS.md`.
+
+## A. Orchestrator decisions (recorded, not re-opened)
+
+| ID | Decision | Evidence check done in this stage |
+|---|---|---|
+| O-01 | Brand fixed by the owner: Onyx #0B0B0C, Graphite #16171A, Gold #C9A24A, Light Gold #E8CB7A, Ivory #F3EEE3, Steel #8C8F96; Michroma (display) + Inter (body), self-hosted woff2. Gold is accent only; metallic gradient only on hero line 3 and plate numerals | Contrast computed for every pair (`DESIGN-BRIEF.md` section 4). Steel passes AA for small text on Onyx (6.07) and Graphite (5.53). Gradient darkest stop is 4.14:1, so it is large-text only |
+| O-02 | Fonts: take the woff2 from `916-dent-detail/src/fonts/` (checked: `michroma-400.woff2`, `inter-400.woff2`, `inter-600.woff2` plus OFL licence files, subset of @fontsource 5.3.0) | Present and sized 9.7, 15.1, 15.5 KB. U+00B7 (middle dot) is inside the subset range. No npm fetch needed |
+| O-03 | Plain-language names are the owner's six; real terms stay in H1/H2/titles/alt/FAQ | Applied (ENTITY-PLAN section 6) |
+| O-04 | City pages: Sacramento, Elk Grove, Roseville, Folsom; Citrus Heights only if ~300 non-swappable sourced words are truly reachable | Judged **not reachable** (S-04). Other cities as named areas on one page, not "Surrounding Areas" |
+| O-05 | No Spanish mirror at launch | Reasoning in S-05 |
+| O-06 | No prices; a no-numbers price-drivers guide is allowed; SB 478 note in COMPLIANCE; no claims of licensed, insured, bonded, certified, guarantee, warranty, years, awards, family owned, review counts; no reviews, no `AggregateRating` | COMPLIANCE.md sections 1, 3, 4 |
+| O-07 | Primary action "Get a price from a photo" + tap-to-call + text; sticky mobile bar; photo-quote form says it is unconnected and sends nothing until a destination token is stamped; honest "what PDR can't fix" block; dealer/fleet page | CONVERSION-PLAN.md |
+| O-08 | Static HTML/CSS/JS from a Python generator; reference engineering patterns only; hero as progressive enhancement of the owner's frames | DESIGN-BRIEF section 2; SITE-ARCHITECTURE section 7 |
+
+## B. Stage 1 to 3 decisions
+
+| ID | Decision | Why | To reverse |
+|---|---|---|---|
+| S-01 | The business card PDFs were read visually in this stage as well (rendered the back at 110 dpi). Back shows 916-868-2447, "Sacramento, CA & Surrounding Areas", @916dentanddetail, three service rows | Confirms the notes; the owner still confirms digits (TO-CONFIRM #1) | n/a |
+| S-02 | Phone is published **as supplied**, formatted (916) 868-2447, `+1-916-868-2447` in markup. A `PHONE_CONFIRMED=false` flag makes the production lint fail until the owner confirms | Owner input is authoritative (rule: provided values win); research could only say "unconfirmed" | Set the flag true after confirmation |
+| S-03 | Schema type is `AutomotiveBusiness`, not the owner spec's `AutoRepair + LocalBusiness` | `AutoRepair` implies mechanical repair and touches the open BAR question; `AutoBodyShop` contradicts "no body shop"; the parent type is accurate for dent removal plus detailing. Type existence to be confirmed on schema.org at build (blueprint rule 7) | One field in `entity.json` |
+| S-04 | **No Citrus Heights page.** Evidence: one 2019 city flyer (70,000+ vehicles/day on Greenback Ln, Sunrise MarketPlace, rental share), one undated hail article, a 2024 language figure. Cannot be turned into ~300 non-swappable words without invention (rule 5). Sacramento, Elk Grove, Roseville, Folsom each have 4 to 8 sourced local items; they are written only from the source ledger and dropped from the build if they fall under ~300 unique words or fail the human landmark check (TO-CONFIRM #22) | Quality over page count | Owner job proof lifts a page |
+| S-05 | **No Spanish mirror.** Demand exists (about 13.1% of county residents 5+ speak Spanish at home; Citrus Heights 9.21% Spanish-primary households) but a mirror promises Spanish calls and texts; capacity is unknown. Machine-translated filler is barred. Revisit when the owner confirms capacity (TO-CONFIRM #10) | Do not create a promise the business cannot keep | Add real translation with `hreflang` |
+| S-06 | Service URLs use the real search term (`/paintless-dent-repair/`, `/ceramic-coating/`); the owner's plain-language names are visible labels and support copy | Brand names are not queries (research 4.2) | Redirects exist for the brand slugs |
+| S-07 | **Paint Deep-Clean has no page of its own;** it is a section of `/mobile-detailing/`. Door dings fold into the PDR page. Headlight restoration is not built | Low-demand queries and no process facts: thin-content risk; headlight is not one of the six owner names | Split on Search Console evidence or owner facts |
+| S-08 | Six service pages, four guides, no blog. Guides: price drivers, can-it-be-fixed, PDR vs body shop, small-dent insurance | The question set the research could support; each fills a competitor gap; none needs an invented fact | Add posts when data exists |
+| S-09 | **No reviews page, no gallery, no pricing page, no memberships, no booking.** Footer "Leave a review" appears only when a review URL exists | Nothing real to show; rule 2; FTC rule | Add when real material exists |
+| S-10 | Hero frames are treated as an **illustration**, captioned "Illustration. Not a customer vehicle." (`HERO_IS_REAL_JOB=false`), and the beading image likewise | The scene looks staged or generated (navy sedan, wet studio floor); rule 2 bans fake before/afters | Owner confirms footage is a real job and approves |
+| S-11 | Hero ships **31 re-encoded frames** (every 4th, 540 px wide, AVIF; 682 KB mobile, 540 KB desktop panel, measured) instead of 121 source frames (12.4 MB / 9.3 MB). Static final frame is the default markup. No GSAP or Lenis | Performance budget; the existing app measured LCP 2.6 s with its heavier approach | Raise to 61 frames if real-device test shows stepping |
+| S-12 | Home H1 combines an eyebrow (primary term and place) with the owner's three statements in one `<h1>` | Blueprint: one H1 with primary term and place; owner: hero line verbatim | Move the eyebrow to a `<p>` if the owner objects |
+| S-13 | The Sacramento city page targets neighborhood and at-home or at-work intent, not the metro term (home owns that). Neighborhood names appear only after a map check | Avoid cannibalization between home and the Sacramento page | Drop the page and fold into home if it reads as a duplicate |
+| S-14 | "Home, workplace or lot" is used in descriptions | Reasoned from "we come to you" and B2B customers; flagged in TO-CONFIRM #8 and ENTITY-PLAN | Edit `entity.json` |
+| S-15 | The place list is called "places" or "cities and communities" (Natomas, Carmichael, Granite Bay and El Dorado Hills are not incorporated cities). Canonical order: Sacramento, Elk Grove, Roseville, Folsom, Rancho Cordova, Citrus Heights, West Sacramento, Davis, Rocklin, Lincoln, El Dorado Hills, Granite Bay, Carmichael and Natomas | One canonical string everywhere | `entity.json` |
+| S-16 | The base ZIP 95624 is never published, in any form. Distances and drive times are not published (only straight-line rows were sourced; the rest are estimates) | Rule 8; no unsourced drive times | n/a |
+| S-17 | No email on the site until supplied; form replies are by phone or text. No `email` in schema | None supplied | Add to `entity.json` |
+| S-18 | No thank-you page; the form shows an inline success state | Avoids a thin indexable URL | Add if a tool needs one |
+| S-19 | No third-party scripts, analytics or cookies by default; `{{ANALYTICS_ID}}` is a stamped hook only if the owner chooses a tool | Performance, privacy, no consent banner needed | Owner choice |
+| S-20 | FAQ page holds only cross-cutting questions and links to the owning pages; service-specific Q&A stay with their pages | Prevent cannibalization and duplicate text | n/a |
+| S-21 | No red or other functional hue; errors use an "Error:" prefix, icon and Gold outline | Owner palette is fixed; no color-only meaning | Add a functional token with owner consent |
+| S-22 | The owner's card hex texture is not used on the site | It is on the trade-cliche list (design-references section 4) | Owner request |
+| S-23 | No map graphic; the service area is typographic text. No schematic "approximate positions" map | Avoids implied distances and drive times | Add a verified map later |
+| S-24 | Guides carry "Updated <month year>" only after the date is actually reviewed (first publish: the build month) | Blueprint content standards | n/a |
+| S-25 | `robots.txt` default: allow search and retrieval crawlers; the choice on AI training crawlers is the owner's (TO-CONFIRM #19) | Blueprint Stage 4 | `robots.txt` |
+| S-26 | `sites/quantum-growth/` does not exist in this repo, so placeholder stamping (`stamp.py`) and the leak lint (`lint.py`) are written new, with the token and ban lists in `SITE-ARCHITECTURE.md` section 7 and `COMPLIANCE.md` section 15 | Reference folder missing | n/a |
+| S-27 | Research confidence labels were kept as the researchers set them; in the merge nothing was upgraded. Everything third-party is search-summary level because WebFetch was blocked | Honesty | Re-verify in a browser |
+| S-28 | Duplicate rows in `sources.csv` were merged (18); aliases keep the original IDs. `competitors.md` and the three `sources-*.csv` and area `.md` files are left as written | Instructions; traceability | n/a |
+| S-29 | The photo-quote primary path is **text (sms:)**; the form is secondary and unconnected until stamped | A static site cannot receive photos; the text path works on day one | Swap when a destination exists |
+| S-30 | No claims about a "truck", van, trailer or equipment anywhere | Not supplied | n/a |
